@@ -19,6 +19,10 @@
 
 # production
 /build
+/data/*.sqlite
+/data/*.sqlite-shm
+/data/*.sqlite-wal
+/data/feedback-reports.json
 
 # misc
 .DS_Store
@@ -39,3 +43,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/data/profile-images

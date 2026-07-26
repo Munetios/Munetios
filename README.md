@@ -1,36 +1,130 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Munetios
+
+Munetios is a modern productivity platform built with Next.js, designed with a focus on privacy, performance, accessibility, and a clean user experience.
+
+## Open Source
+
+The Munetios source code is open source.
+
+For security and privacy reasons, the Munetios Accounts infrastructure, authentication systems, and account databases are proprietary and are **not** open source.
+
+## Features
+
+- ⚡ Fast and modern web application
+- 🎨 Responsive user interface
+- 🔒 Privacy-focused design
+- 🌐 Internationalization support
+- 📱 Mobile-friendly
+- 🚀 Optimized performance
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20 or newer
+- npm, pnpm, yarn, or bun
+
+### Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/munetios/munetios
+```
+
+Enter the project directory:
+
+```bash
+cd munetios
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Or use your preferred package manager:
+
+```bash
+pnpm install
+```
+
+```bash
+yarn
+```
+
+```bash
+bun install
+```
+
+## Development
+
+Start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
+```
+
+or
+
+```bash
 pnpm dev
-# or
+```
+
+or
+
+```bash
+yarn dev
+```
+
+or
+
+```bash
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open your browser and visit:
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+```
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The application automatically reloads as you edit the source code.
 
-## Learn More
+## Production
 
-To learn more about Next.js, take a look at the following resources:
+Build the application:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Start the production server:
 
-## Deploy on Vercel
+```bash
+npm start
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Technology
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js
+- React
+- JavaScript
+- CSS
+
+## Deployment
+
+Munetios can be deployed on any platform capable of hosting a Next.js application, including:
+
+- Vercel
+- Docker
+- Self-hosted Node.js servers
+
+## License
+
+Copyright © Munetios.
+
+The Munetios project is open source.
+
+The Munetios Accounts backend, authentication services, account databases, and related infrastructure are proprietary and are not included as part of the open-source project.

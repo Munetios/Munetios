@@ -1,26 +1,1062 @@
 @import "tailwindcss";
 
+* {
+  font-feature-settings:
+    "ss01" var(--font-ss01, 1),
+    "ss08" var(--font-ss08, 1) !important;
+}
+
 :root {
+  color-scheme: dark;
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #030303;
+  --muted: #cbbbe2;
+
+  --line: rgba(226, 212, 255, 0.18);
+  --purple: #9d6cff;
+  --purple-dark: #31164f;
+  --accent: #a855f7;
+  --app-background: linear-gradient(135deg, #150627, #31164f);
+  --app-font:
+    "Google Sans Flex", "Google Sans", Inter, ui-sans-serif, system-ui,
+    sans-serif;
+  --font-ss01: 1;
+  --font-ss08: 1;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans:
+    "Google Sans Flex", "Google Sans", Inter, ui-sans-serif, system-ui,
+    sans-serif;
+  --breakpoint-sm: 540px;
+  --breakpoint-md: 850px;
+  --breakpoint-lg: 1150px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+.signin-background {
+  background: var(--app-background);
+}
+
+html[data-munetios-theme="munetios-default"] .signin-background {
+  background-image: url("/background.jpg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+body {
+  margin: 0;
+  background: var(--app-background);
+  background-attachment: fixed;
+  color: var(--foreground);
+  font-family: var(--app-font);
+}
+
+.global-loading-progress-shell {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483647;
+  width: 100%;
+  height: 3px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+  transition: opacity 220ms ease;
+}
+
+.global-loading-progress-shell.is-visible {
+  opacity: 1;
+}
+
+.global-loading-progress-bar {
+  height: 100%;
+  min-width: 8%;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(90deg, #7c3aed 0%, #3b82f6 50%, #22d3ee 100%);
+  box-shadow: 0 0 24px rgba(84, 110, 255, 0.34);
+  transition: width 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.global-loading-progress-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.7),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: global-loading-progress-shimmer 1.1s linear infinite;
+}
+
+@keyframes global-loading-progress-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 1ms !important;
+}
+
+html.reduce-transparency *,
+html.reduce-transparency *::before,
+html.reduce-transparency *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.reduce-transparency[data-munetios-theme] .liquid-glass,
+html.reduce-transparency[data-munetios-theme]
+  [data-munetios-dropdown-portal="true"],
+html.reduce-transparency[data-munetios-theme] .munetios-modal-enter,
+html.reduce-transparency[data-munetios-theme] .munetios-error-container {
+  isolation: auto !important;
+  backdrop-filter: blur(0) !important;
+  -webkit-backdrop-filter: blur(0) !important;
+  background-color: var(
+    --theme-surface-container,
+    var(--background-secondary)
+  ) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html.reduce-transparency[data-munetios-theme] .liquid-glass::before,
+html.reduce-transparency[data-munetios-theme] .liquid-glass::after,
+html.reduce-transparency[data-munetios-theme]
+  [data-munetios-dropdown-portal="true"]::before,
+html.reduce-transparency[data-munetios-theme]
+  [data-munetios-dropdown-portal="true"]::after {
+  display: none !important;
+  background: none !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
+}
+
+html.reduce-transparency[data-munetios-theme] [class*="bg-white/"],
+html.reduce-transparency[data-munetios-theme] [class*="bg-purple-"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html:not(
+    .reduce-transparency
+  )[data-munetios-theme][data-munetios-theme-mode="light"]
+  .liquid-glass {
+  border-color: color-mix(
+    in srgb,
+    var(--foreground) 14%,
+    transparent
+  ) !important;
+  background-color: color-mix(in srgb, #ffffff 38%, transparent) !important;
+  background-image:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.34),
+      rgba(255, 255, 255, 0.1) 46%,
+      color-mix(in srgb, var(--accent) 8%, transparent)
+    ),
+    radial-gradient(
+      circle at 18% 0%,
+      rgba(255, 255, 255, 0.32),
+      transparent 32%
+    ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    inset 0 -1px 0 rgba(20, 10, 30, 0.06),
+    0 18px 42px rgba(43, 24, 61, 0.12) !important;
+}
+
+html:not(
+    .reduce-transparency
+  )[data-munetios-theme][data-munetios-theme-mode="light"]
+  .liquid-glass:not(.munetios-toast)::before {
+  background:
+    linear-gradient(
+      118deg,
+      rgba(255, 255, 255, 0.42),
+      color-mix(in srgb, var(--accent) 10%, transparent) 58%,
+      rgba(255, 255, 255, 0.22)
+    ),
+    radial-gradient(
+      circle at var(--glass-x) var(--glass-y),
+      rgba(255, 255, 255, 0.48),
+      transparent 56%
+    ) !important;
+}
+
+html[data-munetios-theme-mode="light"] [class*="text-white/"] {
+  color: color-mix(in srgb, var(--foreground) 72%, transparent) !important;
+}
+
+html.theme-no-glass .liquid-glass {
+  backdrop-filter: blur(0) !important;
+  -webkit-backdrop-filter: blur(0) !important;
+  background-color: var(--background-secondary, var(--background)) !important;
+  background-image: none !important;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--foreground) 18%, transparent) !important;
+}
+
+html.theme-no-glass .liquid-glass::before,
+html.theme-no-glass .liquid-glass::after {
+  display: none !important;
+}
+
+html[data-munetios-theme="high-contrast-dark"] .liquid-glass {
+  border-color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+html[data-munetios-theme] .text-white {
+  color: var(--foreground) !important;
+}
+
+html[data-munetios-theme] .text-white\/80,
+html[data-munetios-theme] .text-white\/75,
+html[data-munetios-theme] .text-white\/70,
+html[data-munetios-theme] .text-white\/65,
+html[data-munetios-theme] .text-white\/60 {
+  color: color-mix(in srgb, var(--foreground) 72%, transparent) !important;
+}
+
+.appearance-color-field {
+  background:
+    linear-gradient(to top, #000000, transparent),
+    linear-gradient(to right, #ffffff, hsl(var(--picker-hue, 270) 100% 50%));
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.appearance-hue-slider {
+  appearance: none;
+  background: linear-gradient(
+    90deg,
+    #ff0000,
+    #ffff00,
+    #00ff00,
+    #00ffff,
+    #0000ff,
+    #ff00ff,
+    #ff0000
+  );
+}
+
+.appearance-hue-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+}
+
+.appearance-eyedropper-active,
+.appearance-eyedropper-active * {
+  cursor: crosshair !important;
+}
+
+html[data-munetios-theme] body,
+html[data-munetios-theme] button,
+html[data-munetios-theme] input,
+html[data-munetios-theme] select,
+html[data-munetios-theme] textarea,
+html[data-munetios-theme] munetios-app {
+  font-family: var(--app-font) !important;
+}
+
+html[data-munetios-theme] button,
+html[data-munetios-theme] a,
+html[data-munetios-theme] input,
+html[data-munetios-theme] .liquid-glass {
+  transition-duration: var(--theme-transition, 180ms) !important;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+html[data-munetios-theme] button:not(:disabled):hover,
+html[data-munetios-theme] a:hover {
+  translate: 0 var(--theme-hover-y, 0);
+}
+
+html[data-munetios-theme] .rounded-2xl,
+html[data-munetios-theme] .rounded-3xl,
+html[data-munetios-theme] .liquid-glass:not(.rounded-full) {
+  border-radius: var(--theme-container-radius, 16px) !important;
+}
+
+html[data-munetios-theme] button:not(.rounded-full):not(.appearance-theme-card),
+html[data-munetios-theme] input:not([type="checkbox"]):not([type="radio"]),
+html[data-munetios-theme] select,
+html[data-munetios-theme] textarea {
+  border-radius: var(--theme-radius, 16px) !important;
+}
+
+html[data-munetios-theme] .appearance-theme-card,
+html[data-munetios-theme] .munetios-modal-enter,
+html[data-munetios-theme] .munetios-dropdown-enter {
+  border-radius: var(--theme-container-radius, 16px) !important;
+}
+
+html[data-munetios-theme="google-material-design"] .liquid-glass {
+  background-color: color-mix(
+    in srgb,
+    var(--theme-surface-container) 72%,
+    transparent
+  ) !important;
+  background-image:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--theme-on-surface) 8%, transparent),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 92% 0%,
+      color-mix(in srgb, var(--theme-primary) 10%, transparent),
+      transparent 34%
+    ) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--theme-outline) 34%,
+    transparent
+  ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 2px 6px rgba(0, 0, 0, 0.18),
+    0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+html[data-munetios-theme="google-material-design"] .liquid-glass::before {
+  background: radial-gradient(
+    circle at var(--glass-x, 50%) var(--glass-y, 50%),
+    color-mix(in srgb, var(--theme-primary) 14%, transparent),
+    transparent 54%
+  ) !important;
+}
+
+html[data-munetios-theme="google-material-design"] .liquid-glass::after {
+  background: none !important;
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--theme-outline) 16%, transparent) !important;
+}
+
+html[data-munetios-theme="google-material-design"] button {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+html[data-munetios-theme="google-material-design"] button[aria-current="page"],
+html[data-munetios-theme="google-material-design"] button[aria-pressed="true"] {
+  border-color: color-mix(
+    in srgb,
+    var(--theme-primary) 44%,
+    transparent
+  ) !important;
+  background-color: var(--theme-primary-container) !important;
+  background-image: none !important;
+  color: #eaddff !important;
+}
+
+html[data-munetios-theme="google-material-design"]
+  :is(
+    [class*="bg-purple-500"],
+    [class*="bg-purple-600"],
+    [class*="bg-purple-700"]
+  ) {
+  border-color: color-mix(
+    in srgb,
+    var(--theme-primary) 32%,
+    transparent
+  ) !important;
+  background-color: var(--theme-primary-container) !important;
+  background-image: none !important;
+}
+
+html[data-munetios-theme="google-material-design"]
+  :is([class*="border-purple-"], [class*="border-white/10"]) {
+  border-color: color-mix(
+    in srgb,
+    var(--theme-outline) 32%,
+    transparent
+  ) !important;
+}
+
+html[data-munetios-theme="google-material-design"]
+  :is([class*="bg-white/5"], [class*="bg-white/10"], [class*="bg-black/10"]) {
+  background-color: color-mix(
+    in srgb,
+    var(--theme-surface-container-high) 76%,
+    transparent
+  ) !important;
+  background-image: none !important;
+}
+
+html[data-munetios-theme="google-material-design"]
+  :is([class*="text-purple-"], [class*="text-white/60"]) {
+  color: color-mix(
+    in srgb,
+    var(--theme-on-surface) 70%,
+    transparent
+  ) !important;
+}
+
+html[data-munetios-theme="google-material-design"] .appearance-theme-card {
+  border-radius: var(--theme-container-radius) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.26) !important;
+}
+
+html[data-munetios-theme="google-material-design"]
+  :is(input, textarea, select) {
+  border-color: var(--theme-outline) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--theme-surface-container-high) 82%,
+    transparent
+  ) !important;
+  color: var(--theme-on-surface) !important;
+}
+
+html[data-munetios-theme="google-material-design"]
+  :is(button, a):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--theme-primary) 72%, transparent);
+  outline-offset: 2px;
+}
+
+html[data-munetios-theme="google-material-design"] :is(button, a):hover {
+  box-shadow:
+    inset 0 0 0 999px color-mix(in srgb, var(--theme-primary) 8%, transparent),
+    0 2px 6px rgba(0, 0, 0, 0.16);
+}
+
+html[data-munetios-theme="google-material-design"] h1 {
+  font-size: clamp(2rem, 4vw, 3.5625rem);
+  font-weight: 500;
+  line-height: 1.12;
+}
+
+html[data-munetios-theme="google-material-design"] h2 {
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+html[data-munetios-theme="google-material-design"] :is(p, input, textarea) {
+  line-height: 1.5;
+}
+
+html[data-munetios-theme="microsoft-fluent"] .liquid-glass {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.24) !important;
+}
+
+.spinner-circle,
+.business-payment-spinner-circle {
+  stroke: var(--spinner-primary, var(--accent)) !important;
+}
+
+.google-spinner,
+.business-payment-spinner {
+  color: var(--spinner-primary, var(--accent));
+}
+body {
+  font-variation-settings:
+    "slnt" 0,
+    "wdth" 100,
+    "GRAD" 0,
+    "ROND" 10 !important;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.logo {
+  font-variation-settings:
+    "slnt" 0,
+    "wdth" 102,
+    "GRAD" 0,
+    "ROND" 60 !important;
+}
+.font-rounded {
+  font-variation-settings: "ROND" 60 !important;
+}
+button,
+input {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+munetios-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.liquid-glass {
+  isolation: isolate !important;
+  backdrop-filter: blur(3px) saturate(145%) contrast(1.05) !important;
+  -webkit-backdrop-filter: blur(3px) saturate(145%) contrast(1.05) !important;
+  background-image:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.2) 0%,
+      rgba(255, 255, 255, 0.08) 18%,
+      rgba(126, 34, 206, 0.08) 46%,
+      rgba(255, 255, 255, 0.05) 100%
+    ),
+    radial-gradient(
+      circle at 18% 0%,
+      rgba(255, 255, 255, 0.18),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 90% 110%,
+      rgba(192, 132, 252, 0.18),
+      transparent 34%
+    ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    0 18px 42px rgba(24, 8, 44, 0.22) !important;
+}
+.liquid-glass:not(.munetios-toast) {
+  --glass-x: 50%;
+  --glass-y: 50%;
+  --glass-shine-opacity: 0;
+
+  overflow: hidden;
+  transform: scale(1);
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+  touch-action: manipulation;
+  will-change: transform;
+}
+.liquid-glass:not(.munetios-toast)::before,
+.liquid-glass:not(.munetios-toast)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.liquid-glass:not(.munetios-toast)::before {
+  z-index: 0;
+  opacity: var(--glass-shine-opacity);
+  background:
+    linear-gradient(
+      118deg,
+      rgba(255, 255, 255, 0.2) 0%,
+      rgba(196, 181, 253, 0.14) 28%,
+      rgba(255, 255, 255, 0.04) 48%,
+      rgba(91, 33, 182, 0.2) 74%,
+      rgba(255, 255, 255, 0.12) 100%
+    ),
+    radial-gradient(
+      circle at var(--glass-x) var(--glass-y),
+      rgba(255, 255, 255, 0.3),
+      rgba(196, 181, 253, 0.16) 22%,
+      rgba(29, 12, 62, 0) 56%
+    );
+  transition:
+    opacity 120ms ease,
+    background 80ms linear;
+}
+.liquid-glass:not(.munetios-toast)::after {
+  z-index: 0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+}
+.liquid-glass:not(.munetios-toast) > * {
+  position: relative;
+  z-index: 1;
+}
+.liquid-glass:not(.munetios-toast):hover {
+  --glass-shine-opacity: 1;
+}
+.liquid-glass:not(.munetios-toast):active,
+.liquid-glass:not(.munetios-toast).is-pressing {
+  transform: scale(0.992);
+}
+
+* {
+  scrollbar-color: rgba(216, 180, 254, 0.72) rgba(30, 6, 54, 0.42);
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(30, 6, 54, 0.42);
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(30, 6, 54, 0.72);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #d8b4fe 0%, #a855f7 52%, #7e22ce 100%);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #f3e8ff 0%, #c084fc 48%, #9333ea 100%);
+}
+
+.munetios-toast-enter {
+  animation: munetios-toast-enter 180ms ease-out both;
+}
+
+.munetios-modal-enter {
+  animation: munetios-modal-enter 180ms ease-out both;
+}
+
+.munetios-dropdown-enter {
+  animation: munetios-dropdown-enter 140ms ease-out both;
+}
+
+.spinner-container {
+  height: 65px;
+  width: 65px;
+}
+
+.google-spinner {
+  animation: rotate-spinner 2s linear infinite;
+  height: 100%;
+  width: 100%;
+}
+
+.spinner-circle {
+  animation:
+    dash-stretch 1.5s ease-in-out infinite,
+    purple-cycle 6s ease-in-out infinite;
+  stroke-dasharray: 1, 200;
+  stroke-dashoffset: 0;
+  stroke-linecap: round;
+}
+
+.business-payment-brand-image {
+  display: block;
+  height: auto;
+  max-width: 100%;
+}
+
+.business-payment-brand-image--cashapp {
+  border-radius: 0.45rem;
+}
+
+.business-payment-spinner {
+  display: inline-flex;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 1.25rem;
+  color: #ffffff;
+}
+
+.business-payment-spinner svg {
+  width: 100%;
+  height: 100%;
+  animation: rotate-spinner 0.9s linear infinite;
+}
+
+.business-payment-spinner-circle {
+  stroke: currentColor;
+  stroke-dasharray: 90, 150;
+  stroke-linecap: round;
+  opacity: 0.95;
+}
+
+html:is(
+    [data-munetios-theme="munetios-default"],
+    [data-munetios-theme="google-material-design"]
+  )
+  :is(.google-spinner, .business-payment-spinner svg) {
+  animation: rotate-spinner 2s linear infinite;
+}
+
+html:is(
+    [data-munetios-theme="munetios-default"],
+    [data-munetios-theme="google-material-design"]
+  )
+  :is(.spinner-circle, .business-payment-spinner-circle) {
+  animation:
+    dash-stretch 1.5s ease-in-out infinite,
+    google-color-cycle 6s linear infinite;
+  stroke-dasharray: 1, 200;
+  stroke-linecap: round;
+}
+
+html[data-munetios-theme="carbon"]
+  :is(.google-spinner, .business-payment-spinner svg) {
+  animation: carbon-spinner 1.1s steps(12) infinite;
+}
+
+html[data-munetios-theme="carbon"]
+  :is(.spinner-circle, .business-payment-spinner-circle) {
+  animation: none;
+  stroke: #78a9ff !important;
+  stroke-dasharray: 10, 7;
+  stroke-linecap: butt;
+  stroke-width: 4px;
+}
+
+html[data-munetios-theme="light-mode"]
+  :is(.google-spinner, .business-payment-spinner svg) {
+  animation: rotate-spinner 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+html[data-munetios-theme="light-mode"]
+  :is(.spinner-circle, .business-payment-spinner-circle) {
+  animation: light-spinner-dash 1.4s ease-in-out infinite;
+  stroke: #6d28d9 !important;
+  stroke-linecap: round;
+}
+
+html[data-munetios-theme="microsoft-fluent"]
+  :is(.google-spinner, .business-payment-spinner svg) {
+  animation: rotate-spinner 0.85s linear infinite;
+}
+
+html[data-munetios-theme="microsoft-fluent"]
+  :is(.spinner-circle, .business-payment-spinner-circle) {
+  animation: none;
+  stroke: #8b5cf6 !important;
+  stroke-dasharray: 3, 10;
+  stroke-linecap: round;
+  stroke-width: 6px;
+}
+
+html[data-munetios-theme="blueish"]
+  :is(.google-spinner, .business-payment-spinner svg) {
+  animation: blueish-spinner 1.25s ease-in-out infinite;
+}
+
+html[data-munetios-theme="blueish"]
+  :is(.spinner-circle, .business-payment-spinner-circle) {
+  animation: blueish-spinner-dash 1.25s ease-in-out infinite;
+  stroke: #38bdf8 !important;
+  stroke-linecap: round;
+}
+
+html[data-munetios-theme="dymatic"]
+  :is(.google-spinner, .business-payment-spinner svg) {
+  animation:
+    rotate-spinner 1.15s linear infinite,
+    dymatic-spinner-pulse 1.15s ease-in-out infinite;
+}
+
+html[data-munetios-theme="dymatic"]
+  :is(.spinner-circle, .business-payment-spinner-circle) {
+  animation: dymatic-spinner-dash 1.15s ease-in-out infinite;
+  stroke: #c084fc !important;
+  stroke-linecap: round;
+}
+
+html[data-munetios-theme="classic"]
+  :is(.google-spinner, .business-payment-spinner svg) {
+  animation: rotate-spinner 1.4s linear infinite;
+}
+
+html[data-munetios-theme="classic"]
+  :is(.spinner-circle, .business-payment-spinner-circle) {
+  animation: none;
+  stroke: #7c3aed !important;
+  stroke-dasharray: 105, 25;
+  stroke-linecap: square;
+  stroke-width: 4px;
+}
+
+html[data-munetios-theme="high-contrast-dark"]
+  :is(.google-spinner, .business-payment-spinner svg) {
+  animation: rotate-spinner 0.8s steps(8) infinite;
+}
+
+html[data-munetios-theme="high-contrast-dark"]
+  :is(.spinner-circle, .business-payment-spinner-circle) {
+  animation: none;
+  stroke: #ffff00 !important;
+  stroke-dasharray: 12, 8;
+  stroke-linecap: square;
+  stroke-width: 7px;
+}
+
+html[data-munetios-theme="yellowish"]
+  :is(.google-spinner, .business-payment-spinner svg) {
+  animation: rotate-spinner 0.95s linear infinite;
+}
+
+html[data-munetios-theme="yellowish"]
+  :is(.spinner-circle, .business-payment-spinner-circle) {
+  animation: yellowish-spinner-dash 0.95s ease-in-out infinite;
+  stroke: #facc15 !important;
+  stroke-dasharray: 2, 11;
+  stroke-linecap: round;
+  stroke-width: 7px;
+}
+
+html[data-munetios-theme][data-munetios-theme-mode="light"]
+  :is(.spinner-circle, .business-payment-spinner-circle) {
+  stroke: var(--spinner-primary, var(--accent)) !important;
+}
+
+html[data-munetios-theme][data-munetios-theme-mode="light"] .spinner-container {
+  color: var(--foreground);
+}
+
+@keyframes munetios-toast-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(12px, -8px, 0) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes munetios-modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes munetios-dropdown-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes rotate-spinner {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dash-stretch {
+  0% {
+    stroke-dasharray: 1, 200;
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    stroke-dasharray: 89, 200;
+    stroke-dashoffset: -35;
+  }
+
+  100% {
+    stroke-dasharray: 89, 200;
+    stroke-dashoffset: -124;
+  }
+}
+
+@keyframes purple-cycle {
+  0%,
+  100% {
+    stroke: #a855f7;
+  }
+
+  25% {
+    stroke: #c084fc;
+  }
+
+  50% {
+    stroke: #7e22ce;
+  }
+
+  75% {
+    stroke: #d8b4fe;
+  }
+}
+
+@keyframes google-color-cycle {
+  0%,
+  100% {
+    stroke: #4285f4;
+  }
+
+  25% {
+    stroke: #ea4335;
+  }
+
+  50% {
+    stroke: #fbbc05;
+  }
+
+  75% {
+    stroke: #34a853;
+  }
+}
+
+@keyframes carbon-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes light-spinner-dash {
+  0%,
+  100% {
+    stroke-dasharray: 22, 200;
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    stroke-dasharray: 92, 200;
+    stroke-dashoffset: -46;
+  }
+}
+
+@keyframes blueish-spinner {
+  0% {
+    transform: rotate(0deg) scale(0.94);
+  }
+
+  50% {
+    transform: rotate(180deg) scale(1);
+  }
+
+  100% {
+    transform: rotate(360deg) scale(0.94);
+  }
+}
+
+@keyframes blueish-spinner-dash {
+  0%,
+  100% {
+    stroke-dasharray: 34, 200;
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    stroke-dasharray: 98, 200;
+    stroke-dashoffset: -62;
+  }
+}
+
+@keyframes dymatic-spinner-pulse {
+  0%,
+  100% {
+    scale: 0.88;
+  }
+
+  50% {
+    scale: 1;
+  }
+}
+
+@keyframes dymatic-spinner-dash {
+  0%,
+  100% {
+    stroke-dasharray: 8, 200;
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    stroke-dasharray: 112, 200;
+    stroke-dashoffset: -74;
+  }
+}
+
+@keyframes yellowish-spinner-dash {
+  0%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    stroke-dashoffset: -32;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -100% 0;
+  }
+
+  100% {
+    background-position: 100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .munetios-toast-enter,
+  .munetios-modal-enter,
+  .munetios-dropdown-enter {
+    animation-duration: 1ms;
+  }
+}
+
+nextjs-portal,
+script[data-nextjs-dev-overlay],
+[data-nextjs-dev-overlay],
+[data-nextjs-dialog-overlay],
+[data-nextjs-error-overlay-nav],
+[data-nextjs-toast] {
+  display: none;
+  pointer-events: none;
+  visibility: hidden;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+    color-scheme: dark;
+    --background: #150627;
+    --foreground: #f7f2ff;
+    --muted: #cbbbe2;
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    --line: rgba(226, 212, 255, 0.18);
+    --purple: #9d6cff;
+    --purple-dark: #31164f;
+  }
 }

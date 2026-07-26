@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Munetios Apps Launcher</title>
+    <link
+      rel="stylesheet"
+      href="https://api.munetios.com/beautiful-css/beautiful.css"
+    />
+    <script src="applauncher-i18n.js"></script>
+
+    <script>
+      // Detect if in iframe and force all <a> links to open in top window
+      if (window.top !== window.self) {
+        window.addEventListener("DOMContentLoaded", function () {
+          document.querySelectorAll("a").forEach(function (link) {
+            link.setAttribute("target", "_top");
+          });
+        });
+      }
+    </script>
+    <style>
+      /* Codex do not change */
+      body,
+      button,
+      input,
+      select,
+      textarea {
+        font-variation-settings:
+          "wght" 480,
+          "GRAD" 30,
+          "ROND" 80,
+          "opsz" 18;
+        font-family: "Google Sans Flex", sans-serif;
+      }
+      body {
+        background-color: #f5f5f5;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #100035;
+          color: #e0e0e0;
+        }
+      }
+      .material-symbols-rounded {
+        font-family: "Material Symbols Rounded";
+      }
+      .app-launcher-container {
+        max-width: 700px;
+        width: 100%;
+      }
+      .search-bar {
+        padding: 19px 15px;
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      input {
+        all: unset;
+        width: 100%;
+      }
+      .app-folder-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        padding: 18px;
+        margin-top: 20px;
+      }
+
+      .app-launcher-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 12px;
+        transition:
+          transform 0.18s ease,
+          box-shadow 0.18s ease,
+          background-color 0.18s ease;
+        cursor: pointer;
+        border-radius: 32px;
+        min-height: 120px;
+        text-align: center;
+        background-color: rgba(255, 255, 255, 0.02);
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02) inset;
+      }
+
+      .app-launcher-item:hover,
+      .app-launcher-item:focus {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(16, 0, 53, 0.12);
+        background-color: rgba(224, 224, 224, 0.04);
+        outline: none;
+      }
+
+      .app-launcher-item img {
+        max-width: 84px;
+        height: auto;
+        border-radius: 12px;
+        display: block;
+      }
+      /* Codex do not change */
+      .app-launcher-text {
+        font-size: 18px;
+        color: inherit;
+        white-space: wrap;
+        width: 100%;
+      }
+
+      .app-folder-grid {
+        min-height: 152px;
+        transition:
+          border-color 0.18s ease,
+          background-color 0.18s ease,
+          box-shadow 0.18s ease;
+      }
+
+      .app-folder-grid.is-drag-target {
+        border-color: rgba(216, 180, 254, 0.42);
+        background-color: rgba(126, 34, 206, 0.18) !important;
+        box-shadow: 0 18px 42px rgba(24, 8, 44, 0.24);
+      }
+
+      .app-launcher-item {
+        user-select: none;
+        touch-action: manipulation;
+      }
+
+      .app-launcher-item[draggable="true"] {
+        cursor: grab;
+      }
+
+      .app-launcher-item.is-dragging {
+        cursor: grabbing;
+        opacity: 0.52;
+        transform: scale(0.94);
+        box-shadow: 0 18px 42px rgba(16, 0, 53, 0.24);
+      }
+
+      .app-launcher-item.is-hiding {
+        opacity: 0;
+        pointer-events: none;
+        transform: scale(0.82);
+      }
+
+      .app-launcher-item.is-hidden,
+      .app-launcher-item.is-filtered {
+        display: none;
+      }
+
+      .app-launcher-item img,
+      .app-launcher-text {
+        pointer-events: none;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .app-folder-grid,
+        .app-launcher-item {
+          transition-duration: 1ms;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-launcher-container">
+      <div class="search-bar liquid-glass">
+        <icon>search</icon>
+        <input
+          type="text"
+          data-i18n-placeholder="searchApps"
+          placeholder="Search apps"
+        />
+      </div>
+      <div class="app-folder-grid liquid-glass">
+        <div
+          class="app-launcher-item"
+          data-app-url="https://mail.munetios.com/"
+          data-i18n-app="mail"
+          id="munetiosMailApp"
+        >
+          <img src="mail.png" alt="Munetios Mail" width="120" />
+          <div class="app-launcher-text" data-i18n-text="mail">Mail</div>
+        </div>
+        <div
+          class="app-launcher-item"
+          data-app-url="/apps/ai"
+          data-i18n-app="ai"
+          id="munetiosAIApp"
+        >
+          <img src="ai.png" alt="Munetios AI" width="120" />
+          <div class="app-launcher-text" data-i18n-text="ai">Munetios AI</div>
+        </div>
+        <div
+          class="app-launcher-item"
+          data-app-url="/apps/calendar"
+          data-i18n-app="calendar"
+          id="munetiosCalendarApp"
+        >
+          <img src="calendar.png" alt="Munetios Calendar" width="120" />
+          <div class="app-launcher-text" data-i18n-text="calendar">
+            Calendar
+          </div>
+        </div>
+        <div
+          class="app-launcher-item"
+          data-app-url="https://drive.munetios.com/"
+          data-i18n-app="drive"
+          id="munetiosDriveApp"
+        >
+          <img src="drive.png" alt="Munetios Drive" width="120" />
+          <div class="app-launcher-text" data-i18n-text="drive">Drive</div>
+        </div>
+        <div
+          class="app-launcher-item"
+          data-app-url="/apps/omniwrite"
+          data-i18n-app="omniwrite"
+          id="munetiosOmniWriteApp"
+        >
+          <img src="omniwrite.png" alt="Munetios OmniWrite" width="120" />
+          <div class="app-launcher-text" data-i18n-text="omniwrite">
+            OmniWrite
+          </div>
+        </div>
+        <div
+          class="app-launcher-item"
+          data-app-url="https://meet.munetios.com/"
+          data-i18n-app="meet"
+          id="munetiosMeetApp"
+        >
+          <img src="meet.png" alt="Munetios Meet" width="120" />
+          <div class="app-launcher-text" data-i18n-text="meet">Meet</div>
+        </div>
+        <div
+          class="app-launcher-item"
+          data-app-url="https://chat.munetios.com/"
+          data-i18n-app="chat"
+          id="munetiosChatApp"
+        >
+          <img src="chat.png" alt="Munetios Chat" width="120" />
+          <div class="app-launcher-text" data-i18n-text="chat">Chat</div>
+        </div>
+        <div
+          class="app-launcher-item"
+          data-app-url="https://sheets.munetios.com/"
+          data-i18n-app="sheets"
+          id="munetiosSheetsApp"
+        >
+          <img src="sheets.png" alt="Munetios Sheets" width="120" />
+          <div class="app-launcher-text" data-i18n-text="sheets">Sheets</div>
+        </div>
+        <div
+          class="app-launcher-item"
+          data-app-url="https://slides.munetios.com/"
+          data-i18n-app="slides"
+          id="munetiosSlidesApp"
+        >
+          <img src="slides.png" alt="Munetios Slides" width="120" />
+          <div class="app-launcher-text" data-i18n-text="slides">Slides</div>
+        </div>
+      </div>
+      <div class="app-folder-grid liquid-glass">
+        <div
+          class="app-launcher-item"
+          data-app-url="/apps/notes"
+          data-i18n-app="supanotes"
+          id="munetiosSupaNotesApp"
+        >
+          <img
+            src="https://notes.munetios.com/apple-touch-icon.png"
+            alt="Munetios SupaNotes"
+            width="120"
+          />
+          <div class="app-launcher-text" data-i18n-text="supanotes">
+            SupaNotes
+          </div>
+        </div>
+        <div
+          class="app-launcher-item"
+          data-app-url="/apps/photos"
+          data-i18n-app="photos"
+          id="munetiosPhotosApp"
+        >
+          <img
+            src="https://www.munetios.com/apps/image%20copy%2017.png"
+            alt="Munetios Photos"
+            width="120"
+          />
+          <div class="app-launcher-text" data-i18n-text="photos">Photos</div>
+        </div>
+        <div
+          class="app-launcher-item"
+          data-app-url="/apps/meals"
+          data-i18n-app="meals"
+          id="munetiosMealsApp"
+        >
+          <img
+            src="https://calendar.munetios.com/new/meals/android-chrome-192x192.png"
+            alt="Munetios Meals"
+            width="120"
+          />
+          <div class="app-launcher-text" data-i18n-text="meals">Meals</div>
+        </div>
+        <div
+          class="app-launcher-item"
+          data-app-url="/apps/tasks"
+          data-i18n-app="tasks"
+          id="munetiosTasksApp"
+        >
+          <img
+            src="https://tasks.munetios.com/apple-touch-icon.png"
+            alt="Munetios Tasks"
+            width="120"
+          />
+          <div class="app-launcher-text" data-i18n-text="tasks">Tasks</div>
+        </div>
+        <div
+          class="app-launcher-item"
+          data-app-url="/account/settings"
+          data-i18n-app="settings"
+          id="accountSettingsBtn"
+        >
+          <icon width="120" height="120" style="font-size: 52px">settings</icon>
+          <div class="app-launcher-text" data-i18n-text="settings">
+            Settings
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      (() => {
+        const storageKey = "munetios:appLauncherLayout";
+        const doubleRightClickMs = 700;
+        const grids = Array.from(document.querySelectorAll(".app-folder-grid"));
+        const searchInput = document.querySelector(".search-bar input");
+        const localeStorageKeys = ["munetiosLanguage", "munetios.locale"];
+        const defaultGroups = grids.map((grid) =>
+          Array.from(grid.querySelectorAll(".app-launcher-item")).map(
+            (item) => item.id,
+          ),
+        );
+        const defaultGroupById = new Map(
+          defaultGroups.flatMap((group, groupIndex) =>
+            group.map((id) => [id, groupIndex]),
+          ),
+        );
+
+        let draggedItem = null;
+        let suppressOpen = false;
+        let lastRestoreClickTime = 0;
+        let restoreClickCount = 0;
+
+        const getItems = () =>
+          Array.from(document.querySelectorAll(".app-launcher-item"));
+
+        const readLocalStorage = (key) => {
+          try {
+            return localStorage.getItem(key);
+          } catch {
+            return null;
+          }
+        };
+
+        const resolveLocaleCandidate = (locale) => {
+          const i18n = window.munetiosAppLauncherI18n;
+
+          if (!locale || !i18n) {
+            return null;
+          }
+
+          if (i18n.translations[locale]) {
+            return locale;
+          }
+
+          if (i18n.aliases[locale] && i18n.translations[i18n.aliases[locale]]) {
+            return i18n.aliases[locale];
+          }
+
+          const normalizedLocale = locale.toLowerCase();
+          const exactMatch = Object.keys(i18n.translations).find(
+            (key) => key.toLowerCase() === normalizedLocale,
+          );
+
+          if (exactMatch) {
+            return exactMatch;
+          }
+
+          const prefix = normalizedLocale.split("-")[0];
+
+          return i18n.aliases[prefix] || null;
+        };
+
+        const getCurrentLauncherLocale = () => {
+          const localeCandidates = [
+            ...localeStorageKeys.map(readLocalStorage),
+            document.documentElement.lang,
+            navigator.language || navigator.userLanguage,
+          ];
+
+          for (const locale of localeCandidates) {
+            const resolvedLocale = resolveLocaleCandidate(locale);
+
+            if (resolvedLocale) {
+              return resolvedLocale;
+            }
+          }
+
+          return "en";
+        };
+
+        const getLauncherCopy = () => {
+          const i18n = window.munetiosAppLauncherI18n;
+
+          if (!i18n) {
+            return {
+              openApp: "Open {app}",
+              searchApps: "Search apps",
+            };
+          }
+
+          const locale = getCurrentLauncherLocale();
+
+          return {
+            locale,
+            ...i18n.fallback,
+            ...(i18n.translations[locale] || {}),
+          };
+        };
+
+        const applyLauncherTranslations = () => {
+          const i18n = window.munetiosAppLauncherI18n;
+          const copy = getLauncherCopy();
+          const isRtl = i18n?.rtlLocales?.includes(copy.locale);
+
+          document.documentElement.lang = copy.locale || "en";
+          document.documentElement.dir = isRtl ? "rtl" : "ltr";
+
+          document
+            .querySelectorAll("[data-i18n-placeholder]")
+            .forEach((item) => {
+              const key = item.dataset.i18nPlaceholder;
+              const value = copy[key];
+
+              if (value) {
+                item.setAttribute("placeholder", value);
+                item.setAttribute("aria-label", value);
+              }
+            });
+
+          document.querySelectorAll("[data-i18n-text]").forEach((item) => {
+            const key = item.dataset.i18nText;
+
+            if (copy[key]) {
+              item.textContent = copy[key];
+            }
+          });
+
+          getItems().forEach((item) => {
+            const key = item.dataset.i18nApp;
+            const label = copy[key] || item.textContent.trim();
+            const openLabel = (copy.openApp || "Open {app}").replace(
+              "{app}",
+              label,
+            );
+            const image = item.querySelector("img");
+
+            item.setAttribute("aria-label", openLabel);
+            item.setAttribute("title", openLabel);
+
+            if (image) {
+              image.setAttribute("alt", label);
+            }
+          });
+        };
+
+        const openItemLink = (item) => {
+          const url = item?.dataset.appUrl;
+
+          if (!url) {
+            return;
+          }
+
+          if (window.top !== window.self) {
+            try {
+              window.top.location.href = url;
+            } catch {
+              window.open(url, "_top");
+            }
+            return;
+          }
+
+          window.location.href = url;
+        };
+
+        const readState = () => {
+          try {
+            const parsedState = JSON.parse(localStorage.getItem(storageKey));
+
+            if (!parsedState || typeof parsedState !== "object") {
+              return { groups: defaultGroups, hidden: [] };
+            }
+
+            return {
+              groups: Array.isArray(parsedState.groups)
+                ? parsedState.groups
+                : defaultGroups,
+              hidden: Array.isArray(parsedState.hidden)
+                ? parsedState.hidden
+                : [],
+            };
+          } catch {
+            return { groups: defaultGroups, hidden: [] };
+          }
+        };
+
+        const saveState = () => {
+          const groups = grids.map((grid) =>
+            Array.from(grid.querySelectorAll(".app-launcher-item")).map(
+              (item) => item.id,
+            ),
+          );
+          const hidden = getItems()
+            .filter((item) => item.classList.contains("is-hidden"))
+            .map((item) => item.id);
+
+          try {
+            localStorage.setItem(
+              storageKey,
+              JSON.stringify({ groups, hidden }),
+            );
+          } catch {
+            return;
+          }
+        };
+
+        const animateLayoutChange = (changeLayout) => {
+          const items = getItems().filter(
+            (item) => !item.classList.contains("is-hidden"),
+          );
+          const firstPositions = new Map(
+            items.map((item) => [item, item.getBoundingClientRect()]),
+          );
+
+          changeLayout();
+
+          if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            return;
+          }
+
+          requestAnimationFrame(() => {
+            items.forEach((item) => {
+              const firstPosition = firstPositions.get(item);
+              const lastPosition = item.getBoundingClientRect();
+
+              if (!firstPosition) {
+                return;
+              }
+
+              const translateX = firstPosition.left - lastPosition.left;
+              const translateY = firstPosition.top - lastPosition.top;
+
+              if (translateX === 0 && translateY === 0) {
+                return;
+              }
+
+              item.animate(
+                [
+                  {
+                    transform: `translate(${translateX}px, ${translateY}px)`,
+                  },
+                  { transform: "translate(0, 0)" },
+                ],
+                {
+                  duration: 220,
+                  easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+                },
+              );
+            });
+          });
+        };
+
+        const applySearch = () => {
+          const query = searchInput?.value.trim().toLowerCase() || "";
+
+          getItems().forEach((item) => {
+            const label =
+              item.querySelector(".app-launcher-text")?.textContent || "";
+            const shouldFilter = query && !label.toLowerCase().includes(query);
+
+            item.classList.toggle("is-filtered", Boolean(shouldFilter));
+          });
+        };
+
+        const applySavedState = () => {
+          const state = readState();
+          const itemsById = new Map(getItems().map((item) => [item.id, item]));
+          const placedIds = new Set();
+
+          state.groups.forEach((group, groupIndex) => {
+            const grid = grids[groupIndex] || grids[0];
+
+            group.forEach((id) => {
+              const item = itemsById.get(id);
+
+              if (!item) {
+                return;
+              }
+
+              grid.appendChild(item);
+              placedIds.add(id);
+            });
+          });
+
+          itemsById.forEach((item, id) => {
+            if (placedIds.has(id)) {
+              return;
+            }
+
+            const defaultGroupIndex = defaultGroupById.get(id) || 0;
+            grids[defaultGroupIndex]?.appendChild(item);
+          });
+
+          getItems().forEach((item) => {
+            item.classList.toggle("is-hidden", state.hidden.includes(item.id));
+            item.classList.remove("is-hiding", "is-filtered");
+          });
+
+          applySearch();
+        };
+
+        const hideItem = (item) => {
+          if (!item || item.classList.contains("is-hidden")) {
+            return;
+          }
+
+          item.classList.add("is-hiding");
+          window.setTimeout(() => {
+            item.classList.remove("is-hiding");
+            item.classList.add("is-hidden");
+            saveState();
+            applySearch();
+          }, 180);
+        };
+
+        const showAllItems = () => {
+          animateLayoutChange(() => {
+            getItems().forEach((item) => {
+              item.classList.remove("is-hidden", "is-hiding");
+            });
+          });
+          saveState();
+          applySearch();
+        };
+
+        const getInsertBeforeItem = (grid, pointerX, pointerY) => {
+          const visibleItems = Array.from(
+            grid.querySelectorAll(
+              ".app-launcher-item:not(.is-hidden):not(.is-filtered):not(.is-dragging)",
+            ),
+          );
+
+          return visibleItems.find((item) => {
+            const rect = item.getBoundingClientRect();
+            const isSameRow = pointerY >= rect.top && pointerY <= rect.bottom;
+            const shouldInsertByX = pointerX < rect.left + rect.width / 2;
+            const shouldInsertByY = pointerY < rect.top + rect.height / 2;
+
+            return isSameRow ? shouldInsertByX : shouldInsertByY;
+          });
+        };
+
+        const clearDragTargets = () => {
+          grids.forEach((grid) => grid.classList.remove("is-drag-target"));
+        };
+
+        const attachItemEvents = (item) => {
+          item.setAttribute("draggable", "true");
+          item.setAttribute("role", "link");
+
+          if (!item.hasAttribute("tabindex")) {
+            item.setAttribute("tabindex", "0");
+          }
+
+          item.addEventListener("dragstart", (event) => {
+            draggedItem = item;
+            suppressOpen = true;
+            item.classList.add("is-dragging");
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", item.id);
+          });
+
+          item.addEventListener("dragend", () => {
+            item.classList.remove("is-dragging");
+            draggedItem = null;
+            clearDragTargets();
+            saveState();
+            window.setTimeout(() => {
+              suppressOpen = false;
+            }, 0);
+          });
+
+          item.addEventListener("click", (event) => {
+            if (suppressOpen || event.button !== 0) {
+              return;
+            }
+
+            openItemLink(item);
+          });
+
+          item.addEventListener("keydown", (event) => {
+            if (event.key !== "Enter" && event.key !== " ") {
+              return;
+            }
+
+            event.preventDefault();
+            openItemLink(item);
+          });
+
+          item.addEventListener("contextmenu", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            restoreClickCount = 0;
+            hideItem(item);
+          });
+        };
+
+        grids.forEach((grid) => {
+          grid.addEventListener("dragover", (event) => {
+            if (!draggedItem) {
+              return;
+            }
+
+            event.preventDefault();
+            grid.classList.add("is-drag-target");
+
+            const insertBeforeItem = getInsertBeforeItem(
+              grid,
+              event.clientX,
+              event.clientY,
+            );
+
+            if (insertBeforeItem === draggedItem) {
+              return;
+            }
+
+            const isSamePosition =
+              insertBeforeItem === draggedItem.nextElementSibling ||
+              (!insertBeforeItem &&
+                draggedItem.parentElement === grid &&
+                draggedItem.nextElementSibling === null);
+
+            if (isSamePosition) {
+              return;
+            }
+
+            animateLayoutChange(() => {
+              grid.insertBefore(draggedItem, insertBeforeItem || null);
+            });
+          });
+
+          grid.addEventListener("dragleave", (event) => {
+            if (!grid.contains(event.relatedTarget)) {
+              grid.classList.remove("is-drag-target");
+            }
+          });
+
+          grid.addEventListener("drop", (event) => {
+            event.preventDefault();
+            clearDragTargets();
+            saveState();
+          });
+        });
+
+        document.addEventListener("contextmenu", (event) => {
+          const launcherItem = event.target.closest(".app-launcher-item");
+
+          if (launcherItem) {
+            return;
+          }
+
+          event.preventDefault();
+
+          const now = Date.now();
+          restoreClickCount =
+            now - lastRestoreClickTime <= doubleRightClickMs
+              ? restoreClickCount + 1
+              : 1;
+          lastRestoreClickTime = now;
+
+          if (restoreClickCount >= 2) {
+            restoreClickCount = 0;
+            showAllItems();
+          }
+        });
+
+        window.addEventListener("storage", applyLauncherTranslations);
+        window.addEventListener(
+          "munetios:localechange",
+          applyLauncherTranslations,
+        );
+        searchInput?.addEventListener("input", applySearch);
+        applyLauncherTranslations();
+        getItems().forEach(attachItemEvents);
+        applySavedState();
+      })();
+    </script>
+  </body>
+</html>

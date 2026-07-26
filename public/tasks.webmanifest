@@ -1,0 +1,27 @@
+{
+  "id": "/apps/tasks",
+  "name": "Munetios Tasks",
+  "short_name": "Tasks",
+  "description": "A private task workspace by Munetios.",
+  "start_url": "/apps/tasks",
+  "scope": "/apps/tasks",
+  "display": "standalone",
+  "display_override": ["standalone"],
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "orientation": "any",
+  "background_color": "#170524",
+  "theme_color": "#3b0764",
+  "categories": ["productivity", "utilities"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "https://tasks.munetios.com/apple-touch-icon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -6,11 +6,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "i18n:validate": "node scripts/validate-i18n.mjs",
     "lint": "biome check",
     "format": "biome format --write"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/server": "^13.3.2",
+    "@stripe/stripe-js": "^9.12.0",
+    "bcryptjs": "^3.0.3",
+    "libphonenumber-js": "^1.13.9",
     "next": "16.2.9",
+    "next-auth": "^4.24.14",
+    "next-intl": "^4.13.1",
+    "nodemailer": "^7.0.13",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
