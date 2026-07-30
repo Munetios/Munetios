@@ -20,10 +20,9 @@
 
 # production
 /build
-/data/*.sqlite
-/data/*.sqlite-shm
-/data/*.sqlite-wal
-/data/feedback-reports.json
+
+# data
+/data/
 
 # misc
 .DS_Store
@@ -45,9 +44,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/data/profile-images
-
 # Local llama.cpp models are deployed separately and must not enter Git.
 /models/*.gguf
 
-certificates
+# certificates
+/certificates/
