@@ -1,11 +1,33 @@
+import { networkInterfaces } from "node:os";
+
 /** @type {import('next').NextConfig} */
 const isDev = process.env.NODE_ENV === "development";
+
+function getDevelopmentOrigins() {
+  const configuredOrigins = (process.env.MUNETIOS_DEV_ORIGINS || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  const interfaceOrigins = Object.values(networkInterfaces())
+    .flat()
+    .filter(
+      (networkInterface) => networkInterface && !networkInterface.internal,
+    )
+    .flatMap((networkInterface) => {
+      const address = networkInterface.address.split("%")[0];
+      return networkInterface.family === "IPv6"
+        ? [address, `[${address}]`]
+        : [address];
+    });
+
+  return [...new Set([...configuredOrigins, ...interfaceOrigins])];
+}
 
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' https://*.munetios.com https://js.stripe.com https://cdn.tailwindcss.com 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline' https://*.munetios.com",
-  "img-src 'self' data: blob: https://api.munetios.com https://*.munetios.com https://www.munetios.com",
+  "img-src 'self' data: blob: https: https://api.munetios.com https://*.munetios.com https://www.munetios.com",
   "font-src 'self' data: https://*.munetios.com",
   `connect-src 'self' https://*.munetios.com https://*.ganetios.com https://*.stripe.com https://api.stripe.com https://api.munetios.com${isDev ? " ws: http://localhost:* http://127.0.0.1:*" : ""}`,
   "media-src 'self' data: blob:",
@@ -20,8 +42,11 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig = {
+  allowedDevOrigins: isDev ? getDevelopmentOrigins() : undefined,
   devIndicators: false,
+  distDir: isDev ? ".next-dev" : ".next",
   reactCompiler: true,
+  serverExternalPackages: ["node-llama-cpp"],
   async headers() {
     return [
       {

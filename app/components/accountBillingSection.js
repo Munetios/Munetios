@@ -2,22 +2,31 @@
 
 import { loadStripe } from "@stripe/stripe-js";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { formatUserDate, formatUserNumber } from "../lib/dateTimePreferences";
+import DropdownWrapper from "./dropdownwrapper";
+import LoadingSpinner from "./loadingSpinner";
 import { showModal } from "./modal";
 import { showToast } from "./toast";
 
 function formatMoney(amount, currency) {
   if (!Number.isFinite(amount) || !currency) return "—";
   try {
-    return new Intl.NumberFormat(undefined, {
-      currency: currency.toUpperCase(),
-      style: "currency",
-    }).format(amount / 100);
+    return formatUserNumber(amount / 100, {
+      formatOptions: {
+        currency: currency.toUpperCase(),
+        style: "currency",
+      },
+    });
   } catch {
     return `${(amount / 100).toFixed(2)} ${currency.toUpperCase()}`;
   }
 }
 
 function formatDate(timestamp) {
+  const preferredDate = timestamp
+    ? formatUserDate(new Date(timestamp * 1000))
+    : "";
+  if (preferredDate) return preferredDate;
   if (!timestamp) return "—";
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
@@ -271,6 +280,140 @@ function PaymentMethodEditor({ close, copy, onChanged, paymentMethods }) {
   );
 }
 
+function ChangeSubscriptionForm({ close, copy, onChanged, subscriptions }) {
+  const manageable = subscriptions.filter((subscription) =>
+    ["active", "trialing", "past_due"].includes(subscription.status),
+  );
+  const [subscriptionId, setSubscriptionId] = useState(manageable[0]?.id || "");
+  const selectedSubscription = manageable.find(
+    (subscription) => subscription.id === subscriptionId,
+  );
+  const [planId, setPlanId] = useState(() =>
+    String(manageable[0]?.name || "")
+      .toLowerCase()
+      .includes("pro lite")
+      ? "pro"
+      : "pro-lite",
+  );
+  const [saving, setSaving] = useState(false);
+  const plans = [
+    { id: "pro-lite", label: copy.aiPricingProLite },
+    { id: "pro", label: copy.aiPricingPro },
+  ];
+  const selectedPlan = plans.find((plan) => plan.id === planId);
+
+  return (
+    <form
+      className="space-y-5"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        if (!subscriptionId || !planId || saving) return;
+        setSaving(true);
+        try {
+          await billingAction({
+            action: "change_subscription",
+            planId,
+            subscriptionId,
+          });
+          await onChanged();
+          showToast({
+            messageKey: "billingSubscriptionChanged",
+            type: "success",
+          });
+          close();
+        } catch {
+          showToast({
+            messageKey: "billingSubscriptionUpdateFailed",
+            type: "error",
+          });
+          setSaving(false);
+        }
+      }}
+    >
+      <p className="text-sm leading-6 text-white/65">
+        {copy.billingChangeSubscriptionDescription}
+      </p>
+      <div className="grid gap-2 text-sm font-bold">
+        <span>{copy.billingChooseSubscription}</span>
+        <DropdownWrapper
+          align="left"
+          ariaLabel={copy.billingChooseSubscription}
+          buttonClassName="liquid-glass flex w-full items-center justify-between rounded-xl border border-white/10 px-4 py-3 text-left"
+          panelClassName="w-[min(30rem,calc(100vw-2rem))]"
+          trigger={
+            <>
+              <span>
+                {selectedSubscription?.name || copy.billingNoSubscriptions}
+              </span>
+              <icon>expand_more</icon>
+            </>
+          }
+        >
+          {manageable.map((subscription) => (
+            <button
+              className="flex w-full items-center gap-3 rounded-xl border-0 bg-transparent px-3 py-2.5 text-left text-white hover:bg-white/10!"
+              data-dropdown-close
+              key={subscription.id}
+              onClick={() => setSubscriptionId(subscription.id)}
+              role="menuitem"
+              type="button"
+            >
+              <icon>
+                {subscription.id === subscriptionId
+                  ? "radio_button_checked"
+                  : "radio_button_unchecked"}
+              </icon>
+              <span>{subscription.name}</span>
+            </button>
+          ))}
+        </DropdownWrapper>
+      </div>
+      <div className="grid gap-2 text-sm font-bold">
+        <span>{copy.billingChooseNewPlan}</span>
+        <DropdownWrapper
+          align="left"
+          ariaLabel={copy.billingChooseNewPlan}
+          buttonClassName="liquid-glass flex w-full items-center justify-between rounded-xl border border-white/10 px-4 py-3 text-left"
+          panelClassName="w-[min(30rem,calc(100vw-2rem))]"
+          trigger={
+            <>
+              <span>{selectedPlan?.label}</span>
+              <icon>expand_more</icon>
+            </>
+          }
+        >
+          {plans.map((plan) => (
+            <button
+              className="flex w-full items-center gap-3 rounded-xl border-0 bg-transparent px-3 py-2.5 text-left text-white hover:bg-white/10!"
+              data-dropdown-close
+              key={plan.id}
+              onClick={() => setPlanId(plan.id)}
+              role="menuitem"
+              type="button"
+            >
+              <icon>
+                {plan.id === planId
+                  ? "radio_button_checked"
+                  : "radio_button_unchecked"}
+              </icon>
+              <span>{plan.label}</span>
+            </button>
+          ))}
+        </DropdownWrapper>
+      </div>
+      <button
+        className="liquid-glass w-full rounded-xl bg-[var(--accent)]! px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
+        disabled={saving || !subscriptionId}
+        type="submit"
+      >
+        {saving
+          ? <LoadingSpinner label={copy.accountProcessing} />
+          : copy.billingChangeSubscription}
+      </button>
+    </form>
+  );
+}
+
 export default function AccountBillingSection({ copy }) {
   const [billing, setBilling] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -286,7 +429,7 @@ export default function AccountBillingSection({ copy }) {
       if (!response.ok) throw new Error("billing_load_failed");
       setBilling(await response.json());
     } catch {
-      showToast({ messageKey: "billingLoadFailed", type: "error" });
+      // The shared API watcher presents the translated subscription failure toast.
     } finally {
       setLoading(false);
     }
@@ -373,6 +516,24 @@ export default function AccountBillingSection({ copy }) {
     );
   };
 
+  const openSubscriptionChanger = () => {
+    showModal(
+      ({ close }) => (
+        <ChangeSubscriptionForm
+          close={close}
+          copy={copy}
+          onChanged={loadBilling}
+          subscriptions={billing?.subscriptions || []}
+        />
+      ),
+      {
+        ariaLabel: copy.billingChangeSubscription,
+        title: copy.billingChangeSubscription,
+        width: "min(38rem, calc(100vw - 1rem))",
+      },
+    );
+  };
+
   const subscriptions = billing?.subscriptions || [];
   const paymentMethods = billing?.paymentMethods || [];
   const invoices = billing?.invoices || [];
@@ -422,6 +583,21 @@ export default function AccountBillingSection({ copy }) {
             type="button"
           >
             {copy.retry}
+          </button>
+          <button
+            className="liquid-glass rounded-xl bg-[var(--accent)]! px-3 py-2 text-sm font-bold text-white disabled:opacity-55"
+            disabled={
+              loading ||
+              !subscriptions.some((subscription) =>
+                ["active", "trialing", "past_due"].includes(
+                  subscription.status,
+                ),
+              )
+            }
+            onClick={openSubscriptionChanger}
+            type="button"
+          >
+            {copy.billingChangeSubscription}
           </button>
         </div>
         <div className="mt-4 space-y-3">
@@ -564,26 +740,18 @@ export default function AccountBillingSection({ copy }) {
                 </p>
               </div>
               <div className="flex gap-2">
-                {invoice.hostedInvoiceUrl
-                  ? <a
-                      className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold hover:bg-white/10!"
-                      href={invoice.hostedInvoiceUrl}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      {copy.billingViewInvoice}
-                    </a>
-                  : null}
-                {invoice.invoicePdf
-                  ? <a
-                      className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold hover:bg-white/10!"
-                      href={invoice.invoicePdf}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      {copy.billingDownloadInvoice}
-                    </a>
-                  : null}
+                <a
+                  className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold hover:bg-white/10!"
+                  href={`/account/invoices/${encodeURIComponent(invoice.id)}`}
+                >
+                  {copy.billingViewInvoice}
+                </a>
+                <a
+                  className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold hover:bg-white/10!"
+                  href={`/account/invoices/${encodeURIComponent(invoice.id)}?print=1`}
+                >
+                  {copy.billingDownloadInvoice}
+                </a>
               </div>
             </article>
           ))}

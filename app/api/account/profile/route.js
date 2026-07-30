@@ -434,7 +434,7 @@ export async function PUT(request) {
     }
 
     return invalidProfileResponse(
-      "The profile picture could not be uploaded.",
+      "Failed to upload the profile picture.",
       500,
       "image_upload_failed",
     );

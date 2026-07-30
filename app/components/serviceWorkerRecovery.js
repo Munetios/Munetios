@@ -72,7 +72,7 @@ export default function ServiceWorkerRecovery() {
     };
 
     void removeStaleWorkerState().catch((error) => {
-      console.error("Unable to clean up stale OmniWrite worker state.", error);
+      console.error("Failed to clean up stale OmniWrite worker state.", error);
     });
   }, []);
 

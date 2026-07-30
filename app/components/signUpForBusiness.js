@@ -15,7 +15,6 @@ const businessDraftStorageKey = "munetios.businessSignupDraft";
 
 const planOptions = [
   { key: "pricingBusinessFreeTitle", value: "business-free" },
-  { key: "pricingBusinessProTitle", value: "business-pro" },
 ];
 
 const companyOptions = [
@@ -68,8 +67,8 @@ const previewCards = [
   },
 ];
 
-function normalizePlan(plan) {
-  return plan === "business-pro" ? "business-pro" : "business-free";
+function normalizePlan() {
+  return "business-free";
 }
 
 function normalizeCurrency(currency) {
@@ -563,6 +562,12 @@ export default function SignUpForBusiness({
                 options={planOptions}
                 value={form.plan}
               />
+              <p
+                className="mt-2 text-xs leading-5 text-white/60"
+                data-translate="businessVerificationRequired"
+              >
+                {copy.businessVerificationRequired}
+              </p>
             </div>
           </div>
 

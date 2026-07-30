@@ -11,7 +11,9 @@ const LOCALE_ALIASES = {
   de: "de-DE",
   en: "en",
   "en-US": "en",
-  es: "es-US",
+  el: "el-GR",
+  es: "es",
+  "es-EC": "es-EQ",
   fr: "fr-FR",
   he: "he-IL",
   hi: "hi-IN",
@@ -39,6 +41,40 @@ const LOCALE_ALIASES = {
   "cn-TW": "zh-TW",
 };
 const RTL_LOCALES = new Set(["ar-SA", "he-IL"]);
+const GENDER_VARIANT_SEPARATOR = "__";
+
+export function normalizeTranslationGender(gender) {
+  const normalized = String(gender || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "");
+
+  if (new Set(["female", "woman"]).has(normalized)) return "woman";
+  if (new Set(["male", "man"]).has(normalized)) return "man";
+  if (new Set(["nonbinary", "nonconforming"]).has(normalized)) {
+    return "nonBinary";
+  }
+  if (
+    new Set(["custom", "other", "prefernottosay", "unknown"]).has(normalized)
+  ) {
+    return "other";
+  }
+  return null;
+}
+
+export function applyGenderTranslations(copy, gender) {
+  const normalizedGender = normalizeTranslationGender(gender);
+  if (!normalizedGender) return copy;
+
+  const suffix = `${GENDER_VARIANT_SEPARATOR}${normalizedGender}`;
+  const resolved = { ...copy };
+  for (const [key, value] of Object.entries(copy)) {
+    if (key.endsWith(suffix)) {
+      resolved[key.slice(0, -suffix.length)] = value;
+    }
+  }
+  return resolved;
+}
 
 function getLocaleCookie() {
   if (typeof window === "undefined") {
@@ -142,10 +178,10 @@ function resolveLocale(locale) {
     locale,
     getUrlLocale(),
     getSavedLocale(),
-    typeof document !== "undefined" ? document.documentElement.lang : null,
     typeof navigator !== "undefined"
       ? navigator.language || navigator.userLanguage
       : null,
+    typeof document !== "undefined" ? document.documentElement.lang : null,
   ];
 
   for (const candidate of localeCandidates) {
@@ -158,9 +194,10 @@ function resolveLocale(locale) {
   return "en";
 }
 
-export function t(locale) {
+export function t(locale, options = {}) {
   const resolvedLocale = resolveLocale(locale);
-  return { ...translations.en, ...(translations[resolvedLocale] || {}) };
+  const copy = { ...translations.en, ...(translations[resolvedLocale] || {}) };
+  return applyGenderTranslations(copy, options?.gender);
 }
 
 export function getCurrentLocale(locale) {

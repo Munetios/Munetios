@@ -1,10 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getCurrentLocale, setCurrentLocale, t, translations } from "../i18n";
+import { getCurrentLocale, t, translations } from "../i18n";
+import { loadDateTimePreferences } from "../lib/dateTimePreferences";
+import {
+  getSuggestedLocales,
+  resolvePreferenceCountry,
+} from "../lib/regionPreferences";
 import DropdownWrapper from "./dropdownwrapper";
 
 const languageUrl = "/api/language";
+const localePathSegments = new Set([
+  ...Object.keys(translations).map((locale) => locale.toLowerCase()),
+  ...Object.keys(translations).map((locale) =>
+    locale.split("-")[0].toLowerCase(),
+  ),
+  "en-us",
+]);
 
 function getSavedLanguage() {
   if (typeof window === "undefined") {
@@ -52,33 +64,103 @@ function getAutoLanguageLabel() {
   return `Auto (${detectedLanguageName})`;
 }
 
-function getLanguageOptions() {
+function removeHashLocaleOverride(hash) {
+  const hashValue = hash.startsWith("#") ? hash.slice(1) : hash;
+  if (!hashValue) {
+    return "";
+  }
+
+  const queryStart = hashValue.indexOf("?");
+  const hashPath = queryStart >= 0 ? hashValue.slice(0, queryStart) : "";
+  const hashQuery =
+    queryStart >= 0
+      ? hashValue.slice(queryStart + 1)
+      : hashValue.startsWith("hl=")
+        ? hashValue
+        : "";
+
+  if (!hashQuery) {
+    return hash;
+  }
+
+  const parameters = new URLSearchParams(hashQuery);
+  parameters.delete("hl");
+  const nextQuery = parameters.toString();
+
+  if (!hashPath) {
+    return nextQuery ? `#${nextQuery}` : "";
+  }
+
+  return nextQuery ? `#${hashPath}?${nextQuery}` : `#${hashPath}`;
+}
+
+function getAutoLanguageDestination() {
+  const destination = new URL(window.location.href);
+  const pathSegments = destination.pathname.split("/");
+  const firstPathSegment = decodeURIComponent(pathSegments[1] || "")
+    .replaceAll("_", "-")
+    .toLowerCase();
+
+  if (localePathSegments.has(firstPathSegment)) {
+    destination.pathname = `/${pathSegments.slice(2).join("/")}`;
+  }
+
+  destination.searchParams.delete("hl");
+  destination.hash = removeHashLocaleOverride(destination.hash);
+
+  return destination;
+}
+
+function getLanguageOptions(preferences) {
+  const suggestedLocales = getSuggestedLocales(
+    resolvePreferenceCountry(preferences),
+  );
+  const localeEntries = Object.entries(translations).map(
+    ([locale, localeCopy]) => ({
+      locale,
+      name: localeCopy.languageName || locale,
+      suggested: suggestedLocales.includes(locale),
+    }),
+  );
   return [
     {
       locale: "auto",
       name: getAutoLanguageLabel(),
     },
-    ...Object.entries(translations)
-      .map(([locale, localeCopy]) => ({
-        locale,
-        name: localeCopy.languageName || locale,
-      }))
-      .sort((firstLanguage, secondLanguage) =>
+    ...localeEntries.sort(
+      (firstLanguage, secondLanguage) =>
+        Number(secondLanguage.suggested) - Number(firstLanguage.suggested) ||
         firstLanguage.name.localeCompare(secondLanguage.name, "en", {
           sensitivity: "base",
         }),
-      ),
+    ),
   ];
 }
 
 async function saveLanguagePreference(language) {
   if (language === "auto") {
-    if (typeof window !== "undefined") {
-      const detectedLocale = getDetectedLocale();
-      setCurrentLocale(detectedLocale);
+    try {
+      const response = await fetch(languageUrl, {
+        body: JSON.stringify({ language: "auto" }),
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
 
+      if (!response.ok) {
+        throw new Error(`Language update failed: ${response.status}`);
+      }
+    } catch {
+      // The local preference can still be cleared while signed out or offline.
+    }
+
+    if (typeof window !== "undefined") {
       window.localStorage.removeItem("munetiosLanguage");
       window.localStorage.removeItem("munetios.locale");
+      // biome-ignore lint/suspicious/noDocumentCookie: Clear the non-sensitive locale preference for Auto mode.
       window.document.cookie =
         "munetios_locale=; Path=/; Max-Age=0; SameSite=Lax";
     }
@@ -86,7 +168,7 @@ async function saveLanguagePreference(language) {
     return "auto";
   }
 
-  const resolvedLanguage = setCurrentLocale(language);
+  const resolvedLanguage = getCurrentLocale(language);
 
   try {
     const response = await fetch(languageUrl, {
@@ -106,7 +188,10 @@ async function saveLanguagePreference(language) {
     const payload = await response.json();
 
     if (typeof payload?.language === "string") {
-      return setCurrentLocale(payload.language);
+      const savedLanguage = getCurrentLocale(payload.language);
+      window.localStorage.setItem("munetiosLanguage", savedLanguage);
+      window.localStorage.setItem("munetios.locale", savedLanguage);
+      return savedLanguage;
     }
   } catch {
     if (typeof window !== "undefined") {
@@ -146,10 +231,17 @@ export default function LanguageSelector({
   const [selectedLanguage, setSelectedLanguage] = useState(() =>
     getSavedLanguage(),
   );
+  const [savingLanguage, setSavingLanguage] = useState(false);
+  const [regionalPreferences, setRegionalPreferences] = useState(
+    loadDateTimePreferences,
+  );
   const copy =
     providedCopy ||
     t(selectedLanguage === "auto" ? getDetectedLocale() : selectedLanguage);
-  const languageOptions = useMemo(() => getLanguageOptions(), []);
+  const languageOptions = useMemo(
+    () => getLanguageOptions(regionalPreferences),
+    [regionalPreferences],
+  );
   const selectedLanguageName =
     selectedLanguage === "auto"
       ? getAutoLanguageLabel()
@@ -174,24 +266,61 @@ export default function LanguageSelector({
           return;
         }
 
-        setSelectedLanguage(setCurrentLocale(language));
+        const savedLanguage = getCurrentLocale(language);
+        if (
+          savedLanguage !==
+          getCurrentLocale(window.document.documentElement.lang)
+        ) {
+          window.location.reload();
+          return;
+        }
+        setSelectedLanguage(savedLanguage);
       })
       .catch(() => undefined);
     window.addEventListener("languagechange", refreshLanguage);
     window.addEventListener("munetios:languagechange", refreshLanguage);
     window.addEventListener("munetios:localechange", refreshLanguage);
+    const refreshRegion = () =>
+      setRegionalPreferences(loadDateTimePreferences());
+    window.addEventListener("munetios:language-time-change", refreshRegion);
 
     return () => {
       isMounted = false;
       window.removeEventListener("languagechange", refreshLanguage);
       window.removeEventListener("munetios:languagechange", refreshLanguage);
       window.removeEventListener("munetios:localechange", refreshLanguage);
+      window.removeEventListener(
+        "munetios:language-time-change",
+        refreshRegion,
+      );
     };
   }, []);
 
   const saveLanguage = async (language) => {
-    const resolvedLanguage = await saveLanguagePreference(language);
-    setSelectedLanguage(resolvedLanguage);
+    if (savingLanguage || language === selectedLanguage) {
+      return;
+    }
+
+    setSavingLanguage(true);
+    await saveLanguagePreference(language);
+
+    if (language === "auto") {
+      const detectedLocale = getDetectedLocale();
+      window.document.documentElement.lang = detectedLocale;
+      window.document.documentElement.dir = ["ar-SA", "he-IL"].includes(
+        detectedLocale,
+      )
+        ? "rtl"
+        : "ltr";
+
+      const destination = getAutoLanguageDestination();
+      if (destination.href !== window.location.href) {
+        window.location.replace(destination.href);
+        return;
+      }
+    }
+
+    window.location.reload();
   };
 
   return (
@@ -223,14 +352,25 @@ export default function LanguageSelector({
           <button
             className="flex w-full items-center justify-between gap-3 rounded-lg border border-transparent bg-transparent px-3 py-2 text-left text-sm text-white transition hover:border-white/10 hover:bg-white/10!"
             key={languageOption.locale}
+            disabled={savingLanguage}
             onClick={() => saveLanguage(languageOption.locale)}
             role="menuitem"
             type="button"
           >
-            <span className="min-w-0 truncate">{languageOption.name}</span>
-            {languageOption.locale === selectedLanguage ? (
-              <icon>check</icon>
-            ) : null}
+            <span className="flex min-w-0 items-center gap-2 truncate">
+              {languageOption.suggested
+                ? <icon
+                    className="text-purple-200"
+                    title={copy.accountLanguageCountry}
+                  >
+                    location_on
+                  </icon>
+                : null}
+              <span className="truncate">{languageOption.name}</span>
+            </span>
+            {languageOption.locale === selectedLanguage
+              ? <icon>check</icon>
+              : null}
           </button>
         ))}
       </div>

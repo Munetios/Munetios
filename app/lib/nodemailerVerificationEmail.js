@@ -274,3 +274,48 @@ export async function sendVerificationEmail(recipient, code) {
 
   return { delivered: false, reason: "email_connection_failed" };
 }
+
+export async function sendAiInvitationEmail(
+  recipient,
+  inviteUrl,
+  inviterName = "A friend",
+) {
+  const configuration = getConfiguration();
+  if (!configuration) return null;
+  let parsedInviteUrl;
+  try {
+    parsedInviteUrl = new URL(inviteUrl);
+  } catch {
+    return { delivered: false, reason: "email_invalid_message" };
+  }
+  if (
+    !emailPattern.test(recipient || "") ||
+    !(
+      parsedInviteUrl.hostname === "munetios.com" ||
+      parsedInviteUrl.hostname.endsWith(".munetios.com") ||
+      parsedInviteUrl.hostname === "localhost" ||
+      parsedInviteUrl.hostname === "127.0.0.1"
+    )
+  ) {
+    return { delivered: false, reason: "email_invalid_message" };
+  }
+
+  try {
+    const transporter = getTransporter(configuration);
+    const result = await transporter.sendMail({
+      from: { address: configuration.from, name: "Munetios" },
+      headers: { "Auto-Submitted": "auto-generated" },
+      subject: `${inviterName} invited you to try Munetios AI`,
+      text: `${inviterName} invited you to try Munetios AI.\n\nCreate your account using this invitation:\n${parsedInviteUrl.href}\n\nAfter you join, you and your friend will each receive one AI usage reset.`,
+      to: recipient,
+    });
+    const accepted =
+      Array.isArray(result.accepted) && result.accepted.length > 0;
+    return {
+      delivered: accepted,
+      reason: accepted ? null : "email_recipient_rejected",
+    };
+  } catch (error) {
+    return { delivered: false, reason: getFailureReason(error) };
+  }
+}

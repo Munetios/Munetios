@@ -8,10 +8,15 @@ const countries =
   );
 
 export async function GET(request) {
-  const { country, region } = getRequestLocation(request);
+  const { country, countryDetection, region } = getRequestLocation(request);
 
   return Response.json(
-    { countries, detectedCountry: country, detectedRegion: region },
+    {
+      countries,
+      detectedCountry: country,
+      detectedRegion: region,
+      detectionMethod: countryDetection,
+    },
     { headers: { "Cache-Control": "private, no-store" } },
   );
 }

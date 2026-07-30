@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  normalizeTaskLists,
+  normalizeTasksForLists,
+} from "./taskLists";
+
 const iterations = 600_000;
 const additionalData = new TextEncoder().encode("munetios.tasks.v1");
 const localDocumentKey = "munetios.tasks.encrypted.v1";
@@ -7,17 +12,6 @@ const databaseName = "munetios-tasks-crypto";
 const databaseStore = "keys";
 let unlockedAccount = null;
 let accountUnlockPromise = null;
-
-function createDeviceVault(
-  keyId = encode(crypto.getRandomValues(new Uint8Array(18))),
-) {
-  return {
-    algorithm: "AES-GCM",
-    keyId,
-    protection: "device",
-    version: 1,
-  };
-}
 
 function encode(bytes) {
   let binary = "";
@@ -37,6 +31,27 @@ function decode(value) {
     .padEnd(Math.ceil(value.length / 4) * 4, "=");
   const binary = atob(padded);
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+}
+
+async function createAccountVault(key, keyId) {
+  const rawKey = await crypto.subtle.exportKey("raw", key);
+  return {
+    algorithm: "AES-GCM",
+    keyId,
+    protection: "account",
+    syncKey: encode(new Uint8Array(rawKey)),
+    version: 1,
+  };
+}
+
+async function importAccountVaultKey(vault) {
+  return crypto.subtle.importKey(
+    "raw",
+    decode(vault.syncKey),
+    "AES-GCM",
+    true,
+    ["encrypt", "decrypt"],
+  );
 }
 
 async function deriveWrappingKey(password, salt, workFactor = iterations) {
@@ -133,6 +148,7 @@ async function decryptDocument(key, encryptedDocument) {
   const document = JSON.parse(new TextDecoder().decode(plaintext));
   return {
     categories: Array.isArray(document?.categories) ? document.categories : [],
+    lists: normalizeTaskLists(document?.lists),
     tasks: Array.isArray(document?.tasks) ? document.tasks : [],
     settings:
       typeof document?.settings === "object" && document.settings !== null
@@ -147,7 +163,11 @@ async function decryptDocument(key, encryptedDocument) {
 
 export function getActiveTasksWorkspaceId() {
   if (typeof window === "undefined") return "default";
-  return window.localStorage.getItem("munetiosActiveWorkspace") || "default";
+  return (
+    window.sessionStorage.getItem("munetiosActiveLockedWorkspace") ||
+    window.localStorage.getItem("munetiosActiveWorkspace") ||
+    "default"
+  );
 }
 
 export function getTasksWorkspaceData(
@@ -165,21 +185,24 @@ export function getTasksWorkspaceData(
     Object.keys(workspaces).length === 0 &&
     ((document?.categories || []).length > 0 ||
       (document?.tasks || []).length > 0);
+  const lists = normalizeTaskLists(scoped?.lists);
+  const tasks = Array.isArray(scoped?.tasks)
+    ? scoped.tasks
+    : canMigrateLegacy && Array.isArray(document?.tasks)
+      ? document.tasks
+      : [];
   return {
     categories: Array.isArray(scoped?.categories)
       ? scoped.categories
       : canMigrateLegacy && Array.isArray(document?.categories)
         ? document.categories
         : [],
+    lists,
     settings:
       typeof document?.settings === "object" && document.settings !== null
         ? document.settings
         : {},
-    tasks: Array.isArray(scoped?.tasks)
-      ? scoped.tasks
-      : canMigrateLegacy && Array.isArray(document?.tasks)
-        ? document.tasks
-        : [],
+    tasks: normalizeTasksForLists(tasks, lists),
   };
 }
 
@@ -196,6 +219,7 @@ export function withTasksWorkspaceData(
   return {
     ...document,
     categories: [],
+    lists: [],
     settings:
       typeof scopedData?.settings === "object" && scopedData.settings !== null
         ? scopedData.settings
@@ -207,7 +231,8 @@ export function withTasksWorkspaceData(
         categories: Array.isArray(scopedData?.categories)
           ? scopedData.categories
           : [],
-        tasks: Array.isArray(scopedData?.tasks) ? scopedData.tasks : [],
+        lists: normalizeTaskLists(scopedData?.lists),
+        tasks: normalizeTasksForLists(scopedData?.tasks, scopedData?.lists),
         updatedAt: new Date().toISOString(),
       },
     },
@@ -266,6 +291,7 @@ export async function unlockAccountVault(password) {
       categories: Array.isArray(stored.legacyCategories)
         ? stored.legacyCategories
         : [],
+      lists: normalizeTaskLists(),
       tasks: [],
       workspaces: {},
     };
@@ -279,6 +305,8 @@ export async function unlockAccountVault(password) {
   if (stored.vault.protection === "device") {
     key = await getStoredKey(`account:${stored.vault.keyId}`);
     if (!key) throw new Error("device_key_unavailable");
+  } else if (stored.vault.protection === "account") {
+    key = await importAccountVaultKey(stored.vault);
   } else {
     key = await unwrapVault(stored.vault, password);
   }
@@ -311,12 +339,13 @@ async function ensureAccountVaultUnlockedOnce() {
       true,
       ["encrypt", "decrypt"],
     );
-    const vault = createDeviceVault();
-    await putStoredKey(`account:${vault.keyId}`, key);
+    const keyId = encode(crypto.getRandomValues(new Uint8Array(18)));
+    const vault = await createAccountVault(key, keyId);
     const data = {
       categories: Array.isArray(stored.legacyCategories)
         ? stored.legacyCategories
         : [],
+      lists: normalizeTaskLists(),
       tasks: [],
       settings: {},
       workspaces: {},
@@ -326,17 +355,30 @@ async function ensureAccountVaultUnlockedOnce() {
     unlockedAccount = { data, document, key, vault };
     return data;
   }
+  if (stored.vault.protection === "account") {
+    const key = await importAccountVaultKey(stored.vault);
+    const data = await decryptDocument(key, stored.document);
+    unlockedAccount = {
+      data,
+      document: stored.document,
+      key,
+      vault: stored.vault,
+    };
+    return data;
+  }
   if (stored.vault.protection !== "device") {
     throw new Error("password_required");
   }
   const key = await getStoredKey(`account:${stored.vault.keyId}`);
   if (!key) throw new Error("device_key_unavailable");
+  const vault = await createAccountVault(key, stored.vault.keyId);
+  await saveVault(vault, stored.document);
   const data = await decryptDocument(key, stored.document);
   unlockedAccount = {
     data,
     document: stored.document,
     key,
-    vault: stored.vault,
+    vault,
   };
   return data;
 }
@@ -345,11 +387,29 @@ export function getUnlockedAccountData() {
   return unlockedAccount?.data || null;
 }
 
+export async function refreshUnlockedAccountData() {
+  if (!unlockedAccount) return ensureAccountVaultUnlocked();
+  const stored = await fetchVault();
+  if (!stored.vault || !stored.document) return unlockedAccount.data;
+  if (stored.vault.keyId !== unlockedAccount.vault.keyId) {
+    throw new Error("vault_key_changed");
+  }
+  const data = await decryptDocument(unlockedAccount.key, stored.document);
+  unlockedAccount = {
+    ...unlockedAccount,
+    data,
+    document: stored.document,
+    vault: stored.vault,
+  };
+  return data;
+}
+
 export async function saveUnlockedAccountData(data) {
   if (!unlockedAccount) throw new Error("vault_locked");
   const normalized = {
     categories: Array.isArray(data?.categories) ? data.categories : [],
-    tasks: Array.isArray(data?.tasks) ? data.tasks : [],
+    lists: normalizeTaskLists(data?.lists),
+    tasks: normalizeTasksForLists(data?.tasks, data?.lists),
     settings:
       typeof data?.settings === "object" && data.settings !== null
         ? data.settings
@@ -459,14 +519,26 @@ async function putStoredKey(id, key) {
 export async function readLocalEncryptedData() {
   const encrypted = window.localStorage.getItem(localDocumentKey);
   if (!encrypted) {
-    return { categories: [], settings: {}, tasks: [], workspaces: {} };
+    return {
+      categories: [],
+      lists: normalizeTaskLists(),
+      settings: {},
+      tasks: [],
+      workspaces: {},
+    };
   }
 
   try {
     return decryptDocument(await getLocalKey(), JSON.parse(encrypted));
   } catch {
     window.localStorage.removeItem(localDocumentKey);
-    return { categories: [], tasks: [], settings: {} };
+    return {
+      categories: [],
+      lists: normalizeTaskLists(),
+      tasks: [],
+      settings: {},
+      workspaces: {},
+    };
   }
 }
 

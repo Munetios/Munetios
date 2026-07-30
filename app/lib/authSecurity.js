@@ -9,6 +9,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import bcrypt from "bcryptjs";
+import { getSecureCookieAttribute } from "./requestSecurity.js";
 
 const captchaLifetimeMs = 5 * 60 * 1000;
 const verificationLifetimeMs = 10 * 60 * 1000;
@@ -74,6 +75,17 @@ function createAuthDatabase() {
       device_type TEXT NOT NULL DEFAULT '',
       backed_up INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
+      FOREIGN KEY (account_id) REFERENCES auth_accounts(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS auth_oauth_identities (
+      provider TEXT NOT NULL,
+      provider_account_id TEXT NOT NULL,
+      account_id TEXT NOT NULL,
+      email TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      last_used_at TEXT NOT NULL,
+      PRIMARY KEY (provider, provider_account_id),
       FOREIGN KEY (account_id) REFERENCES auth_accounts(id) ON DELETE CASCADE
     );
 
@@ -294,6 +306,20 @@ const findSessionStatement = authDatabase.prepare(`
 const findAccountByIdStatement = authDatabase.prepare(`
   SELECT * FROM auth_accounts WHERE id = ? LIMIT 1
 `);
+const findOAuthIdentityStatement = authDatabase.prepare(`
+  SELECT a.* FROM auth_oauth_identities o
+  JOIN auth_accounts a ON a.id = o.account_id
+  WHERE o.provider = ? AND o.provider_account_id = ?
+  LIMIT 1
+`);
+const insertOAuthIdentityStatement = authDatabase.prepare(`
+  INSERT INTO auth_oauth_identities (
+    provider, provider_account_id, account_id, email, created_at, last_used_at
+  ) VALUES (?, ?, ?, ?, ?, ?)
+  ON CONFLICT(provider, provider_account_id) DO UPDATE SET
+    email = excluded.email,
+    last_used_at = excluded.last_used_at
+`);
 const updateAccountPlanStatement = authDatabase.prepare(`
   UPDATE auth_accounts SET plan = ? WHERE id = ?
 `);
@@ -335,6 +361,10 @@ const attachSessionToAccountCollectionStatement = authDatabase.prepare(`
 const getAccountDataStatement = authDatabase.prepare(`
   SELECT data_json FROM auth_account_data
   WHERE account_id = ? AND data_key = ? LIMIT 1
+`);
+const listAccountDataStatement = authDatabase.prepare(`
+  SELECT account_id, data_json, updated_at FROM auth_account_data
+  WHERE data_key = ? ORDER BY updated_at DESC
 `);
 const setAccountDataStatement = authDatabase.prepare(`
   INSERT INTO auth_account_data (account_id, data_key, data_json, updated_at)
@@ -758,6 +788,7 @@ export function updateAccountPlan(accountId, planId) {
       "business-free": "Business Free",
       "business-pro": "Business Pro",
       free: "Free",
+      "munetios-ai-plus": "Pro Lite",
       pro: "Pro",
       "pro-lite": "Pro Lite",
     }[planId] || null;
@@ -916,6 +947,92 @@ export function getAccountByIdentifier(identifier) {
     : null;
 }
 
+export function getAccountByOAuthIdentity(provider, providerAccountId) {
+  const normalizedProvider = String(provider || "")
+    .trim()
+    .toLowerCase();
+  const normalizedProviderAccountId = String(providerAccountId || "").trim();
+  if (!normalizedProvider || !normalizedProviderAccountId) return null;
+  return mapAccount(
+    findOAuthIdentityStatement.get(
+      normalizedProvider,
+      normalizedProviderAccountId,
+    ),
+  );
+}
+
+export function linkOAuthIdentity(
+  accountId,
+  { email = "", provider, providerAccountId },
+) {
+  const normalizedProvider = String(provider || "")
+    .trim()
+    .toLowerCase();
+  const normalizedProviderAccountId = String(providerAccountId || "").trim();
+  if (
+    !getAccountById(accountId) ||
+    !normalizedProvider ||
+    !normalizedProviderAccountId
+  ) {
+    return false;
+  }
+  const now = new Date().toISOString();
+  insertOAuthIdentityStatement.run(
+    normalizedProvider,
+    normalizedProviderAccountId,
+    accountId,
+    normalizeEmail(email) || "",
+    now,
+    now,
+  );
+  return true;
+}
+
+export async function createOAuthAccount({
+  email,
+  name,
+  provider,
+  providerAccountId,
+  username,
+}) {
+  const normalizedEmail = normalizeEmail(email);
+  const availableUsername = createAvailableUsername(
+    username || normalizedEmail?.split("@")[0] || "user",
+  );
+  if (!normalizedEmail || !availableUsername) return null;
+
+  const normalizedName =
+    String(name || "")
+      .trim()
+      .slice(0, 100) || availableUsername;
+  const nameParts = normalizedName.split(/\s+/);
+  const account = await createAccount({
+    birthDate: "",
+    contact: normalizedEmail,
+    contactType: "email",
+    email: normalizedEmail,
+    firstName: nameParts[0] || normalizedName,
+    gender: "",
+    lastName: nameParts.slice(1).join(" "),
+    name: normalizedName,
+    password: randomBytes(48).toString("base64url"),
+    username: availableUsername,
+  });
+  const resolvedAccount =
+    account || getAccountByIdentifier(normalizedEmail);
+  if (
+    resolvedAccount &&
+    linkOAuthIdentity(resolvedAccount.id, {
+      email: normalizedEmail,
+      provider,
+      providerAccountId,
+    })
+  ) {
+    return resolvedAccount;
+  }
+  return null;
+}
+
 export async function verifyAccountPassword(account, password) {
   return Boolean(
     account?.passwordHash &&
@@ -1054,6 +1171,22 @@ export function getAccountData(accountId, key, fallback = null) {
   } catch {
     return fallback;
   }
+}
+
+export function listAccountData(key) {
+  return listAccountDataStatement.all(key).flatMap((row) => {
+    try {
+      return [
+        {
+          accountId: row.account_id,
+          updatedAt: row.updated_at,
+          value: JSON.parse(row.data_json),
+        },
+      ];
+    } catch {
+      return [];
+    }
+  });
 }
 
 export function setAccountData(accountId, key, value) {
@@ -1237,20 +1370,22 @@ export function getAccountSession(token, request = null) {
 }
 
 export function getAccountCollectionCookie(
+  request,
   token,
   maxAge = Math.floor(sessionLifetimeMs / 1000),
 ) {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = getSecureCookieAttribute(request);
   return `${accountCollectionCookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`;
 }
 
 export { accountCollectionCookieName };
 
 export function getSessionCookie(
+  request,
   token,
   maxAge = Math.floor(sessionLifetimeMs / 1000),
 ) {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = getSecureCookieAttribute(request);
   return `munetios_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`;
 }
 

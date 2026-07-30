@@ -7,6 +7,11 @@ import { showModal } from "../../../components/modal";
 import { showToast } from "../../../components/toast";
 import { getCurrentLocale, t } from "../../../i18n";
 import {
+  formatUserDate,
+  formatUserTime,
+  loadDateTimePreferences,
+} from "../../../lib/dateTimePreferences";
+import {
   fetchEncryptedCollaborations,
   shareEncryptedTask,
   updateEncryptedCollaboration,
@@ -17,10 +22,20 @@ import {
   getTasksWorkspaceData,
   getUnlockedAccountData,
   readLocalEncryptedData,
+  refreshUnlockedAccountData,
   saveLocalEncryptedData,
   saveUnlockedAccountData,
   withTasksWorkspaceData,
 } from "../lib/encryptedVault";
+import {
+  cacheTaskLists,
+  createTaskListSlug,
+  defaultTaskListId,
+  defaultTaskListSlug,
+  getTaskListHref,
+  getTaskListName,
+  normalizeTaskLists,
+} from "../lib/taskLists";
 
 const defaultSettings = {
   autoArchiveCompleted: false,
@@ -31,19 +46,123 @@ const viewKeys = {
   active: "tasksAllTasks",
   archived: "tasksArchived",
   completed: "tasksCompleted",
+  drafts: "tasksDrafts",
   favorites: "tasksFavorites",
   "in-progress": "tasksInProgress",
   shared: "tasksShared",
   trash: "tasksTrash",
 };
+const categorySuggestionKeywords = {
+  finance: ["bank", "bill", "budget", "invoice", "money", "pay", "tax"],
+  health: ["appointment", "doctor", "exercise", "fitness", "gym", "medicine"],
+  home: ["buy", "clean", "cook", "family", "grocery", "house", "shop"],
+  personal: ["birthday", "call", "errand", "personal", "remember"],
+  school: ["assignment", "class", "exam", "homework", "school", "study"],
+  travel: ["book", "flight", "hotel", "passport", "trip", "travel"],
+  work: [
+    "client",
+    "email",
+    "meeting",
+    "presentation",
+    "project",
+    "report",
+    "work",
+  ],
+  shopping: [
+    "buy",
+    "errand",
+    "grocery",
+    "groceries",
+    "list",
+    "market",
+    "purchase",
+    "shop",
+    "store",
+  ],
+  groceries: [
+    "buy",
+    "errand",
+    "grocery",
+    "groceries",
+    "list",
+    "market",
+    "shopping",
+    "store",
+  ],
+  grocery: [
+    "buy",
+    "errand",
+    "grocery",
+    "groceries",
+    "list",
+    "market",
+    "shopping",
+    "store",
+  ],
+};
 
-function createEmptyDraft() {
+function suggestionWords(value) {
+  return (
+    String(value || "")
+      .toLocaleLowerCase()
+      .match(/[\p{L}\p{N}]+/gu) || []
+  );
+}
+
+function getLocalCategorySuggestion(categories, topic) {
+  const topicWords = new Set(suggestionWords(topic));
+  let best = null;
+  let bestScore = 0;
+  for (const category of categories) {
+    const nameWords = suggestionWords(category.name);
+    const aliases = nameWords.flatMap(
+      (word) => categorySuggestionKeywords[word] || [],
+    );
+    const score = [...nameWords, ...aliases].reduce(
+      (total, word) => total + (topicWords.has(word) ? 1 : 0),
+      0,
+    );
+    if (score > bestScore) {
+      best = category;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+function isTaskPastDue(task, now = new Date()) {
+  if (!task.dueDate) return false;
+  const due = task.dueTime
+    ? new Date(`${task.dueDate}T${task.dueTime}:00`)
+    : new Date(`${task.dueDate}T23:59:59.999`);
+  return !Number.isNaN(due.getTime()) && due.getTime() < now.getTime();
+}
+
+function getAutomaticallyArchivedTasks(tasks, settings) {
+  const now = new Date();
+  const archivedAt = now.toISOString();
+  return tasks.map((task) => {
+    if (task.archived || task.trashedAt) return task;
+    const shouldArchiveCompleted =
+      settings.autoArchiveCompleted && task.status === "completed";
+    const shouldArchivePastDue =
+      settings.autoArchivePastDue &&
+      task.status !== "completed" &&
+      isTaskPastDue(task, now);
+    return shouldArchiveCompleted || shouldArchivePastDue
+      ? { ...task, archived: true, archivedAt: task.archivedAt || archivedAt }
+      : task;
+  });
+}
+
+function createEmptyDraft(listId = defaultTaskListId) {
   return {
     attachment: null,
     categoryId: "",
     description: "",
     dueDate: "",
     dueTime: "",
+    listId,
     name: "",
     options: [],
   };
@@ -62,6 +181,7 @@ function createTask(draft, existing) {
     dueTime: draft.dueTime,
     favorite: existing?.favorite || false,
     id: existing?.id || `task-${crypto.randomUUID()}`,
+    listId: draft.listId || existing?.listId || defaultTaskListId,
     name: draft.name.trim(),
     options: draft.options
       .filter((item) => item.label.trim())
@@ -82,42 +202,31 @@ function formatDueDate(task, locale, timeFormat) {
   if (!task.dueDate) return "";
   const [year, month, day] = task.dueDate.split("-").map(Number);
   const date = new Date(year, month - 1, day);
-  const dateText = new Intl.DateTimeFormat(locale, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(date);
+  const preferences = {
+    ...loadDateTimePreferences(),
+    timeFormat,
+  };
+  const dateText = formatUserDate(date, { locale, preferences });
   if (!task.dueTime) return dateText;
   const [hour, minute] = task.dueTime.split(":").map(Number);
-  const hour12 =
-    timeFormat === "12-hour"
-      ? true
-      : timeFormat === "24-hour"
-        ? false
-        : new Intl.DateTimeFormat(locale, { hour: "numeric" }).resolvedOptions()
-            .hour12;
-  const timeText = new Intl.DateTimeFormat(locale, {
-    hour: "numeric",
-    hour12,
-    minute: "2-digit",
-  }).format(new Date(2024, 0, 1, hour, minute));
+  const timeText = formatUserTime(new Date(2024, 0, 1, hour, minute), {
+    locale,
+    preferences,
+  });
   return `${dateText} · ${timeText}`;
 }
 
 function TimePicker({ copy, locale, onChange, timeFormat, value }) {
   const [hour = "", minute = ""] = String(value || "").split(":");
-  const hour12 =
-    timeFormat === "12-hour"
-      ? true
-      : timeFormat === "24-hour"
-        ? false
-        : new Intl.DateTimeFormat(locale, { hour: "numeric" }).resolvedOptions()
-            .hour12;
+  const preferences = {
+    ...loadDateTimePreferences(),
+    timeFormat,
+  };
   const hours = Array.from({ length: 24 }, (_, index) => ({
-    label: new Intl.DateTimeFormat(locale, {
-      hour: "numeric",
-      hour12,
-    }).format(new Date(2024, 0, 1, index)),
+    label: formatUserTime(new Date(2024, 0, 1, index), {
+      locale,
+      preferences,
+    }),
     value: String(index).padStart(2, "0"),
   }));
   const minutes = Array.from({ length: 12 }, (_, index) => ({
@@ -370,21 +479,85 @@ function DeleteSharedChoice({ close, copy, onCopy, onDelete }) {
   );
 }
 
-function TaskCard({
-  categories,
-  canMoveDown,
-  canMoveUp,
-  copy,
-  onAction,
-  onToggleItem,
-  sharedItem,
-  task,
-  timeFormat,
-  locale,
-  view,
-}) {
-  const category = categories.find((item) => item.id === task.categoryId);
-  const canEdit = !sharedItem || sharedItem.permission === "edit";
+function AddListForm({ close, copy, lists, onCreate }) {
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const duplicate = lists.some(
+    (list) =>
+      getTaskListName(list, copy).toLocaleLowerCase() ===
+      name.trim().toLocaleLowerCase(),
+  );
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        if (!name.trim() || duplicate || saving) return;
+        setSaving(true);
+        const created = await onCreate(name.trim());
+        setSaving(false);
+        if (created) close();
+      }}
+    >
+      <label className="block text-sm font-semibold text-white/85">
+        {copy.tasksListName}
+        <input
+          autoComplete="off"
+          className="mt-2 w-full rounded-2xl border border-white/10 bg-white/8! px-4 py-3 text-white outline-none focus:border-purple-300/55"
+          maxLength={80}
+          onChange={(event) => setName(event.target.value)}
+          placeholder={copy.tasksListNamePlaceholder}
+          required
+          value={name}
+        />
+      </label>
+      {duplicate
+        ? <p className="text-sm text-rose-200">{copy.tasksListAlreadyExists}</p>
+        : null}
+      <div className="flex justify-end gap-2">
+        <button
+          className="rounded-full border border-white/10 bg-white/5! px-4 py-2 text-sm font-semibold text-white/75"
+          onClick={close}
+          type="button"
+        >
+          {copy.cancel}
+        </button>
+        <button
+          className="rounded-full border border-purple-200/25 bg-purple-500/50! px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          disabled={!name.trim() || duplicate || saving}
+          type="submit"
+        >
+          {saving ? copy.tasksAddingList : copy.tasksAddList}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function MoveTaskToListForm({ close, copy, currentListId, lists, onMove }) {
+  return (
+    <div className="grid gap-2">
+      {lists.map((list) => (
+        <button
+          aria-pressed={list.id === currentListId}
+          className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5! px-4 py-3 text-left text-sm text-white/85 hover:bg-white/10!"
+          disabled={list.id === currentListId}
+          key={list.id}
+          onClick={async () => {
+            await onMove(list.id);
+            close();
+          }}
+          type="button"
+        >
+          <span>{getTaskListName(list, copy)}</span>
+          {list.id === currentListId ? <icon>check</icon> : null}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function getTaskOptions(task, copy) {
   const options = (task.options || []).map((option, index) => ({
     ...option,
     subtasks:
@@ -400,6 +573,88 @@ function TaskCard({
       subtasks: task.subtasks,
     });
   }
+  return options;
+}
+
+function TaskPrintDocument({ category, copy, locale, task, timeFormat }) {
+  const options = getTaskOptions(task, copy);
+  return (
+    <article aria-hidden="true" className="tasks-print-document">
+      <header className="tasks-print-header">
+        <div>
+          <strong>Munetios</strong>
+          <span>Tasks</span>
+        </div>
+        {category
+          ? <span className="tasks-print-category">
+              <i style={{ backgroundColor: category.color }} />
+              {category.name}
+            </span>
+          : null}
+      </header>
+      <main>
+        <h1>{task.name}</h1>
+        {task.description
+          ? <p className="tasks-print-description">{task.description}</p>
+          : null}
+        {options.length > 0
+          ? <ul className="tasks-print-options">
+              {options.map((option) => (
+                <li key={option.id}>
+                  <span
+                    aria-hidden="true"
+                    className={option.done ? "is-complete" : ""}
+                  >
+                    {option.done ? "✓" : ""}
+                  </span>
+                  <strong>{option.label}</strong>
+                  {(option.subtasks || []).length > 0
+                    ? <ul>
+                        {option.subtasks.map((subtask) => (
+                          <li key={subtask.id}>
+                            <span
+                              aria-hidden="true"
+                              className={subtask.done ? "is-complete" : ""}
+                            >
+                              {subtask.done ? "✓" : ""}
+                            </span>
+                            {subtask.label}
+                          </li>
+                        ))}
+                      </ul>
+                    : null}
+                </li>
+              ))}
+            </ul>
+          : null}
+      </main>
+      {task.dueDate
+        ? <footer className="tasks-print-due">
+            <strong>{copy.tasksDueDate}</strong>
+            <span>{formatDueDate(task, locale, timeFormat)}</span>
+          </footer>
+        : null}
+    </article>
+  );
+}
+
+function TaskCard({
+  categories,
+  canMoveDown,
+  canMoveUp,
+  copy,
+  lists,
+  onAction,
+  onToggleItem,
+  sharedItem,
+  task,
+  timeFormat,
+  locale,
+  view,
+}) {
+  const category = categories.find((item) => item.id === task.categoryId);
+  const canEdit = !sharedItem || sharedItem.permission === "edit";
+  const options = getTaskOptions(task, copy);
   return (
     <article
       className={`tasks-card liquid-glass ${task.attachment?.dataUrl ? "has-image" : ""}`}
@@ -485,73 +740,131 @@ function TaskCard({
                       {copy.tasksDeleteForever}
                     </button>
                   </>
-                : <>
-                    <button
-                      data-dropdown-close
-                      disabled={!canEdit}
-                      onClick={() => onAction("complete", task, sharedItem)}
-                      type="button"
-                    >
-                      <icon>task_alt</icon>
-                      {copy.tasksMoveCompleted}
-                    </button>
-                    <button
-                      data-dropdown-close
-                      onClick={() => window.print()}
-                      type="button"
-                    >
-                      <icon>print</icon>
-                      {copy.tasksPrint}
-                    </button>
-                    <button
-                      data-dropdown-close
-                      disabled={!canEdit}
-                      onClick={() => onAction("edit", task, sharedItem)}
-                      type="button"
-                    >
-                      <icon>edit</icon>
-                      {copy.tasksEdit}
-                    </button>
-                    {!sharedItem
-                      ? <>
-                          <button
+                : view === "archived"
+                  ? <>
+                      <button
+                        data-dropdown-close
+                        disabled={!canEdit}
+                        onClick={() => onAction("unarchive", task, sharedItem)}
+                        type="button"
+                      >
+                        <icon>unarchive</icon>
+                        {copy.tasksRestore}
+                      </button>
+                      <button
+                        data-dropdown-close
+                        disabled={!canEdit}
+                        onClick={() => onAction("edit", task, sharedItem)}
+                        type="button"
+                      >
+                        <icon>edit</icon>
+                        {copy.tasksEdit}
+                      </button>
+                    </>
+                  : <>
+                      {task.status === "draft"
+                        ? <button
                             data-dropdown-close
-                            disabled={!canMoveUp}
-                            onClick={() => onAction("move-up", task)}
+                            disabled={!canEdit}
+                            onClick={() =>
+                              onAction("activate", task, sharedItem)
+                            }
                             type="button"
                           >
-                            <icon>arrow_upward</icon>
-                            {copy.tasksMoveUp}
+                            <icon>play_circle</icon>
+                            {copy.tasksAllTasks}
                           </button>
-                          <button
+                        : null}
+                      {task.status === "completed"
+                        ? <button
                             data-dropdown-close
-                            disabled={!canMoveDown}
-                            onClick={() => onAction("move-down", task)}
+                            disabled={!canEdit}
+                            onClick={() =>
+                              onAction("in-progress", task, sharedItem)
+                            }
                             type="button"
                           >
-                            <icon>arrow_downward</icon>
-                            {copy.tasksMoveDown}
+                            <icon>pending_actions</icon>
+                            {copy.tasksInProgress}
                           </button>
-                          <button
+                        : <button
                             data-dropdown-close
-                            onClick={() => onAction("archive", task)}
+                            disabled={!canEdit}
+                            onClick={() =>
+                              onAction("complete", task, sharedItem)
+                            }
                             type="button"
                           >
-                            <icon>archive</icon>
-                            {copy.tasksArchive}
-                          </button>
-                          <button
-                            className="is-danger"
+                            <icon>task_alt</icon>
+                            {copy.tasksMoveCompleted}
+                          </button>}
+                      {!sharedItem && lists.length > 1
+                        ? <button
                             data-dropdown-close
-                            onClick={() => onAction("trash", task)}
+                            onClick={() => onAction("move-to-list", task)}
                             type="button"
                           >
-                            <icon>delete</icon>
-                            {copy.tasksMoveTrash}
+                            <icon>drive_file_move</icon>
+                            {copy.tasksMoveToList}
                           </button>
-                        </>
-                      : null}
-                  </>}
+                        : null}
+                      <button
+                        data-dropdown-close
+                        onClick={() => onAction("print", task, sharedItem)}
+                        type="button"
+                      >
+                        <icon>print</icon>
+                        {copy.tasksPrint}
+                      </button>
+                      <button
+                        data-dropdown-close
+                        disabled={!canEdit}
+                        onClick={() => onAction("edit", task, sharedItem)}
+                        type="button"
+                      >
+                        <icon>edit</icon>
+                        {copy.tasksEdit}
+                      </button>
+                      {!sharedItem
+                        ? <>
+                            <button
+                              data-dropdown-close
+                              disabled={!canMoveUp}
+                              onClick={() => onAction("move-up", task)}
+                              type="button"
+                            >
+                              <icon>arrow_upward</icon>
+                              {copy.tasksMoveUp}
+                            </button>
+                            <button
+                              data-dropdown-close
+                              disabled={!canMoveDown}
+                              onClick={() => onAction("move-down", task)}
+                              type="button"
+                            >
+                              <icon>arrow_downward</icon>
+                              {copy.tasksMoveDown}
+                            </button>
+                            <button
+                              data-dropdown-close
+                              onClick={() => onAction("archive", task)}
+                              type="button"
+                            >
+                              <icon>archive</icon>
+                              {copy.tasksArchive}
+                            </button>
+                            <button
+                              className="is-danger"
+                              data-dropdown-close
+                              onClick={() => onAction("trash", task)}
+                              type="button"
+                            >
+                              <icon>delete</icon>
+                              {copy.tasksMoveTrash}
+                            </button>
+                          </>
+                        : null}
+                    </>}
             </DropdownWrapper>
           </div>
         </div>
@@ -616,12 +929,18 @@ function TaskCard({
   );
 }
 
-export default function TasksWorkspace({ view = "active" }) {
+export default function TasksWorkspace({
+  listSlug = defaultTaskListSlug,
+  view = "active",
+}) {
   const [copy, setCopy] = useState(() => t("en"));
+  const [categorySuggestionId, setCategorySuggestionId] = useState("");
+  const [contentSuggestion, setContentSuggestion] = useState(null);
   const [locale, setLocale] = useState("en");
   const [timeFormat, setTimeFormat] = useState("auto");
   const [data, setData] = useState({
     categories: [],
+    lists: normalizeTaskLists(),
     settings: defaultSettings,
     tasks: [],
   });
@@ -629,14 +948,66 @@ export default function TasksWorkspace({ view = "active" }) {
   const [editing, setEditing] = useState(null);
   const [editingShared, setEditingShared] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [printTask, setPrintTask] = useState(null);
   const [query, setQuery] = useState("");
+  const [signedIn, setSignedIn] = useState(false);
+  const [aiFeaturesAllowed, setAiFeaturesAllowed] = useState(true);
   const [shared, setShared] = useState([]);
   const [storageMode, setStorageMode] = useState("local");
   const [vaultData, setVaultData] = useState(null);
   const [workspaceId, setWorkspaceId] = useState("default");
   const fileInputRef = useRef(null);
   const composerRef = useRef(null);
+  const suggestionRequestRef = useRef(null);
   const syncChannelRef = useRef(null);
+  const currentList = useMemo(
+    () =>
+      data.lists.find((list) => list.slug === listSlug) ||
+      data.lists.find((list) => list.id === defaultTaskListId) ||
+      normalizeTaskLists()[0],
+    [data.lists, listSlug],
+  );
+
+  useEffect(() => {
+    const applyOrganizationPolicy = (organization) => {
+      if (!organization) return;
+      setAiFeaturesAllowed(
+        organization.policies?.AIFeaturesEnabled !== false &&
+          organization.appAccess?.ai !== false,
+      );
+    };
+    applyOrganizationPolicy(window.__munetiosOrganizationAccess);
+    const onPolicy = (event) => applyOrganizationPolicy(event.detail);
+    window.addEventListener("munetios:organization-policy", onPolicy);
+    return () =>
+      window.removeEventListener("munetios:organization-policy", onPolicy);
+  }, []);
+
+  useEffect(() => {
+    if (!printTask) return undefined;
+
+    const previousTitle = document.title;
+    let secondFrame = null;
+    const finishPrinting = () => {
+      document.title = previousTitle;
+      setPrintTask(null);
+    };
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        document.title = `${printTask.name} · Munetios Tasks`;
+        window.print();
+        finishPrinting();
+      });
+    });
+
+    window.addEventListener("afterprint", finishPrinting, { once: true });
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame) window.cancelAnimationFrame(secondFrame);
+      window.removeEventListener("afterprint", finishPrinting);
+      document.title = previousTitle;
+    };
+  }, [printTask]);
 
   const load = useCallback(async () => {
     const activeWorkspaceId = getActiveTasksWorkspaceId();
@@ -647,9 +1018,15 @@ export default function TasksWorkspace({ view = "active" }) {
         credentials: "include",
       });
       const session = await sessionResponse.json();
-      if (sessionResponse.ok && session.authenticated && session.signedIn) {
+      const isSignedIn = Boolean(
+        sessionResponse.ok && session.authenticated && session.signedIn,
+      );
+      setSignedIn(isSignedIn);
+      if (isSignedIn) {
         try {
-          const accountData = await ensureAccountVaultUnlocked();
+          const accountData = getUnlockedAccountData()
+            ? await refreshUnlockedAccountData()
+            : await ensureAccountVaultUnlocked();
           const scopedData = getTasksWorkspaceData(
             accountData,
             activeWorkspaceId,
@@ -658,22 +1035,38 @@ export default function TasksWorkspace({ view = "active" }) {
             Object.keys(accountData.workspaces || {}).length === 0 &&
             ((accountData.categories || []).length > 0 ||
               (accountData.tasks || []).length > 0);
-          const resolvedAccountData = needsMigration
+          const rawAccountWorkspace =
+            accountData.workspaces?.[activeWorkspaceId];
+          const needsListMigration =
+            !Array.isArray(rawAccountWorkspace?.lists) ||
+            (rawAccountWorkspace?.tasks || []).some((task) => !task.listId);
+          const shouldMigrate = needsMigration || needsListMigration;
+          const resolvedAccountData = shouldMigrate
             ? withTasksWorkspaceData(accountData, scopedData, activeWorkspaceId)
             : accountData;
-          if (needsMigration) {
+          if (shouldMigrate) {
             await saveUnlockedAccountData(resolvedAccountData);
           }
           setStorageMode("account");
           setVaultData(resolvedAccountData);
           setData({
             categories: scopedData.categories,
+            lists: scopedData.lists,
             settings: { ...defaultSettings, ...scopedData.settings },
             tasks: scopedData.tasks,
           });
+          cacheTaskLists(activeWorkspaceId, scopedData.lists);
           return;
         } catch {
-          // The device can keep working from its encrypted local vault.
+          setStorageMode("account");
+          setVaultData(null);
+          setData({
+            categories: [],
+            lists: normalizeTaskLists(),
+            settings: defaultSettings,
+            tasks: [],
+          });
+          return;
         }
       }
       setStorageMode("local");
@@ -683,18 +1076,25 @@ export default function TasksWorkspace({ view = "active" }) {
         Object.keys(localData.workspaces || {}).length === 0 &&
         ((localData.categories || []).length > 0 ||
           (localData.tasks || []).length > 0);
-      const resolvedLocalData = needsMigration
+      const rawLocalWorkspace = localData.workspaces?.[activeWorkspaceId];
+      const needsListMigration =
+        !Array.isArray(rawLocalWorkspace?.lists) ||
+        (rawLocalWorkspace?.tasks || []).some((task) => !task.listId);
+      const shouldMigrate = needsMigration || needsListMigration;
+      const resolvedLocalData = shouldMigrate
         ? withTasksWorkspaceData(localData, scopedData, activeWorkspaceId)
         : localData;
-      if (needsMigration) {
+      if (shouldMigrate) {
         await saveLocalEncryptedData(resolvedLocalData);
       }
       setVaultData(resolvedLocalData);
       setData({
         categories: scopedData.categories,
+        lists: scopedData.lists,
         settings: { ...defaultSettings, ...scopedData.settings },
         tasks: scopedData.tasks,
       });
+      cacheTaskLists(activeWorkspaceId, scopedData.lists);
     } finally {
       setLoading(false);
     }
@@ -711,13 +1111,15 @@ export default function TasksWorkspace({ view = "active" }) {
         nextData,
         workspaceId,
       );
-      if (storageMode === "account" && getUnlockedAccountData()) {
+      if (storageMode === "account") {
+        if (!getUnlockedAccountData()) await ensureAccountVaultUnlocked();
         await saveUnlockedAccountData(nextVaultData);
       } else {
         await saveLocalEncryptedData(nextVaultData);
       }
       setVaultData(nextVaultData);
       setData(nextData);
+      cacheTaskLists(workspaceId, nextData.lists);
       syncChannelRef.current?.postMessage({ action, updatedAt: Date.now() });
       window.dispatchEvent(
         new CustomEvent("munetios:taskschange", {
@@ -728,7 +1130,73 @@ export default function TasksWorkspace({ view = "active" }) {
     [storageMode, vaultData, workspaceId],
   );
 
+  const createList = useCallback(
+    async (name) => {
+      const now = new Date().toISOString();
+      const list = {
+        createdAt: now,
+        id: `list-${crypto.randomUUID()}`,
+        name,
+        slug: createTaskListSlug(name, data.lists),
+        system: false,
+        updatedAt: now,
+      };
+      await save({ ...data, lists: [...data.lists, list] }, "list-create");
+      window.location.assign(getTaskListHref(list));
+      return true;
+    },
+    [data, save],
+  );
+
+  const openAddList = useCallback(() => {
+    showModal(
+      ({ close }) => (
+        <AddListForm
+          close={close}
+          copy={copy}
+          lists={data.lists}
+          onCreate={createList}
+        />
+      ),
+      {
+        ariaLabel: copy.tasksAddList,
+        title: copy.tasksAddList,
+        width: "540px",
+        zIndex: 100000005,
+      },
+    );
+  }, [copy, createList, data.lists]);
+
+  useEffect(() => {
+    if (loading) return;
+    const url = new URL(window.location.href);
+    const shouldAddList = url.searchParams.has("addList");
+    if (!shouldAddList) return;
+
+    url.searchParams.delete("addList");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+    openAddList();
+  }, [loading, openAddList]);
+
+  useEffect(() => {
+    if (
+      !loading &&
+      view === "list" &&
+      !data.lists.some((list) => list.slug === listSlug)
+    ) {
+      window.location.replace("/apps/tasks");
+    }
+  }, [data.lists, listSlug, loading, view]);
+
   const refreshShared = useCallback(async () => {
+    if (!signedIn) {
+      setShared([]);
+      return;
+    }
     try {
       const collaboration = await fetchEncryptedCollaborations();
       setShared(collaboration.received.filter((item) => item.task));
@@ -762,7 +1230,7 @@ export default function TasksWorkspace({ view = "active" }) {
     } catch {
       setShared([]);
     }
-  }, [save]);
+  }, [save, signedIn]);
 
   useEffect(() => {
     void load();
@@ -803,10 +1271,68 @@ export default function TasksWorkspace({ view = "active" }) {
   }, [load]);
 
   useEffect(() => {
+    const refreshSettings = (event) => {
+      const settings = event.detail;
+      if (!settings || typeof settings !== "object") return;
+      setData((current) => ({
+        ...current,
+        settings: { ...defaultSettings, ...settings },
+      }));
+    };
+    window.addEventListener("munetios:taskssettingschange", refreshSettings);
+    return () =>
+      window.removeEventListener(
+        "munetios:taskssettingschange",
+        refreshSettings,
+      );
+  }, []);
+
+  useEffect(() => {
+    if (loading) return undefined;
+    const focusComposer = () => {
+      composerRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      requestAnimationFrame(() =>
+        composerRef.current?.querySelector("input[aria-label]")?.focus(),
+      );
+    };
+    window.addEventListener("munetios:taskscreate", focusComposer);
+    if (window.location.hash === "#new") focusComposer();
+    return () =>
+      window.removeEventListener("munetios:taskscreate", focusComposer);
+  }, [loading]);
+
+  useEffect(() => {
     void refreshShared();
     const interval = window.setInterval(refreshShared, 3_000);
     return () => window.clearInterval(interval);
   }, [refreshShared]);
+
+  useEffect(() => {
+    if (!signedIn) return undefined;
+    const interval = window.setInterval(() => void load(), 5_000);
+    return () => window.clearInterval(interval);
+  }, [load, signedIn]);
+
+  useEffect(() => {
+    const tasks = getAutomaticallyArchivedTasks(data.tasks, data.settings);
+    if (tasks.some((task, index) => task !== data.tasks[index])) {
+      void save({ ...data, tasks }, "auto-archive");
+    }
+  }, [data, save]);
+
+  useEffect(() => {
+    if (!data.settings.autoArchivePastDue) return undefined;
+    const interval = window.setInterval(() => {
+      const tasks = getAutomaticallyArchivedTasks(data.tasks, data.settings);
+      if (tasks.some((task, index) => task !== data.tasks[index])) {
+        void save({ ...data, tasks }, "auto-archive-past-due");
+      }
+    }, 60_000);
+    return () => window.clearInterval(interval);
+  }, [data, save]);
 
   const visibleTasks = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -827,7 +1353,11 @@ export default function TasksWorkspace({ view = "active" }) {
                     ? task.status === "completed" && !task.archived
                     : view === "in-progress"
                       ? task.status === "in-progress" && !task.archived
-                      : !task.archived && task.status !== "completed");
+                      : view === "drafts"
+                        ? task.status === "draft" && !task.archived
+                        : !task.archived &&
+                          task.status !== "completed" &&
+                          task.listId === currentList.id);
       return (
         matchesView &&
         (!normalizedQuery ||
@@ -836,7 +1366,7 @@ export default function TasksWorkspace({ view = "active" }) {
             .includes(normalizedQuery))
       );
     });
-  }, [data.tasks, query, shared, view]);
+  }, [currentList.id, data.tasks, query, shared, view]);
 
   const updateTask = async (task, sharedItem) => {
     if (sharedItem) {
@@ -854,33 +1384,53 @@ export default function TasksWorkspace({ view = "active" }) {
     });
   };
 
-  const submitTask = async (event) => {
+  const submitTask = async (event, status = editing?.status || "active") => {
     event.preventDefault();
     if (!draft.name.trim()) return;
-    const task = createTask(draft, editing);
-    if (editingShared) {
-      await updateTask(task, editingShared);
-    } else {
-      await save(
-        {
-          ...data,
-          tasks: editing
-            ? data.tasks.map((item) => (item.id === editing.id ? task : item))
-            : [task, ...data.tasks],
-        },
-        editing ? "edit" : "create",
-      );
+    try {
+      const task = {
+        ...createTask(
+          {
+            ...draft,
+            listId: editing?.listId || currentList.id,
+          },
+          editing,
+        ),
+        status,
+      };
+      if (editingShared) {
+        await updateTask(task, editingShared);
+      } else {
+        await save(
+          {
+            ...data,
+            tasks: editing
+              ? data.tasks.map((item) => (item.id === editing.id ? task : item))
+              : [task, ...data.tasks],
+          },
+          editing ? "edit" : "create",
+        );
+      }
+      setDraft(createEmptyDraft(currentList.id));
+      setCategorySuggestionId("");
+      setContentSuggestion(null);
+      setEditing(null);
+      setEditingShared(null);
+      showToast({
+        message: editing ? copy.tasksTaskUpdated : copy.tasksTaskCreated,
+        type: "success",
+      });
+    } catch {
+      showToast({
+        message: editing ? copy.tasksUpdateFailed : copy.tasksCreateFailed,
+        type: "error",
+      });
     }
-    setDraft(createEmptyDraft());
-    setEditing(null);
-    setEditingShared(null);
-    showToast({
-      message: editing ? copy.tasksTaskUpdated : copy.tasksTaskCreated,
-      type: "success",
-    });
   };
 
   const startEditing = (task, sharedItem = null) => {
+    setCategorySuggestionId("");
+    setContentSuggestion(null);
     const options = (task.options || []).map((option, index) => ({
       ...option,
       subtasks:
@@ -904,6 +1454,7 @@ export default function TasksWorkspace({ view = "active" }) {
       description: task.description || "",
       dueDate: task.dueDate || "",
       dueTime: task.dueTime || "",
+      listId: task.listId || defaultTaskListId,
       name: task.name || "",
       options,
     });
@@ -967,8 +1518,36 @@ export default function TasksWorkspace({ view = "active" }) {
     moveToTrash();
   };
 
-  const handleAction = async (action, task, sharedItem) => {
+  const performAction = async (action, task, sharedItem) => {
+    if (action === "print") {
+      setPrintTask(task);
+      return;
+    }
+    if (action === "move-to-list") {
+      showModal(
+        ({ close }) => (
+          <MoveTaskToListForm
+            close={close}
+            copy={copy}
+            currentListId={task.listId || defaultTaskListId}
+            lists={data.lists}
+            onMove={(listId) => mutateTask(task, { listId }, sharedItem)}
+          />
+        ),
+        {
+          ariaLabel: copy.tasksMoveToList,
+          title: copy.tasksMoveToList,
+          width: "520px",
+          zIndex: 100000005,
+        },
+      );
+      return;
+    }
     if (action === "share") {
+      if (!signedIn) {
+        window.location.assign("/signin?callbackUrl=%2Fapps%2Ftasks%2Fshared");
+        return;
+      }
       showModal(
         ({ close }) => (
           <ShareForm
@@ -1044,14 +1623,34 @@ export default function TasksWorkspace({ view = "active" }) {
     }
     if (action === "favorite") {
       await mutateTask(task, { favorite: !task.favorite }, sharedItem);
+      if (!task.favorite) {
+        showToast({ message: "Favorited the Task.", type: "success" });
+      }
       return;
     }
     if (action === "complete") {
       await mutateTask(
         task,
         {
+          archived: data.settings.autoArchiveCompleted ? true : task.archived,
+          archivedAt: data.settings.autoArchiveCompleted
+            ? task.archivedAt || new Date().toISOString()
+            : task.archivedAt,
           completedAt: new Date().toISOString(),
           status: "completed",
+        },
+        sharedItem,
+      );
+      return;
+    }
+    if (action === "in-progress") {
+      await mutateTask(
+        task,
+        {
+          archived: false,
+          archivedAt: null,
+          completedAt: null,
+          status: "in-progress",
         },
         sharedItem,
       );
@@ -1066,6 +1665,28 @@ export default function TasksWorkspace({ view = "active" }) {
     }
     if (action === "restore") {
       await mutateTask(task, { archived: false, trashedAt: null });
+    }
+    if (action === "unarchive") {
+      await mutateTask(task, { archived: false, archivedAt: null }, sharedItem);
+    }
+    if (action === "activate") {
+      await mutateTask(
+        task,
+        { completedAt: null, status: "active" },
+        sharedItem,
+      );
+    }
+  };
+
+  const handleAction = async (action, task, sharedItem) => {
+    try {
+      await performAction(action, task, sharedItem);
+    } catch {
+      showToast({
+        message:
+          action === "share" ? copy.tasksShareFailed : copy.tasksActionFailed,
+        type: "error",
+      });
     }
   };
 
@@ -1112,14 +1733,28 @@ export default function TasksWorkspace({ view = "active" }) {
         item.id === itemId ? { ...item, done: !item.done } : item,
       );
     }
+    const allChecked =
+      nextOptions.length > 0 &&
+      nextOptions.every(
+        (option) =>
+          option.done &&
+          (option.subtasks || []).every((subtask) => subtask.done),
+      );
+    const completedAt = allChecked ? new Date().toISOString() : null;
     await mutateTask(
       task,
       {
+        archived:
+          allChecked && data.settings.autoArchiveCompleted
+            ? true
+            : task.archived && task.status !== "completed",
+        archivedAt:
+          allChecked && data.settings.autoArchiveCompleted
+            ? task.archivedAt || completedAt
+            : null,
+        completedAt,
         options: nextOptions,
-        status:
-          task.status === "active" && field === "subtasks"
-            ? "in-progress"
-            : task.status,
+        status: allChecked ? "completed" : "in-progress",
         subtasks: [],
       },
       sharedItem,
@@ -1129,36 +1764,84 @@ export default function TasksWorkspace({ view = "active" }) {
   const suggestCategory = useCallback(async () => {
     if (
       !data.settings.suggestCategories ||
-      !draft.name.trim() ||
-      data.categories.length === 0
+      !aiFeaturesAllowed ||
+      !draft.name.trim()
     ) {
       return;
+    }
+    setContentSuggestion(null);
+    suggestionRequestRef.current?.abort();
+    const controller = new AbortController();
+    suggestionRequestRef.current = controller;
+    const topic = `${draft.name} ${draft.description}`.trim();
+    const localSuggestion = draft.categoryId
+      ? null
+      : getLocalCategorySuggestion(data.categories, topic);
+    if (localSuggestion) {
+      setCategorySuggestionId(localSuggestion.id);
+      setDraft((current) =>
+        current.categoryId
+          ? current
+          : { ...current, categoryId: localSuggestion.id },
+      );
     }
     try {
       const response = await fetch("/api/tasks/suggestions", {
         body: JSON.stringify({
           categories: data.categories.map((category) => category.name),
-          topic: `${draft.name} ${draft.description}`.trim(),
+          topic,
         }),
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         method: "POST",
+        signal: controller.signal,
       });
+      if (!response.ok) return;
       const result = await response.json();
+      if (
+        result.contentSuggestion?.description &&
+        Array.isArray(result.contentSuggestion?.options)
+      ) {
+        setContentSuggestion(result.contentSuggestion);
+      }
       const category = data.categories.find(
         (item) => item.name === result.suggestion,
       );
-      if (category)
-        setDraft((current) => ({ ...current, categoryId: category.id }));
+      if (category) {
+        setCategorySuggestionId(category.id);
+        setDraft((current) =>
+          current.categoryId && current.categoryId !== localSuggestion?.id
+            ? current
+            : { ...current, categoryId: category.id },
+        );
+      }
     } catch {
       // Suggestions are optional and never block task creation.
+    } finally {
+      if (suggestionRequestRef.current === controller) {
+        suggestionRequestRef.current = null;
+      }
     }
   }, [
     data.categories,
     data.settings.suggestCategories,
+    aiFeaturesAllowed,
+    draft.categoryId,
     draft.description,
     draft.name,
   ]);
+
+  useEffect(() => {
+    if (!draft.name.trim()) {
+      suggestionRequestRef.current?.abort();
+      suggestionRequestRef.current = null;
+      return undefined;
+    }
+    const timer = window.setTimeout(() => void suggestCategory(), 500);
+    return () => window.clearTimeout(timer);
+  }, [draft.name, suggestCategory]);
+
+  useEffect(() => () => suggestionRequestRef.current?.abort(), []);
 
   if (loading) {
     return (
@@ -1168,13 +1851,46 @@ export default function TasksWorkspace({ view = "active" }) {
     );
   }
 
+  if (view === "shared" && !signedIn) {
+    return (
+      <section className="tasks-workspace">
+        <header className="tasks-list-heading">
+          <div>
+            <h1>{copy.tasksShared}</h1>
+            <p>{copy.tasksSyncRequiresSignIn}</p>
+          </div>
+          <a
+            className="tasks-sign-in"
+            href="/signin?callbackUrl=%2Fapps%2Ftasks%2Fshared"
+          >
+            {copy.signIn}
+          </a>
+        </header>
+      </section>
+    );
+  }
+
   const selectedCategory = data.categories.find(
     (category) => category.id === draft.categoryId,
+  );
+  const suggestedCategory = data.categories.find(
+    (category) => category.id === categorySuggestionId,
   );
 
   return (
     <section className="tasks-workspace">
-      {view === "active" || editing
+      {printTask
+        ? <TaskPrintDocument
+            category={data.categories.find(
+              (category) => category.id === printTask.categoryId,
+            )}
+            copy={copy}
+            locale={locale}
+            task={printTask}
+            timeFormat={timeFormat}
+          />
+        : null}
+      {view === "active" || view === "list" || editing
         ? <form
             className="tasks-composer liquid-glass"
             onSubmit={submitTask}
@@ -1195,7 +1911,9 @@ export default function TasksWorkspace({ view = "active" }) {
                     onClick={() => {
                       setEditing(null);
                       setEditingShared(null);
-                      setDraft(createEmptyDraft());
+                      setDraft(createEmptyDraft(currentList.id));
+                      setCategorySuggestionId("");
+                      setContentSuggestion(null);
                     }}
                     type="button"
                   >
@@ -1253,12 +1971,17 @@ export default function TasksWorkspace({ view = "active" }) {
                   aria-label={copy.tasksTaskName}
                   maxLength={160}
                   onBlur={suggestCategory}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    const usedSuggestion =
+                      draft.categoryId === categorySuggestionId;
+                    if (usedSuggestion) setCategorySuggestionId("");
+                    setContentSuggestion(null);
                     setDraft((current) => ({
                       ...current,
+                      categoryId: usedSuggestion ? "" : current.categoryId,
                       name: event.target.value,
-                    }))
-                  }
+                    }));
+                  }}
                   placeholder={copy.tasksTaskName}
                   required
                   value={draft.name}
@@ -1266,16 +1989,81 @@ export default function TasksWorkspace({ view = "active" }) {
                 <textarea
                   aria-label={copy.tasksDescription}
                   maxLength={2000}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    const usedSuggestion =
+                      draft.categoryId === categorySuggestionId;
+                    if (usedSuggestion) setCategorySuggestionId("");
+                    setContentSuggestion(null);
                     setDraft((current) => ({
                       ...current,
+                      categoryId: usedSuggestion ? "" : current.categoryId,
                       description: event.target.value,
-                    }))
-                  }
+                    }));
+                  }}
                   placeholder={copy.tasksDescription}
                   rows={3}
                   value={draft.description}
                 />
+                {contentSuggestion
+                  ? <div
+                      aria-live="polite"
+                      className="tasks-content-suggestions"
+                    >
+                      <span>
+                        <icon>auto_awesome</icon>
+                        Suggestions
+                      </span>
+                      {!draft.description.trim()
+                        ? <button
+                            onClick={() =>
+                              setDraft((current) => ({
+                                ...current,
+                                description: contentSuggestion.description,
+                              }))
+                            }
+                            type="button"
+                          >
+                            {contentSuggestion.description}
+                          </button>
+                        : null}
+                      <div>
+                        {contentSuggestion.options.map((label) => (
+                          <button
+                            key={label}
+                            onClick={() =>
+                              setDraft((current) => ({
+                                ...current,
+                                options: current.options.some(
+                                  (option) => option.label === label,
+                                )
+                                  ? current.options
+                                  : [
+                                      ...current.options,
+                                      {
+                                        done: false,
+                                        id: crypto.randomUUID(),
+                                        label,
+                                        subtasks: [],
+                                      },
+                                    ],
+                              }))
+                            }
+                            type="button"
+                          >
+                            + {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  : null}
+                {!aiFeaturesAllowed
+                  ? <div className="tasks-content-suggestions opacity-50">
+                      <span>
+                        <icon>block</icon>
+                        {copy.organizationAiSuggestionsBlocked}
+                      </span>
+                    </div>
+                  : null}
               </div>
             </div>
             <div className="tasks-composer-controls">
@@ -1305,12 +2093,13 @@ export default function TasksWorkspace({ view = "active" }) {
                       aria-checked={category.id === draft.categoryId}
                       className="tasks-category-option"
                       key={category.id || "none"}
-                      onClick={() =>
+                      onClick={() => {
+                        setCategorySuggestionId("");
                         setDraft((current) => ({
                           ...current,
                           categoryId: category.id,
-                        }))
-                      }
+                        }));
+                      }}
                       role="menuitemradio"
                       type="button"
                     >
@@ -1321,6 +2110,15 @@ export default function TasksWorkspace({ view = "active" }) {
                     </button>
                   ))}
                 </DropdownWrapper>
+                {suggestedCategory
+                  ? <small
+                      aria-live="polite"
+                      className="tasks-category-suggestion"
+                    >
+                      <icon>auto_awesome</icon>
+                      Suggested: {suggestedCategory.name}
+                    </small>
+                  : null}
               </div>
               <DatePicker
                 copy={copy}
@@ -1372,6 +2170,13 @@ export default function TasksWorkspace({ view = "active" }) {
                   {copy.tasksAddOption}
                 </button>
               </div>
+              <button
+                disabled={!draft.name.trim()}
+                onClick={(event) => submitTask(event, "draft")}
+                type="button"
+              >
+                {copy.tasksDrafts}
+              </button>
               <button disabled={!draft.name.trim()} type="submit">
                 {editing ? copy.tasksSaveTask : copy.tasksCreateTask}
               </button>
@@ -1381,7 +2186,11 @@ export default function TasksWorkspace({ view = "active" }) {
 
       <header className="tasks-list-heading">
         <div>
-          <h1>{copy[viewKeys[view]]}</h1>
+          <h1>
+            {view === "active" || view === "list"
+              ? getTaskListName(currentList, copy)
+              : copy[viewKeys[view]]}
+          </h1>
           <p>{copy.tasksListDescription}</p>
         </div>
         <span>{visibleTasks.length}</span>
@@ -1410,6 +2219,7 @@ export default function TasksWorkspace({ view = "active" }) {
                   canMoveUp={view !== "shared" && index > 0}
                   copy={copy}
                   key={sharedItem?.id || task.id}
+                  lists={data.lists}
                   onAction={handleAction}
                   onToggleItem={toggleItem}
                   sharedItem={sharedItem}

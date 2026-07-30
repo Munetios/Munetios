@@ -402,6 +402,8 @@ export default function OmniWriteSidebar({ open, onToggle }) {
                 onClick={
                   item.key === "businessFeedback"
                     ? () => openFeedbackModal({ context: "omniwrite" })
+                    : item.key === "omniWriteHelp"
+                      ? () => window.location.assign("/help")
                     : undefined
                 }
               />,

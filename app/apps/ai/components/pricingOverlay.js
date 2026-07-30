@@ -1,15 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DropdownWrapper from "../../../components/dropdownwrapper";
+import {
+  getUserCurrency,
+  loadDateTimePreferences,
+} from "../../../lib/dateTimePreferences";
 import { currencyOptions, formatPlanPrice, plans } from "../lib/pricing";
 import { openAiCheckoutModal } from "./checkoutModal";
 
 export default function PricingOverlay({ close, copy, signedIn = true }) {
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState(() => getUserCurrency());
+  const [currencyIsAutomatic, setCurrencyIsAutomatic] = useState(true);
   const selectedCurrency =
     currencyOptions.find((option) => option.value === currency) ||
     currencyOptions[0];
+
+  useEffect(() => {
+    const refreshAutomaticCurrency = () => {
+      if (currencyIsAutomatic) {
+        setCurrency(getUserCurrency(loadDateTimePreferences()));
+      }
+    };
+    window.addEventListener(
+      "munetios:language-time-change",
+      refreshAutomaticCurrency,
+    );
+    return () =>
+      window.removeEventListener(
+        "munetios:language-time-change",
+        refreshAutomaticCurrency,
+      );
+  }, [currencyIsAutomatic]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -95,7 +117,10 @@ export default function PricingOverlay({ close, copy, signedIn = true }) {
                 className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-white transition hover:bg-white/10!"
                 data-dropdown-close
                 key={option.value}
-                onClick={() => setCurrency(option.value)}
+                onClick={() => {
+                  setCurrencyIsAutomatic(false);
+                  setCurrency(option.value);
+                }}
                 role="menuitemradio"
                 type="button"
               >

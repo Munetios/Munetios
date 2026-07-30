@@ -3,14 +3,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { t } from "../i18n";
+import { hasSignedInCookie } from "../lib/signedInCookie";
 import AccountAppearanceSection from "./accountAppearanceSection";
 import AccountAvatar from "./accountAvatar";
 import AccountBillingSection from "./accountBillingSection";
+import AccountBusinessAdminSection from "./accountBusinessAdminSection";
+import AccountConnectorsSection from "./accountConnectorsSection";
 import AccountLanguageTimeSection from "./accountLanguageTimeSection";
 import AccountProfileSection from "./accountProfileSection";
 import AccountSecuritySection from "./accountSecuritySection";
 import AccountWrapper from "./accountwraper";
 import AppLauncherWrapper from "./appLauncherWrapper";
+import { showToast } from "./toast";
 
 const showOrder1 = 1;
 const showOrder2 = 2;
@@ -23,6 +27,7 @@ const guestSidebarItemNames = new Set([
 ]);
 const settingsPathPrefix = "/account/settings";
 const settingsPageSlugs = {
+  Admin: "admin",
   Advanced: "advanced",
   Appearance: "appearance",
   Billing: "billing",
@@ -199,7 +204,6 @@ export function AccountManagerTopbar({ copy = t() }) {
   const [accountWrapperOpen, setAccountWrapperOpen] = useState(false);
   const [appLauncherOpen, setAppLauncherOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [demoMode, setDemoMode] = useState(false);
   const [topbarAccount, setTopbarAccount] = useState(null);
   const [panelTop, setPanelTop] = useState(72);
 
@@ -215,9 +219,6 @@ export function AccountManagerTopbar({ copy = t() }) {
 
   useEffect(() => {
     setMounted(true);
-    setDemoMode(
-      new URL(window.location.href).searchParams.get("demo") === "true",
-    );
   }, []);
 
   useEffect(() => {
@@ -321,40 +322,38 @@ export function AccountManagerTopbar({ copy = t() }) {
         >
           <icon>apps</icon>
         </button>
-        {topbarAccount || demoMode ? (
-          <button
-            aria-label={copy.openAccountMenu}
-            aria-controls="accountWrapperPanel"
-            aria-expanded={accountWrapperOpen}
-            id="accountProfilePicture"
-            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl text-white transition-all hover:bg-purple-700/50!"
-            onClick={() => {
-              updateAccountPanelPosition();
-              setAppLauncherOpen(false);
-              setAccountWrapperOpen(true);
-            }}
-            ref={accountTriggerRef}
-            type="button"
-          >
-            <AccountAvatar
-              account={topbarAccount || { avatarLetter: "M" }}
-              alt={copy.accountProfileAlt}
-              className="h-10 w-10 rounded-xl"
-            />
-          </button>
-        ) : (
-          <button
-            id="sign-in-button"
-            className="liquid-glass hover:bg-purple-600! transition-all cursor-pointer text-white py-2 px-4 rounded-br-xl bg-purple-800/90!"
-            data-translate="signIn"
-            onClick={() => {
-              window.location.assign("/signin");
-            }}
-            type="button"
-          >
-            {copy.signIn}
-          </button>
-        )}
+        {topbarAccount
+          ? <button
+              aria-label={copy.openAccountMenu}
+              aria-controls="accountWrapperPanel"
+              aria-expanded={accountWrapperOpen}
+              id="accountProfilePicture"
+              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl text-white transition-all hover:bg-purple-700/50!"
+              onClick={() => {
+                updateAccountPanelPosition();
+                setAppLauncherOpen(false);
+                setAccountWrapperOpen(true);
+              }}
+              ref={accountTriggerRef}
+              type="button"
+            >
+              <AccountAvatar
+                account={topbarAccount || { avatarLetter: "M" }}
+                alt={copy.accountProfileAlt}
+                className="h-10 w-10 rounded-xl"
+              />
+            </button>
+          : <button
+              id="sign-in-button"
+              className="liquid-glass hover:bg-purple-600! transition-all cursor-pointer text-white py-2 px-4 rounded-br-xl bg-purple-800/90!"
+              data-translate="signIn"
+              onClick={() => {
+                window.location.assign("/signin");
+              }}
+              type="button"
+            >
+              {copy.signIn}
+            </button>}
       </div>
       {mounted && accountWrapperOpen && typeof document !== "undefined"
         ? createPortal(
@@ -395,19 +394,9 @@ export default function AccountSettings({ initialPage = "profile" }) {
   const [account, setAccount] = useState(null);
   const [accountLoading, setAccountLoading] = useState(true);
   const [eligibilityRefresh, setEligibilityRefresh] = useState(0);
-  const [isGuest, setIsGuest] = useState(null);
-  const [demoMode, setDemoMode] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    setDemoMode(
-      new URL(window.location.href).searchParams.get("demo") === "true",
-    );
-  }, []);
-
+  const [isGuest, setIsGuest] = useState(() =>
+    hasSignedInCookie() ? false : null,
+  );
   const refreshAccount = useCallback(() => {
     setAccountLoading(true);
     fetch("/api/account", { credentials: "include" })
@@ -417,24 +406,22 @@ export default function AccountSettings({ initialPage = "profile" }) {
         payload: response.ok ? await response.json() : null,
       }))
       .then(({ invalidSession, payload }) => {
-        setAccount(payload);
-        setIsGuest(!payload && !invalidSession);
+        if (payload) {
+          setAccount(payload);
+        }
+        setIsGuest(!hasSignedInCookie() && !payload && !invalidSession);
         setAccountLoading(false);
       })
       .catch(() => {
-        setAccount(null);
-        setIsGuest(true);
+        if (!hasSignedInCookie()) {
+          setAccount(null);
+          setIsGuest(true);
+        } else {
+          setIsGuest(false);
+        }
         setAccountLoading(false);
       });
   }, []);
-
-  const activeSidebarLabel = useMemo(
-    () =>
-      resolvedSidebarItems.find((item) => item.name === activeSidebarItem) ||
-      resolvedSidebarItems[0] ||
-      null,
-    [activeSidebarItem, resolvedSidebarItems],
-  );
 
   const sidebarItemsToRender = useMemo(() => {
     if (accountLoading) {
@@ -445,10 +432,22 @@ export default function AccountSettings({ initialPage = "profile" }) {
       return buildSidebarItems([], true);
     }
 
-    return resolvedSidebarItems.length > 0
-      ? resolvedSidebarItems
-      : buildSidebarItems([]);
-  }, [accountLoading, isGuest, resolvedSidebarItems]);
+    const items =
+      resolvedSidebarItems.length > 0
+        ? resolvedSidebarItems
+        : buildSidebarItems([]);
+    return account?.accountType === "business" &&
+      account?.businessRole === "administrator"
+      ? [
+          ...items.filter((item) => item.name !== "Admin"),
+          {
+            icon: "admin_panel_settings",
+            labelKey: "accountSettingsAdmin",
+            name: "Admin",
+          },
+        ]
+      : items.filter((item) => item.name !== "Admin");
+  }, [account, accountLoading, isGuest, resolvedSidebarItems]);
 
   const setSettingsPage = useCallback((name, { replace = false } = {}) => {
     setActiveSidebarItem(name);
@@ -530,6 +529,17 @@ export default function AccountSettings({ initialPage = "profile" }) {
   }, [account, accountLoading, isGuest]);
 
   useEffect(() => {
+    if (
+      !accountLoading &&
+      activeSidebarItem === "Admin" &&
+      account?.accountType === "business" &&
+      account?.businessRole === "administrator"
+    ) {
+      window.location.replace("/apps/admin");
+    }
+  }, [account, accountLoading, activeSidebarItem]);
+
+  useEffect(() => {
     if (accountLoading || isGuest === null) {
       return undefined;
     }
@@ -570,7 +580,10 @@ export default function AccountSettings({ initialPage = "profile" }) {
 
         setResolvedSidebarItems(nextSidebarItems);
         setActiveSidebarItem((currentItem) =>
-          nextSidebarItems.some((item) => item.name === currentItem)
+          nextSidebarItems.some((item) => item.name === currentItem) ||
+          (currentItem === "Admin" &&
+            account?.accountType === "business" &&
+            account?.businessRole === "administrator")
             ? currentItem
             : nextSidebarItems[0]?.name || currentItem,
         );
@@ -589,7 +602,7 @@ export default function AccountSettings({ initialPage = "profile" }) {
     return () => {
       isMounted = false;
     };
-  }, [accountLoading, copy, eligibilityRefresh, isGuest]);
+  }, [account, accountLoading, copy, eligibilityRefresh, isGuest]);
 
   return (
     <main className="min-h-dvh  px-3 pb-6 pt-24 text-white md:px-4">
@@ -610,30 +623,34 @@ export default function AccountSettings({ initialPage = "profile" }) {
           >
             <a
               className="flex h-12 min-w-fit items-center justify-center gap-3 rounded-xl px-3 text-sm font-semibold text-white/72 transition hover:bg-purple-700/35! hover:text-white md:w-12 md:min-w-12 md:px-0 lg:w-full lg:justify-start lg:px-3"
-              href={demoMode ? "/apps?demo=true" : "/"}
+              href="/"
             >
               <icon>arrow_back</icon>
               <span className="md:hidden lg:inline">
-                {demoMode ? copy.demoBackToApps : copy.accountSettingsBackHome}
+                {copy.accountSettingsBackHome}
               </span>
             </a>
             {sidebarItemsToRender
               .filter((item) => !account?.archived || item.name !== "Billing")
               .map((item) => {
                 const label = getSidebarItemLabel(item, copy);
-                const isActive = activeSidebarLabel?.name === item.name;
+                const isActive = activeSidebarItem === item.name;
 
                 return (
                   <button
                     aria-label={label}
                     aria-current={isActive ? "page" : undefined}
-                    className={`flex h-12 min-w-fit items-center justify-center gap-3 rounded-xl px-3 text-left text-sm font-semibold transition md:w-12 md:min-w-12 md:px-0 lg:w-full lg:justify-start lg:px-3 ${
+                    className={`flex h-12 min-w-fit items-center justify-center gap-3 rounded-xl px-3 text-left text-sm font-semibold transition md:w-12 md:min-w-12 md:px-0 lg:w-full lg:justify-start lg:px-3 ${item.name === "Admin" ? "md:mt-auto" : ""} ${
                       isActive
                         ? "border border-purple-200/30 bg-purple-500/35! text-white"
                         : "text-white/72 hover:bg-purple-700/35! hover:text-white"
                     }`}
                     key={`${item.name}-${item.order || item.icon}`}
                     onClick={() => {
+                      if (item.name === "Admin") {
+                        window.location.assign("/apps/admin");
+                        return;
+                      }
                       setSettingsPage(item.name);
                     }}
                     type="button"
@@ -651,19 +668,33 @@ export default function AccountSettings({ initialPage = "profile" }) {
           aria-label={copy.accountSettings}
           className="liquid-glass min-h-[calc(100dvh-13rem)] w-full flex-1 rounded-2xl border border-white/10 bg-purple-950/20! p-4 md:min-h-[calc(100dvh-7rem)]"
         >
-          {account?.archived ? (
-            <p className="mb-4 rounded-xl border border-amber-200/25 bg-amber-500/15! px-4 py-3 text-sm font-semibold text-amber-50">
-              {copy.demoArchivedBanner}
-            </p>
-          ) : null}
-          <div
-            aria-hidden={activeSidebarItem !== "Profile"}
-            data-account-settings-panel="Profile"
-            hidden={activeSidebarItem !== "Profile"}
-            inert={activeSidebarItem !== "Profile"}
-          >
-            <AccountProfileSection copy={copy} />
-          </div>
+          {account?.archived
+            ? <p className="mb-4 rounded-xl border border-amber-200/25 bg-amber-500/15! px-4 py-3 text-sm font-semibold text-amber-50">
+                {copy.demoArchivedBanner}
+              </p>
+            : null}
+          {account?.accountType === "business" &&
+          account?.businessVerified === false
+            ? <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-200/25 bg-amber-500/15! px-4 py-3 text-amber-50">
+                <icon>warning</icon>
+                <div>
+                  <p className="font-bold">{copy.businessUnverified}</p>
+                  <p className="mt-1 text-sm leading-6 text-amber-50/75">
+                    {copy.businessVerificationRequired}
+                  </p>
+                </div>
+              </div>
+            : null}
+          {isGuest === false
+            ? <div
+                aria-hidden={activeSidebarItem !== "Profile"}
+                data-account-settings-panel="Profile"
+                hidden={activeSidebarItem !== "Profile"}
+                inert={activeSidebarItem !== "Profile"}
+              >
+                <AccountProfileSection copy={copy} />
+              </div>
+            : null}
           <div
             aria-hidden={activeSidebarItem !== "Appearance"}
             data-account-settings-panel="Appearance"
@@ -680,22 +711,48 @@ export default function AccountSettings({ initialPage = "profile" }) {
           >
             <AccountLanguageTimeSection copy={copy} />
           </div>
-          <div
-            aria-hidden={activeSidebarItem !== "Security"}
-            data-account-settings-panel="Security"
-            hidden={activeSidebarItem !== "Security"}
-            inert={activeSidebarItem !== "Security"}
-          >
-            <AccountSecuritySection copy={copy} />
-          </div>
-          <div
-            aria-hidden={activeSidebarItem !== "Billing"}
-            data-account-settings-panel="Billing"
-            hidden={activeSidebarItem !== "Billing"}
-            inert={activeSidebarItem !== "Billing"}
-          >
-            <AccountBillingSection copy={copy} />
-          </div>
+          {isGuest === false
+            ? <>
+                <div
+                  aria-hidden={activeSidebarItem !== "Security"}
+                  data-account-settings-panel="Security"
+                  hidden={activeSidebarItem !== "Security"}
+                  inert={activeSidebarItem !== "Security"}
+                >
+                  <AccountSecuritySection copy={copy} />
+                </div>
+                <div
+                  aria-hidden={activeSidebarItem !== "Billing"}
+                  data-account-settings-panel="Billing"
+                  hidden={activeSidebarItem !== "Billing"}
+                  inert={activeSidebarItem !== "Billing"}
+                >
+                  <AccountBillingSection copy={copy} />
+                </div>
+                <div
+                  aria-hidden={activeSidebarItem !== "Connectors"}
+                  data-account-settings-panel="Connectors"
+                  hidden={activeSidebarItem !== "Connectors"}
+                  inert={activeSidebarItem !== "Connectors"}
+                >
+                  <AccountConnectorsSection copy={copy} />
+                </div>
+                {account?.accountType === "business" &&
+                account?.businessRole === "administrator"
+                  ? <div
+                      aria-hidden={activeSidebarItem !== "Admin"}
+                      data-account-settings-panel="Admin"
+                      hidden={activeSidebarItem !== "Admin"}
+                      inert={activeSidebarItem !== "Admin"}
+                    >
+                      <AccountBusinessAdminSection
+                        account={account}
+                        copy={copy}
+                      />
+                    </div>
+                  : null}
+              </>
+            : null}
         </section>
       </div>
     </main>

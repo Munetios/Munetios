@@ -11,6 +11,7 @@ import {
   getSessionMetadata,
   verifyAccountPassword,
 } from "../../../lib/authSecurity.js";
+import { getSignedInCookie } from "../../../lib/signedInCookie.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -55,9 +56,6 @@ export async function POST(request) {
   const identifier = String(payload?.identifier || "")
     .trim()
     .toLowerCase();
-  if (identifier === "demo@munetios.com") {
-    return response({ error: "demo_signin_disabled" }, { status: 403 });
-  }
 
   const account = getAccountByIdentifier(identifier);
   if (!account) {
@@ -74,10 +72,11 @@ export async function POST(request) {
     getSessionMetadata(request),
   );
   const headers = new Headers();
-  headers.append("Set-Cookie", getSessionCookie(session.token));
+  headers.append("Set-Cookie", getSessionCookie(request, session.token));
+  headers.append("Set-Cookie", getSignedInCookie(request));
   headers.append(
     "Set-Cookie",
-    getAccountCollectionCookie(session.accountCollectionToken),
+    getAccountCollectionCookie(request, session.accountCollectionToken),
   );
   return response(
     {

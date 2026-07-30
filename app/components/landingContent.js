@@ -1,5 +1,4 @@
 import { t } from "../i18n";
-import LandingDemo from "./landingDemo";
 
 const products = [
   {
@@ -203,7 +202,6 @@ export default function LandingContent() {
             >
               {copy.landingGetStarted}
             </a>
-            <LandingDemo />
           </div>
         </div>
         <div id="rightPanelSection" className="w-full md:w-1/2 p-4">

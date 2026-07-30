@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { t } from "../i18n";
+import { hasSignedInCookie } from "../lib/signedInCookie";
 import { showModal } from "./modal";
 import { showToast } from "./toast";
 
@@ -20,11 +21,55 @@ const authStorageKeys = [
   "user",
   "account",
 ];
-const rateLimitTestExemptPaths = new Set(["/api/account", "/api/signedin"]);
 const testApiFailureKey = "munetios:test-api-failure";
 
 let signedOutModalShown = false;
 let fetchErrorToastTimeout = null;
+const activeApiFailureToasts = new Set();
+
+function getApiFailureToast(pathname) {
+  let messageKey = "";
+  let toastId = "";
+  if (pathname === "/api/billing") {
+    messageKey = "subscriptionCheckFailed";
+    toastId = "subscription-check-failed";
+  } else if (
+    pathname === "/api/signedin" ||
+    pathname === "/api/account" ||
+    pathname.startsWith("/api/account/")
+  ) {
+    messageKey = "accountCheckFailed";
+    toastId = "account-check-failed";
+  }
+  return messageKey ? { messageKey, toastId } : null;
+}
+
+function showApiCheckFailure(pathname) {
+  const toast = getApiFailureToast(pathname);
+  if (!toast || activeApiFailureToasts.has(toast.toastId)) return;
+  activeApiFailureToasts.add(toast.toastId);
+  const { messageKey, toastId } = toast;
+  showToast({ messageKey, toastId, type: "error" });
+}
+
+function clearApiCheckFailure(pathname) {
+  const toast = getApiFailureToast(pathname);
+  if (toast) activeApiFailureToasts.delete(toast.toastId);
+}
+
+function shouldReportResponseFailure(response) {
+  if (response.headers.get("X-Munetios-Test-Mode") === "true") {
+    return true;
+  }
+
+  if (response.status === 401) {
+    return (
+      response.headers.get("X-Munetios-Auth-State") === "invalid-session"
+    );
+  }
+
+  return hasSignedInCookie();
+}
 
 function showFetchErrorToast() {
   if (fetchErrorToastTimeout) {
@@ -58,11 +103,7 @@ function createFetchFailureResponse() {
   );
 }
 
-function consumeTestApiFailure(pathname) {
-  if (rateLimitTestExemptPaths.has(pathname)) {
-    return 0;
-  }
-
+function getTestApiFailure() {
   const storedFailure = window.sessionStorage.getItem(testApiFailureKey);
   if (!storedFailure) {
     return 0;
@@ -77,16 +118,11 @@ function consumeTestApiFailure(pathname) {
   }
 
   const status = Number(failure?.status);
-  if (
-    ![429, 503].includes(status) ||
-    !Number.isFinite(failure?.expiresAt) ||
-    failure.expiresAt <= Date.now()
-  ) {
+  if (![429, 503].includes(status)) {
     window.sessionStorage.removeItem(testApiFailureKey);
     return 0;
   }
 
-  window.sessionStorage.removeItem(testApiFailureKey);
   return status;
 }
 
@@ -101,6 +137,10 @@ function clearClientAuthState() {
     }
   }
 
+  // This is only a non-sensitive UI marker. The actual session cookie remains HttpOnly.
+  // biome-ignore lint/suspicious/noDocumentCookie: Clear the non-sensitive signed-in UI marker.
+  document.cookie =
+    "munetios_signed_in=; Path=/; Max-Age=0; SameSite=Lax";
   window.dispatchEvent(new Event("munetios:authchange"));
 }
 
@@ -181,30 +221,49 @@ function patchFetchForUnauthorized() {
   window.__munetiosOriginalFetch = originalFetch;
   window.__munetiosFetch401Patched = true;
   window.fetch = async (...args) => {
+    let parsedRequestUrl = null;
     try {
       const request = args[0];
       const requestUrl =
         request instanceof Request ? request.url : String(request || "");
-      const parsedRequestUrl = new URL(requestUrl, window.location.href);
+      parsedRequestUrl = new URL(requestUrl, window.location.href);
       const isLocalApiRequest =
         parsedRequestUrl.origin === window.location.origin &&
-        parsedRequestUrl.pathname.startsWith("/api/");
+        (parsedRequestUrl.pathname.startsWith("/api/") ||
+          parsedRequestUrl.pathname === "/realtime");
       const testStatus = isLocalApiRequest
-        ? consumeTestApiFailure(parsedRequestUrl.pathname)
+        ? getTestApiFailure()
         : 0;
 
       if (testStatus === 429 || testStatus === 503) {
+        showApiCheckFailure(parsedRequestUrl.pathname);
         return Response.json(
           {
             error: "test_api_failure",
             message: "Test API failure response.",
+            testMode: true,
           },
-          { status: testStatus },
+          {
+            headers:
+              testStatus === 429
+                ? { "Retry-After": "60", "X-Munetios-Test-Mode": "true" }
+                : { "X-Munetios-Test-Mode": "true" },
+            status: testStatus,
+          },
         );
       }
 
       const response = await originalFetch(...args);
 
+      if ([401, 429, 503].includes(response.status)) {
+        if (shouldReportResponseFailure(response)) {
+          showApiCheckFailure(parsedRequestUrl.pathname);
+        } else {
+          clearApiCheckFailure(parsedRequestUrl.pathname);
+        }
+      } else if (response.ok) {
+        clearApiCheckFailure(parsedRequestUrl.pathname);
+      }
       if (response.status === 401) {
         showSignedOutModal(t(), {
           invalidSession:
@@ -218,7 +277,12 @@ function patchFetchForUnauthorized() {
         throw error;
       }
 
-      showFetchErrorToast();
+      if (hasSignedInCookie() || getTestApiFailure()) {
+        showFetchErrorToast();
+        if (parsedRequestUrl?.origin === window.location.origin) {
+          showApiCheckFailure(parsedRequestUrl.pathname);
+        }
+      }
       return createFetchFailureResponse();
     }
   };
@@ -242,7 +306,7 @@ export default function AuthSessionWatcher() {
   }, []);
 
   useEffect(() => {
-    if (!isProtectedSignedInAttempt()) {
+    if (!isProtectedSignedInAttempt() || !hasSignedInCookie()) {
       return undefined;
     }
 

@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import AccountAvatar from "../../../components/accountAvatar";
 import { openAccountSettingsModal } from "../../../components/accountSettingsModal";
@@ -7,8 +9,14 @@ import {
 } from "../../../components/accountSwitcher";
 import DropdownWrapper from "../../../components/dropdownwrapper";
 import { openFeedbackModal } from "../../../components/feedbackModal";
+import {
+  aiKeyboardShortcuts,
+  openKeyboardShortcutsModal,
+} from "../../../components/keyboardShortcutsModal";
 import { showModal } from "../../../components/modal";
 import PricingOverlay from "./pricingOverlay";
+import { openAiSettingsModal } from "./settingsModal";
+import { openUnlockFeaturesModal } from "./unlockFeaturesModal";
 
 const signedInItems = [
   { icon: "edit_square", key: "aiSidebarNewChat" },
@@ -37,6 +45,7 @@ const guestMoreItems = [
   { icon: "smart_toy", key: "aiSidebarMyBots" },
   { icon: "menu_book", key: "aiSidebarBooks" },
 ];
+const guestRestrictedItems = new Set(["aiSidebarAgent", "aiSidebarPlugins"]);
 
 function getPlan(account, copy) {
   const plan = String(account?.plan || "")
@@ -48,9 +57,14 @@ function getPlan(account, copy) {
   }
 
   if (
-    ["pro lite", "pro-lite", "business standard", "business-standard"].includes(
-      plan,
-    )
+    [
+      "pro lite",
+      "pro-lite",
+      "munetios ai plus",
+      "munetios-ai-plus",
+      "business standard",
+      "business-standard",
+    ].includes(plan)
   ) {
     return {
       key: "aiPlanProLite",
@@ -62,12 +76,13 @@ function getPlan(account, copy) {
   return { key: "aiPlanFree", label: copy.aiPlanFree, tier: "free" };
 }
 
-function SidebarItem({ copy, icon, itemKey }) {
+function SidebarItem({ copy, icon, itemKey, onClick }) {
   return (
     <button
       aria-label={copy[itemKey]}
       className="munetios-ai-sidebar-nav-item group flex w-full cursor-pointer items-center gap-3 text-left"
       data-translate-aria-label={itemKey}
+      onClick={onClick}
       type="button"
     >
       <span className="munetios-ai-sidebar-nav-icon flex shrink-0 items-center justify-center">
@@ -83,7 +98,7 @@ function SidebarItem({ copy, icon, itemKey }) {
   );
 }
 
-function SidebarGroup({ copy, itemKey }) {
+function SidebarGroup({ children, copy, itemKey }) {
   return (
     <section className="munetios-ai-sidebar-group">
       <div className="munetios-ai-sidebar-group-header flex items-center gap-2">
@@ -94,6 +109,7 @@ function SidebarGroup({ copy, itemKey }) {
           {copy[itemKey]}
         </h2>
       </div>
+      {children}
     </section>
   );
 }
@@ -166,10 +182,26 @@ function GuestMoreMenu({ copy }) {
 
 function ProfileMenu({ account, copy, guest, plan }) {
   const signOut = () => confirmBrowserSignOut({ copy });
+  const openHelpCenter = () => {
+    const locale = document.documentElement.lang || "en";
+    const supported = new Set([
+      "de",
+      "en",
+      "es",
+      "es-MX",
+      "es-US",
+      "fr",
+      "pt-BR",
+      "pt-PT",
+    ]);
+    window.location.assign(
+      supported.has(locale) && locale !== "en" ? `/${locale}/help` : "/help",
+    );
+  };
 
   const menuItems = guest
     ? [
-        { icon: "help", key: "aiProfileHelp" },
+        { icon: "help", key: "aiProfileHelp", onClick: openHelpCenter },
         {
           icon: "payments",
           key: "aiProfileViewPricing",
@@ -191,7 +223,7 @@ function ProfileMenu({ account, copy, guest, plan }) {
               },
             ]
           : []),
-        { icon: "help", key: "aiProfileHelp" },
+        { icon: "help", key: "aiProfileHelp", onClick: openHelpCenter },
         {
           icon: "feedback",
           key: "aiProfileFeedback",
@@ -201,7 +233,7 @@ function ProfileMenu({ account, copy, guest, plan }) {
           icon: "manage_accounts",
           key: "aiProfileManageAccount",
           onClick: () =>
-            openAccountSettingsModal({ demo: Boolean(account?.demo) }),
+            openAccountSettingsModal(),
         },
         {
           icon: "switch_account",
@@ -242,6 +274,20 @@ function ProfileMenu({ account, copy, guest, plan }) {
             </div>
           </div>
         : null}
+      <button
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-white transition hover:bg-white/10!"
+        data-dropdown-close
+        onClick={() =>
+          openKeyboardShortcutsModal({
+            shortcuts: aiKeyboardShortcuts,
+            title: "Munetios AI keyboard shortcuts",
+          })}
+        role="menuitem"
+        type="button"
+      >
+        <icon>keyboard</icon>
+        <span>Keyboard shortcuts</span>
+      </button>
       {menuItems.map((item) => (
         <button
           className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-white/10! ${item.danger ? "text-rose-100 hover:bg-rose-500/20!" : "text-white"}`}
@@ -348,6 +394,11 @@ export default function AiSidebar({
               icon={item.icon}
               itemKey={item.key}
               key={item.key}
+              onClick={
+                !signedIn && guestRestrictedItems.has(item.key)
+                  ? () => openUnlockFeaturesModal(copy)
+                  : undefined
+              }
             />
           ))}
           {!signedIn ? <GuestMoreMenu copy={copy} /> : null}
@@ -367,7 +418,14 @@ export default function AiSidebar({
         className="munetios-ai-sidebar-bottom flex flex-col"
         data-translate-aria-label="aiSidebarUtilities"
       >
-        <SidebarItem copy={copy} icon="settings" itemKey="aiSidebarSettings" />
+        <SidebarItem
+          copy={copy}
+          icon="settings"
+          itemKey="aiSidebarSettings"
+          onClick={() =>
+            openAiSettingsModal({ plan: account?.plan, signedIn })
+          }
+        />
         <DropdownWrapper
           ariaLabel={copy.aiProfileMenu}
           buttonClassName="munetios-ai-profile-trigger flex w-full cursor-pointer items-center gap-3 text-left"

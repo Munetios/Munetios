@@ -7,6 +7,7 @@ import {
   getSessionCookie,
   getSessionMetadata,
 } from "../../../../lib/authSecurity.js";
+import { getSignedInCookie } from "../../../../lib/signedInCookie.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -39,10 +40,11 @@ export async function POST(request) {
   return Response.json(
     { switched: true },
     {
-      headers: {
-        "Cache-Control": "no-store",
-        "Set-Cookie": getSessionCookie(session.token),
-      },
+      headers: [
+        ["Cache-Control", "no-store"],
+        ["Set-Cookie", getSessionCookie(request, session.token)],
+        ["Set-Cookie", getSignedInCookie(request)],
+      ],
     },
   );
 }

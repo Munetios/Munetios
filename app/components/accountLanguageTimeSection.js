@@ -2,31 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getCurrentLocale } from "../i18n";
+import {
+  dateTimePreferenceStorageKey,
+  defaultDateTimePreferences,
+  formatUserDate,
+  formatUserTime,
+  loadDateTimePreferences,
+} from "../lib/dateTimePreferences";
+import { getCountryCurrency } from "../lib/regionPreferences";
 import DropdownWrapper from "./dropdownwrapper";
 import LanguageSelector from "./languageSelector";
 import { showToast } from "./toast";
-
-const preferenceStorageKey = "munetios.accountLanguageTime";
-const defaultPreferences = {
-  country: "auto",
-  dateFormat: "auto",
-  timeFormat: "auto",
-  timezone: "auto",
-  weekStarts: "sunday",
-};
-
-function loadPreferences() {
-  if (typeof window === "undefined") return defaultPreferences;
-
-  try {
-    const storedPreferences = JSON.parse(
-      window.localStorage.getItem(preferenceStorageKey) || "{}",
-    );
-    return { ...defaultPreferences, ...storedPreferences };
-  } catch {
-    return defaultPreferences;
-  }
-}
 
 function PreferenceDropdown({ label, onChange, options, value }) {
   const selected =
@@ -103,7 +89,7 @@ function getWeekdayOptions(locale) {
 }
 
 export default function AccountLanguageTimeSection({ copy }) {
-  const [preferences, setPreferences] = useState(loadPreferences);
+  const [preferences, setPreferences] = useState(loadDateTimePreferences);
   const [location, setLocation] = useState({
     countries: ["US"],
     detectedCountry: "US",
@@ -135,16 +121,36 @@ export default function AccountLanguageTimeSection({ copy }) {
         ]);
 
         if (!active) return;
+        const detectedCountry = countryPayload.detectedCountry || "US";
         setLocation({
           countries: Array.isArray(countryPayload.countries)
             ? countryPayload.countries
             : ["US"],
-          detectedCountry: countryPayload.detectedCountry || "US",
+          detectedCountry,
           detectedRegion: countryPayload.detectedRegion || null,
           detectedTimezone: timezonePayload.detectedTimezone || "UTC",
           timezones: Array.isArray(timezonePayload.timezones)
             ? timezonePayload.timezones
             : ["UTC"],
+        });
+        setPreferences((currentPreferences) => {
+          if (currentPreferences.detectedCountry === detectedCountry) {
+            return currentPreferences;
+          }
+          const nextPreferences = {
+            ...currentPreferences,
+            detectedCountry,
+          };
+          window.localStorage.setItem(
+            dateTimePreferenceStorageKey,
+            JSON.stringify(nextPreferences),
+          );
+          window.dispatchEvent(
+            new CustomEvent("munetios:language-time-change", {
+              detail: nextPreferences,
+            }),
+          );
+          return nextPreferences;
         });
       })
       .catch(() => {
@@ -165,7 +171,7 @@ export default function AccountLanguageTimeSection({ copy }) {
     setPreferences((currentPreferences) => {
       const nextPreferences = { ...currentPreferences, [key]: value };
       window.localStorage.setItem(
-        preferenceStorageKey,
+        dateTimePreferenceStorageKey,
         JSON.stringify(nextPreferences),
       );
       window.dispatchEvent(
@@ -224,13 +230,41 @@ export default function AccountLanguageTimeSection({ copy }) {
     { label: "MM/DD/YYYY", value: "MM/DD/YYYY" },
     { label: "DD/MM/YYYY", value: "DD/MM/YYYY" },
     { label: "YYYY-MM-DD", value: "YYYY-MM-DD" },
+    { label: `${copy.accountLanguageDateFormat}…`, value: "custom" },
   ];
   const timeFormatOptions = [
     { label: copy.accountLanguageAuto, value: "auto" },
     { label: copy.accountLanguage12Hour, value: "12-hour" },
     { label: copy.accountLanguage24Hour, value: "24-hour" },
   ];
+  const effectiveCountry =
+    preferences.country === "auto"
+      ? location.detectedCountry
+      : preferences.country;
+  const currencyOptions = [
+    {
+      label: `${copy.accountLanguageAuto} (${getCountryCurrency(effectiveCountry)})`,
+      value: "auto",
+    },
+    { label: "USD", value: "USD" },
+    { label: "EUR", value: "EUR" },
+    { label: "GBP", value: "GBP" },
+    { label: "CAD", value: "CAD" },
+    { label: "AUD", value: "AUD" },
+  ];
+  const numberFormatOptions = [
+    {
+      label: `${copy.accountLanguageAuto} (${getCountryName(effectiveCountry, locale)})`,
+      value: "auto",
+    },
+    { label: copy.accountLanguageUiLanguage, value: "language" },
+  ];
   const weekOptions = getWeekdayOptions(locale);
+  const previewDate = new Date(2026, 6, 30, 17, 45);
+  const previewPreferences = {
+    ...defaultDateTimePreferences,
+    ...preferences,
+  };
 
   return (
     <div className="mx-auto w-full max-w-5xl">
@@ -277,12 +311,91 @@ export default function AccountLanguageTimeSection({ copy }) {
           value={preferences.country}
         />
         <PreferenceDropdown
+          label={copy.accountLanguageCurrency}
+          onChange={(value) => updatePreference("currency", value)}
+          options={currencyOptions}
+          value={preferences.currency}
+        />
+        <PreferenceDropdown
+          label={copy.accountLanguageNumberFormat}
+          onChange={(value) => updatePreference("numberFormat", value)}
+          options={numberFormatOptions}
+          value={preferences.numberFormat}
+        />
+        <PreferenceDropdown
           label={copy.accountLanguageWeekStarts}
           onChange={(value) => updatePreference("weekStarts", value)}
           options={weekOptions}
           value={preferences.weekStarts}
         />
+        {preferences.dateFormat === "custom"
+          ? <label className="min-w-0 sm:col-span-2">
+              <span className="mb-2 block text-sm font-semibold text-white/80">
+                {copy.accountLanguageDateFormat}
+              </span>
+              <input
+                className="h-11 w-full rounded-xl border border-white/10 bg-white/10! px-3 text-white outline-none transition placeholder:text-white/35 focus:border-purple-200/45"
+                maxLength={80}
+                onChange={(event) =>
+                  updatePreference("customDateFormat", event.target.value)
+                }
+                placeholder="dddd, MMMM D, YYYY"
+                type="text"
+                value={preferences.customDateFormat}
+              />
+              <small className="mt-2 block text-xs leading-5 text-white/55">
+                YYYY · YY · MMMM · MMM · MM · M · DD · D · dddd · ddd
+              </small>
+            </label>
+          : null}
+        <label className="min-w-0">
+          <span className="mb-2 block text-sm font-semibold text-white/80">
+            AM
+          </span>
+          <input
+            className="h-11 w-full rounded-xl border border-white/10 bg-white/10! px-3 text-white outline-none transition placeholder:text-white/35 focus:border-purple-200/45"
+            maxLength={20}
+            onChange={(event) =>
+              updatePreference("amSymbol", event.target.value)
+            }
+            placeholder="AM"
+            type="text"
+            value={preferences.amSymbol}
+          />
+        </label>
+        <label className="min-w-0">
+          <span className="mb-2 block text-sm font-semibold text-white/80">
+            PM
+          </span>
+          <input
+            className="h-11 w-full rounded-xl border border-white/10 bg-white/10! px-3 text-white outline-none transition placeholder:text-white/35 focus:border-purple-200/45"
+            maxLength={20}
+            onChange={(event) =>
+              updatePreference("pmSymbol", event.target.value)
+            }
+            placeholder="PM"
+            type="text"
+            value={preferences.pmSymbol}
+          />
+        </label>
       </div>
+      <div className="liquid-glass mt-4 rounded-2xl border border-white/10 p-4">
+        <strong className="mt-2 block text-base text-white">
+          {formatUserDate(previewDate, {
+            locale,
+            preferences: previewPreferences,
+          })}
+          {" · "}
+          {formatUserTime(previewDate, {
+            locale,
+            preferences: previewPreferences,
+          })}
+        </strong>
+      </div>
+      <p className="mt-4 text-xs leading-5 text-white/55">
+        Your IP address is used to detect your country automatically. IP
+        addresses are not shown.
+      </p>
     </div>
   );
 }

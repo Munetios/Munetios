@@ -1,0 +1,38 @@
+.admin-quickcard {
+  break-inside: avoid;
+}
+
+@media print {
+  body:has(.admin-quickcard) {
+    background: var(--app-background);
+    color: var(--foreground);
+    font-family: "Google Sans Flex", var(--app-font), sans-serif;
+  }
+
+  body:has(.admin-quickcard) * {
+    visibility: hidden;
+  }
+
+  body:has(.admin-quickcard) .admin-quickcard,
+  body:has(.admin-quickcard) .admin-quickcard * {
+    visibility: visible;
+  }
+
+  body:has(.admin-quickcard) .admin-quickcard {
+    display: inline-block;
+    width: 46%;
+    margin: 2%;
+    border: 1px solid color-mix(in srgb, var(--foreground) 18%, transparent);
+    background: color-mix(
+      in srgb,
+      var(--theme-surface-container) 45%,
+      transparent
+    ) !important;
+    color: var(--foreground);
+    vertical-align: top;
+  }
+
+  body:has(.admin-quickcard) main {
+    padding: 0;
+  }
+}

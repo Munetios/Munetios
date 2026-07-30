@@ -108,11 +108,10 @@ function AccountSettingsFrame({ frameUrl }) {
   );
 }
 
-export function openAccountSettingsModal({ demo = false } = {}) {
+export function openAccountSettingsModal() {
   const copy = t();
-  const frameUrl = demo ? "/account/settings?demo=true" : "/account/settings";
 
-  return showModal(<AccountSettingsFrame frameUrl={frameUrl} />, {
+  return showModal(<AccountSettingsFrame frameUrl="/account/settings" />, {
     ariaLabel: copy.accountSettings,
     className: "flex flex-col",
     contentClassName: "min-h-0 flex-1",

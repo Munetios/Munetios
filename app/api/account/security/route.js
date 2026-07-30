@@ -1,4 +1,4 @@
-import { auth } from "../../../../auth.js";
+import { requireAuth } from "../../../../auth.js";
 import {
   assertSameOrigin,
   changeAccountPassword,
@@ -6,6 +6,7 @@ import {
   getAccountById,
   getAccountData,
   getRequestFingerprint,
+  getSessionCookie,
   listAccountPasskeys,
   listAccountSessions,
   normalizeEmail,
@@ -52,8 +53,9 @@ function describeUserAgent(userAgent) {
 }
 
 export async function GET(request) {
-  const session = await auth(request);
-  if (!session || session.demo) {
+  const { response: authResponse, session } = await requireAuth(request);
+  if (authResponse) return authResponse;
+  if (session.demo) {
     return response({ error: "signin_required" }, { status: 401 });
   }
   const security = getAccountData(session.user.id, "security", {});
@@ -78,8 +80,9 @@ export async function POST(request) {
   if (!assertSameOrigin(request)) {
     return response({ error: "invalid_origin" }, { status: 403 });
   }
-  const session = await auth(request);
-  if (!session || session.demo) {
+  const { response: authResponse, session } = await requireAuth(request);
+  if (authResponse) return authResponse;
+  if (session.demo) {
     return response({ error: "signin_required" }, { status: 401 });
   }
   const rateLimit = consumeRateLimit({
@@ -162,8 +165,7 @@ export async function POST(request) {
       current
         ? {
             headers: {
-              "Set-Cookie":
-                "munetios_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0",
+              "Set-Cookie": getSessionCookie(request, "", 0),
             },
           }
         : {},
@@ -176,8 +178,7 @@ export async function POST(request) {
       { signedOut: true },
       {
         headers: {
-          "Set-Cookie":
-            "munetios_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0",
+          "Set-Cookie": getSessionCookie(request, "", 0),
         },
       },
     );

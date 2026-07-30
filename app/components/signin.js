@@ -1,18 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { hasSignedInCookie } from "../lib/signedInCookie";
 import SignInScreen from "./signinscreen";
 
 export default function SignIn() {
   const [signedIn, setSignedIn] = useState(null);
-  const [addingAccount, setAddingAccount] = useState(false);
+  const [addingAccount, setAddingAccount] = useState(null);
 
   useEffect(() => {
+    const url = new URL(window.location.href);
     const addAccount =
-      new URL(window.location.href).searchParams.get("addAccount") === "true";
+      url.searchParams.get("addAccount") === "true" ||
+      (url.searchParams.get("embedded") === "true" &&
+        window.parent !== window);
     setAddingAccount(addAccount);
     if (addAccount) {
       setSignedIn(false);
+      return undefined;
+    }
+    if (hasSignedInCookie()) {
+      setSignedIn(true);
       return undefined;
     }
     let active = true;
@@ -26,9 +34,13 @@ export default function SignIn() {
           return;
         }
 
-        setSignedIn(response.ok && data === true);
+        setSignedIn(
+          response.ok &&
+            (data === true ||
+              (data?.authenticated === true && data?.signedIn === true)),
+        );
       } catch {
-        if (active) {
+        if (active && !hasSignedInCookie()) {
           setSignedIn(false);
         }
       }
@@ -42,7 +54,7 @@ export default function SignIn() {
   }, []);
 
   useEffect(() => {
-    if (!signedIn || addingAccount) {
+    if (addingAccount !== false || !signedIn) {
       return;
     }
 
@@ -52,7 +64,7 @@ export default function SignIn() {
     window.location.replace(safeReturnTo);
   }, [addingAccount, signedIn]);
 
-  if (signedIn === null) {
+  if (signedIn === null || addingAccount === null) {
     return (
       <div
         className="signin-background"

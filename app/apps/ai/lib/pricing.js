@@ -1,3 +1,8 @@
+import {
+  getFormattingLocale,
+  loadDateTimePreferences,
+} from "../../../lib/dateTimePreferences";
+
 export const currencyOptions = [
   { key: "aiPricingCurrencyUsd", value: "USD" },
   { key: "aiPricingCurrencyEur", value: "EUR" },
@@ -56,6 +61,19 @@ export const plans = [
     priceUsd: 0,
   },
   {
+    actionKey: "adminChoosePlan",
+    category: "business",
+    descriptionKey: "adminStandardDescription",
+    featureKeys: [
+      "adminFeature500Gb",
+      "adminFeatureAiProLite",
+      "adminFeatureAdvancedAnalytics",
+    ],
+    id: "business-standard",
+    nameKey: "demoPlanBusinessStandard",
+    priceUsd: 4.99,
+  },
+  {
     actionKey: "pricingBusinessProCta",
     category: "business",
     descriptionKey: "pricingBusinessProDescription",
@@ -93,19 +111,21 @@ export function getPlanPrice(plan, currency) {
   return plan.priceUsd * (currencyRates[normalizeCurrency(currency)] || 1);
 }
 
-export function formatPlanPrice(plan, currency) {
+export function formatPlanPrice(plan, currency, options = {}) {
   const normalizedCurrency = normalizeCurrency(currency);
   const value = getPlanPrice(plan, normalizedCurrency);
+  const preferences = options.preferences || loadDateTimePreferences();
+  const locale = getFormattingLocale(options.locale, preferences);
 
   if (value === 0) {
-    return new Intl.NumberFormat("en", {
+    return new Intl.NumberFormat(locale, {
       currency: normalizedCurrency,
       maximumFractionDigits: 0,
       style: "currency",
     }).format(value);
   }
 
-  return new Intl.NumberFormat("en", {
+  return new Intl.NumberFormat(locale, {
     currency: normalizedCurrency,
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,

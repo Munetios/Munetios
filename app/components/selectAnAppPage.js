@@ -7,6 +7,7 @@ import SelectAnAppTopbar from "./selectAnAppTopbar";
 
 const _products = [
   {
+    app: "mail",
     id: 1,
     name: "Munetios Mail",
     nameKey: "productMailName",
@@ -15,6 +16,7 @@ const _products = [
     url: "https://mail.munetios.com",
   },
   {
+    app: "ai",
     id: 2,
     name: "Munetios AI",
     nameKey: "productAiName",
@@ -23,6 +25,7 @@ const _products = [
     url: "/apps/ai",
   },
   {
+    app: "calendar",
     id: 3,
     name: "Munetios Calendar",
     nameKey: "productCalendarName",
@@ -31,6 +34,7 @@ const _products = [
     url: "/apps/calendar",
   },
   {
+    app: "omniwrite",
     id: 4,
     name: "Munetios OmniWrite",
     nameKey: "productOmniWriteName",
@@ -39,6 +43,7 @@ const _products = [
     url: "/apps/omniwrite",
   },
   {
+    app: "drive",
     id: 5,
     name: "Munetios Drive",
     nameKey: "productDriveName",
@@ -47,14 +52,16 @@ const _products = [
     url: "https://drive.munetios.com",
   },
   {
+    app: "meet",
     id: 6,
     name: "Munetios Meet",
     nameKey: "productMeetName",
     image: "/meet.png",
     descriptionKey: "productMeetDescription",
-    url: "https://meet.munetios.com",
+    url: "/apps/meet",
   },
   {
+    app: "chat",
     id: 7,
     name: "Munetios Chat",
     nameKey: "productChatName",
@@ -63,6 +70,7 @@ const _products = [
     url: "https://chat.munetios.com",
   },
   {
+    app: "sheets",
     id: 8,
     name: "Munetios Sheets",
     nameKey: "productSheetsName",
@@ -71,6 +79,7 @@ const _products = [
     url: "https://sheets.munetios.com",
   },
   {
+    app: "slides",
     id: 9,
     name: "Munetios Slides",
     nameKey: "productSlidesName",
@@ -79,6 +88,7 @@ const _products = [
     url: "https://slides.munetios.com",
   },
   {
+    app: "notes",
     id: 13,
     name: "Munetios SupaNotes",
     nameKey: "productSupaNotesName",
@@ -87,6 +97,7 @@ const _products = [
     url: "/apps/notes",
   },
   {
+    app: "tasks",
     id: 14,
     name: "Munetios Tasks",
     nameKey: "productTasksName",
@@ -100,6 +111,7 @@ export default function SelectAnAppPage({ active = true }) {
   const [locale, setLocale] = useState("en");
   const [archived, setArchived] = useState(false);
   const [offlineMode, setOfflineMode] = useState(false);
+  const [organization, setOrganization] = useState(null);
   const copy = useMemo(() => t(locale), [locale]);
 
   useEffect(() => {
@@ -120,6 +132,34 @@ export default function SelectAnAppPage({ active = true }) {
   }, []);
 
   useEffect(() => {
+    fetch("/api/organization/access", {
+      cache: "no-store",
+      credentials: "include",
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => setOrganization(payload?.organization || null))
+      .catch(() => setOrganization(null));
+  }, []);
+
+  const visibleProducts = useMemo(() => {
+    const products = _products.filter(
+      (product) => organization?.appAccess?.[product.app] !== false,
+    );
+    if (organization?.administrator) {
+      products.push({
+        app: "admin",
+        descriptionKey: "adminDashboardDescriptionShort",
+        id: 99,
+        image: "/favicon.ico",
+        name: "Munetios Admin",
+        nameKey: "adminTitle",
+        url: "/apps/admin",
+      });
+    }
+    return products;
+  }, [organization]);
+
+  useEffect(() => {
     fetch("/api/account", { credentials: "include" })
       .then((response) => (response.ok ? response.json() : null))
       .then((account) => setArchived(Boolean(account?.archived)))
@@ -138,7 +178,7 @@ export default function SelectAnAppPage({ active = true }) {
   return (
     <main
       aria-label={copy.selectAppPageAriaLabel}
-      className="munetios-app-render flex min-h-dvh flex-col overflow-x-hidden bg-[radial-gradient(circle_at_top_left,rgba(126,34,206,0.4),transparent_34rem),linear-gradient(135deg,#150627,#23083f_48%,#10031e)] text-white"
+      className="munetios-app-render flex min-h-dvh flex-col overflow-x-hidden bg-[var(--app-background)] text-[var(--foreground)] [font-family:var(--app-font)]"
       data-munetios-app-render="true"
     >
       <IgnoreElementErrorBoundary>
@@ -146,20 +186,20 @@ export default function SelectAnAppPage({ active = true }) {
       </IgnoreElementErrorBoundary>
       <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col items-center px-4 pb-8 pt-20 sm:px-6 lg:px-8">
         <div className="w-full text-center">
-          <p className="text-sm uppercase tracking-[0.3em] text-violet-200">
+          <p className="text-sm uppercase tracking-[0.3em] text-[var(--accent)]">
             {copy.selectAppKicker}
           </p>
           <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">
             {copy.selectAppHeading}
           </h1>
-          <p className="mt-2 text-sm text-violet-200">
+          <p className="mt-2 text-sm text-[color-mix(in_srgb,var(--foreground)_68%,transparent)]">
             {copy.selectAppLaunchDescription}
           </p>
         </div>
         <div className="mt-10 grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {_products.map((product) => (
+          {visibleProducts.map((product) => (
             <button
-              className="flex h-full flex-col items-start rounded-3xl border border-white/10 bg-white/5 p-6 text-left transition hover:border-violet-300/40 hover:bg-white/10"
+              className="liquid-glass flex h-full flex-col items-start border border-[color-mix(in_srgb,var(--foreground)_14%,transparent)] bg-[color-mix(in_srgb,var(--theme-surface-container)_45%,transparent)]! p-6 text-left text-[var(--foreground)] transition hover:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] hover:bg-[color-mix(in_srgb,var(--theme-surface-container-high)_50%,transparent)]! hover:[transform:translateY(var(--theme-hover-y))] [border-radius:var(--theme-container-radius)] [transition-duration:var(--theme-transition)]"
               key={product.id}
               onClick={() =>
                 window.open(product.url, "_self", "noopener,noreferrer")
@@ -171,49 +211,49 @@ export default function SelectAnAppPage({ active = true }) {
                 className="mb-5 w-14 rounded-2xl object-contain"
                 src={product.image}
               />
-              <h2 className="text-xl font-semibold text-white">
+              <h2 className="text-xl font-semibold text-[var(--foreground)]">
                 {copy[product.nameKey] || product.name}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-violet-200">
+              <p className="mt-2 text-sm leading-6 text-[color-mix(in_srgb,var(--foreground)_68%,transparent)]">
                 {copy[product.descriptionKey] || copy.selectAppCardDescription}
               </p>
             </button>
           ))}
         </div>
       </section>
-      <footer className="border-t border-white/10 py-4 text-center text-sm text-white/70">
+      <footer className="border-t border-[color-mix(in_srgb,var(--foreground)_12%,transparent)] py-4 text-center text-sm text-[color-mix(in_srgb,var(--foreground)_70%,transparent)]">
         {"\u00a9"} 2026 Munetios
       </footer>
-      {archived && !offlineMode ? (
-        <div
-          aria-live="assertive"
-          aria-modal="true"
-          className="fixed inset-0 z-[3000] flex min-h-dvh items-center justify-center bg-purple-950/95! p-4 text-white"
-          role="dialog"
-        >
-          <section className="liquid-glass w-full max-w-xl rounded-3xl border border-amber-200/25 bg-purple-950/75! p-6 shadow-2xl sm:p-8">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/15! text-amber-100">
-              <icon>domain_disabled</icon>
-            </div>
-            <h2 className="mt-5 text-2xl font-bold">
-              {copy.demoArchivedSessionTitle}
-            </h2>
-            <p className="mt-4 text-sm leading-7 text-white/80">
-              {copy.demoArchivedSessionMessage}
-            </p>
-            <p className="mt-4 rounded-xl border border-white/10 bg-white/5! p-3 text-sm leading-6 text-white/65">
-              {copy.demoArchivedOfflineHint}
-            </p>
-            <button
-              className="mt-5 rounded-xl border border-purple-200/25 bg-purple-500/80! px-4 py-2 text-sm font-bold text-white"
-              onClick={() => setOfflineMode(true)}
-              type="button"
-            >
-              {copy.demoContinueOffline}
-            </button>
-          </section>
-        </div>
-      ) : null}
+      {archived && !offlineMode
+        ? <div
+            aria-live="assertive"
+            aria-modal="true"
+            className="fixed inset-0 z-[3000] flex min-h-dvh items-center justify-center bg-black/50! p-4 text-[var(--foreground)]"
+            role="dialog"
+          >
+            <section className="liquid-glass w-full max-w-xl border border-[color-mix(in_srgb,var(--foreground)_14%,transparent)] bg-[color-mix(in_srgb,var(--theme-surface-container)_50%,transparent)]! p-6 shadow-2xl [border-radius:var(--theme-container-radius)] sm:p-8">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/15! text-amber-100">
+                <icon>domain_disabled</icon>
+              </div>
+              <h2 className="mt-5 text-2xl font-bold">
+                {copy.demoArchivedSessionTitle}
+              </h2>
+              <p className="mt-4 text-sm leading-7 text-[color-mix(in_srgb,var(--foreground)_80%,transparent)]">
+                {copy.demoArchivedSessionMessage}
+              </p>
+              <p className="mt-4 border border-[color-mix(in_srgb,var(--foreground)_12%,transparent)] bg-[color-mix(in_srgb,var(--foreground)_5%,transparent)]! p-3 text-sm leading-6 text-[color-mix(in_srgb,var(--foreground)_65%,transparent)] [border-radius:var(--theme-radius)]">
+                {copy.demoArchivedOfflineHint}
+              </p>
+              <button
+                className="mt-5 border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_50%,transparent)]! px-4 py-2 text-sm font-bold text-[var(--theme-on-primary)] [border-radius:var(--theme-radius)]"
+                onClick={() => setOfflineMode(true)}
+                type="button"
+              >
+                {copy.demoContinueOffline}
+              </button>
+            </section>
+          </div>
+        : null}
     </main>
   );
 }

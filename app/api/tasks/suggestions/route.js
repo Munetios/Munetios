@@ -4,12 +4,23 @@ import {
   consumeRateLimit,
   getRequestFingerprint,
 } from "../../../lib/authSecurity.js";
+import { generateTaskPlan } from "../../../lib/localLlama.js";
+import { enforceOrganizationAppAccess } from "../../../lib/organizationPolicies.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const serverUrl = process.env.MUNETIOS_LOCAL_AI_URL || "http://127.0.0.1:11434";
-const model = process.env.MUNETIOS_TASKS_LLAMA_MODEL || "llama3.2:3b";
+const promptInjectionPattern =
+  /\b(ignore|override|reveal|repeat|bypass|disable)\b.{0,50}\b(instruction|prompt|policy|system|safety|rule)s?\b/i;
+const unsafePatterns = [
+  /\b(build|create|make|assemble|detonate|acquire)\b.{0,60}\b(bomb|explosive|weapon|poison)\b/i,
+  /\b(kill|murder|assault|kidnap|torture|seriously harm)\b/i,
+  /\b(suicide|self[- ]?harm)\b.{0,60}\b(method|plan|instructions?|how)\b/i,
+  /\b(child|minor)\b.{0,50}\b(sexual|explicit|nude|pornograph)/i,
+  /\b(ransomware|malware|credential theft|steal passwords?|phishing kit)\b/i,
+  /\b(hack|breach|compromise)\b.{0,60}\b(account|device|network|server)\b/i,
+  /\b(doxx|stalk|swat)\b/i,
+];
 
 function respond(payload, init = {}) {
   return Response.json(payload, {
@@ -18,24 +29,64 @@ function respond(payload, init = {}) {
   });
 }
 
-async function ensureModel() {
-  const tagsResponse = await fetch(`${serverUrl}/api/tags`, {
-    cache: "no-store",
-    signal: AbortSignal.timeout(4_000),
-  });
-  if (!tagsResponse.ok) throw new Error("local_ai_unavailable");
-  const tags = await tagsResponse.json();
-  const installed = (tags.models || []).some(
-    (item) => item.name === model || item.model === model,
+function hasUnsafeContent(value) {
+  const text = String(value || "");
+  return (
+    promptInjectionPattern.test(text) ||
+    unsafePatterns.some((pattern) => pattern.test(text))
   );
-  if (installed) return;
-  const pullResponse = await fetch(`${serverUrl}/api/pull`, {
-    body: JSON.stringify({ model, stream: false }),
-    headers: { "Content-Type": "application/json" },
-    method: "POST",
-    signal: AbortSignal.timeout(120_000),
-  });
-  if (!pullResponse.ok) throw new Error("model_download_failed");
+}
+
+function cleanText(value, maximumLength) {
+  return Array.from(String(value || ""))
+    .map((character) => {
+      const code = character.codePointAt(0);
+      return code < 32 || code === 127 ? " " : character;
+    })
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maximumLength);
+}
+
+function validatePlan(plan, categories) {
+  const category = cleanText(plan?.category, 80);
+  const description = cleanText(plan?.description, 240);
+  const steps = Array.isArray(plan?.steps)
+    ? plan.steps
+        .map((step) => cleanText(step, 100))
+        .filter(Boolean)
+        .slice(0, 4)
+    : [];
+  const combinedOutput = [category, description, ...steps].join(" ");
+
+  if (
+    !description ||
+    steps.length < 2 ||
+    hasUnsafeContent(combinedOutput) ||
+    /https?:\/\/|www\./i.test(combinedOutput)
+  ) {
+    throw new Error("unsafe_or_invalid_model_output");
+  }
+
+  return {
+    category: categories.includes(category) ? category : null,
+    description,
+    steps,
+  };
+}
+
+function lexicalCategory(categories, topic) {
+  const words = new Set(
+    topic.toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) || [],
+  );
+  return (
+    categories.find((category) =>
+      (category.toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) || []).some(
+        (word) => word.length > 2 && words.has(word),
+      ),
+    ) || null
+  );
 }
 
 export async function POST(request) {
@@ -44,6 +95,11 @@ export async function POST(request) {
   }
   const { response, session } = await requireAuth(request);
   if (response) return response;
+  const policyResponse = enforceOrganizationAppAccess(session, "tasks", {
+    mutating: true,
+  });
+  if (policyResponse) return policyResponse;
+
   const rateLimit = consumeRateLimit({
     key: `tasks-suggestions:${session.user.id}:${getRequestFingerprint(request)}`,
     limit: 12,
@@ -52,55 +108,63 @@ export async function POST(request) {
   if (!rateLimit.allowed) {
     return respond({ error: "rate_limited" }, { status: 429 });
   }
+
   let payload;
   try {
     payload = await request.json();
   } catch {
     return respond({ error: "invalid_json" }, { status: 400 });
   }
-  const topic = String(payload?.topic || "")
-    .trim()
-    .slice(0, 500);
+
+  const topic = cleanText(payload?.topic, 500);
   const categories = Array.isArray(payload?.categories)
-    ? payload.categories
-        .map((item) => String(item).trim())
-        .filter(Boolean)
-        .slice(0, 30)
+    ? [
+        ...new Set(
+          payload.categories
+            .map((item) => cleanText(item, 80))
+            .filter(Boolean)
+            .slice(0, 30),
+        ),
+      ]
     : [];
-  if (!topic || categories.length === 0) {
-    return respond({ suggestion: null });
+
+  if (!topic) {
+    return respond({ contentSuggestion: null, suggestion: null });
   }
+  if (hasUnsafeContent(topic) || categories.some(hasUnsafeContent)) {
+    return respond(
+      {
+        blocked: true,
+        contentSuggestion: null,
+        error: "unsafe_topic",
+        suggestion: null,
+      },
+      { status: 422 },
+    );
+  }
+
   try {
-    await ensureModel();
-    const generation = await fetch(`${serverUrl}/api/generate`, {
-      body: JSON.stringify({
-        model,
-        prompt: `Choose exactly one category from this list for the task. Reply only with the category text.\nCategories: ${categories.join(" | ")}\nTask: ${topic}`,
-        stream: false,
-      }),
-      headers: { "Content-Type": "application/json" },
-      method: "POST",
-      signal: AbortSignal.timeout(30_000),
+    const result = await generateTaskPlan({
+      categories,
+      signal: request.signal,
+      topic,
     });
-    if (!generation.ok) throw new Error("generation_failed");
-    const result = await generation.json();
-    const answer = String(result.response || "")
-      .trim()
-      .toLocaleLowerCase();
-    const suggestion =
-      categories.find((category) =>
-        answer.includes(category.toLocaleLowerCase()),
-      ) || null;
-    return respond({ model, suggestion });
+    const plan = validatePlan(result.plan, categories);
+    return respond({
+      contentSuggestion: {
+        description: plan.description,
+        options: plan.steps,
+      },
+      model: result.model,
+      provider: "llama.cpp",
+      suggestion: plan.category,
+    });
   } catch {
-    const words = topic.toLocaleLowerCase().split(/\W+/).filter(Boolean);
-    const suggestion =
-      categories.find((category) =>
-        category
-          .toLocaleLowerCase()
-          .split(/\W+/)
-          .some((word) => word.length > 2 && words.includes(word)),
-      ) || null;
-    return respond({ fallback: true, model, suggestion });
+    return respond({
+      contentSuggestion: null,
+      fallback: true,
+      provider: "llama.cpp",
+      suggestion: lexicalCategory(categories, topic),
+    });
   }
 }

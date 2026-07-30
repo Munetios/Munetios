@@ -1,11 +1,17 @@
 import { auth } from "../../../auth.js";
 import {
+  getPlan,
+  getPlanPrice,
+  normalizeCurrency,
+} from "../../apps/ai/lib/pricing.js";
+import {
   assertSameOrigin,
   consumeRateLimit,
   getAccountData,
   getRequestFingerprint,
   setAccountData,
 } from "../../lib/authSecurity.js";
+import { syncStripeSubscriptionForAccount } from "../../lib/stripeSubscriptionSync.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -14,6 +20,17 @@ const stripeApiUrl = "https://api.stripe.com/v1";
 const stripeCustomerPattern = /^cus_[A-Za-z0-9]{8,200}$/;
 const stripePaymentMethodPattern = /^pm_[A-Za-z0-9]{8,200}$/;
 const stripeSubscriptionPattern = /^sub_[A-Za-z0-9]{8,200}$/;
+const changeablePlanIds = new Set(["pro", "pro-lite"]);
+
+function getConfiguredPriceId(planId, currency) {
+  const planKey = planId.toUpperCase().replaceAll("-", "_");
+  const currencyKey = currency.toUpperCase();
+  const priceId =
+    process.env[`STRIPE_PRICE_${planKey}_${currencyKey}`] ||
+    (currencyKey === "USD" ? process.env[`STRIPE_PRICE_${planKey}`] : "") ||
+    "";
+  return /^price_[A-Za-z0-9_]{8,200}$/.test(priceId) ? priceId : "";
+}
 
 function response(payload, init = {}) {
   return Response.json(payload, {
@@ -154,14 +171,78 @@ function mapPaymentMethod(paymentMethod) {
 function mapInvoice(invoice) {
   return {
     amount: invoice.amount_paid || invoice.amount_due || 0,
+    amountDue: invoice.amount_due || 0,
+    amountPaid: invoice.amount_paid || 0,
     created: invoice.created,
     currency: invoice.currency,
-    hostedInvoiceUrl: invoice.hosted_invoice_url || "",
+    customerAddress: invoice.customer_address || null,
+    customerEmail: invoice.customer_email || "",
+    customerName: invoice.customer_name || "",
+    description: invoice.description || "",
+    dueDate: invoice.due_date || null,
     id: invoice.id,
-    invoicePdf: invoice.invoice_pdf || "",
+    lines: (invoice.lines?.data || []).map((line) => ({
+      amount: line.amount || 0,
+      currency: line.currency || invoice.currency,
+      description: line.description || "Munetios subscription",
+      id: line.id,
+      periodEnd: line.period?.end || null,
+      periodStart: line.period?.start || null,
+      quantity: line.quantity || 1,
+    })),
     number: invoice.number || "",
     status: invoice.status,
+    subtotal: invoice.subtotal || 0,
+    tax: invoice.tax || 0,
+    total: invoice.total || 0,
   };
+}
+
+async function getOrCreatePlanPrice(stripeSecret, planId, currency) {
+  const normalizedCurrency = normalizeCurrency(currency).toLowerCase();
+  const configuredPriceId = getConfiguredPriceId(planId, normalizedCurrency);
+  if (configuredPriceId) return configuredPriceId;
+
+  const lookupKey = `munetios-ai-${planId}-${normalizedCurrency}-monthly`;
+  const query = new URLSearchParams({ active: "true", limit: "1" });
+  query.append("lookup_keys[]", lookupKey);
+  const existing = await stripeRequest(
+    stripeSecret,
+    `/prices?${query.toString()}`,
+  );
+  if (existing.data?.[0]?.id) return existing.data[0].id;
+
+  const plan = getPlan(planId);
+  const productPayload = new URLSearchParams({
+    name: `Munetios AI ${planId === "pro" ? "Pro" : "Pro Lite"}`,
+    "metadata[munetios_plan_id]": planId,
+  });
+  const product = await stripeRequest(stripeSecret, "/products", {
+    body: productPayload,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Idempotency-Key": `munetios-product-${planId}`,
+    },
+    method: "POST",
+  });
+  const pricePayload = new URLSearchParams({
+    currency: normalizedCurrency,
+    lookup_key: lookupKey,
+    product: product.id,
+    "recurring[interval]": "month",
+    unit_amount: String(
+      Math.round(getPlanPrice(plan, normalizedCurrency) * 100),
+    ),
+  });
+  const price = await stripeRequest(stripeSecret, "/prices", {
+    body: pricePayload,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Idempotency-Key": lookupKey,
+    },
+    method: "POST",
+  });
+  return price.id;
 }
 
 async function loadBillingDetails(stripeSecret, customerId) {
@@ -170,7 +251,6 @@ async function loadBillingDetails(stripeSecret, customerId) {
     limit: "20",
     status: "all",
   });
-  subscriptionParameters.set("expand[0]", "data.items.data.price.product");
   const cardParameters = new URLSearchParams({
     customer: customerId,
     limit: "20",
@@ -203,6 +283,46 @@ async function loadBillingDetails(stripeSecret, customerId) {
   const valueOrEmpty = (result) =>
     result.status === "fulfilled" ? result.value : { data: [] };
   const subscriptions = valueOrEmpty(results[0]);
+  const productIds = new Set();
+  for (const subscription of subscriptions.data || []) {
+    for (const item of subscription.items?.data || []) {
+      if (typeof item.price?.product === "string") {
+        productIds.add(item.price.product);
+      }
+    }
+  }
+  const productResults = await Promise.allSettled(
+    [...productIds].map(async (productId) => [
+      productId,
+      await stripeRequest(
+        stripeSecret,
+        `/products/${encodeURIComponent(productId)}`,
+      ),
+    ]),
+  );
+  const products = new Map(
+    productResults
+      .filter((result) => result.status === "fulfilled")
+      .map((result) => result.value),
+  );
+  const hydratedSubscriptions = (subscriptions.data || []).map(
+    (subscription) => ({
+      ...subscription,
+      items: {
+        ...subscription.items,
+        data: (subscription.items?.data || []).map((item) => ({
+          ...item,
+          price: {
+            ...item.price,
+            product:
+              typeof item.price?.product === "string"
+                ? products.get(item.price.product) || item.price.product
+                : item.price?.product,
+          },
+        })),
+      },
+    }),
+  );
   const cards = valueOrEmpty(results[1]);
   const paypalMethods = valueOrEmpty(results[2]);
   const invoices = valueOrEmpty(results[3]);
@@ -211,7 +331,7 @@ async function loadBillingDetails(stripeSecret, customerId) {
     paymentMethods: [...(cards.data || []), ...(paypalMethods.data || [])].map(
       mapPaymentMethod,
     ),
-    subscriptions: (subscriptions.data || []).map(mapSubscription),
+    subscriptions: hydratedSubscriptions.map(mapSubscription),
   };
 }
 
@@ -238,7 +358,23 @@ async function ensurePortalConfiguration(stripeSecret, origin) {
     (configuration) =>
       configuration.active && configuration.metadata?.munetios === "true",
   );
-  if (existingConfiguration?.id) return existingConfiguration.id;
+  if (existingConfiguration?.id) {
+    if (existingConfiguration.features?.invoice_history?.enabled) {
+      const updatePayload = new URLSearchParams({
+        "features[invoice_history][enabled]": "false",
+      });
+      await stripeRequest(
+        stripeSecret,
+        `/billing_portal/configurations/${encodeURIComponent(existingConfiguration.id)}`,
+        {
+          body: updatePayload,
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          method: "POST",
+        },
+      );
+    }
+    return existingConfiguration.id;
+  }
 
   const configurationPayload = new URLSearchParams({
     "business_profile[headline]": "Manage your Munetios billing",
@@ -250,7 +386,7 @@ async function ensurePortalConfiguration(stripeSecret, origin) {
     "features[customer_update][allowed_updates][2]": "phone",
     "features[customer_update][allowed_updates][3]": "tax_id",
     "features[customer_update][enabled]": "true",
-    "features[invoice_history][enabled]": "true",
+    "features[invoice_history][enabled]": "false",
     "features[payment_method_update][enabled]": "true",
     "features[subscription_cancel][cancellation_reason][enabled]": "true",
     "features[subscription_cancel][cancellation_reason][options][0]":
@@ -325,10 +461,14 @@ export async function GET(request) {
         subscriptions: [],
       });
     }
+    const subscriptionSync = await syncStripeSubscriptionForAccount(
+      session.user,
+      { customerId, force: true },
+    );
     const details = await loadBillingDetails(stripeSecret, customerId);
     return response({
       ...details,
-      plan: session.user.plan || "Free",
+      plan: subscriptionSync.plan || session.user.plan || "Free",
       portalAvailable: true,
     });
   } catch {
@@ -369,6 +509,7 @@ export async function POST(request) {
     "payment_method_update",
     "setup_payment_method",
     "detach_payment_method",
+    "change_subscription",
     "cancel_subscription",
     "resume_subscription",
   ].includes(payload.action)
@@ -463,6 +604,67 @@ export async function POST(request) {
           method: "POST",
         },
       );
+      return response({
+        subscription: mapSubscription(updatedSubscription),
+        updated: true,
+      });
+    }
+
+    if (action === "change_subscription") {
+      const subscriptionId = String(payload.subscriptionId || "");
+      const planId = String(payload.planId || "");
+      if (
+        !stripeSubscriptionPattern.test(subscriptionId) ||
+        !changeablePlanIds.has(planId)
+      ) {
+        return response({ error: "invalid_subscription_change" }, { status: 400 });
+      }
+      const subscription = await stripeRequest(
+        stripeSecret,
+        `/subscriptions/${encodeURIComponent(subscriptionId)}`,
+      );
+      if (subscription.customer !== customerId) {
+        return response({ error: "subscription_forbidden" }, { status: 403 });
+      }
+      if (!["active", "trialing", "past_due"].includes(subscription.status)) {
+        return response(
+          { error: "subscription_not_manageable" },
+          { status: 409 },
+        );
+      }
+      const item = subscription.items?.data?.[0];
+      if (!item?.id) {
+        return response({ error: "subscription_item_missing" }, { status: 409 });
+      }
+      const currency =
+        item.price?.currency || subscription.currency || "usd";
+      const priceId = await getOrCreatePlanPrice(
+        stripeSecret,
+        planId,
+        currency,
+      );
+      const updatePayload = new URLSearchParams({
+        "items[0][id]": item.id,
+        "items[0][price]": priceId,
+        "metadata[munetios_account_id]": session.user.id,
+        "metadata[munetios_plan_id]": planId,
+        payment_behavior: "pending_if_incomplete",
+        proration_behavior: "create_prorations",
+      });
+      const updatedSubscription = await stripeRequest(
+        stripeSecret,
+        `/subscriptions/${encodeURIComponent(subscriptionId)}`,
+        {
+          body: updatePayload,
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          method: "POST",
+        },
+      );
+      updateAccountPlan(session.user.id, planId);
+      await syncStripeSubscriptionForAccount(session.user, {
+        customerId,
+        force: true,
+      });
       return response({
         subscription: mapSubscription(updatedSubscription),
         updated: true,

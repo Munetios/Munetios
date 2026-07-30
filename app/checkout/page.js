@@ -20,7 +20,7 @@ export default async function CheckoutPage({ searchParams }) {
   const session = await auth({ cookies: cookieStore });
 
   if (!session || session.demo) {
-    const checkoutPath = `/checkout?plan=${encodeURIComponent(requestedPlan || "free")}&currency=${encodeURIComponent(requestedCurrency || "USD")}`;
+    const checkoutPath = `/checkout?plan=${encodeURIComponent(requestedPlan || "free")}${requestedCurrency ? `&currency=${encodeURIComponent(requestedCurrency)}` : ""}`;
     redirect(`/signin?returnTo=${encodeURIComponent(checkoutPath)}`);
   }
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import { getCurrentLocale, t } from "../i18n";
 import AccountAvatar from "./accountAvatar";
 import { openAccountSettingsModal } from "./accountSettingsModal";
@@ -9,13 +8,52 @@ import { confirmBrowserSignOut, openAccountSwitcher } from "./accountSwitcher";
 import LanguageSelector from "./languageSelector";
 import { showModal } from "./modal";
 import UpgradePlans from "./upgradePlans";
+import WorkspaceOptionsWrapper from "./workspaceOptionsWrapper";
 
 const accountFetchUrl = "/api/account";
 const accountManagerUrl = "/api/accountmanager";
 const storageUrl = "/api/storage";
 const workspacesUrl = "/api/workspaces";
+const activeLockedWorkspaceKey = "munetiosActiveLockedWorkspace";
+const unlockedWorkspacesKey = "munetiosUnlockedWorkspaces";
 const retryIntervalMs = 1000;
 const retryTimeoutMs = 10000;
+
+function getUnlockedWorkspaceIds() {
+  try {
+    const ids = JSON.parse(
+      window.sessionStorage.getItem(unlockedWorkspacesKey) || "[]",
+    );
+    return new Set(Array.isArray(ids) ? ids.map(String) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function markWorkspaceUnlocked(workspaceId) {
+  const unlocked = getUnlockedWorkspaceIds();
+  unlocked.add(String(workspaceId));
+  window.sessionStorage.setItem(
+    unlockedWorkspacesKey,
+    JSON.stringify([...unlocked]),
+  );
+}
+
+function forgetWorkspaceUnlock(workspaceId) {
+  const unlocked = getUnlockedWorkspaceIds();
+  unlocked.delete(String(workspaceId));
+  window.sessionStorage.setItem(
+    unlockedWorkspacesKey,
+    JSON.stringify([...unlocked]),
+  );
+}
+
+function canAccessWorkspace(workspace, index) {
+  return (
+    !workspace?.locked ||
+    getUnlockedWorkspaceIds().has(String(getWorkspaceId(workspace, index)))
+  );
+}
 
 function showToastMessage(messageKey, type = "error") {
   const payload = { messageKey, type };
@@ -197,6 +235,26 @@ function storagePercent(value) {
   return maximum ? Math.min(100, Math.round((toGb(used) / maximum) * 100)) : 0;
 }
 
+function storageBarColor(percent) {
+  const value = Math.max(0, Math.min(100, Number(percent) || 0));
+  const stops = [
+    { color: [167, 139, 250], percent: 0 },
+    { color: [96, 165, 250], percent: 55 },
+    { color: [252, 211, 77], percent: 82 },
+    { color: [251, 113, 133], percent: 100 },
+  ];
+  const upperIndex = stops.findIndex((stop) => value <= stop.percent);
+  const upper = stops[upperIndex < 0 ? stops.length - 1 : upperIndex];
+  const lower =
+    stops[Math.max(0, (upperIndex < 0 ? stops.length : upperIndex) - 1)];
+  const range = Math.max(1, upper.percent - lower.percent);
+  const progress = (value - lower.percent) / range;
+  const color = lower.color.map((channel, index) =>
+    Math.round(channel + (upper.color[index] - channel) * progress),
+  );
+  return `rgb(${color.join(" ")})`;
+}
+
 function getSavedLanguage() {
   if (typeof window === "undefined") {
     return "en";
@@ -207,13 +265,6 @@ function getSavedLanguage() {
 
 function resolveLanguage(language) {
   return getCurrentLocale(language);
-}
-
-function clearDemoState() {
-  // biome-ignore lint/suspicious/noDocumentCookie: Clearing the temporary demo cookie must support every target browser.
-  document.cookie = "munetios_demo=; Path=/; Max-Age=0; SameSite=Lax";
-  window.localStorage.removeItem("munetiosDemoActive");
-  window.sessionStorage.removeItem("munetiosDemoActive");
 }
 
 function LoadingSpinner({ label }) {
@@ -348,8 +399,7 @@ function _AccountManagerModal() {
   );
 }
 
-function AddWorkspaceForm({ close, onCreated }) {
-  const copy = t("en");
+function AddWorkspaceForm({ close, copy, onCreated }) {
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -411,144 +461,6 @@ function AddWorkspaceForm({ close, onCreated }) {
   );
 }
 
-function _DemoSettings({ close, copy, onSaved }) {
-  const [settings, setSettings] = useState({
-    archived: false,
-    eligibleFamilies: true,
-    eligibleTrustedPeople: true,
-    plan: "business-pro",
-    storagePreset: "business-pro",
-  });
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    fetchJson("/api/demo/settings")
-      .then(setSettings)
-      .catch(() => {});
-  }, []);
-  const save = async () => {
-    setSaving(true);
-    try {
-      await fetchJson("/api/demo/settings", {
-        method: "PATCH",
-        body: JSON.stringify(settings),
-      });
-      onSaved();
-      close();
-    } catch {
-      showToastMessage("fetchError");
-    } finally {
-      setSaving(false);
-    }
-  };
-  const options = [
-    ["personal", copy.demoPlanPersonal],
-    ["business-free", copy.demoPlanBusinessFree],
-    ["business-standard", copy.demoPlanBusinessStandard],
-    ["business-pro", copy.demoPlanBusinessPro],
-  ];
-  const visibleOptions = settings.parentSupervision
-    ? options.filter(([value]) => value === "personal")
-    : options;
-  return (
-    <div className="space-y-5 text-sm text-white/80">
-      <p>{copy.demoSettingsDescription}</p>
-      <fieldset className="space-y-2">
-        <legend className="font-semibold">{copy.demoPlan}</legend>
-        <div className="flex flex-wrap gap-2">
-          {visibleOptions.map(([value, label]) => (
-            <button
-              className={`rounded-xl border px-3 py-2 ${settings.plan === value ? "border-purple-200/50 bg-purple-500/60! text-white" : "border-white/10 bg-white/5!"}`}
-              key={value}
-              onClick={() =>
-                setSettings((current) => ({ ...current, plan: value }))
-              }
-              type="button"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-      <fieldset className="space-y-2">
-        <legend className="font-semibold">{copy.demoStoragePreset}</legend>
-        <div className="flex flex-wrap gap-2">
-          {[
-            ["personal", "48GB"],
-            ["business-free", "100GB"],
-            ["business-standard", "400GB"],
-            ["business-pro", "10TB"],
-            ["full", "10TB (full)"],
-          ].map(([value, label]) => (
-            <button
-              className={`rounded-xl border px-3 py-2 ${settings.storagePreset === value ? "border-purple-200/50 bg-purple-500/60! text-white" : "border-white/10 bg-white/5!"}`}
-              key={value}
-              onClick={() =>
-                setSettings((current) => ({ ...current, storagePreset: value }))
-              }
-              type="button"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-      {[
-        ["eligibleTrustedPeople", copy.demoTrustedPeopleEligible],
-        ["eligibleFamilies", copy.demoFamiliesEligible],
-        ["parentSupervision", copy.demoParentSupervision],
-        ["archived", copy.demoArchivedUser],
-      ].map(([key, label]) => (
-        <label
-          className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5! px-3 py-2"
-          key={key}
-        >
-          <span>{label}</span>
-          <button
-            aria-pressed={settings[key]}
-            className={`h-7 w-12 rounded-full p-1 transition ${settings[key] ? "bg-purple-500!" : "bg-white/15!"}`}
-            onClick={() =>
-              setSettings((current) => {
-                const parentSupervision =
-                  key === "parentSupervision"
-                    ? !current.parentSupervision
-                    : current.parentSupervision;
-                return {
-                  ...current,
-                  [key]: !current[key],
-                  ...(parentSupervision ? { plan: "personal" } : {}),
-                };
-              })
-            }
-            type="button"
-          >
-            <span
-              className={`block h-5 w-5 rounded-full bg-white transition ${settings[key] ? "translate-x-5" : ""}`}
-            />
-          </button>
-        </label>
-      ))}
-      <div className="flex justify-end gap-2">
-        <button
-          className="rounded-xl border border-white/10 bg-white/5! px-3 py-2"
-          onClick={close}
-          type="button"
-        >
-          {copy.cancel}
-        </button>
-        <button
-          className="rounded-xl bg-purple-500! px-3 py-2 font-bold text-white disabled:opacity-60"
-          disabled={saving}
-          onClick={save}
-          type="button"
-        >
-          {copy.demoSaveSettings}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export default function AccountWrapper({
   appContext = false,
   legalLinksInNewTab = false,
@@ -561,10 +473,10 @@ export default function AccountWrapper({
   const [account, setAccount] = useState(null);
   const [accountFailed, setAccountFailed] = useState(false);
   const [storageDisplay, setStorageDisplay] = useState(copy.storageFallback);
+  const [storageUsagePercent, setStorageUsagePercent] = useState(0);
   const [workspaces, setWorkspaces] = useState([]);
   const [workspacesFailed, setWorkspacesFailed] = useState(false);
   const [workspacesLoading, setWorkspacesLoading] = useState(true);
-  const [demoSigningOut, setDemoSigningOut] = useState(false);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState(null);
 
   useEffect(() => {
@@ -582,38 +494,52 @@ export default function AccountWrapper({
     try {
       const payload = await fetchJson(workspacesUrl);
       const nextWorkspaces = normalizeWorkspaces(payload);
-      const savedWorkspaceId = window.localStorage.getItem(
-        "munetiosActiveWorkspace",
-      );
+      const savedWorkspaceId =
+        window.sessionStorage.getItem(activeLockedWorkspaceKey) ||
+        window.localStorage.getItem("munetiosActiveWorkspace");
       setWorkspaces(nextWorkspaces);
       setActiveWorkspaceId((current) => {
+        const accessibleWorkspaceIndex = nextWorkspaces.findIndex(
+          (workspace, index) => canAccessWorkspace(workspace, index),
+        );
         const savedStillExists = nextWorkspaces.some(
           (workspace, index) =>
             String(getWorkspaceId(workspace, index)) ===
-            String(savedWorkspaceId),
+              String(savedWorkspaceId) && canAccessWorkspace(workspace, index),
         );
         const currentStillExists = nextWorkspaces.some(
           (workspace, index) =>
-            String(getWorkspaceId(workspace, index)) === String(current),
+            String(getWorkspaceId(workspace, index)) === String(current) &&
+            canAccessWorkspace(workspace, index),
         );
         const nextActiveId = savedStillExists
           ? savedWorkspaceId
           : currentStillExists
             ? current
-            : nextWorkspaces[0]
-              ? getWorkspaceId(nextWorkspaces[0], 0)
+            : accessibleWorkspaceIndex >= 0
+              ? getWorkspaceId(
+                  nextWorkspaces[accessibleWorkspaceIndex],
+                  accessibleWorkspaceIndex,
+                )
               : null;
         if (nextActiveId !== null) {
-          window.localStorage.setItem(
-            "munetiosActiveWorkspace",
-            String(nextActiveId),
+          const nextIndex = nextWorkspaces.findIndex(
+            (workspace, index) =>
+              String(getWorkspaceId(workspace, index)) === String(nextActiveId),
           );
-          if (String(nextActiveId) !== String(current)) {
-            const nextIndex = nextWorkspaces.findIndex(
-              (workspace, index) =>
-                String(getWorkspaceId(workspace, index)) ===
-                String(nextActiveId),
+          if (nextWorkspaces[nextIndex]?.locked) {
+            window.sessionStorage.setItem(
+              activeLockedWorkspaceKey,
+              String(nextActiveId),
             );
+          } else {
+            window.sessionStorage.removeItem(activeLockedWorkspaceKey);
+            window.localStorage.setItem(
+              "munetiosActiveWorkspace",
+              String(nextActiveId),
+            );
+          }
+          if (String(nextActiveId) !== String(current)) {
             window.dispatchEvent(
               new CustomEvent("munetios:workspacechange", {
                 detail: {
@@ -630,6 +556,9 @@ export default function AccountWrapper({
               }),
             );
           }
+        } else {
+          window.sessionStorage.removeItem(activeLockedWorkspaceKey);
+          window.localStorage.removeItem("munetiosActiveWorkspace");
         }
         return nextActiveId;
       });
@@ -643,9 +572,20 @@ export default function AccountWrapper({
   const loadStorage = useCallback(async () => {
     try {
       const payload = await fetchJson(storageUrl);
-      setStorageDisplay(normalizeStorage(payload, copy.storageFallback));
+      const display = normalizeStorage(payload, copy.storageFallback);
+      const usedBytes = Number(payload?.usedBytes);
+      const totalBytes = Number(payload?.totalBytes);
+      setStorageDisplay(display);
+      setStorageUsagePercent(
+        Number.isFinite(usedBytes) &&
+          Number.isFinite(totalBytes) &&
+          totalBytes > 0
+          ? Math.max(0, Math.min(100, (usedBytes / totalBytes) * 100))
+          : storagePercent(display),
+      );
     } catch {
       setStorageDisplay(copy.storageFallback);
+      setStorageUsagePercent(0);
     }
   }, [copy.storageFallback]);
 
@@ -742,6 +682,7 @@ export default function AccountWrapper({
       void loadStorage();
     };
     window.addEventListener("munetios:authchange", refreshForAccountChange);
+    window.addEventListener("munetios:accountstoragechange", loadStorage);
 
     return () => {
       isMounted = false;
@@ -749,6 +690,7 @@ export default function AccountWrapper({
         "munetios:authchange",
         refreshForAccountChange,
       );
+      window.removeEventListener("munetios:accountstoragechange", loadStorage);
       if (intervalId) window.clearInterval(intervalId);
       if (timeoutId) window.clearTimeout(timeoutId);
     };
@@ -770,7 +712,12 @@ export default function AccountWrapper({
   const activateWorkspace = (workspace, index) => {
     const id = getWorkspaceId(workspace, index);
     setActiveWorkspaceId(id);
-    window.localStorage.setItem("munetiosActiveWorkspace", String(id));
+    if (workspace.locked) {
+      window.sessionStorage.setItem(activeLockedWorkspaceKey, String(id));
+    } else {
+      window.sessionStorage.removeItem(activeLockedWorkspaceKey);
+      window.localStorage.setItem("munetiosActiveWorkspace", String(id));
+    }
     window.dispatchEvent(
       new CustomEvent("munetios:workspacechange", {
         detail: {
@@ -782,7 +729,7 @@ export default function AccountWrapper({
   };
 
   const selectWorkspace = (workspace, index) => {
-    if (!workspace.locked) {
+    if (canAccessWorkspace(workspace, index)) {
       activateWorkspace(workspace, index);
       return;
     }
@@ -791,7 +738,10 @@ export default function AccountWrapper({
         <VerifyWorkspaceForm
           close={close}
           copy={copy}
-          onVerified={() => activateWorkspace(workspace, index)}
+          onVerified={() => {
+            markWorkspaceUnlocked(getWorkspaceId(workspace, index));
+            activateWorkspace(workspace, index);
+          }}
         />
       ),
       {
@@ -807,6 +757,7 @@ export default function AccountWrapper({
       ({ close }) => (
         <AddWorkspaceForm
           close={close}
+          copy={copy}
           onCreated={(workspace) => {
             const normalized = normalizeWorkspaces(workspace);
             setWorkspaces((currentWorkspaces) => [
@@ -824,36 +775,111 @@ export default function AccountWrapper({
     );
   };
 
+  const saveWorkspaceLocally = (savedWorkspace) => {
+    if (savedWorkspace.locked) {
+      markWorkspaceUnlocked(savedWorkspace.id);
+    } else {
+      forgetWorkspaceUnlock(savedWorkspace.id);
+    }
+    setWorkspaces((currentWorkspaces) =>
+      currentWorkspaces.map((workspace) =>
+        String(workspace.id) === String(savedWorkspace.id)
+          ? savedWorkspace
+          : workspace,
+      ),
+    );
+
+    if (String(activeWorkspaceId) === String(savedWorkspace.id)) {
+      window.dispatchEvent(
+        new CustomEvent("munetios:workspacechange", {
+          detail: {
+            id: savedWorkspace.id,
+            name:
+              savedWorkspace.name ||
+              savedWorkspace.title ||
+              copy.workspaceFallback,
+          },
+        }),
+      );
+    }
+  };
+
+  const deleteWorkspaceLocally = (workspaceId) => {
+    forgetWorkspaceUnlock(workspaceId);
+    if (
+      window.sessionStorage.getItem(activeLockedWorkspaceKey) ===
+      String(workspaceId)
+    ) {
+      window.sessionStorage.removeItem(activeLockedWorkspaceKey);
+    }
+    setWorkspaces((currentWorkspaces) => {
+      const nextWorkspaces = currentWorkspaces.filter(
+        (workspace) => String(workspace.id) !== String(workspaceId),
+      );
+
+      if (String(activeWorkspaceId) === String(workspaceId)) {
+        const nextWorkspace =
+          nextWorkspaces.find(
+            (workspace, index) =>
+              workspace.primary && canAccessWorkspace(workspace, index),
+          ) ||
+          nextWorkspaces.find((workspace, index) =>
+            canAccessWorkspace(workspace, index),
+          );
+        const nextWorkspaceId = nextWorkspace?.id || null;
+
+        setActiveWorkspaceId(nextWorkspaceId);
+        if (nextWorkspaceId) {
+          if (nextWorkspace.locked) {
+            window.sessionStorage.setItem(
+              activeLockedWorkspaceKey,
+              String(nextWorkspaceId),
+            );
+          } else {
+            window.localStorage.setItem(
+              "munetiosActiveWorkspace",
+              String(nextWorkspaceId),
+            );
+          }
+          window.dispatchEvent(
+            new CustomEvent("munetios:workspacechange", {
+              detail: {
+                id: nextWorkspaceId,
+                name:
+                  nextWorkspace.name ||
+                  nextWorkspace.title ||
+                  copy.workspaceFallback,
+              },
+            }),
+          );
+        } else {
+          window.sessionStorage.removeItem(activeLockedWorkspaceKey);
+          window.localStorage.removeItem("munetiosActiveWorkspace");
+        }
+      }
+
+      return nextWorkspaces;
+    });
+  };
+
   const openAccountManager = () => {
     if (appContext || window.location.pathname.startsWith("/apps/")) {
-      openAccountSettingsModal({ demo: Boolean(account?.demo) });
+      openAccountSettingsModal();
       return;
     }
 
-    window.location.assign(
-      account?.demo ? "/account/settings?demo=true" : "/account/settings",
-    );
+    window.location.assign("/account/settings");
   };
 
   const openUpgrade = () => {
-    showModal(
-      ({ close }) => (
-        <UpgradePlans
-          archived={Boolean(account?.archived)}
-          close={close}
-          copy={copy}
-          demo={Boolean(account?.demo)}
-        />
-      ),
-      {
-        ariaLabel: copy.demoUpgradeTitle,
-        fullViewport: true,
-        height: "100vh",
-        style: { maxHeight: "100vh", maxWidth: "100%" },
-        title: copy.demoUpgradeTitle,
-        width: "100%",
-      },
-    );
+    showModal(({ close }) => <UpgradePlans close={close} copy={copy} />, {
+      ariaLabel: copy.demoUpgradeTitle,
+      fullViewport: true,
+      height: "100vh",
+      style: { maxHeight: "100vh", maxWidth: "100%" },
+      title: copy.demoUpgradeTitle,
+      width: "100%",
+    });
   };
 
   const openAddAccount = () => {
@@ -861,31 +887,6 @@ export default function AccountWrapper({
   };
 
   const openSignOutConfirm = () => {
-    if (account?.demo) {
-      setDemoSigningOut(true);
-
-      Promise.allSettled([
-        fetch("/api/demo", {
-          credentials: "include",
-          method: "DELETE",
-        }),
-        new Promise((resolve) => window.setTimeout(resolve, 900)),
-      ]).then(() => {
-        clearDemoState();
-
-        if (window.parent !== window) {
-          window.parent.postMessage(
-            { type: "munetios:demo-exit" },
-            window.location.origin,
-          );
-          return;
-        }
-
-        window.location.assign("/");
-      });
-      return;
-    }
-
     confirmBrowserSignOut({ copy });
   };
 
@@ -900,258 +901,267 @@ export default function AccountWrapper({
   );
   const accountSettingsLabel =
     appContext === "tasks" ? copy.tasksManageAccount : copy.settings;
-  const usedStoragePercent = storagePercent(storageDisplay);
+  const usedStoragePercent = storageUsagePercent;
   const legalLinkProps = legalLinksInNewTab
     ? { rel: "noopener noreferrer", target: "_blank" }
     : {};
 
   return (
-    <>
-      {demoSigningOut
-        ? createPortal(
-            <div className="fixed inset-0 z-[5000] flex items-center justify-center bg-purple-950/90! p-4 text-white">
-              <div className="liquid-glass flex min-w-[min(24rem,calc(100vw-2rem))] flex-col items-center gap-4 rounded-2xl border border-white/10 bg-purple-950/75! p-6 text-center shadow-2xl shadow-purple-950/50">
-                <LoadingSpinner label={copy.demoSigningOut} />
-                <h2 className="text-lg font-bold">{copy.demoSigningOut}</h2>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
-      <div className="flex w-[min(calc(100vw-1rem),24rem)] items-start justify-end">
-        <section
-          aria-label={copy.accountWrapperLabel}
-          className="liquid-glass max-h-[calc(100dvh-5rem)] w-[min(24rem,calc(100vw-1rem))] overflow-y-auto rounded-2xl border border-white/10 bg-purple-950/20! p-3 text-white"
-        >
-          <div className="flex max-h-[calc(100dvh-6rem)] min-h-[28rem] flex-col space-y-4 overflow-y-auto">
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5! p-3">
-              <AccountAvatar
-                account={account}
-                alt={copy.accountProfileAlt}
-                className="h-12 w-12 rounded-2xl"
-              />
-              <div className="min-w-0">
-                <h2 className="truncate text-base font-bold leading-6">
-                  {getAccountName(account, copy.accountNameFallback)}
-                </h2>
-                <p className="truncate text-sm text-white/60">
-                  {getAccountEmail(account, copy.accountEmailFallback)}
-                </p>
-                {account?.demo
-                  ? <span className="mt-1.5 inline-flex rounded-full border border-purple-200/25 bg-purple-500/25! px-2 py-0.5 text-xs font-bold text-purple-50">
-                      {account.plan || copy.demoBusinessPro}
-                    </span>
-                  : null}
-                {!account?.demo
-                  ? <span className="mt-1.5 inline-flex rounded-full border border-purple-200/20 bg-purple-500/20! px-2 py-0.5 text-xs font-bold text-purple-100">
-                      {copy.personalAccountBadge}
-                    </span>
-                  : null}
-                {account?.demoSettings?.parentSupervision
-                  ? <span className="mt-1 block text-xs font-semibold text-amber-100">
-                      {copy.demoManagedByParent}
-                    </span>
-                  : null}
-              </div>
+    <div className="flex w-[min(calc(100vw-1rem),24rem)] items-start justify-end">
+      <section
+        aria-label={copy.accountWrapperLabel}
+        className="liquid-glass max-h-[calc(100dvh-5rem)] w-[min(24rem,calc(100vw-1rem))] overflow-y-auto rounded-2xl border border-white/10 bg-purple-950/20! p-3 text-white"
+      >
+        <div className="flex max-h-[calc(100dvh-6rem)] min-h-[28rem] flex-col space-y-4 overflow-y-auto">
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5! p-3">
+            <AccountAvatar
+              account={account}
+              alt={copy.accountProfileAlt}
+              className="h-12 w-12 rounded-2xl"
+            />
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-bold leading-6">
+                {getAccountName(account, copy.accountNameFallback)}
+              </h2>
+              <p className="truncate text-sm text-white/60">
+                {getAccountEmail(account, copy.accountEmailFallback)}
+              </p>
+              {account?.demo
+                ? <span className="mt-1.5 inline-flex rounded-full border border-purple-200/25 bg-purple-500/25! px-2 py-0.5 text-xs font-bold text-purple-50">
+                    {account.plan || copy.demoBusinessPro}
+                  </span>
+                : null}
+              {!account?.demo
+                ? <span className="mt-1.5 inline-flex rounded-full border border-purple-200/20 bg-purple-500/20! px-2 py-0.5 text-xs font-bold text-purple-100">
+                    {account?.accountType === "business"
+                      ? account.plan
+                      : copy.personalAccountBadge}
+                  </span>
+                : null}
+              {account?.demoSettings?.parentSupervision
+                ? <span className="mt-1 block text-xs font-semibold text-amber-100">
+                    {copy.demoManagedByParent}
+                  </span>
+                : null}
+              {account?.organization && !account.organization.administrator
+                ? <span className="mt-1 block text-xs font-semibold text-purple-100">
+                    {copy.organizationManagedBy.replace(
+                      "{business}",
+                      account.organization.businessName,
+                    )}
+                  </span>
+                : null}
             </div>
+          </div>
 
-            {!account?.archived
-              ? <section
-                  aria-labelledby="workspacesHeading"
-                  className="space-y-3"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <h3
-                      className="text-sm font-bold leading-6"
-                      id="workspacesHeading"
-                    >
-                      {copy.workspaces}
-                    </h3>
-                    <button
-                      className="inline-flex h-9 items-center gap-2 rounded-xl border border-purple-200/25 bg-purple-500/80! px-3 text-sm font-semibold text-white transition hover:border-purple-100/40 hover:bg-purple-400/90!"
-                      onClick={openAddWorkspace}
-                      type="button"
-                    >
-                      <icon>add</icon>
-                      {copy.addWorkspace}
-                    </button>
-                  </div>
+          {!account?.archived
+            ? <section
+                aria-labelledby="workspacesHeading"
+                className="space-y-3"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <h3
+                    className="text-sm font-bold leading-6"
+                    id="workspacesHeading"
+                  >
+                    {copy.workspaces}
+                  </h3>
+                  <button
+                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-purple-200/25 bg-purple-500/80! px-3 text-sm font-semibold text-white transition hover:border-purple-100/40 hover:bg-purple-400/90!"
+                    onClick={openAddWorkspace}
+                    type="button"
+                  >
+                    <icon>add</icon>
+                    {copy.addWorkspace}
+                  </button>
+                </div>
 
-                  {workspacesLoading
-                    ? <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5! p-3 text-sm text-white/70">
-                        <LoadingSpinner label={copy.loadingWorkspaces} />
-                        {copy.loadingWorkspaces}
-                      </div>
-                    : null}
+                {workspacesLoading
+                  ? <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5! p-3 text-sm text-white/70">
+                      <LoadingSpinner label={copy.loadingWorkspaces} />
+                      {copy.loadingWorkspaces}
+                    </div>
+                  : null}
 
-                  {!workspacesLoading && (accountFailed || workspacesFailed)
-                    ? <p className="rounded-xl border border-rose-300/20 bg-rose-950/30! p-3 text-sm text-rose-100">
-                        {copy.failedLoadWorkspaces}
-                      </p>
-                    : null}
+                {!workspacesLoading && (accountFailed || workspacesFailed)
+                  ? <p className="rounded-xl border border-rose-300/20 bg-rose-950/30! p-3 text-sm text-rose-100">
+                      {copy.failedLoadWorkspaces}
+                    </p>
+                  : null}
 
-                  {!workspacesLoading &&
-                  !accountFailed &&
-                  !workspacesFailed &&
-                  workspaces.length === 0
-                    ? <p className="rounded-xl border border-white/10 bg-white/5! p-3 text-sm text-white/70">
-                        {copy.noWorkspaces}
-                      </p>
-                    : null}
+                {!workspacesLoading &&
+                !accountFailed &&
+                !workspacesFailed &&
+                workspaces.length === 0
+                  ? <p className="rounded-xl border border-white/10 bg-white/5! p-3 text-sm text-white/70">
+                      {copy.noWorkspaces}
+                    </p>
+                  : null}
 
-                  {!workspacesLoading &&
-                  !accountFailed &&
-                  !workspacesFailed &&
-                  workspaces.length > 0
-                    ? <ul className="space-y-2">
-                        {workspaces.map((workspace, index) => (
-                          <li key={getWorkspaceId(workspace, index)}>
-                            <button
-                              aria-pressed={
-                                activeWorkspaceId ===
-                                getWorkspaceId(workspace, index)
-                              }
-                              className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition ${activeWorkspaceId === getWorkspaceId(workspace, index) ? "border-purple-200/45 bg-purple-500/30!" : "border-white/10 bg-white/5! hover:border-white/20 hover:bg-white/10!"}`}
-                              onClick={() => selectWorkspace(workspace, index)}
-                              type="button"
-                            >
-                              <span className="min-w-0 truncate text-sm font-medium text-white">
+                {!workspacesLoading &&
+                !accountFailed &&
+                !workspacesFailed &&
+                workspaces.length > 0
+                  ? <ul className="space-y-2">
+                      {workspaces.map((workspace, index) => (
+                        <li
+                          className="flex items-center gap-2"
+                          key={getWorkspaceId(workspace, index)}
+                        >
+                          <button
+                            aria-pressed={
+                              activeWorkspaceId ===
+                              getWorkspaceId(workspace, index)
+                            }
+                            className={`flex min-w-0 flex-1 items-center justify-between rounded-xl border px-3 py-2 text-left transition ${activeWorkspaceId === getWorkspaceId(workspace, index) ? "border-purple-200/45 bg-purple-500/30!" : "border-white/10 bg-white/5! hover:border-white/20 hover:bg-white/10!"}`}
+                            onClick={() => selectWorkspace(workspace, index)}
+                            type="button"
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-medium text-white">
                                 {getWorkspaceName(
                                   workspace,
                                   index,
                                   copy.workspaceFallback,
                                 )}
                               </span>
-                              <icon>
-                                {workspace.locked
-                                  ? "lock"
-                                  : activeWorkspaceId ===
-                                      getWorkspaceId(workspace, index)
-                                    ? "check"
-                                    : "chevron_right"}
-                              </icon>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    : null}
-                </section>
-              : null}
+                              {workspace.primary
+                                ? <span className="block text-[0.68rem] font-semibold text-purple-100/60">
+                                    {copy.workspaceMain}
+                                  </span>
+                                : null}
+                            </span>
+                            <icon>
+                              {workspace.locked
+                                ? "lock"
+                                : activeWorkspaceId ===
+                                    getWorkspaceId(workspace, index)
+                                  ? "check"
+                                  : "chevron_right"}
+                            </icon>
+                          </button>
+                          <WorkspaceOptionsWrapper
+                            copy={copy}
+                            demo={Boolean(account?.demo)}
+                            onDeleted={deleteWorkspaceLocally}
+                            onSaved={saveWorkspaceLocally}
+                            workspace={workspace}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  : null}
+              </section>
+            : null}
 
-            {!account?.archived
-              ? <section aria-labelledby="storageHeading" className="space-y-3">
-                  <h3
-                    className="text-sm font-bold leading-6"
-                    id="storageHeading"
-                  >
-                    {copy.storage}
-                  </h3>
-                  <div className="rounded-xl border border-white/10 bg-white/5! p-3">
-                    <div className="flex items-center justify-between gap-3 text-sm">
-                      <span className="text-white/60">{copy.storageUsed}</span>
-                      <span className="font-semibold text-white">
-                        {storageDisplay}
-                      </span>
-                    </div>
-                    <div
-                      aria-label={`${usedStoragePercent}%`}
-                      aria-valuemax={100}
-                      aria-valuemin={0}
-                      aria-valuenow={usedStoragePercent}
-                      className="mt-3 h-2 overflow-hidden rounded-full bg-white/10"
-                      role="progressbar"
-                    >
-                      <span
-                        className={`block h-full rounded-full transition-all ${usedStoragePercent >= 100 ? "bg-rose-400!" : usedStoragePercent >= 90 ? "bg-amber-300!" : "bg-purple-400!"}`}
-                        style={{ width: `${usedStoragePercent}%` }}
-                      />
-                    </div>
-                    {usedStoragePercent >= 100
-                      ? <p className="mt-3 text-xs font-semibold text-rose-200">
-                          {copy.storageFullWarning}
-                        </p>
-                      : usedStoragePercent >= 90
-                        ? <p className="mt-3 text-xs font-semibold text-amber-100">
-                            {copy.storageAlmostFullWarning}
-                          </p>
-                        : null}
+          {!account?.archived
+            ? <section aria-labelledby="storageHeading" className="space-y-3">
+                <h3 className="text-sm font-bold leading-6" id="storageHeading">
+                  {copy.storage}
+                </h3>
+                <div className="rounded-xl border border-white/10 bg-white/5! p-3">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-white/60">{copy.storageUsed}</span>
+                    <span className="font-semibold text-white">
+                      {storageDisplay}
+                    </span>
                   </div>
-                </section>
-              : null}
-
-            <div className="mt-auto space-y-2 pt-2">
-              {languageSelector}
-              {account?.demo &&
-              ["Business Free", "Business Standard"].includes(account.plan)
-                ? <button
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-purple-200/25 bg-purple-500/80! px-3 py-2 text-sm font-semibold text-white"
-                    onClick={openUpgrade}
-                    type="button"
+                  <div
+                    aria-label={`${usedStoragePercent}%`}
+                    aria-valuemax={100}
+                    aria-valuemin={0}
+                    aria-valuenow={usedStoragePercent}
+                    className="mt-3 h-2 overflow-hidden rounded-full bg-white/10"
+                    role="progressbar"
                   >
-                    <icon>upgrade</icon>
-                    {copy.demoUpgradeButton}
-                  </button>
-                : null}
-              <button
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-purple-200/25 bg-purple-500/80! px-3 py-2 text-sm font-semibold text-white transition hover:border-purple-100/40 hover:bg-purple-400/90!"
-                onClick={openAccountManager}
-                type="button"
-              >
-                <icon>settings</icon>
-                {accountSettingsLabel}
-              </button>
-              <button
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10! px-3 py-2 text-sm font-semibold text-white transition hover:border-purple-200/30 hover:bg-purple-500/20!"
-                onClick={() => openAccountSwitcher({ copy })}
-                type="button"
-              >
-                <icon>switch_account</icon>
-                {copy.switchAccount}
-              </button>
-              <button
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10! px-3 py-2 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/15!"
-                onClick={openAddAccount}
-                type="button"
-              >
-                <icon>person_add</icon>
-                {copy.addAccount}
-              </button>
-              <button
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200/20 bg-rose-500/20! px-3 py-2 text-sm font-semibold text-rose-100 transition hover:border-rose-100/35 hover:bg-rose-500/30!"
-                onClick={openSignOutConfirm}
-                type="button"
-              >
-                <icon>logout</icon>
-                {copy.signOut}
-              </button>
-              <nav
-                aria-label={`${copy.footerTerms} ${copy.authAnd} ${copy.footerPrivacy}`}
-                className="flex items-center justify-center gap-2 pt-1 text-[0.68rem]"
-                style={{
-                  color:
-                    "color-mix(in srgb, var(--foreground) 52%, transparent)",
-                }}
-              >
-                <a
-                  className="hover:underline"
-                  href="/terms"
-                  {...legalLinkProps}
+                    <span
+                      className="block h-full rounded-full transition-[width,background-color] duration-500"
+                      style={{
+                        backgroundColor: storageBarColor(usedStoragePercent),
+                        width: `${usedStoragePercent}%`,
+                      }}
+                    />
+                  </div>
+                  {usedStoragePercent >= 100
+                    ? <p className="mt-3 text-xs font-semibold text-rose-200">
+                        {copy.storageFullWarning}
+                      </p>
+                    : usedStoragePercent >= 90
+                      ? <p className="mt-3 text-xs font-semibold text-amber-100">
+                          {copy.storageAlmostFullWarning}
+                        </p>
+                      : null}
+                </div>
+              </section>
+            : null}
+
+          <div className="mt-auto space-y-2 pt-2">
+            {languageSelector}
+            {account?.demo &&
+            ["Business Free", "Business Standard"].includes(account.plan)
+              ? <button
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-purple-200/25 bg-purple-500/80! px-3 py-2 text-sm font-semibold text-white"
+                  onClick={openUpgrade}
+                  type="button"
                 >
-                  {copy.footerTerms}
-                </a>
-                <span aria-hidden="true">&bull;</span>
-                <a
-                  className="hover:underline"
-                  href="/privacy"
-                  {...legalLinkProps}
-                >
-                  {copy.footerPrivacy}
-                </a>
-              </nav>
-            </div>
+                  <icon>upgrade</icon>
+                  {copy.demoUpgradeButton}
+                </button>
+              : null}
+            <button
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-purple-200/25 bg-purple-500/80! px-3 py-2 text-sm font-semibold text-white transition hover:border-purple-100/40 hover:bg-purple-400/90!"
+              onClick={openAccountManager}
+              type="button"
+            >
+              <icon>settings</icon>
+              {accountSettingsLabel}
+            </button>
+            <button
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10! px-3 py-2 text-sm font-semibold text-white transition hover:border-purple-200/30 hover:bg-purple-500/20!"
+              onClick={() => openAccountSwitcher({ copy })}
+              type="button"
+            >
+              <icon>switch_account</icon>
+              {copy.switchAccount}
+            </button>
+            <button
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10! px-3 py-2 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/15!"
+              onClick={openAddAccount}
+              type="button"
+            >
+              <icon>person_add</icon>
+              {copy.addAccount}
+            </button>
+            <button
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200/20 bg-rose-500/20! px-3 py-2 text-sm font-semibold text-rose-100 transition hover:border-rose-100/35 hover:bg-rose-500/30!"
+              onClick={openSignOutConfirm}
+              type="button"
+            >
+              <icon>logout</icon>
+              {copy.signOut}
+            </button>
+            <nav
+              aria-label={`${copy.footerTerms} ${copy.authAnd} ${copy.footerPrivacy}`}
+              className="flex items-center justify-center gap-2 pt-1 text-[0.68rem]"
+              style={{
+                color: "color-mix(in srgb, var(--foreground) 52%, transparent)",
+              }}
+            >
+              <a className="hover:underline" href="/terms" {...legalLinkProps}>
+                {copy.footerTerms}
+              </a>
+              <span aria-hidden="true">&bull;</span>
+              <a
+                className="hover:underline"
+                href="/privacy"
+                {...legalLinkProps}
+              >
+                {copy.footerPrivacy}
+              </a>
+            </nav>
           </div>
-        </section>
-      </div>
-    </>
+        </div>
+      </section>
+    </div>
   );
 }

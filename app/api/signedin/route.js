@@ -1,5 +1,6 @@
 import { auth } from "../../../auth.js";
 import { getAccountData, getAvatarLetter } from "../../lib/authSecurity.js";
+import { getSignedInCookie } from "../../lib/signedInCookie.js";
 
 export const dynamic = "force-dynamic";
 
@@ -17,11 +18,14 @@ export async function GET(request) {
   const session = await auth(request);
 
   if (!session) {
-    return jsonResponse({
-      authenticated: false,
-      signedIn: false,
-      user: null,
-    });
+    return jsonResponse(
+      {
+        authenticated: false,
+        signedIn: false,
+        user: null,
+      },
+      { headers: { "Set-Cookie": getSignedInCookie(request, "", 0) } },
+    );
   }
   const storedProfile = session.demo
     ? globalThis.__munetiosAccountProfileStore?.get(session.user.id) || {}
@@ -37,19 +41,25 @@ export async function GET(request) {
     value: getAvatarLetter(name || session.user.email),
   };
 
-  return jsonResponse({
-    authenticated: true,
-    signedIn: true,
-    user: {
-      accountType: session.demo ? "demo" : "personal",
-      avatar,
-      avatarLetter: getAvatarLetter(name || session.user.email),
-      avatarUrl: profilePictureUrl || session.user.avatarUrl,
-      birthDate: session.user.birthDate || "",
-      email: storedProfile.email || session.user.email,
-      id: session.user.id,
-      name,
-      profilePictureUrl,
+  return jsonResponse(
+    {
+      authenticated: true,
+      signedIn: true,
+      user: {
+        accountType: session.demo ? "demo" : "personal",
+        avatar,
+        avatarLetter: getAvatarLetter(name || session.user.email),
+        avatarUrl: profilePictureUrl || session.user.avatarUrl,
+        birthDate: session.user.birthDate || "",
+        email: storedProfile.email || session.user.email,
+        gender: Object.hasOwn(storedProfile, "gender")
+          ? storedProfile.gender
+          : session.user.gender || "",
+        id: session.user.id,
+        name,
+        profilePictureUrl,
+      },
     },
-  });
+    { headers: { "Set-Cookie": getSignedInCookie(request) } },
+  );
 }

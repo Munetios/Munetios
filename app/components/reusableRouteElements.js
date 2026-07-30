@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { t } from "../i18n";
+import { hasSignedInCookie } from "../lib/signedInCookie";
 import LandingShell from "./landingShell";
 import SelectAnAppPage from "./selectAnAppPage";
 import SignUpForBusiness from "./signUpForBusiness";
@@ -27,8 +28,7 @@ export default function ReusableRouteElements({
   initialPlan = "business-free",
   route = "home",
 }) {
-  const [signedIn, setSignedIn] = useState(false);
-  const [demoMode, setDemoMode] = useState(false);
+  const [signedIn, setSignedIn] = useState(() => hasSignedInCookie());
   const businessPlan = normalizeSignupPlan(initialPlan);
 
   useEffect(() => {
@@ -41,17 +41,17 @@ export default function ReusableRouteElements({
         });
         const payload = await response.json();
         if (active) {
-          setSignedIn(response.ok && payload?.authenticated === true);
+          setSignedIn(
+            hasSignedInCookie() ||
+              (response.ok && payload?.authenticated === true),
+          );
         }
       } catch {
-        if (active) setSignedIn(false);
+        if (active && !hasSignedInCookie()) setSignedIn(false);
       }
     };
 
     void refreshSignedInState();
-    setDemoMode(
-      new URL(window.location.href).searchParams.get("demo") === "true",
-    );
     window.addEventListener("munetios:authchange", refreshSignedInState);
 
     return () => {
@@ -65,12 +65,12 @@ export default function ReusableRouteElements({
       return "business-signup";
     }
 
-    if (demoMode || signedIn) {
+    if (signedIn) {
       return "apps";
     }
 
     return "landing";
-  }, [demoMode, route, signedIn]);
+  }, [route, signedIn]);
 
   return (
     <div data-munetios-reusable-elements="true">

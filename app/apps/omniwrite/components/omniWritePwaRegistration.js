@@ -105,7 +105,7 @@ export default function OmniWritePwaRegistration() {
         await navigator.serviceWorker.ready;
       } catch (error) {
         console.error(
-          "Unable to register the OmniWrite service worker.",
+          "Failed to register the OmniWrite service worker.",
           error,
         );
       }

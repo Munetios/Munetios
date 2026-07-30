@@ -1,7 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { featureTranslations } from "../app/languages/featureTranslations.js";
+import { validateHelpTranslations } from "../app/help/helpI18n.js";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectDirectory = path.resolve(scriptDirectory, "..");
@@ -16,7 +16,13 @@ const localeFileMap = {
   "de-DE": "de_DE.json",
   en: "en_US.json",
   "en-GB": "en_GB.json",
+  "el-GR": "el_GR.json",
+  es: "es.json",
   "es-419": "es_419.json",
+  "es-AR": "es_AR.json",
+  "es-CO": "es_CO.json",
+  "es-DO": "es_DO.json",
+  "es-EQ": "es_EQ.json",
   "es-ES": "es_ES.json",
   "es-MX": "es_MX.json",
   "es-PR": "es_PR.json",
@@ -97,6 +103,15 @@ const protectedBrandTokens = [
 ];
 const sourceExtensions = new Set([".js", ".jsx", ".mjs", ".ts", ".tsx"]);
 const errors = [];
+const genderVariantPattern = /__(?:woman|man|nonBinary|other)$/u;
+
+function getGenderVariantBaseKey(key) {
+  return key.replace(genderVariantPattern, "");
+}
+
+function isGenderVariantKey(key) {
+  return genderVariantPattern.test(key);
+}
 
 function addError(message) {
   errors.push(message);
@@ -353,10 +368,7 @@ const localeCopies = new Map();
 for (const [locale, fileName] of Object.entries(localeFileMap)) {
   const fileCopy = await readLocaleFile(fileName);
   if (fileCopy) {
-    localeCopies.set(locale, {
-      ...fileCopy,
-      ...(featureTranslations[locale] || {}),
-    });
+    localeCopies.set(locale, fileCopy);
   }
 }
 
@@ -366,9 +378,14 @@ const englishKeys = englishCopy ? sorted(Object.keys(englishCopy)) : [];
 for (const [locale, copy] of localeCopies) {
   const localeKeys = sorted(Object.keys(copy));
   const fileName = localeFileMap[locale];
-  const missingKeys = englishKeys.filter((key) => !(key in copy));
+  const missingKeys = englishKeys.filter(
+    (key) => !isGenderVariantKey(key) && !(key in copy),
+  );
   const unexpectedKeys = localeKeys.filter(
-    (key) => !(key in (englishCopy || {})),
+    (key) =>
+      !(key in (englishCopy || {})) &&
+      (!isGenderVariantKey(key) ||
+        !(getGenderVariantBaseKey(key) in (englishCopy || {}))),
   );
 
   if (missingKeys.length > 0) {
@@ -385,7 +402,11 @@ for (const [locale, copy] of localeCopies) {
       addError(`${fileName}:${key}: value must be a non-empty string`);
       continue;
     }
-    const englishValue = englishCopy?.[key];
+    const englishValue =
+      englishCopy?.[key] ??
+      (isGenderVariantKey(key)
+        ? englishCopy?.[getGenderVariantBaseKey(key)]
+        : undefined);
 
     if (/[\u0080-\u009f\ufffd]/u.test(value)) {
       addError(
@@ -440,6 +461,9 @@ for (const [locale, copy] of localeCopies) {
 const sourceFiles = await collectSourceFiles(sourceDirectory);
 const referencedKeys = new Set();
 for (const filePath of sourceFiles) {
+  if (filePath.startsWith(path.join(sourceDirectory, "help") + path.sep)) {
+    continue;
+  }
   const source = await readFile(filePath, "utf8");
   for (const key of collectReferencedKeys(source)) {
     referencedKeys.add(key);
@@ -449,6 +473,14 @@ for (const filePath of sourceFiles) {
 for (const key of sorted(referencedKeys)) {
   if (!(key in (englishCopy || {}))) {
     addError(`source references missing translation key: ${key}`);
+  }
+}
+
+for (const [locale, missingKeys] of Object.entries(
+  validateHelpTranslations(),
+)) {
+  if (missingKeys.length > 0) {
+    addError(`Help Center ${locale}: missing keys: ${missingKeys.join(", ")}`);
   }
 }
 

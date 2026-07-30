@@ -87,12 +87,14 @@ function inferCountryFromLanguage(request) {
 }
 
 export function getRequestLocation(request) {
-  const country =
+  // These trusted deployment headers contain location derived from the
+  // request IP. The raw IP is never exposed by this helper or its API routes.
+  const ipCountry =
     normalizeCountry(request.headers.get("x-vercel-ip-country")) ||
     normalizeCountry(request.headers.get("cf-ipcountry")) ||
     normalizeCountry(request.headers.get("cloudfront-viewer-country")) ||
-    normalizeCountry(request.headers.get("x-country-code")) ||
-    inferCountryFromLanguage(request);
+    normalizeCountry(request.headers.get("x-country-code"));
+  const country = ipCountry || inferCountryFromLanguage(request);
   const region =
     normalizeRegion(request.headers.get("x-vercel-ip-country-region")) ||
     normalizeRegion(request.headers.get("x-region-code")) ||
@@ -104,6 +106,11 @@ export function getRequestLocation(request) {
     countryTimezoneDefaults[country] ||
     "UTC";
 
-  return { country, region, timezone };
+  return {
+    country,
+    countryDetection: ipCountry ? "ip" : "language",
+    region,
+    timezone,
+  };
 }
 

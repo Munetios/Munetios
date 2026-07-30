@@ -7,39 +7,17 @@ import {
   ensureAccountVaultUnlocked,
   getTasksWorkspaceData,
   getUnlockedAccountData,
-  readLocalEncryptedData,
-  saveLocalEncryptedData,
   saveUnlockedAccountData,
   withTasksWorkspaceData,
 } from "../lib/encryptedVault";
 
-const SETTINGS_STORAGE_KEY = "munetios.tasks.settings.v1";
 const defaultSettings = {
   autoArchiveCompleted: false,
   autoArchivePastDue: false,
   suggestCategories: true,
 };
 
-function readJson(key, fallback) {
-  try {
-    const value = JSON.parse(window.localStorage.getItem(key));
-    return value ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function readSettings() {
-  const settings = readJson(SETTINGS_STORAGE_KEY, defaultSettings);
-  return {
-    autoArchiveCompleted: Boolean(settings.autoArchiveCompleted),
-    autoArchivePastDue: Boolean(settings.autoArchivePastDue),
-    suggestCategories: settings.suggestCategories !== false,
-  };
-}
-
 function saveSettings(settings) {
-  window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   window.dispatchEvent(
     new CustomEvent("munetios:taskssettingschange", { detail: settings }),
   );
@@ -54,13 +32,11 @@ function announceTasks(tasks, action) {
 }
 
 async function updateEncryptedTasks(transform, action) {
-  const accountData = getUnlockedAccountData();
-  const data = accountData || (await readLocalEncryptedData());
+  const data = getUnlockedAccountData() || (await ensureAccountVaultUnlocked());
   const scopedData = getTasksWorkspaceData(data);
   const tasks = transform(scopedData.tasks);
   const nextData = withTasksWorkspaceData(data, { ...scopedData, tasks });
-  if (accountData) await saveUnlockedAccountData(nextData);
-  else await saveLocalEncryptedData(nextData);
+  await saveUnlockedAccountData(nextData);
   announceTasks(tasks, action);
 }
 
@@ -134,7 +110,7 @@ function PreferenceSwitch({ checked, label, onChange }) {
 }
 
 function TasksSettings({ copy }) {
-  const [settings, setSettings] = useState(readSettings);
+  const [settings, setSettings] = useState(defaultSettings);
   const [status, setStatus] = useState("");
 
   useEffect(() => {
@@ -161,12 +137,8 @@ function TasksSettings({ copy }) {
         // fall back to local encrypted data when account vault is not available yet
       }
 
-      try {
-        const data = await readLocalEncryptedData();
-        active && setSettings((current) => ({ ...current, ...data.settings }));
-      } catch {
-        // keep default settings if local encrypted data isn't available yet
-      }
+      // Settings are account-backed and remain at their defaults until sign-in
+      // makes the encrypted account vault available.
     };
     void loadSettings();
     return () => {
@@ -176,30 +148,15 @@ function TasksSettings({ copy }) {
 
   const updateSetting = async (key, value) => {
     const nextSettings = { ...settings, [key]: value };
-    setSettings(nextSettings);
-    saveSettings(nextSettings);
 
     try {
-      const accountData = getUnlockedAccountData();
-      if (accountData) {
-        await saveUnlockedAccountData({
-          ...accountData,
-          settings: nextSettings,
-        });
-      } else {
-        try {
-          const syncedAccountData = await ensureAccountVaultUnlocked();
-          await saveUnlockedAccountData({
-            ...syncedAccountData,
-            settings: nextSettings,
-          });
-        } catch {
-          const data = await readLocalEncryptedData();
-          await saveLocalEncryptedData({ ...data, settings: nextSettings });
-        }
-      }
+      const accountData =
+        getUnlockedAccountData() || (await ensureAccountVaultUnlocked());
+      await saveUnlockedAccountData({ ...accountData, settings: nextSettings });
+      setSettings(nextSettings);
+      saveSettings(nextSettings);
     } catch {
-      showToast({ messageKey: "fetchError", type: "error" });
+      showToast({ message: copy.tasksSyncRequiresSignIn, type: "error" });
     }
   };
 

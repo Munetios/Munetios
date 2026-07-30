@@ -13,6 +13,7 @@ import {
   updatePasskeyCounter,
 } from "../../../../../lib/authSecurity.js";
 import { getPasskeyRequestContext } from "../../../../../lib/passkeys.js";
+import { getSignedInCookie } from "../../../../../lib/signedInCookie.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -65,10 +66,11 @@ export async function POST(request) {
       getSessionMetadata(request),
     );
     const headers = new Headers({ "Cache-Control": "no-store" });
-    headers.append("Set-Cookie", getSessionCookie(session.token));
+    headers.append("Set-Cookie", getSessionCookie(request, session.token));
+    headers.append("Set-Cookie", getSignedInCookie(request));
     headers.append(
       "Set-Cookie",
-      getAccountCollectionCookie(session.accountCollectionToken),
+      getAccountCollectionCookie(request, session.accountCollectionToken),
     );
     return Response.json({ authenticated: true }, { headers });
   } catch {

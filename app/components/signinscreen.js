@@ -305,6 +305,7 @@ export default function SignInScreen() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [signingInWithGithub, setSigningInWithGithub] = useState(false);
   const [cookiesEnabled, setCookiesEnabled] = useState(null);
   const [verificationSending, setVerificationSending] = useState(false);
   const [signup, setSignup] = useState({
@@ -342,6 +343,22 @@ export default function SignInScreen() {
     }
     window.location.assign(getSafeReturnTo());
   }, []);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("oauthError") === "github") {
+      showToast({ messageKey: "failedSignIn", type: "error" });
+      url.searchParams.delete("oauthError");
+      window.history.replaceState(
+        {},
+        "",
+        `${url.pathname}${url.search}${url.hash}`,
+      );
+    }
+    if (url.searchParams.get("oauthComplete") === "true") {
+      completeAuthentication();
+    }
+  }, [completeAuthentication]);
 
   const checkAuthenticationCookies = useCallback(
     async ({ notify = true } = {}) => {
@@ -425,13 +442,32 @@ export default function SignInScreen() {
         messageKey:
           {
             account_not_found: "authAccountDoesNotExist",
-            demo_signin_disabled: "authDemoSignInDisabled",
           }[error.message] || "failedSignIn",
         type: "error",
       });
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const signInWithGithub = async () => {
+    if (!(await checkAuthenticationCookies())) return;
+    setSigningInWithGithub(true);
+    const currentUrl = new URL(window.location.href);
+    const query = new URLSearchParams({
+      returnTo: getSafeReturnTo(),
+    });
+    for (const parameter of ["addAccount", "embedded"]) {
+      if (currentUrl.searchParams.get(parameter) === "true") {
+        query.set(parameter, "true");
+      }
+    }
+    await new Promise((resolve) => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(resolve);
+      });
+    });
+    window.location.assign(`/api/auth/github?${query.toString()}`);
   };
 
   const requestVerification = async () => {
@@ -523,6 +559,7 @@ export default function SignInScreen() {
           gender: signup.gender,
           lastName: signup.lastName,
           password: signup.password,
+          referralToken: new URLSearchParams(window.location.search).get("ref"),
           username: signup.username,
           verificationCode: signup.verificationCode,
           verificationId: signup.verificationId,
@@ -718,6 +755,23 @@ export default function SignInScreen() {
                     {copy.authOr}
                     <span className="h-px flex-1 bg-white/10" />
                   </div>
+                  <button
+                    className="liquid-glass flex w-full items-center justify-center gap-3 rounded-xl border border-white/15 bg-[#24292f]/80! px-4 py-3 font-semibold text-white transition hover:bg-[#24292f]/90!"
+                    disabled={signingInWithGithub}
+                    onClick={() => void signInWithGithub()}
+                    type="button"
+                  >
+                    <Image
+                      alt=""
+                      aria-hidden="true"
+                      height={24}
+                      src="/connectors/github.svg"
+                      width={25}
+                    />
+                    {signingInWithGithub
+                      ? copy.signingInWithGitHub
+                      : copy.signInWithGitHub}
+                  </button>
                   <button
                     className="liquid-glass flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/8! px-4 py-3 font-semibold hover:bg-white/14!"
                     onClick={signInWithPasskey}

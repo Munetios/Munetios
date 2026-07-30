@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { t } from "../i18n";
 import DropdownWrapper from "./dropdownwrapper";
 import { showModal } from "./modal";
-import { showToast } from "./toast";
 
 const feedbackEndpoint = "/api/feedback";
 const feedbackTypeOptions = [
@@ -124,7 +123,7 @@ async function captureFeedbackScreenshot() {
     const context = canvas.getContext("2d");
 
     if (!context) {
-      throw new Error("Screen capture could not be prepared");
+      throw new Error("Failed to prepare screen capture");
     }
 
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -150,13 +149,37 @@ export function FeedbackModalContent({
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  useEffect(() => {
+    if (initialEmail) return undefined;
+
+    const controller = new AbortController();
+    const prefillAccountEmail = async () => {
+      try {
+        const response = await fetch("/api/signedin", {
+          cache: "no-store",
+          credentials: "include",
+          signal: controller.signal,
+        });
+        const payload = await response.json();
+        const accountEmail =
+          response.ok && payload.signedIn ? payload.user?.email?.trim() : "";
+
+        if (accountEmail) {
+          setEmail((currentEmail) => currentEmail || accountEmail);
+        }
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          // Email remains optional when account details are unavailable.
+        }
+      }
+    };
+
+    void prefillAccountEmail();
+    return () => controller.abort();
+  }, [initialEmail]);
+
   const submitFeedback = async (event) => {
     event.preventDefault();
-
-    if (!email.trim()) {
-      showToast({ messageKey: "businessSignupFillDetails", type: "error" });
-      return;
-    }
 
     setSubmitting(true);
     setSubmissionError("");
@@ -248,14 +271,13 @@ export function FeedbackModalContent({
         value={feedbackType}
       />
       <label className="block text-sm font-semibold text-white/80">
-        <span data-translate="businessFeedbackEmail">
-          {copy.businessFeedbackEmail}
+        <span>
+          {copy.businessFeedbackEmail} ({copy.businessSignupOptional})
         </span>
         <input
           autoComplete="email"
           className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-white/10! px-3 text-white outline-none transition placeholder:text-white/40 focus:border-purple-300/60"
           onChange={(event) => setEmail(event.target.value)}
-          required
           type="email"
           value={email}
         />

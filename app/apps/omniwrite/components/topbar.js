@@ -6,6 +6,7 @@ import AccountAvatar from "../../../components/accountAvatar";
 import AccountWrapper from "../../../components/accountwraper";
 import AppTopbarRight from "../../../components/appTopbarRight";
 import { t } from "../../../i18n";
+import { hasSignedInCookie } from "../../../lib/signedInCookie";
 
 const sessionUrl = "/api/signedin";
 const signedOutBannerStorageKey = "munetios.omniwrite.signedOutBannerDismissed";
@@ -26,7 +27,9 @@ export default function OmniWriteTopbar({ sidebarOpen, onSidebarToggle }) {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [panelTop, setPanelTop] = useState(72);
-  const [sessionState, setSessionState] = useState("loading");
+  const [sessionState, setSessionState] = useState(() =>
+    hasSignedInCookie() ? "active" : "loading",
+  );
   const [user, setUser] = useState(null);
 
   const updateAccountPanelPosition = useCallback(() => {
@@ -47,6 +50,10 @@ export default function OmniWriteTopbar({ sidebarOpen, onSidebarToggle }) {
         headers: { Accept: "application/json" },
         signal,
       });
+      if (!response.ok && response.status !== 401 && hasSignedInCookie()) {
+        setSessionState("active");
+        return;
+      }
       const payload = await response.json();
       const signedIn = Boolean(
         response.ok && payload.authenticated && payload.signedIn,
@@ -58,7 +65,7 @@ export default function OmniWriteTopbar({ sidebarOpen, onSidebarToggle }) {
         setAccountPanelOpen(false);
       }
     } catch (error) {
-      if (error?.name !== "AbortError") {
+      if (error?.name !== "AbortError" && !hasSignedInCookie()) {
         setUser(null);
         setSessionState("inactive");
         setAccountPanelOpen(false);

@@ -77,7 +77,7 @@ export default function TasksPwaRegistration({ copy }) {
         );
         await registration.update();
       } catch (error) {
-        console.error("Unable to register the Tasks service worker.", error);
+        console.error("Failed to register the Tasks service worker.", error);
       }
     };
 

@@ -7,6 +7,7 @@ import {
   signOutAccountCollection,
   signOutSession,
 } from "../../../lib/authSecurity.js";
+import { getSignedInCookie } from "../../../lib/signedInCookie.js";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +23,9 @@ export async function POST(request) {
   if (collectionToken) signOutAccountCollection(collectionToken);
   signOutSession(getRequestCookie(request, "munetios_session"));
   const headers = new Headers({ "Cache-Control": "no-store" });
-  headers.append("Set-Cookie", getSessionCookie("", 0));
-  headers.append("Set-Cookie", getAccountCollectionCookie("", 0));
+  headers.append("Set-Cookie", getSessionCookie(request, "", 0));
+  headers.append("Set-Cookie", getSignedInCookie(request, "", 0));
+  headers.append("Set-Cookie", getAccountCollectionCookie(request, "", 0));
   return Response.json(
     { signedOut: true },
     {

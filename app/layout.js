@@ -5,7 +5,9 @@ import ConsoleWarning from "./components/consoleWarning";
 import DataTranslateRuntime from "./components/dataTranslateRuntime";
 import ErrorOverlaySuppressor from "./components/errorOverlaySuppressor";
 import GlobalLoadingProgress from "./components/globalLoadingProgress";
+import GlobalTooltips from "./components/globalTooltips";
 import ModalProvider from "./components/modal";
+import OrganizationPolicyRuntime from "./components/organizationPolicyRuntime";
 import ServiceWorkerRecovery from "./components/serviceWorkerRecovery";
 import ToastProvider from "./components/toast";
 
@@ -34,10 +36,12 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <AppearanceRuntime />
+        <AuthSessionWatcher />
+        <OrganizationPolicyRuntime />
         <GlobalLoadingProgress />
+        <GlobalTooltips />
         <munetios-app id="munetiosApp">{children}</munetios-app>
         <ModalProvider />
-        <AuthSessionWatcher />
         <ToastProvider />
         <DataTranslateRuntime />
         <ErrorOverlaySuppressor />

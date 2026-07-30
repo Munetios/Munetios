@@ -9,12 +9,22 @@ import AppLauncherWrapper from "../../../components/appLauncherWrapper";
 import AppTopbarRight from "../../../components/appTopbarRight";
 import DropdownWrapper from "../../../components/dropdownwrapper";
 import { openFeedbackModal } from "../../../components/feedbackModal";
+import {
+  openKeyboardShortcutsModal,
+  tasksKeyboardShortcuts,
+} from "../../../components/keyboardShortcutsModal";
 import { showModal } from "../../../components/modal";
 import { dismissTaskNotification } from "../lib/collaborationCrypto";
 import { openTasksSettingsModal } from "./tasksSettingsModal";
 
 function SearchField({ copy, mobile = false }) {
   const [query, setQuery] = useState("");
+  const inputRef = useRef(null);
+  useEffect(() => {
+    const focus = () => inputRef.current?.focus();
+    window.addEventListener("munetios:tasksfocussearch", focus);
+    return () => window.removeEventListener("munetios:tasksfocussearch", focus);
+  }, []);
   const updateQuery = (value) => {
     setQuery(value);
     window.dispatchEvent(
@@ -31,6 +41,7 @@ function SearchField({ copy, mobile = false }) {
         aria-label={copy.tasksSearchPlaceholder}
         onChange={(event) => updateQuery(event.target.value)}
         placeholder={copy.tasksSearchPlaceholder}
+        ref={inputRef}
         type="search"
         value={query}
       />
@@ -197,6 +208,54 @@ export default function TasksTopbar({ copy, onSidebarToggle, sidebarOpen }) {
     });
   };
 
+  const openShortcuts = useCallback(
+    () =>
+      openKeyboardShortcutsModal({
+        shortcuts: tasksKeyboardShortcuts,
+        title: "Munetios Tasks keyboard shortcuts",
+      }),
+    [],
+  );
+
+  useEffect(() => {
+    const routes = {
+      a: "/apps/tasks/archived",
+      c: "/apps/tasks/completed",
+      d: "/apps/tasks/drafts",
+      f: "/apps/tasks/favorites",
+      g: "/apps/tasks/categories",
+      i: "/apps/tasks/in-progress",
+      s: "/apps/tasks/shared",
+      t: "/apps/tasks/trash",
+    };
+    const handleShortcut = (event) => {
+      if (!event.ctrlKey || event.altKey || event.metaKey) return;
+      const key = event.key.toLowerCase();
+      if (key === "/") {
+        event.preventDefault();
+        openShortcuts();
+      } else if (!event.shiftKey && key === "k") {
+        event.preventDefault();
+        window.dispatchEvent(new Event("munetios:tasksfocussearch"));
+      } else if (!event.shiftKey && key === ",") {
+        event.preventDefault();
+        openTasksSettingsModal({ copy });
+      } else if (event.shiftKey && key === "o") {
+        event.preventDefault();
+        if (window.location.pathname === "/apps/tasks") {
+          window.dispatchEvent(new Event("munetios:taskscreate"));
+        } else {
+          window.location.assign("/apps/tasks#new");
+        }
+      } else if (event.shiftKey && routes[key]) {
+        event.preventDefault();
+        window.location.assign(routes[key]);
+      }
+    };
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, [copy, openShortcuts]);
+
   return (
     <>
       <div
@@ -316,6 +375,23 @@ export default function TasksTopbar({ copy, onSidebarToggle, sidebarOpen }) {
             triggerGlass={false}
             zIndex={100000000}
           >
+            <Link
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-white transition hover:bg-white/10!"
+              data-dropdown-close
+              href="/help"
+            >
+              <icon>help_center</icon>
+              <span>{copy.tasksHelp}</span>
+            </Link>
+            <button
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-white transition hover:bg-white/10!"
+              data-dropdown-close
+              onClick={openShortcuts}
+              type="button"
+            >
+              <icon>keyboard</icon>
+              <span>Keyboard shortcuts</span>
+            </button>
             <button
               className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-white transition hover:bg-white/10!"
               data-dropdown-close

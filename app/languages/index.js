@@ -3,14 +3,19 @@ import co_FR from "./co_FR.json" with { type: "json" };
 import da_DK from "./da_DK.json" with { type: "json" };
 import de_CH from "./de_CH.json" with { type: "json" };
 import de_DE from "./de_DE.json" with { type: "json" };
+import el_GR from "./el_GR.json" with { type: "json" };
 import en_GB from "./en_GB.json" with { type: "json" };
 import en_US from "./en_US.json" with { type: "json" };
+import es from "./es.json" with { type: "json" };
 import es_419 from "./es_419.json" with { type: "json" };
+import es_AR from "./es_AR.json" with { type: "json" };
+import es_CO from "./es_CO.json" with { type: "json" };
+import es_DO from "./es_DO.json" with { type: "json" };
+import es_EQ from "./es_EQ.json" with { type: "json" };
 import es_ES from "./es_ES.json" with { type: "json" };
 import es_MX from "./es_MX.json" with { type: "json" };
 import es_PR from "./es_PR.json" with { type: "json" };
 import es_US from "./es_US.json" with { type: "json" };
-import { featureTranslations } from "./featureTranslations";
 import fr_FR from "./fr_FR.json" with { type: "json" };
 import fur_IT from "./fur_IT.json" with { type: "json" };
 import gl_ES from "./gl_ES.json" with { type: "json" };
@@ -42,7 +47,13 @@ const baseTranslations = {
   "de-DE": de_DE,
   "en-GB": en_GB,
   en: en_US,
+  "el-GR": el_GR,
+  es,
   "es-419": es_419,
+  "es-AR": es_AR,
+  "es-CO": es_CO,
+  "es-DO": es_DO,
+  "es-EQ": es_EQ,
   "es-ES": es_ES,
   "es-MX": es_MX,
   "es-PR": es_PR,
@@ -71,34 +82,7 @@ const baseTranslations = {
   "zh-TW": zh_TW,
 };
 
-function useLatamAppLabels(locale, copy) {
-  if (!new Set(["es-419", "es-MX", "es-PR", "es-US"]).has(locale)) {
-    return copy;
-  }
-
-  return Object.fromEntries(
-    Object.entries(copy).map(([key, value]) => [
-      key,
-      typeof value === "string"
-        ? value
-            .replaceAll("Aplicaciones", "Apps")
-            .replaceAll("aplicaciones", "apps")
-            .replaceAll("Aplicación", "App")
-            .replaceAll("aplicación", "app")
-        : value,
-    ]),
-  );
-}
-
-export const translations = Object.fromEntries(
-  Object.entries(baseTranslations).map(([locale, copy]) => [
-    locale,
-    useLatamAppLabels(locale, {
-      ...copy,
-      ...(featureTranslations[locale] || {}),
-    }),
-  ]),
-);
+export const translations = baseTranslations;
 
 export const localeFileMap = {
   "ar-SA": "ar_SA.json",
@@ -108,7 +92,13 @@ export const localeFileMap = {
   "de-DE": "de_DE.json",
   "en-GB": "en_GB.json",
   en: "en_US.json",
+  "el-GR": "el_GR.json",
+  es: "es.json",
   "es-419": "es_419.json",
+  "es-AR": "es_AR.json",
+  "es-CO": "es_CO.json",
+  "es-DO": "es_DO.json",
+  "es-EQ": "es_EQ.json",
   "es-ES": "es_ES.json",
   "es-MX": "es_MX.json",
   "es-PR": "es_PR.json",

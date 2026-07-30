@@ -9,6 +9,7 @@ import {
   getThemePalette,
   loadAppearanceSettings,
 } from "./appearanceRuntime";
+import CustomToggle from "./customToggle";
 import DropdownWrapper from "./dropdownwrapper";
 
 const presetColors = [
@@ -91,7 +92,7 @@ function hsvToHex(hue, saturation, value) {
 
 function SettingToggle({ checked, description, label, onChange }) {
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/5! p-4">
+    <div className="flex items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/5! p-4">
       <span className="min-w-0">
         <span className="block text-sm font-semibold text-white">{label}</span>
         {description
@@ -100,17 +101,13 @@ function SettingToggle({ checked, description, label, onChange }) {
             </span>
           : null}
       </span>
-      <span className="relative mt-0.5 inline-flex shrink-0">
-        <input
-          checked={checked}
-          className="peer sr-only"
-          onChange={(event) => onChange(event.target.checked)}
-          type="checkbox"
-        />
-        <span className="h-7 w-12 rounded-full border border-white/15 bg-white/10! transition peer-checked:border-purple-200/30 peer-checked:bg-[var(--accent)]!" />
-        <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
-      </span>
-    </label>
+      <CustomToggle
+        checked={checked}
+        className="mt-0.5"
+        label={label}
+        onChange={onChange}
+      />
+    </div>
   );
 }
 
@@ -321,7 +318,7 @@ function ColorPickerDropdown({
   );
 }
 
-function ColorPickerWrapper({
+export function ColorPickerWrapper({
   additionalColors = [],
   copy,
   customColors,

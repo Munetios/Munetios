@@ -48,6 +48,7 @@ export default function DropdownWrapper({
   triggerAs = "div",
   triggerGlass = true,
   triggerId,
+  translationKey,
   zIndex = DROPDOWN_STACKING_LAYER,
 }) {
   const copy = t("en");
@@ -362,6 +363,8 @@ export default function DropdownWrapper({
         aria-haspopup="menu"
         aria-label={ariaLabel || label || copy.dropdownToggle}
         className={triggerClassName}
+        data-tooltip-translate={translationKey}
+        data-translate-aria-label={translationKey}
         id={triggerId}
         onClick={toggleDropdown}
         onKeyDown={onTriggerKeyDown}

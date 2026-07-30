@@ -6,6 +6,7 @@ import {
   getRequestFingerprint,
   setAccountData,
 } from "../../../lib/authSecurity.js";
+import { enforceOrganizationAppAccess } from "../../../lib/organizationPolicies.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -22,7 +23,11 @@ function respond(payload, init = {}) {
   });
 }
 
-function validBase64Url(value, maximum = 2_000_000) {
+// A permitted 2 MB image expands once as a data URL and again when the
+// encrypted document is base64url encoded.
+const maximumEncryptedDocumentLength = 4_500_000;
+
+function validBase64Url(value, maximum = maximumEncryptedDocumentLength) {
   return (
     typeof value === "string" &&
     value.length > 0 &&
@@ -38,6 +43,8 @@ function validVault(value) {
       value.algorithm === "AES-GCM" &&
       validBase64Url(value.keyId, 100) &&
       (value.protection === "device" ||
+        (value.protection === "account" &&
+          validBase64Url(value.syncKey, 100)) ||
         (value.derivation === "PBKDF2-SHA-256" &&
           Number.isInteger(value.iterations) &&
           value.iterations >= 600_000 &&
@@ -62,6 +69,8 @@ function validDocument(value) {
 export async function GET(request) {
   const { response, session } = await requireAuth(request);
   if (response) return response;
+  const policyResponse = enforceOrganizationAppAccess(session, "tasks");
+  if (policyResponse) return policyResponse;
   const stored = session.demo
     ? demoVaults.get(session.sessionKey) || null
     : getAccountData(session.user.id, vaultKey, null);
@@ -81,6 +90,10 @@ export async function PUT(request) {
   }
   const { response, session } = await requireAuth(request);
   if (response) return response;
+  const policyResponse = enforceOrganizationAppAccess(session, "tasks", {
+    mutating: true,
+  });
+  if (policyResponse) return policyResponse;
   const rateLimit = consumeRateLimit({
     key: `tasks-vault:${session.user.id}:${getRequestFingerprint(request)}`,
     limit: 40,

@@ -3,16 +3,14 @@
 import { useEffect } from "react";
 
 const testApiFailureKey = "munetios:test-api-failure";
-const testApiFailureLifetimeMs = 15_000;
 
 function setTestApiFailure(status) {
-  window.sessionStorage.setItem(
-    testApiFailureKey,
-    JSON.stringify({
-      expiresAt: Date.now() + testApiFailureLifetimeMs,
-      status,
-    }),
+  const failure = { enabledAt: Date.now(), status };
+  window.sessionStorage.setItem(testApiFailureKey, JSON.stringify(failure));
+  window.dispatchEvent(
+    new CustomEvent("munetios:test-api-failure-change", { detail: failure }),
   );
+  return failure;
 }
 
 export default function ConsoleWarning() {
@@ -23,8 +21,15 @@ export default function ConsoleWarning() {
 
     window.test429 = () => setTestApiFailure(429);
     window.testError = () => setTestApiFailure(503);
-    window.clearTestError = () =>
+    window.clearTestError = () => {
       window.sessionStorage.removeItem(testApiFailureKey);
+      window.dispatchEvent(
+        new CustomEvent("munetios:test-api-failure-change", {
+          detail: { status: 0 },
+        }),
+      );
+      return { status: 0 };
+    };
 
     return () => {
       delete window.test429;

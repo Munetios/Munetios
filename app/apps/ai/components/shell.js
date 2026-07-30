@@ -2,9 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import AppTopbarRight from "../../../components/appTopbarRight";
+import {
+  aiKeyboardShortcuts,
+  openKeyboardShortcutsModal,
+} from "../../../components/keyboardShortcutsModal";
+import { showToast } from "../../../components/toast";
 import { t } from "../../../i18n";
+import { hasSignedInCookie } from "../../../lib/signedInCookie";
 import NewChatPage from "./newChatPage";
 import PricingOverlay from "./pricingOverlay";
+import { aiSettingsDefaults } from "./settingsModal";
 import AiSidebar from "./sidebar";
 
 const accountUrl = "/api/account";
@@ -15,14 +22,17 @@ const sidebarHiddenQuery = "(max-width: 767.98px)";
 export default function AiShell({ pagePath }) {
   const [copy, setCopy] = useState(() => t("en"));
   const [account, setAccount] = useState(null);
-  const [sessionState, setSessionState] = useState("loading");
+  const [sessionState, setSessionState] = useState(() =>
+    hasSignedInCookie() ? "active" : "loading",
+  );
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCompactMode, setSidebarCompactMode] = useState(false);
   const [sidebarHiddenMode, setSidebarHiddenMode] = useState(false);
+  const [aiSettings, setAiSettings] = useState(aiSettingsDefaults);
 
   useEffect(() => {
     const refreshCopy = () => {
-      setCopy(t());
+      setCopy(t(undefined, { gender: account?.gender }));
     };
 
     refreshCopy();
@@ -35,7 +45,7 @@ export default function AiShell({ pagePath }) {
       window.removeEventListener("munetios:languagechange", refreshCopy);
       window.removeEventListener("munetios:localechange", refreshCopy);
     };
-  }, []);
+  }, [account?.gender]);
 
   const refreshSession = useCallback(async (signal) => {
     try {
@@ -59,8 +69,14 @@ export default function AiShell({ pagePath }) {
         return true;
       }
 
+      if (hasSignedInCookie()) {
+        setSessionState("active");
+      }
       return false;
     } catch (error) {
+      if (error?.name !== "AbortError" && hasSignedInCookie()) {
+        setSessionState("active");
+      }
       return error?.name === "AbortError";
     }
   }, []);
@@ -90,6 +106,61 @@ export default function AiShell({ pagePath }) {
       window.removeEventListener("munetios:authchange", refresh);
     };
   }, [refreshSession]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    if (sessionState === "active") {
+      fetch("/api/ai/settings", {
+        cache: "no-store",
+        credentials: "include",
+        signal: controller.signal,
+      })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((payload) => {
+          if (payload?.settings) {
+            setAiSettings({ ...aiSettingsDefaults, ...payload.settings });
+          }
+        })
+        .catch(() => undefined);
+    }
+    const syncSettings = (event) => {
+      if (event.detail) {
+        setAiSettings({ ...aiSettingsDefaults, ...event.detail });
+      }
+    };
+    window.addEventListener("munetios:aisettingschange", syncSettings);
+    return () => {
+      controller.abort();
+      window.removeEventListener("munetios:aisettingschange", syncSettings);
+    };
+  }, [sessionState]);
+
+  useEffect(() => {
+    if (sessionState !== "active") return;
+    const url = new URL(window.location.href);
+    const purchaseSession = url.searchParams.get("usage_purchase");
+    if (!purchaseSession) return;
+    fetch(
+      `/api/ai/usage/purchase?sessionId=${encodeURIComponent(purchaseSession)}`,
+      { cache: "no-store", credentials: "include" },
+    )
+      .then((response) => {
+        if (!response.ok) throw new Error("verification failed");
+        showToast({ message: copy.aiSettingsPurchaseComplete, type: "success" });
+        window.dispatchEvent(new Event("munetios:aiusagechange"));
+      })
+      .catch(() =>
+        showToast({ message: copy.aiSettingsPurchaseFailed, type: "error" }),
+      )
+      .finally(() => {
+        url.searchParams.delete("usage_purchase");
+        window.history.replaceState({}, "", url);
+      });
+  }, [
+    copy.aiSettingsPurchaseComplete,
+    copy.aiSettingsPurchaseFailed,
+    sessionState,
+  ]);
 
   useEffect(() => {
     const compactMediaQuery = window.matchMedia(sidebarCompactQuery);
@@ -127,6 +198,28 @@ export default function AiShell({ pagePath }) {
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [sidebarCompactMode, sidebarOpen]);
 
+  useEffect(() => {
+    const handleShortcut = (event) => {
+      if (!event.ctrlKey || event.altKey || event.metaKey) return;
+      const key = event.key.toLowerCase();
+      if (key === "/") {
+        event.preventDefault();
+        openKeyboardShortcutsModal({
+          shortcuts: aiKeyboardShortcuts,
+          title: "Munetios AI keyboard shortcuts",
+        });
+      } else if (event.shiftKey && key === "o") {
+        event.preventDefault();
+        window.location.assign("/apps/ai");
+      } else if (event.shiftKey && key === "s") {
+        event.preventDefault();
+        window.dispatchEvent(new Event("munetios:aistartvoice"));
+      }
+    };
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, []);
+
   const toggleSidebar = () => setSidebarOpen((currentValue) => !currentValue);
   const sidebarCollapsed = !sidebarOpen;
   const normalizedPagePath = String(pagePath || "")
@@ -139,6 +232,23 @@ export default function AiShell({ pagePath }) {
   return (
     <munetios-app-container
       className={`munetios-ai-shell ${sidebarCollapsed ? "sidebar-collapsed" : "sidebar-expanded"} ${sidebarCompactMode ? "sidebar-responsive-compact" : ""} ${sidebarHiddenMode ? "sidebar-hidden" : ""}`}
+      data-ai-theme={aiSettings.theme}
+      data-ai-voice-input={
+        aiSettings.voiceInputComposer ? "enabled" : "disabled"
+      }
+      style={{
+        "--accent": aiSettings.accentColor,
+        "--ai-chat-font":
+          aiSettings.chatFont === "account-default"
+            ? "var(--app-font)"
+            : aiSettings.chatFont === "system-ui"
+              ? "system-ui, sans-serif"
+              : `"${aiSettings.chatFont}", system-ui, sans-serif`,
+        "--ai-chat-font-size": `${aiSettings.chatFontSize}px`,
+        "--ai-chat-line-height": aiSettings.lineHeight,
+        "--ai-chat-radius": `${aiSettings.bubbleRoundness}px`,
+        "--ai-chat-text": aiSettings.textColor,
+      }}
     >
       {sidebarCompactMode && sidebarOpen
         ? <button
@@ -204,7 +314,14 @@ export default function AiShell({ pagePath }) {
               : null}
           </header>
         </div>
-        {isNewChatPage ? <NewChatPage account={account} copy={copy} /> : null}
+        {isNewChatPage
+          ? <NewChatPage
+              account={account}
+              aiSettings={aiSettings}
+              copy={copy}
+              signedIn={sessionState === "active"}
+            />
+          : null}
         {isPricingPage
           ? <section
               aria-label={copy.aiPricingTitle}

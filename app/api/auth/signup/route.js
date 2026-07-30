@@ -1,3 +1,4 @@
+import { redeemAiReferralToken } from "../../../lib/aiReferral.js";
 import {
   accountCollectionCookieName,
   assertSameOrigin,
@@ -20,6 +21,7 @@ import {
   verifyCaptcha,
   verifyContact,
 } from "../../../lib/authSecurity.js";
+import { getSignedInCookie } from "../../../lib/signedInCookie.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -153,16 +155,23 @@ export async function POST(request) {
     );
   }
 
+  try {
+    redeemAiReferralToken(payload?.referralToken, account.id);
+  } catch {
+    // A stale referral must never prevent a valid account from being created.
+  }
+
   const session = createAccountSession(
     account,
     getRequestCookie(request, accountCollectionCookieName),
     getSessionMetadata(request),
   );
   const headers = new Headers();
-  headers.append("Set-Cookie", getSessionCookie(session.token));
+  headers.append("Set-Cookie", getSessionCookie(request, session.token));
+  headers.append("Set-Cookie", getSignedInCookie(request));
   headers.append(
     "Set-Cookie",
-    getAccountCollectionCookie(session.accountCollectionToken),
+    getAccountCollectionCookie(request, session.accountCollectionToken),
   );
   return response(
     {

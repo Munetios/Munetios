@@ -59,6 +59,12 @@ function localeCookie(language) {
   return `${localeCookieName}=${encodeURIComponent(language)}; Path=/; Max-Age=${localeCookieMaxAge}; SameSite=Lax${secure}`;
 }
 
+function clearedLocaleCookie() {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+
+  return `${localeCookieName}=; Path=/; Max-Age=0; SameSite=Lax${secure}`;
+}
+
 function jsonResponse(payload, language = null, init = {}) {
   return Response.json(payload, {
     ...init,
@@ -111,6 +117,23 @@ export async function POST(request) {
       },
       null,
       { status: 400 },
+    );
+  }
+
+  if (payload?.language === "auto") {
+    languagePreferenceStore.delete(getProfileKey(session));
+
+    return jsonResponse(
+      {
+        language: null,
+        source: null,
+      },
+      null,
+      {
+        headers: {
+          "Set-Cookie": clearedLocaleCookie(),
+        },
+      },
     );
   }
 

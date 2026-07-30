@@ -1,3 +1,5 @@
+import { getSecureCookieAttribute } from "../../../lib/requestSecurity.js";
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -14,7 +16,7 @@ function getCookie(request, name) {
 
 export function GET(request) {
   const enabled = getCookie(request, cookieName) === "1";
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = getSecureCookieAttribute(request);
   const cookie = enabled
     ? `${cookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`
     : `${cookieName}=1; Path=/; HttpOnly; SameSite=Lax; Max-Age=60${secure}`;

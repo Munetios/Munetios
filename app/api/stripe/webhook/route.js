@@ -4,6 +4,8 @@ import {
   setAccountData,
   updateAccountPlan,
 } from "../../../lib/authSecurity.js";
+import { normalizeBusinessAccount } from "../../../lib/businessAccounts.js";
+import { syncStripeSubscriptionForCustomer } from "../../../lib/stripeSubscriptionSync.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -66,37 +68,67 @@ export async function POST(request) {
   const accountId = object?.metadata?.munetios_account_id;
   const planId = object?.metadata?.munetios_plan_id;
   const updateBusinessState = (status) => {
-    if (!accountId || planId !== "business-pro") return;
-    const business = getAccountData(accountId, "business", {});
+    if (!accountId || !planId?.startsWith("business-")) return;
+    const business = normalizeBusinessAccount(
+      getAccountData(accountId, "business", null),
+      accountId,
+    );
+    if (!business?.verified) return;
     setAccountData(accountId, "business", {
       ...business,
-      plan: status === "active" ? "business-pro" : "business-free",
+      plan: status === "active" ? planId : "business-free",
       status,
       updatedAt: new Date().toISOString(),
     });
   };
   if (event?.type === "checkout.session.completed") {
+    if (
+      planId?.startsWith("business-") &&
+      !normalizeBusinessAccount(
+        getAccountData(accountId, "business", null),
+        accountId,
+      )?.verified
+    ) {
+      return Response.json(
+        {
+          ignored: true,
+          reason: "business_verification_required",
+          received: true,
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
     updateAccountPlan(accountId, planId);
     if (accountId && object?.customer) {
+      const billing = getAccountData(accountId, "billing", {});
       setAccountData(accountId, "billing", {
+        ...billing,
         stripeCustomerId: object.customer,
         updatedAt: new Date().toISOString(),
       });
     }
     updateBusinessState("active");
-  } else if (event?.type === "customer.subscription.deleted") {
-    updateAccountPlan(
-      accountId,
-      planId === "business-pro" ? "business-free" : "free",
-    );
-    updateBusinessState("canceled");
-  } else if (event?.type === "customer.subscription.updated") {
-    const active = object?.status === "active" || object?.status === "trialing";
-    updateAccountPlan(
-      accountId,
-      active ? planId : planId === "business-pro" ? "business-free" : "free",
-    );
-    updateBusinessState(active ? "active" : "inactive");
+  } else if (
+    new Set([
+      "customer.subscription.created",
+      "customer.subscription.deleted",
+      "customer.subscription.paused",
+      "customer.subscription.resumed",
+      "customer.subscription.updated",
+    ]).has(event?.type)
+  ) {
+    try {
+      const customerId =
+        typeof object?.customer === "object"
+          ? object.customer?.id
+          : object?.customer;
+      await syncStripeSubscriptionForCustomer(String(customerId || ""));
+    } catch {
+      return Response.json(
+        { error: "subscription_sync_failed" },
+        { status: 503 },
+      );
+    }
   }
 
   return Response.json(

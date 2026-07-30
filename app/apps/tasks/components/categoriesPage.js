@@ -10,10 +10,12 @@ import {
   getTasksWorkspaceData,
   getUnlockedAccountData,
   readLocalEncryptedData,
+  refreshUnlockedAccountData,
   saveLocalEncryptedData,
   saveUnlockedAccountData,
   withTasksWorkspaceData,
 } from "../lib/encryptedVault";
+import { cacheTaskLists } from "../lib/taskLists";
 
 const categoryColors = [
   "#8b5cf6",
@@ -30,6 +32,17 @@ function announceCategories(categories) {
   window.dispatchEvent(
     new CustomEvent("munetios:taskcategorieschange", { detail: categories }),
   );
+  window.dispatchEvent(
+    new CustomEvent("munetios:taskschange", {
+      detail: { action: "categories", categories },
+    }),
+  );
+  const channel = new BroadcastChannel("munetios-tasks-sync");
+  channel.postMessage({
+    action: "categories",
+    updatedAt: Date.now(),
+  });
+  channel.close();
   return categories;
 }
 
@@ -179,13 +192,16 @@ export default function TasksCategoriesPage() {
             withTasksWorkspaceData(data, scopedData),
           );
         }
+        cacheTaskLists(getActiveTasksWorkspaceId(), scopedData.lists);
         setCategories(scopedData.categories);
         return;
       }
 
       setStorageMode("account");
       try {
-        const data = await ensureAccountVaultUnlocked();
+        const data = getUnlockedAccountData()
+          ? await refreshUnlockedAccountData()
+          : await ensureAccountVaultUnlocked();
         const scopedData = getTasksWorkspaceData(data);
         const needsMigration =
           Object.keys(data.workspaces || {}).length === 0 &&
@@ -195,12 +211,10 @@ export default function TasksCategoriesPage() {
             withTasksWorkspaceData(data, scopedData),
           );
         }
+        cacheTaskLists(getActiveTasksWorkspaceId(), scopedData.lists);
         setCategories(scopedData.categories);
       } catch {
-        setStorageMode("local");
-        const data = await readLocalEncryptedData();
-        const scopedData = getTasksWorkspaceData(data);
-        setCategories(scopedData.categories);
+        setCategories([]);
       }
     } catch {
       // Authentication and the shared Tasks shell can both request this data
@@ -215,12 +229,22 @@ export default function TasksCategoriesPage() {
     const refreshCopy = () => setCopy(t());
     refreshCopy();
     void loadCategories();
+    const channel = new BroadcastChannel("munetios-tasks-sync");
+    channel.onmessage = () => void loadCategories();
+    const refreshInterval = window.setInterval(
+      () => void loadCategories(),
+      5_000,
+    );
     window.addEventListener("munetios:authchange", loadCategories);
+    window.addEventListener("munetios:taskschange", loadCategories);
     window.addEventListener("munetios:workspacechange", loadCategories);
     window.addEventListener("munetios:languagechange", refreshCopy);
     window.addEventListener("munetios:localechange", refreshCopy);
     return () => {
+      channel.close();
+      window.clearInterval(refreshInterval);
       window.removeEventListener("munetios:authchange", loadCategories);
+      window.removeEventListener("munetios:taskschange", loadCategories);
       window.removeEventListener("munetios:workspacechange", loadCategories);
       window.removeEventListener("munetios:languagechange", refreshCopy);
       window.removeEventListener("munetios:localechange", refreshCopy);
@@ -243,10 +267,9 @@ export default function TasksCategoriesPage() {
     try {
       if (storageMode === "account") {
         try {
-          let data = getUnlockedAccountData();
-          if (!data) {
-            data = await ensureAccountVaultUnlocked();
-          }
+          const data = getUnlockedAccountData()
+            ? await refreshUnlockedAccountData()
+            : await ensureAccountVaultUnlocked();
           const scopedData = getTasksWorkspaceData(data);
           await saveUnlockedAccountData(
             withTasksWorkspaceData(
@@ -259,15 +282,7 @@ export default function TasksCategoriesPage() {
             ),
           );
         } catch {
-          setStorageMode("local");
-          const data = await readLocalEncryptedData();
-          const scopedData = getTasksWorkspaceData(data);
-          await saveLocalEncryptedData(
-            withTasksWorkspaceData(data, {
-              ...scopedData,
-              categories: [...categories, category],
-            }),
-          );
+          throw new Error("account_category_save_failed");
         }
       } else {
         const data = await readLocalEncryptedData();
@@ -293,10 +308,9 @@ export default function TasksCategoriesPage() {
   const deleteCategory = async (category) => {
     try {
       if (storageMode === "account") {
-        let data = getUnlockedAccountData();
-        if (!data) {
-          data = await ensureAccountVaultUnlocked();
-        }
+        const data = getUnlockedAccountData()
+          ? await refreshUnlockedAccountData()
+          : await ensureAccountVaultUnlocked();
         const scopedData = getTasksWorkspaceData(data);
         await saveUnlockedAccountData(
           withTasksWorkspaceData(data, {

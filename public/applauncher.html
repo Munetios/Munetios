@@ -152,6 +152,7 @@
       }
 
       .app-launcher-item.is-hidden,
+      .app-launcher-item.is-policy-hidden,
       .app-launcher-item.is-filtered {
         display: none;
       }
@@ -231,7 +232,7 @@
         </div>
         <div
           class="app-launcher-item"
-          data-app-url="https://meet.munetios.com/"
+          data-app-url="/apps/meet"
           data-i18n-app="meet"
           id="munetiosMeetApp"
         >
@@ -359,6 +360,39 @@
 
         const getItems = () =>
           Array.from(document.querySelectorAll(".app-launcher-item"));
+
+        const organizationAppIds = {
+          ai: "munetiosAIApp",
+          calendar: "munetiosCalendarApp",
+          chat: "munetiosChatApp",
+          drive: "munetiosDriveApp",
+          mail: "munetiosMailApp",
+          meet: "munetiosMeetApp",
+          omniwrite: "munetiosOmniWriteApp",
+          sheets: "munetiosSheetsApp",
+          slides: "munetiosSlidesApp",
+          tasks: "munetiosTasksApp",
+        };
+
+        const applyOrganizationPolicies = async () => {
+          try {
+            const response = await fetch("/api/organization/access", {
+              cache: "no-store",
+              credentials: "include",
+            });
+            if (!response.ok) return;
+            const payload = await response.json();
+            const access = payload?.organization?.appAccess || {};
+            Object.entries(organizationAppIds).forEach(([app, id]) => {
+              document
+                .getElementById(id)
+                ?.classList.toggle("is-policy-hidden", access[app] === false);
+            });
+            applySearch();
+          } catch {
+            return;
+          }
+        };
 
         const readLocalStorage = (key) => {
           try {
@@ -809,6 +843,7 @@
         applyLauncherTranslations();
         getItems().forEach(attachItemEvents);
         applySavedState();
+        applyOrganizationPolicies();
       })();
     </script>
   </body>

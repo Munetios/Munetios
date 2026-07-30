@@ -1,39 +1,8 @@
 "use client";
 
-import { showToast } from "./toast";
-
-export default function UpgradePlans({ archived, close, copy, demo }) {
-  const purchase = async (plan) => {
-    if (!demo) {
-      window.location.assign("/payments");
-      return;
-    }
-
-    if (archived) {
-      showToast({
-        message: copy.demoPaymentFailedMessage,
-        title: copy.demoPaymentFailedTitle,
-        type: "error",
-      });
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/demo/settings", {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, storagePreset: plan }),
-      });
-
-      if (!response.ok) throw new Error("Payment request failed");
-
-      window.dispatchEvent(new Event("munetios:demo-settingschange"));
-      close();
-      showToast({ message: copy.demoPaymentThankYou, type: "success" });
-    } catch {
-      showToast({ messageKey: "fetchError", type: "error" });
-    }
+export default function UpgradePlans({ copy }) {
+  const purchase = () => {
+    window.location.assign("/payments");
   };
 
   return (

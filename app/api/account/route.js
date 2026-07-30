@@ -13,7 +13,14 @@ import {
   getAvatarLetter,
   getRequestCookie,
 } from "../../lib/authSecurity.js";
+import {
+  getBusinessCapabilities,
+  normalizeBusinessAccount,
+} from "../../lib/businessAccounts.js";
 import { demoPlanLabel, getDemoSettings } from "../../lib/demoSettings.js";
+import { getOrganizationContext } from "../../lib/organizationPolicies.js";
+import { getSignedInCookie } from "../../lib/signedInCookie.js";
+import { syncStripeSubscriptionForAccount } from "../../lib/stripeSubscriptionSync.js";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +33,23 @@ export async function GET(request) {
       { invalidSession: hasAccountSessionCookie(request) },
     );
   }
+
+  const syncedPlan = session.demo
+    ? ""
+    : await syncStripeSubscriptionForAccount(session.user).then(
+        ({ plan }) => plan,
+        () => session.user.plan || "Free",
+      );
+  const storedBusiness = session.demo
+    ? null
+    : getAccountData(session.user.id, "business", null);
+  const business = normalizeBusinessAccount(storedBusiness, session.user.id);
+  const organization = session.demo
+    ? null
+    : getOrganizationContext(session.user);
+  const isBusinessAccount =
+    Boolean(storedBusiness) ||
+    /^business\b/i.test(String(syncedPlan || session.user.plan || ""));
 
   const storedProfile = session.demo
     ? globalThis.__munetiosAccountProfileStore?.get(session.user.id) || {}
@@ -52,8 +76,12 @@ export async function GET(request) {
     ? getAccountCollectionAccounts(collection.token)
     : [];
   const headers = new Headers({ "Cache-Control": "no-store" });
+  headers.append("Set-Cookie", getSignedInCookie(request));
   if (collection && collection.token !== existingCollectionToken) {
-    headers.append("Set-Cookie", getAccountCollectionCookie(collection.token));
+    headers.append(
+      "Set-Cookie",
+      getAccountCollectionCookie(request, collection.token),
+    );
   }
   if (collection) {
     attachSessionToAccountCollection(
@@ -66,12 +94,30 @@ export async function GET(request) {
     {
       authenticated: true,
       accountCount: session.demo ? 1 : Math.max(1, accounts.length),
-      accountType: session.demo ? "demo" : "personal",
+      accountType: session.demo
+        ? "demo"
+        : isBusinessAccount || organization
+          ? "business"
+          : "personal",
+      business: business
+        ? {
+            capabilities: getBusinessCapabilities(business),
+            name: business.businessName,
+            role: business.role,
+            verificationStatus: business.verificationStatus,
+            verified: business.verified,
+          }
+        : undefined,
+      businessRole: business?.role || organization?.roleId,
+      businessVerified: Boolean(business?.verified || organization?.verified),
       avatar,
       avatarLetter: session.user.avatarLetter || getAvatarLetter(name),
       avatarUrl: profilePictureUrl || session.user.avatarUrl,
       demo: Boolean(session.demo),
       email: storedProfile.email || session.user.email,
+      gender: Object.hasOwn(storedProfile, "gender")
+        ? storedProfile.gender
+        : session.user.gender || "",
       id: session.user.id,
       name,
       birthday: Object.hasOwn(storedProfile, "birthday")
@@ -84,8 +130,9 @@ export async function GET(request) {
       demoSettings: demoSettings || undefined,
       plan: session.demo
         ? demoPlanLabel(demoSettings.plan)
-        : session.user.plan || "Free",
+        : syncedPlan || session.user.plan || "Free",
       profilePictureUrl,
+      organization: organization || undefined,
     },
     {
       headers,

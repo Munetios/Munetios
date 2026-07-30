@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentLocale } from "../i18n";
+import { formatUserDate } from "../lib/dateTimePreferences";
 import AccountAvatar from "./accountAvatar";
 import { BirthdayDatePicker, CustomDropdown } from "./accountProfileControls";
 import { showModal } from "./modal";
 import { showToast } from "./toast";
+import WorkspaceOptionsWrapper from "./workspaceOptionsWrapper";
 
 const accountProfileUrl = "/api/account/profile";
 const maximumBioLength = 1000;
@@ -16,62 +18,6 @@ const supportedImageTypes = new Set([
   "image/png",
   "image/webp",
 ]);
-
-function WorkspaceLockForm({ close, copy, locked, onSaved, workspace }) {
-  const [password, setPassword] = useState("");
-  const [working, setWorking] = useState(false);
-  return (
-    <form
-      className="space-y-4"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        setWorking(true);
-        try {
-          const response = await fetch("/api/workspaces", {
-            body: JSON.stringify({
-              locked: !locked,
-              password,
-              workspaceId: workspace.id,
-            }),
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            method: "PATCH",
-          });
-          if (!response.ok) throw new Error("workspace_lock_failed");
-          const payload = await response.json();
-          onSaved(payload.workspace);
-          showToast({ messageKey: "workspaceLockSaved", type: "success" });
-          close();
-        } catch {
-          showToast({ messageKey: "accountRequestFailed", type: "error" });
-          setWorking(false);
-        }
-      }}
-    >
-      <p className="text-sm leading-6 text-white/70">
-        {copy.workspaceLockDescription}
-      </p>
-      <label className="block text-sm font-semibold">
-        {copy.accountSecurityCurrentPassword}
-        <input
-          autoComplete="current-password"
-          className="mt-2 w-full rounded-xl border border-white/10 bg-purple-950/35! px-3 py-2.5 text-white outline-none focus:border-purple-300/55"
-          onChange={(event) => setPassword(event.target.value)}
-          required
-          type="password"
-          value={password}
-        />
-      </label>
-      <button
-        className="liquid-glass w-full rounded-xl bg-purple-600/75! px-4 py-3 text-sm font-bold disabled:opacity-55"
-        disabled={!password || working}
-        type="submit"
-      >
-        {locked ? copy.workspaceUnlock : copy.workspaceLock}
-      </button>
-    </form>
-  );
-}
 
 function ProfileWorkspaces({ copy }) {
   const [workspaces, setWorkspaces] = useState([]);
@@ -88,29 +34,6 @@ function ProfileWorkspaces({ copy }) {
       )
       .finally(() => setLoading(false));
   }, []);
-
-  const openLock = (workspace) => {
-    showModal(
-      ({ close }) => (
-        <WorkspaceLockForm
-          close={close}
-          copy={copy}
-          locked={Boolean(workspace.locked)}
-          onSaved={(saved) =>
-            setWorkspaces((current) =>
-              current.map((item) => (item.id === saved.id ? saved : item)),
-            )
-          }
-          workspace={workspace}
-        />
-      ),
-      {
-        ariaLabel: workspace.locked ? copy.workspaceUnlock : copy.workspaceLock,
-        title: workspace.locked ? copy.workspaceUnlock : copy.workspaceLock,
-        zIndex: 100000002,
-      },
-    );
-  };
 
   return (
     <section className="mt-5 rounded-2xl border border-white/10 bg-white/5! p-4 sm:p-5">
@@ -131,16 +54,30 @@ function ProfileWorkspaces({ copy }) {
             key={workspace.id}
           >
             <icon>{workspace.locked ? "lock" : "workspaces"}</icon>
-            <span className="min-w-0 flex-1 truncate font-semibold">
-              {workspace.name || workspace.title}
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-semibold">
+                {workspace.name || workspace.title}
+              </span>
+              {workspace.primary
+                ? <span className="block text-xs text-purple-100/60">
+                    {copy.workspaceMain}
+                  </span>
+                : null}
             </span>
-            <button
-              className="rounded-xl border border-purple-200/20 px-3 py-2 text-sm font-bold"
-              onClick={() => openLock(workspace)}
-              type="button"
-            >
-              {workspace.locked ? copy.workspaceUnlock : copy.workspaceLock}
-            </button>
+            <WorkspaceOptionsWrapper
+              copy={copy}
+              onDeleted={(workspaceId) =>
+                setWorkspaces((current) =>
+                  current.filter((item) => item.id !== workspaceId),
+                )
+              }
+              onSaved={(saved) =>
+                setWorkspaces((current) =>
+                  current.map((item) => (item.id === saved.id ? saved : item)),
+                )
+              }
+              workspace={workspace}
+            />
           </article>
         ))}
       </div>
@@ -401,6 +338,10 @@ function formatBirthday(value, copy) {
   if (Number.isNaN(date.getTime())) {
     return value;
   }
+  const preferredDate = formatUserDate(date, {
+    locale: getCurrentLocale(),
+  });
+  if (preferredDate) return preferredDate;
 
   try {
     return new Intl.DateTimeFormat(getCurrentLocale(), {
@@ -502,6 +443,12 @@ function formatEmailAvailability(value, copy) {
 
   if (Number.isNaN(availableDate.getTime())) {
     return copy.accountProfileEmailChangeHint;
+  }
+  const preferredDate = formatUserDate(availableDate, {
+    locale: getCurrentLocale(),
+  });
+  if (preferredDate) {
+    return copy.accountProfileEmailLocked.replace("{date}", preferredDate);
   }
 
   let formattedDate = value;
@@ -1111,7 +1058,9 @@ export default function AccountProfileSection({ copy }) {
 
   useEffect(() => {
     if (unauthorized) {
-      setProfileError(copy.accountProfileSignInToViewProfile || "Sign in to view profile.");
+      setProfileError(
+        copy.accountProfileSignInToViewProfile || "Sign in to view profile.",
+      );
       return;
     }
 
@@ -1121,7 +1070,12 @@ export default function AccountProfileSection({ copy }) {
     }
 
     setProfileError(null);
-  }, [copy.accountProfileLoadFailed, copy.accountProfileSignInToViewProfile, loadState, unauthorized]);
+  }, [
+    copy.accountProfileLoadFailed,
+    copy.accountProfileSignInToViewProfile,
+    loadState,
+    unauthorized,
+  ]);
 
   useEffect(() => {
     const availableAt = new Date(
@@ -1444,15 +1398,15 @@ export default function AccountProfileSection({ copy }) {
                 <p className="text-sm leading-6 text-rose-100" role="alert">
                   {profileError}
                 </p>
-                {!unauthorized ? (
-                  <button
-                    className="shrink-0 rounded-xl border border-rose-200/20 bg-rose-500/15! px-3 py-2 text-sm font-bold text-rose-100 transition hover:bg-rose-500/25!"
-                    onClick={loadProfile}
-                    type="button"
-                  >
-                    {copy.retry}
-                  </button>
-                ) : null}
+                {!unauthorized
+                  ? <button
+                      className="shrink-0 rounded-xl border border-rose-200/20 bg-rose-500/15! px-3 py-2 text-sm font-bold text-rose-100 transition hover:bg-rose-500/25!"
+                      onClick={loadProfile}
+                      type="button"
+                    >
+                      {copy.retry}
+                    </button>
+                  : null}
               </div>
             : null}
 

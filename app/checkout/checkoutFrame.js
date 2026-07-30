@@ -10,6 +10,14 @@ import {
 import { BusinessDropdown } from "../components/signUpForBusiness";
 import { showToast } from "../components/toast";
 import { t } from "../i18n";
+import {
+  getUserCurrency,
+  loadDateTimePreferences,
+} from "../lib/dateTimePreferences";
+import {
+  getAvailablePaymentMethods,
+  resolvePreferenceCountry,
+} from "../lib/regionPreferences";
 
 const paymentOptions = [
   { key: "businessPaymentCreditDebitCard", value: "card" },
@@ -66,8 +74,17 @@ export default function CheckoutFrame({
   const expressCheckoutContainerRef = useRef(null);
   const confirmPaymentRef = useRef(null);
   const plan = getPlan(planId);
-  const normalizedCurrency = normalizeCurrency(currency);
+  const [regionalPreferences, setRegionalPreferences] = useState(
+    loadDateTimePreferences,
+  );
+  const normalizedCurrency = normalizeCurrency(
+    currency || getUserCurrency(regionalPreferences),
+  );
+  const availableMethodNames = getAvailablePaymentMethods(
+    resolvePreferenceCountry(regionalPreferences),
+  );
   const normalizePaymentMethod = (method) => {
+    if (!availableMethodNames.includes(method)) return "card";
     if (method === "apple_pay") return "apple_pay";
     if (method === "paypal") return "paypal";
     if (
@@ -82,23 +99,42 @@ export default function CheckoutFrame({
   const [paymentMethod, setPaymentMethod] = useState(() =>
     normalizePaymentMethod(initialPaymentMethod),
   );
-  const availablePaymentOptions =
-    normalizedCurrency === "USD" && plan.category !== "business"
-      ? paymentOptions
-      : paymentOptions.filter((option) => option.value !== "cashapp");
+  const availablePaymentOptions = paymentOptions.filter(
+    (option) =>
+      availableMethodNames.includes(option.value) &&
+      !(
+        option.value === "cashapp" &&
+        (normalizedCurrency !== "USD" || plan.category === "business")
+      ),
+  );
+
+  useEffect(() => {
+    if (
+      !availablePaymentOptions.some((option) => option.value === paymentMethod)
+    ) {
+      setPaymentMethod("card");
+    }
+  }, [availablePaymentOptions, paymentMethod]);
 
   useEffect(() => {
     const refreshCopy = () => setCopy(t());
+    const refreshRegion = () =>
+      setRegionalPreferences(loadDateTimePreferences());
 
     refreshCopy();
     window.addEventListener("languagechange", refreshCopy);
     window.addEventListener("munetios:languagechange", refreshCopy);
     window.addEventListener("munetios:localechange", refreshCopy);
+    window.addEventListener("munetios:language-time-change", refreshRegion);
 
     return () => {
       window.removeEventListener("languagechange", refreshCopy);
       window.removeEventListener("munetios:languagechange", refreshCopy);
       window.removeEventListener("munetios:localechange", refreshCopy);
+      window.removeEventListener(
+        "munetios:language-time-change",
+        refreshRegion,
+      );
     };
   }, []);
 

@@ -7,6 +7,7 @@ import {
   resetAccountEncryptionKey,
   viewAccountEncryptionKey,
 } from "../apps/tasks/lib/encryptedVault";
+import { formatUserDateTime } from "../lib/dateTimePreferences";
 import { showModal } from "./modal";
 import { showToast } from "./toast";
 
@@ -129,28 +130,26 @@ function ViewEncryptionKeyForm({ close, copy }) {
       <p className="text-sm leading-6 text-white/70">
         {copy.privacyEncryptionDescription}
       </p>
-      {!key ? (
-        <label className="block text-sm font-semibold">
-          {copy.accountSecurityCurrentPassword}
-          <input
-            autoComplete="current-password"
-            className={inputClassName}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            type="password"
-            value={password}
-          />
-        </label>
-      ) : (
-        <label className="block text-sm font-semibold">
-          {copy.accountSecurityManualKey}
-          <textarea
-            className={`${inputClassName} min-h-24 resize-none break-all font-mono`}
-            readOnly
-            value={key}
-          />
-        </label>
-      )}
+      {!key
+        ? <label className="block text-sm font-semibold">
+            {copy.accountSecurityCurrentPassword}
+            <input
+              autoComplete="current-password"
+              className={inputClassName}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              type="password"
+              value={password}
+            />
+          </label>
+        : <label className="block text-sm font-semibold">
+            {copy.accountSecurityManualKey}
+            <textarea
+              className={`${inputClassName} min-h-24 resize-none break-all font-mono`}
+              readOnly
+              value={key}
+            />
+          </label>}
       <div className="flex justify-end gap-2">
         <button
           className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold"
@@ -159,15 +158,15 @@ function ViewEncryptionKeyForm({ close, copy }) {
         >
           {copy.cancel}
         </button>
-        {!key ? (
-          <button
-            className="liquid-glass rounded-xl bg-purple-600/75! px-4 py-2 text-sm font-bold disabled:opacity-55"
-            disabled={!password || working}
-            type="submit"
-          >
-            {copy.accountEncryptionViewKey}
-          </button>
-        ) : null}
+        {!key
+          ? <button
+              className="liquid-glass rounded-xl bg-purple-600/75! px-4 py-2 text-sm font-bold disabled:opacity-55"
+              disabled={!password || working}
+              type="submit"
+            >
+              {copy.accountEncryptionViewKey}
+            </button>
+          : null}
       </div>
     </form>
   );
@@ -235,35 +234,35 @@ function ResetEncryptionWizard({ close, copy }) {
           {descriptions[step - 1]}
         </p>
       </div>
-      {step === 3 ? (
-        <label className="block text-sm font-semibold">
-          {copy.accountSecurityCurrentPassword}
-          <input
-            autoComplete="current-password"
-            className={inputClassName}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            type="password"
-            value={password}
-          />
-        </label>
-      ) : null}
-      {step === 5 ? (
-        <label className="block text-sm font-semibold">
-          {copy.accountEncryptionTypePhrase.replace(
-            "{phrase}",
-            copy.accountEncryptionResetPhrase,
-          )}
-          <input
-            autoComplete="off"
-            className={inputClassName}
-            onChange={(event) => setConfirmation(event.target.value)}
-            spellCheck="false"
-            type="text"
-            value={confirmation}
-          />
-        </label>
-      ) : null}
+      {step === 3
+        ? <label className="block text-sm font-semibold">
+            {copy.accountSecurityCurrentPassword}
+            <input
+              autoComplete="current-password"
+              className={inputClassName}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              type="password"
+              value={password}
+            />
+          </label>
+        : null}
+      {step === 5
+        ? <label className="block text-sm font-semibold">
+            {copy.accountEncryptionTypePhrase.replace(
+              "{phrase}",
+              copy.accountEncryptionResetPhrase,
+            )}
+            <input
+              autoComplete="off"
+              className={inputClassName}
+              onChange={(event) => setConfirmation(event.target.value)}
+              spellCheck="false"
+              type="text"
+              value={confirmation}
+            />
+          </label>
+        : null}
       <div className="flex justify-between gap-2">
         <button
           className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold"
@@ -360,20 +359,20 @@ function Confirmation({
       }}
     >
       <p className="text-sm leading-6 text-white/70">{description}</p>
-      {confirmationWord ? (
-        <label className="block text-sm font-semibold">
-          {confirmationLabel}
-          <input
-            autoComplete="off"
-            className={inputClassName}
-            onChange={(event) => setConfirmation(event.target.value)}
-            placeholder={confirmationWord}
-            spellCheck="false"
-            type="text"
-            value={confirmation}
-          />
-        </label>
-      ) : null}
+      {confirmationWord
+        ? <label className="block text-sm font-semibold">
+            {confirmationLabel}
+            <input
+              autoComplete="off"
+              className={inputClassName}
+              onChange={(event) => setConfirmation(event.target.value)}
+              placeholder={confirmationWord}
+              spellCheck="false"
+              type="text"
+              value={confirmation}
+            />
+          </label>
+        : null}
       <div className="flex justify-end gap-2">
         <button
           className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold"
@@ -405,7 +404,16 @@ export default function AccountSecuritySection({ copy }) {
         cache: "no-store",
         credentials: "include",
       });
-      if (!response.ok) throw new Error("security_load_failed");
+      if (!response.ok) {
+        const guest =
+          response.status === 401 &&
+          response.headers.get("X-Munetios-Auth-State") === "guest";
+        setLoadError(!guest);
+        if (!guest) {
+          showToast({ messageKey: "devicesLoadFailed", type: "error" });
+        }
+        return;
+      }
       setSecurity(await response.json());
       setLoadError(false);
     } catch {
@@ -736,7 +744,7 @@ export default function AccountSecuritySection({ copy }) {
                 </p>
                 <p className="text-xs text-white/55">
                   {deviceSession.location} ·{" "}
-                  {new Date(deviceSession.lastSeenAt).toLocaleString()}
+                  {formatUserDateTime(deviceSession.lastSeenAt)}
                 </p>
               </div>
               <button
@@ -748,16 +756,14 @@ export default function AccountSecuritySection({ copy }) {
               </button>
             </article>
           ))}
-          {!loading && loadError ? (
-            <p className="text-sm text-white/60">
-              Error loading devices. Please try again
-            </p>
-          ) : null}
-          {!loading && !loadError && !security?.sessions?.length ? (
-            <p className="text-sm text-white/60">
-              {copy.accountSecurityNoDevices}
-            </p>
-          ) : null}
+          {!loading && loadError
+            ? <p className="text-sm text-white/60">{copy.devicesLoadFailed}</p>
+            : null}
+          {!loading && !loadError && !security?.sessions?.length
+            ? <p className="text-sm text-white/60">
+                {copy.accountSecurityNoDevices}
+              </p>
+            : null}
         </div>
       </section>
     </div>

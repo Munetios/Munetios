@@ -62,7 +62,10 @@ export async function GET(request) {
   );
   const headers = new Headers({ "Cache-Control": "no-store" });
   if (collection.token !== existingToken) {
-    headers.append("Set-Cookie", getAccountCollectionCookie(collection.token));
+    headers.append(
+      "Set-Cookie",
+      getAccountCollectionCookie(request, collection.token),
+    );
   }
   return Response.json({ accounts }, { headers });
 }

@@ -13,7 +13,7 @@ export default async function PaymentsPage({ searchParams }) {
   const copy = t("en");
   const params = await searchParams;
   const requestedPlan = getSearchParam(params, "plan") || "business-pro";
-  const requestedCurrency = getSearchParam(params, "currency") || "USD";
+  const requestedCurrency = getSearchParam(params, "currency");
   const requestedPaymentMethod =
     getSearchParam(params, "paymentMethod") || "card";
   const requestedSessionId = getSearchParam(params, "session_id");
@@ -21,7 +21,7 @@ export default async function PaymentsPage({ searchParams }) {
   const session = await auth({ cookies: cookieStore });
 
   if (!session || session.demo) {
-    const paymentPath = `/payments?plan=${encodeURIComponent(requestedPlan)}&currency=${encodeURIComponent(requestedCurrency)}&paymentMethod=${encodeURIComponent(requestedPaymentMethod)}`;
+    const paymentPath = `/payments?plan=${encodeURIComponent(requestedPlan)}${requestedCurrency ? `&currency=${encodeURIComponent(requestedCurrency)}` : ""}&paymentMethod=${encodeURIComponent(requestedPaymentMethod)}`;
     redirect(`/signin?returnTo=${encodeURIComponent(paymentPath)}`);
   }
 

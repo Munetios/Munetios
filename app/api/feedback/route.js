@@ -137,7 +137,10 @@ function normalizeText(value, maximumLength, { required = false } = {}) {
 }
 
 function normalizeEmail(value) {
-  const email = normalizeText(value, 254, { required: true });
+  const email = normalizeText(value, 254);
+  if (email === "") {
+    return "";
+  }
   return email && emailPattern.test(email) ? email.toLowerCase() : null;
 }
 
@@ -229,10 +232,15 @@ export async function POST(request) {
     );
   }
 
+  const session = await auth(request);
   const feedbackType = allowedFeedbackTypes.has(payload.feedbackType)
     ? payload.feedbackType
     : null;
-  const email = normalizeEmail(payload.email);
+  const email = normalizeEmail(
+    Object.hasOwn(payload, "email")
+      ? payload.email
+      : session?.user?.email || "",
+  );
   const explanation = normalizeText(payload.explanation ?? "", 5000);
   const context = normalizeText(payload.context || "unknown", 120, {
     required: true,
@@ -242,7 +250,7 @@ export async function POST(request) {
 
   if (
     !feedbackType ||
-    !email ||
+    email === null ||
     explanation === null ||
     !context ||
     !screenshot
@@ -256,7 +264,6 @@ export async function POST(request) {
     );
   }
 
-  const session = await auth(request);
   const rateLimitKey = getRateLimitKey(request, session, email);
   if (isRateLimited(rateLimitKey)) {
     return jsonResponse(

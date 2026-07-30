@@ -7,6 +7,7 @@ import {
   getRequestFingerprint,
   setAccountData,
 } from "../../../lib/authSecurity.js";
+import { enforceOrganizationAppAccess } from "../../../lib/organizationPolicies.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -92,6 +93,8 @@ function getRateLimit(request, accountId) {
 export async function GET(request) {
   const { response, session } = await requireAuth(request);
   if (response) return response;
+  const policyResponse = enforceOrganizationAppAccess(session, "tasks");
+  if (policyResponse) return policyResponse;
   const inbox = readInbox(session.user.id);
   const publicKey = readData(session.user.id, identityKey, null);
   return respond({
@@ -131,6 +134,10 @@ export async function POST(request) {
   }
   const { response, session } = await requireAuth(request);
   if (response) return response;
+  const policyResponse = enforceOrganizationAppAccess(session, "tasks", {
+    mutating: true,
+  });
+  if (policyResponse) return policyResponse;
   const rateLimit = getRateLimit(request, session.user.id);
   if (!rateLimit.allowed) {
     return respond(

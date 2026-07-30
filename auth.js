@@ -1,7 +1,6 @@
 import { getAccountSession } from "./app/lib/authSecurity.js";
 
 const authCookieNames = ["munetios_session"];
-const demoCookieName = "munetios_demo";
 
 function hasUsefulValue(value) {
   if (!value || typeof value !== "string") {
@@ -57,43 +56,7 @@ export function hasAccountSessionCookie(request) {
   );
 }
 
-function stableHash(value) {
-  let hash = 2166136261;
-
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  return (hash >>> 0).toString(36);
-}
-
-function createDemoSession(value) {
-  const id = `demo-${stableHash(value)}`;
-
-  return {
-    authenticated: true,
-    demo: true,
-    source: demoCookieName,
-    sessionKey: id,
-    user: {
-      avatarLetter: "M",
-      avatarUrl: null,
-      email: "demo@munetios.com",
-      id,
-      name: "Example Account",
-      profilePictureUrl: null,
-    },
-  };
-}
-
 export async function auth(request) {
-  const demoToken = getCookieValue(request, demoCookieName);
-
-  if (hasUsefulValue(demoToken) && /^[a-z\d-]{8,128}$/i.test(demoToken)) {
-    return createDemoSession(demoToken);
-  }
-
   for (const cookieName of authCookieNames) {
     const cookieValue = getCookieValue(request, cookieName);
 

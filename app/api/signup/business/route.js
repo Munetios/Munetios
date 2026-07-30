@@ -8,6 +8,11 @@ import {
   setAccountData,
   updateAccountPlan,
 } from "../../../lib/authSecurity.js";
+import {
+  businessRoles,
+  businessVerificationStatuses,
+  normalizeBusinessAccount,
+} from "../../../lib/businessAccounts.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -122,14 +127,33 @@ export async function POST(request) {
     return jsonResponse({ error: "invalid_business_details" }, { status: 400 });
   }
 
+  const existingBusiness = normalizeBusinessAccount(
+    getAccountData(session.user.id, "business", null),
+    session.user.id,
+  );
+  if (!existingBusiness?.verified && details.plan !== "business-free") {
+    return jsonResponse(
+      {
+        error: "business_verification_required",
+        verificationStatus: businessVerificationStatuses.UNVERIFIED,
+      },
+      { status: 403 },
+    );
+  }
+
   const previousBusiness = getAccountData(session.user.id, "business", {});
   const now = new Date().toISOString();
   const business = {
     ...details,
     accountId: session.user.id,
     createdAt: previousBusiness?.createdAt || now,
-    status: details.plan === "business-pro" ? "pending_payment" : "active",
+    role: previousBusiness?.role || businessRoles.ADMINISTRATOR,
+    status: "active",
     updatedAt: now,
+    verificationStatus:
+      previousBusiness?.verificationStatus ||
+      businessVerificationStatuses.UNVERIFIED,
+    verified: previousBusiness?.verified === true,
   };
   setAccountData(session.user.id, "business", business);
 

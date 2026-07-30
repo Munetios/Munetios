@@ -12,6 +12,7 @@ import {
   setAccountData,
   updateAccountPlan,
 } from "../../lib/authSecurity.js";
+import { normalizeBusinessAccount } from "../../lib/businessAccounts.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -85,6 +86,18 @@ export async function GET(request) {
 
   const completedPlanId = stripeSession.metadata?.munetios_plan_id || "";
   if (stripeSession.status === "complete") {
+    if (completedPlanId.startsWith("business-")) {
+      const business = normalizeBusinessAccount(
+        getAccountData(session.user.id, "business", null),
+        session.user.id,
+      );
+      if (!business?.verified) {
+        return response(
+          { error: "business_verification_required" },
+          { status: 403 },
+        );
+      }
+    }
     updateAccountPlan(session.user.id, completedPlanId);
     if (stripeSession.customer) {
       setAccountData(session.user.id, "billing", {
@@ -92,7 +105,7 @@ export async function GET(request) {
         updatedAt: new Date().toISOString(),
       });
     }
-    if (completedPlanId === "business-pro") {
+    if (completedPlanId.startsWith("business-")) {
       const business = getAccountData(session.user.id, "business", {});
       setAccountData(session.user.id, "business", {
         ...business,
@@ -144,6 +157,18 @@ export async function POST(request) {
   }
 
   const plan = getPlan(payload?.planId);
+  if (plan.category === "business") {
+    const business = normalizeBusinessAccount(
+      getAccountData(session.user.id, "business", null),
+      session.user.id,
+    );
+    if (!business?.verified) {
+      return response(
+        { error: "business_verification_required" },
+        { status: 403 },
+      );
+    }
+  }
   const currency = normalizeCurrency(payload?.currency).toLowerCase();
   const requestedPaymentMethod = supportedPaymentMethods.has(
     payload?.paymentMethod,
@@ -213,7 +238,7 @@ export async function POST(request) {
     stripePayload.set(
       "line_items[0][price_data][product_data][name]",
       plan.category === "business"
-        ? "Munetios Business Pro"
+        ? `Munetios ${plan.nameKey === "demoPlanBusinessStandard" ? "Business Standard" : "Business Pro"}`
         : `Munetios AI ${plan.id === "pro" ? "Pro" : "Pro Lite"}`,
     );
   }
