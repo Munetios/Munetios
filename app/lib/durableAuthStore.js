@@ -1,52 +1,62 @@
 import { createHash } from "node:crypto";
-import { neon } from "@neondatabase/serverless";
+import { del, get, list, put } from "@vercel/blob";
 
-const connectionString = String(process.env.DATABASE_URL || "").trim();
-const sql = connectionString ? neon(connectionString) : null;
-let schemaPromise = null;
+const databasePrefix = "munetios-scratch/v1";
 
-function tokenHash(value) {
+function hash(value) {
   return createHash("sha256")
-    .update(String(value || ""))
+    .update(
+      String(value || "")
+        .trim()
+        .toLowerCase(),
+    )
     .digest("hex");
 }
 
-function ensureSchema() {
-  if (!sql) return Promise.resolve(false);
-  if (!schemaPromise) {
-    schemaPromise = sql
-      .transaction([
-        sql`CREATE TABLE IF NOT EXISTS munetios_auth_accounts (
-        id TEXT PRIMARY KEY,
-        username TEXT NOT NULL,
-        email TEXT NOT NULL,
-        contact TEXT NOT NULL,
-        account JSONB NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )`,
-        sql`CREATE UNIQUE INDEX IF NOT EXISTS munetios_auth_accounts_username_idx
-          ON munetios_auth_accounts (LOWER(username))`,
-        sql`CREATE UNIQUE INDEX IF NOT EXISTS munetios_auth_accounts_email_idx
-          ON munetios_auth_accounts (LOWER(email))`,
-        sql`CREATE UNIQUE INDEX IF NOT EXISTS munetios_auth_accounts_contact_idx
-          ON munetios_auth_accounts (LOWER(contact))`,
-        sql`CREATE TABLE IF NOT EXISTS munetios_auth_sessions (
-        token_hash TEXT PRIMARY KEY,
-        account_id TEXT NOT NULL REFERENCES munetios_auth_accounts(id) ON DELETE CASCADE,
-        expires_at BIGINT NOT NULL,
-        session JSONB NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )`,
-        sql`CREATE INDEX IF NOT EXISTS munetios_auth_sessions_account_idx
-          ON munetios_auth_sessions (account_id)`,
-      ])
-      .then(() => true);
+function blobOptions() {
+  return {
+    access: "private",
+    token:
+      process.env.MUNETIOS_DATABASE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN,
+  };
+}
+
+async function readJson(pathname) {
+  if (!hasDurableAuthStore()) return null;
+  try {
+    const result = await get(pathname, blobOptions());
+    if (!result || result.statusCode !== 200 || !result.stream) return null;
+    return await new Response(result.stream).json();
+  } catch {
+    return null;
   }
-  return schemaPromise;
+}
+
+async function writeJson(pathname, value) {
+  await put(pathname, JSON.stringify(value), {
+    ...blobOptions(),
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json; charset=utf-8",
+  });
+}
+
+function accountAliasPath(identifier) {
+  return `${databasePrefix}/account-aliases/${hash(identifier)}.json`;
+}
+
+function accountRecordPath(accountId) {
+  return `${databasePrefix}/accounts/${encodeURIComponent(accountId)}.json`;
+}
+
+function sessionPath(token) {
+  return `${databasePrefix}/sessions/${hash(token)}.json`;
 }
 
 export function hasDurableAuthStore() {
-  return Boolean(sql);
+  return Boolean(
+    process.env.MUNETIOS_DATABASE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN,
+  );
 }
 
 export function durableAuthRequired() {
@@ -58,102 +68,119 @@ export function durableAuthRequired() {
 }
 
 export async function durableIdentifierUsed(identifier) {
-  if (!(await ensureSchema())) return false;
-  const normalized = String(identifier || "")
-    .trim()
-    .toLowerCase();
-  if (!normalized) return false;
-  const rows = await sql`
-    SELECT 1 FROM munetios_auth_accounts
-    WHERE LOWER(username) = ${normalized}
-       OR LOWER(email) = ${normalized}
-       OR LOWER(contact) = ${normalized}
-    LIMIT 1
-  `;
-  return rows.length > 0;
+  return Boolean(await getDurableAccount(identifier));
 }
 
 export async function getDurableAccount(identifier) {
-  if (!(await ensureSchema())) return null;
-  const normalized = String(identifier || "")
-    .trim()
-    .toLowerCase();
-  if (!normalized) return null;
-  const rows = await sql`
-    SELECT account FROM munetios_auth_accounts
-    WHERE LOWER(username) = ${normalized}
-       OR LOWER(email) = ${normalized}
-       OR LOWER(contact) = ${normalized}
-    LIMIT 1
-  `;
-  return rows[0]?.account || null;
+  if (!hasDurableAuthStore()) return null;
+  const alias = await readJson(accountAliasPath(identifier));
+  if (!alias?.accountId) return null;
+  return readJson(accountRecordPath(alias.accountId));
 }
 
 export async function saveDurableAccount(account) {
-  if (!(await ensureSchema())) return false;
-  await sql`
-    INSERT INTO munetios_auth_accounts (id, username, email, contact, account)
-    VALUES (
-      ${account.id}, ${account.username}, ${account.email},
-      ${account.contact}, ${JSON.stringify(account)}::jsonb
+  if (!hasDurableAuthStore()) return false;
+  const identifiers = [
+    account.id,
+    account.username,
+    account.email,
+    account.contact,
+  ]
+    .map((value) =>
+      String(value || "")
+        .trim()
+        .toLowerCase(),
     )
-    ON CONFLICT (id) DO UPDATE SET
-      username = EXCLUDED.username,
-      email = EXCLUDED.email,
-      contact = EXCLUDED.contact,
-      account = EXCLUDED.account
-  `;
+    .filter(Boolean);
+  await writeJson(accountRecordPath(account.id), account);
+  await Promise.all(
+    identifiers.map((identifier) =>
+      writeJson(accountAliasPath(identifier), { accountId: account.id }),
+    ),
+  );
   return true;
 }
 
 export async function saveDurableSession({ account, session, metadata = {} }) {
-  if (!(await ensureSchema())) return false;
-  const storedSession = {
-    accountCollectionToken: session.accountCollectionToken,
+  if (!hasDurableAuthStore()) return false;
+  await writeJson(sessionPath(session.token), {
     accountId: account.id,
     createdAt: new Date().toISOString(),
     expiresAt: session.expiresAt,
     ipAddress: String(metadata.ipAddress || "local").slice(0, 80),
     location: String(metadata.location || "Local device").slice(0, 180),
+    tokenHash: hash(session.token),
     userAgent: String(metadata.userAgent || "Unknown device").slice(0, 500),
-  };
-  await sql`
-    INSERT INTO munetios_auth_sessions (token_hash, account_id, expires_at, session)
-    VALUES (
-      ${tokenHash(session.token)}, ${account.id}, ${session.expiresAt},
-      ${JSON.stringify(storedSession)}::jsonb
-    )
-    ON CONFLICT (token_hash) DO UPDATE SET
-      account_id = EXCLUDED.account_id,
-      expires_at = EXCLUDED.expires_at,
-      session = EXCLUDED.session
-  `;
+  });
   return true;
 }
 
 export async function getDurableSession(token) {
-  if (!(await ensureSchema())) return null;
-  const now = Date.now();
-  const rows = await sql`
-    SELECT a.account, s.session, s.token_hash
-    FROM munetios_auth_sessions s
-    JOIN munetios_auth_accounts a ON a.id = s.account_id
-    WHERE s.token_hash = ${tokenHash(token)} AND s.expires_at > ${now}
-    LIMIT 1
-  `;
-  if (!rows[0]) return null;
-  return {
-    account: rows[0].account,
-    session: rows[0].session,
-    tokenHash: rows[0].token_hash,
-  };
+  if (!hasDurableAuthStore()) return null;
+  const session = await readJson(sessionPath(token));
+  if (!session?.accountId || Number(session.expiresAt) <= Date.now())
+    return null;
+  const account = await readJson(accountRecordPath(session.accountId));
+  if (!account) return null;
+  return { account, session, tokenHash: session.tokenHash };
 }
 
 export async function deleteDurableSession(token) {
-  if (!(await ensureSchema())) return false;
-  await sql`
-    DELETE FROM munetios_auth_sessions
-    WHERE token_hash = ${tokenHash(token)}
-  `;
+  if (!hasDurableAuthStore() || !token) return false;
+  try {
+    await del(sessionPath(token), blobOptions());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function listDurableAccounts({ limit = 100 } = {}) {
+  if (!hasDurableAuthStore()) return [];
+  const result = await list({
+    ...blobOptions(),
+    limit: Math.min(Math.max(Number(limit) || 100, 1), 500),
+    prefix: `${databasePrefix}/accounts/`,
+  });
+  const accounts = await Promise.all(
+    result.blobs.map((blob) => readJson(blob.pathname)),
+  );
+  return accounts.filter(Boolean).map((account) => ({
+    contact: account.contact,
+    contactType: account.contactType,
+    createdAt: account.createdAt,
+    email: account.email,
+    id: account.id,
+    name: account.name,
+    plan: account.plan,
+    username: account.username,
+  }));
+}
+
+export async function saveDurableFeedback(report) {
+  if (!hasDurableAuthStore()) return false;
+  await writeJson(
+    `${databasePrefix}/feedback/${encodeURIComponent(report.id)}.json`,
+    report,
+  );
   return true;
+}
+
+export async function listDurableFeedback({ limit = 100 } = {}) {
+  if (!hasDurableAuthStore()) return [];
+  const result = await list({
+    ...blobOptions(),
+    limit: Math.min(Math.max(Number(limit) || 100, 1), 500),
+    prefix: `${databasePrefix}/feedback/`,
+  });
+  const reports = await Promise.all(
+    result.blobs.map((blob) => readJson(blob.pathname)),
+  );
+  return reports
+    .filter(Boolean)
+    .sort((first, second) =>
+      String(second.createdAt || "").localeCompare(
+        String(first.createdAt || ""),
+      ),
+    );
 }

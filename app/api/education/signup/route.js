@@ -17,6 +17,7 @@ import {
   verifyCaptcha,
   verifyContact,
 } from "../../../lib/authSecurity.js";
+import { isDatabaseStaffEmail } from "../../../lib/databaseStaffAccess.js";
 import {
   durableAuthRequired,
   durableIdentifierUsed,
@@ -58,6 +59,9 @@ export async function POST(request) {
   const firstName = String(payload?.firstName || "").trim();
   const lastName = String(payload?.lastName || "").trim();
   const age = getAge(payload?.birthDate);
+  if (isDatabaseStaffEmail(email)) {
+    return Response.json({ error: "email_taken" }, { status: 409 });
+  }
   if (
     !email ||
     !firstName ||

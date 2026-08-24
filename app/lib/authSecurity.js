@@ -1,4 +1,5 @@
 import {
+  createHmac,
   createHash,
   randomBytes,
   randomInt,
@@ -844,9 +845,29 @@ export function createContactVerification(identifier, fingerprint) {
     return null;
   }
 
-  const verificationId = randomBytes(18).toString("base64url");
   const code = String(randomInt(100000, 1000000));
   const expiresAt = Date.now() + verificationLifetimeMs;
+  const verificationSecret =
+    process.env.MUNETIOS_EMAIL_TOKEN_SECRET ||
+    process.env.AUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    "";
+  let verificationId = randomBytes(18).toString("base64url");
+  if (verificationSecret) {
+    const encoded = Buffer.from(
+      JSON.stringify({
+        codeHash: hash(code),
+        expiresAt,
+        fingerprintHash: hash(fingerprint),
+        identifier: normalizedIdentifier,
+      }),
+      "utf8",
+    ).toString("base64url");
+    const signature = createHmac("sha256", verificationSecret)
+      .update(encoded)
+      .digest("base64url");
+    verificationId = `v1.${encoded}.${signature}`;
+  }
   insertVerificationStatement.run(
     verificationId,
     hash(code),
@@ -986,6 +1007,38 @@ export function verifyContact({
   identifier,
   verificationId,
 }) {
+  if (String(verificationId || "").startsWith("v1.")) {
+    const verificationSecret =
+      process.env.MUNETIOS_EMAIL_TOKEN_SECRET ||
+      process.env.AUTH_SECRET ||
+      process.env.NEXTAUTH_SECRET ||
+      "";
+    const [version, encoded, providedSignature, extra] = String(
+      verificationId || "",
+    ).split(".");
+    if (!verificationSecret || version !== "v1" || !encoded || extra) {
+      return false;
+    }
+    const expectedSignature = createHmac("sha256", verificationSecret)
+      .update(encoded)
+      .digest("base64url");
+    if (!safeEqual(providedSignature, expectedSignature)) return false;
+    try {
+      const verification = JSON.parse(
+        Buffer.from(encoded, "base64url").toString("utf8"),
+      );
+      const normalizedIdentifier =
+        normalizeEmail(identifier) || normalizePhone(identifier);
+      return Boolean(
+        verification.expiresAt > Date.now() &&
+          verification.identifier === normalizedIdentifier &&
+          safeEqual(verification.fingerprintHash, hash(fingerprint)) &&
+          safeEqual(verification.codeHash, hash(String(code || "").trim())),
+      );
+    } catch {
+      return false;
+    }
+  }
   deleteExpiredVerificationsStatement.run(Date.now());
   incrementVerificationAttemptsStatement.run(verificationId);
   const verification = getVerificationStatement.get(verificationId);

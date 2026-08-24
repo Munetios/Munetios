@@ -21,6 +21,7 @@ import {
   verifyCaptcha,
   verifyContact,
 } from "../../../lib/authSecurity.js";
+import { isDatabaseStaffEmail } from "../../../lib/databaseStaffAccess.js";
 import {
   durableAuthRequired,
   durableIdentifierUsed,
@@ -89,7 +90,6 @@ export async function POST(request) {
   ) {
     return response({ error: "invalid_captcha" }, { status: 400 });
   }
-
   const age = getAge(payload?.birthDate);
   if (age === null) {
     return response({ error: "invalid_birth_date" }, { status: 400 });
@@ -106,6 +106,9 @@ export async function POST(request) {
       : normalizeEmail(payload?.contact);
   const firstName = String(payload?.firstName || "").trim();
   const lastName = String(payload?.lastName || "").trim();
+  if (isDatabaseStaffEmail(contact)) {
+    return response({ error: "email_taken" }, { status: 409 });
+  }
   const usesExistingEmail =
     contactType === "email" &&
     Boolean(contact) &&

@@ -1,4 +1,5 @@
 import { auth } from "../../../auth.js";
+import { saveDurableFeedback } from "../../lib/durableAuthStore.js";
 import {
   createFeedbackReport,
   getFeedbackReports,
@@ -275,7 +276,7 @@ export async function POST(request) {
     );
   }
 
-  const report = createFeedbackReport({
+  const reportInput = {
     context,
     createdAt: new Date().toISOString(),
     email,
@@ -287,7 +288,9 @@ export async function POST(request) {
     screenshotMimeType: screenshot.mimeType,
     userAgent: normalizeText(request.headers.get("user-agent") || "", 500),
     userId: session?.user?.id || null,
-  });
+  };
+  const report = createFeedbackReport(reportInput);
+  await saveDurableFeedback({ ...reportInput, screenshot: undefined });
 
   return jsonResponse({ report, submitted: true }, { status: 201 });
 }
