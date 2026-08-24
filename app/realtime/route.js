@@ -16,11 +16,13 @@ import {
   createRealtimeRoom,
   editRealtimeChatMessage,
   endRealtimeActivity,
+  hydrateRealtimeDatabase,
   isRealtimeRoomOwner,
   joinRealtimeActivity,
   joinRealtimeRoom,
   kickRealtimePeer,
   leaveRealtimeRoom,
+  persistRealtimeDatabase,
   pollRealtimeEvents,
   publishRealtimeSignal,
   rejoinRealtimeRoom,
@@ -123,7 +125,7 @@ function credentials(payload) {
   };
 }
 
-export async function GET(request) {
+async function handleGET(request) {
   const url = new URL(request.url);
   const authFields = credentials(Object.fromEntries(url.searchParams));
   if (
@@ -148,7 +150,7 @@ export async function GET(request) {
   });
 }
 
-export async function POST(request) {
+async function handlePOST(request) {
   let payload;
   try {
     payload = await request.json();
@@ -477,7 +479,25 @@ export async function POST(request) {
   return respond({ error: "invalid_action" }, 400);
 }
 
-export async function DELETE(request) {
+export async function GET(request) {
+  await hydrateRealtimeDatabase();
+  try {
+    return await handleGET(request);
+  } finally {
+    await persistRealtimeDatabase();
+  }
+}
+
+export async function POST(request) {
+  await hydrateRealtimeDatabase();
+  try {
+    return await handlePOST(request);
+  } finally {
+    await persistRealtimeDatabase();
+  }
+}
+
+async function handleDELETE(request) {
   const url = new URL(request.url);
   const authFields = credentials(Object.fromEntries(url.searchParams));
   if (
@@ -490,4 +510,13 @@ export async function DELETE(request) {
   }
   leaveRealtimeRoom(authFields);
   return respond({ left: true });
+}
+
+export async function DELETE(request) {
+  await hydrateRealtimeDatabase();
+  try {
+    return await handleDELETE(request);
+  } finally {
+    await persistRealtimeDatabase();
+  }
 }

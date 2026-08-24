@@ -184,3 +184,189 @@ export async function listDurableFeedback({ limit = 100 } = {}) {
       ),
     );
 }
+
+export async function saveDurableAccountData(accountId, key, value) {
+  if (!hasDurableAuthStore() || !accountId || !key) return false;
+  await writeJson(
+    `${databasePrefix}/account-data/${encodeURIComponent(accountId)}/${hash(key)}.json`,
+    { key, value },
+  );
+  const account = await readJson(accountRecordPath(accountId));
+  if (account) {
+    account.durableData = { ...(account.durableData || {}), [key]: value };
+    if (key === "profile") {
+      account.name = value?.name || account.name;
+      account.profilePictureUrl = Object.hasOwn(
+        value || {},
+        "profilePictureUrl",
+      )
+        ? value.profilePictureUrl
+        : account.profilePictureUrl;
+    }
+    await saveDurableAccount(account);
+  }
+  return true;
+}
+
+export async function getDurableAccountData(accountId, key) {
+  if (!hasDurableAuthStore() || !accountId || !key) return null;
+  const stored = await readJson(
+    `${databasePrefix}/account-data/${encodeURIComponent(accountId)}/${hash(key)}.json`,
+  );
+  return stored?.key === key ? stored.value : null;
+}
+
+export async function saveDurableProfileImage(token, body, contentType) {
+  if (!hasDurableAuthStore()) return false;
+  await put(
+    `${databasePrefix}/profile-images/${encodeURIComponent(token)}`,
+    body,
+    {
+      ...blobOptions(),
+      addRandomSuffix: false,
+      allowOverwrite: true,
+      contentType,
+    },
+  );
+  return true;
+}
+
+export async function getDurableProfileImage(token) {
+  if (!hasDurableAuthStore()) return null;
+  try {
+    const result = await get(
+      `${databasePrefix}/profile-images/${encodeURIComponent(token)}`,
+      blobOptions(),
+    );
+    if (!result || result.statusCode !== 200 || !result.stream) return null;
+    return {
+      contentType: result.blob.contentType || "application/octet-stream",
+      stream: result.stream,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteDurableProfileImage(token) {
+  if (!hasDurableAuthStore() || !token) return false;
+  try {
+    await del(
+      `${databasePrefix}/profile-images/${encodeURIComponent(token)}`,
+      blobOptions(),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function saveDurableCustomConnector(accountId, connector) {
+  if (!hasDurableAuthStore() || !accountId || !connector?.id) return false;
+  await writeJson(
+    `${databasePrefix}/custom-connectors/${encodeURIComponent(accountId)}/${encodeURIComponent(connector.id)}.json`,
+    connector,
+  );
+  return true;
+}
+
+export async function listDurableCustomConnectors(
+  accountId,
+  { limit = 100 } = {},
+) {
+  if (!hasDurableAuthStore() || !accountId) return [];
+  const result = await list({
+    ...blobOptions(),
+    limit: Math.min(Math.max(Number(limit) || 100, 1), 500),
+    prefix: `${databasePrefix}/custom-connectors/${encodeURIComponent(accountId)}/`,
+  });
+  const connectors = await Promise.all(
+    result.blobs.map((blob) => readJson(blob.pathname)),
+  );
+  return connectors.filter(Boolean);
+}
+
+export async function getDurableRealtimeDatabase() {
+  if (!hasDurableAuthStore()) return null;
+  try {
+    const result = await get(
+      `${databasePrefix}/system/realtime.sqlite`,
+      blobOptions(),
+    );
+    if (!result || result.statusCode !== 200 || !result.stream) return null;
+    return new Uint8Array(await new Response(result.stream).arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+export async function saveDurableRealtimeDatabase(body) {
+  if (!hasDurableAuthStore()) return false;
+  await put(`${databasePrefix}/system/realtime.sqlite`, body, {
+    ...blobOptions(),
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/vnd.sqlite3",
+  });
+  return true;
+}
+
+export async function saveDurableConnectorIcon(iconId, body, contentType) {
+  if (!hasDurableAuthStore()) return false;
+  await put(
+    `${databasePrefix}/connector-icons/${encodeURIComponent(iconId)}`,
+    body,
+    {
+      ...blobOptions(),
+      addRandomSuffix: false,
+      allowOverwrite: true,
+      contentType,
+    },
+  );
+  return true;
+}
+
+export async function getDurableConnectorIcon(iconId) {
+  if (!hasDurableAuthStore()) return null;
+  try {
+    const result = await get(
+      `${databasePrefix}/connector-icons/${encodeURIComponent(iconId)}`,
+      blobOptions(),
+    );
+    if (!result || result.statusCode !== 200 || !result.stream) return null;
+    return {
+      contentType: result.blob.contentType || "application/octet-stream",
+      stream: result.stream,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function incrementDurableMetric(metric) {
+  if (!hasDurableAuthStore() || !/^[a-z0-9_-]{1,80}$/u.test(metric)) {
+    return null;
+  }
+  const pathname = `${databasePrefix}/metrics/${metric}.json`;
+  const current = await readJson(pathname);
+  const total = Math.max(0, Number(current?.total) || 0) + 1;
+  await writeJson(pathname, { total, updatedAt: new Date().toISOString() });
+  return total;
+}
+
+export async function countDurableAccounts() {
+  if (!hasDurableAuthStore()) return null;
+  let cursor;
+  let total = 0;
+  do {
+    const result = await list({
+      ...blobOptions(),
+      cursor,
+      limit: 1000,
+      prefix: `${databasePrefix}/accounts/`,
+    });
+    total += result.blobs.length;
+    cursor = result.hasMore ? result.cursor : undefined;
+  } while (cursor);
+  return total;
+}

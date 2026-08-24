@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createWriteStream, mkdirSync } from "node:fs";
+import { createReadStream, createWriteStream, mkdirSync } from "node:fs";
 import { unlink, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Readable, Transform } from "node:stream";
@@ -7,6 +7,7 @@ import { pipeline } from "node:stream/promises";
 import { auth, unauthorizedResponse } from "../../../../auth.js";
 import { assertSameOrigin } from "../../../lib/authSecurity.js";
 import { dataDirectory } from "../../../lib/dataDirectory.js";
+import { saveDurableConnectorIcon } from "../../../lib/durableAuthStore.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -61,6 +62,11 @@ export async function POST(request) {
       `${filePath}.json`,
       JSON.stringify({ contentType, ownerUserId: session.user.id }),
       "utf8",
+    );
+    await saveDurableConnectorIcon(
+      iconId,
+      Readable.toWeb(createReadStream(filePath)),
+      contentType,
     );
     return Response.json(
       { iconUrl: `/api/connectors/icons/${iconId}`, size: received },

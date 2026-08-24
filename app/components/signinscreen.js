@@ -701,7 +701,6 @@ export default function SignInScreen({ addingAccount = false }) {
     if (
       !signup.firstName.trim() ||
       !signup.birthDate ||
-      !signup.gender ||
       !signup.password ||
       !signup.captchaAnswer.trim() ||
       !hasContact

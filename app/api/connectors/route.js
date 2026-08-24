@@ -5,6 +5,7 @@ import {
   listAccountConnectors,
   listPublicConnectors,
 } from "../../lib/connectorDatabase.js";
+import { listDurableCustomConnectors } from "../../lib/durableAuthStore.js";
 import { isStudentAccount } from "../../lib/education.js";
 import { enforceParentalConnectorAccess } from "../../lib/family.js";
 import { enforceOrganizationConnectorAccess } from "../../lib/organizationPolicies.js";
@@ -17,14 +18,21 @@ export async function GET(request) {
 
   if (storeRequest) {
     const session = await auth(request);
+    const customConnectors = session
+      ? await listDurableCustomConnectors(session.user.id)
+      : [];
     return Response.json(
       {
         authenticated: Boolean(session),
         connectors: session
-          ? listAccountConnectors(session.user.id).filter(
-              (connector) =>
-                !isStudentAccount(session.user.id) || connector.id !== "github",
-            )
+          ? [
+              ...listAccountConnectors(session.user.id).filter(
+                (connector) =>
+                  !isStudentAccount(session.user.id) ||
+                  connector.id !== "github",
+              ),
+              ...customConnectors,
+            ]
           : listPublicConnectors(),
       },
       { headers: { "Cache-Control": "no-store" } },
@@ -38,13 +46,17 @@ export async function GET(request) {
   const parentalResponse = enforceParentalConnectorAccess(session);
   if (parentalResponse) return parentalResponse;
 
+  const customConnectors = await listDurableCustomConnectors(session.user.id);
   return Response.json(
     {
       authenticated: true,
-      connectors: listAccountConnectors(session.user.id).filter(
-        (connector) =>
-          !isStudentAccount(session.user.id) || connector.id !== "github",
-      ),
+      connectors: [
+        ...listAccountConnectors(session.user.id).filter(
+          (connector) =>
+            !isStudentAccount(session.user.id) || connector.id !== "github",
+        ),
+        ...customConnectors,
+      ],
     },
     { headers: { "Cache-Control": "no-store" } },
   );

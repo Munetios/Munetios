@@ -8,7 +8,7 @@ import AppTopbarRight from "../../components/appTopbarRight";
 import CustomFilePicker from "../../components/customFilePicker";
 import CustomToggle from "../../components/customToggle";
 import LoadingSpinner from "../../components/loadingSpinner";
-import { showModal } from "../../components/modal";
+import { dismissModal, showModal } from "../../components/modal";
 import { showToast } from "../../components/toast";
 import { t } from "../../i18n";
 import { showParentalAwareToast } from "../../lib/parentalControlsClient";
@@ -116,7 +116,7 @@ function DeveloperBusinessForm({ copy, onVerified }) {
   );
 }
 
-function _CreateConnector({ copy, close, onCreated }) {
+function CreateConnector({ copy, close, onCreated }) {
   const [needsVerification, setNeedsVerification] = useState(false);
   const [iconFile, setIconFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -293,7 +293,17 @@ export default function ConnectorStore() {
       window.location.assign("/signin");
       return;
     }
-    showToast({ message: copy.comingSoon, type: "info" });
+    let modalId = "";
+    modalId = showModal(
+      <CreateConnector
+        close={() => dismissModal(modalId)}
+        copy={copy}
+        onCreated={(connector) =>
+          setConnectors((current) => [...current, connector])
+        }
+      />,
+      { title: copy.connectorCreate },
+    );
   };
 
   const disconnect = async (connector) => {

@@ -15,6 +15,13 @@ import {
   updateDemoSettings,
 } from "../../../lib/demoSettings.js";
 import {
+  deleteDurableProfileImage,
+  getDurableAccountData,
+  getDurableProfileImage,
+  saveDurableAccountData,
+  saveDurableProfileImage,
+} from "../../../lib/durableAuthStore.js";
+import {
   enforceStudentRestriction,
   isStudentAccount,
 } from "../../../lib/education.js";
@@ -298,6 +305,17 @@ async function removeImageFile(imageFile) {
   } catch {
     // A stale profile image should not block a profile update.
   }
+  await deleteDurableProfileImage(imageFile.token);
+}
+
+async function hydrateStoredProfile(session) {
+  if (session.demo) return;
+  const durableProfile = await getDurableAccountData(
+    session.user.id,
+    "profile",
+  );
+  if (durableProfile)
+    setAccountData(session.user.id, "profile", durableProfile);
 }
 
 async function serveProfileImage(token) {
@@ -327,6 +345,18 @@ async function serveProfileImage(token) {
     }
   }
 
+  const durableImage = await getDurableProfileImage(token);
+  if (durableImage) {
+    return new Response(durableImage.stream, {
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+        "Content-Type": durableImage.contentType,
+        "Cross-Origin-Resource-Policy": "same-origin",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  }
+
   return new Response(null, { status: 404 });
 }
 
@@ -344,6 +374,8 @@ export async function GET(request) {
     return response;
   }
 
+  await hydrateStoredProfile(session);
+
   return jsonResponse(getProfile(session));
 }
 
@@ -353,6 +385,7 @@ export async function PUT(request) {
   if (response) {
     return response;
   }
+  await hydrateStoredProfile(session);
   const educationResponse = enforceStudentRestriction(session, "profile");
   if (educationResponse) return educationResponse;
   if (
@@ -445,11 +478,19 @@ export async function PUT(request) {
     token,
   };
 
-  setStoredProfile(session, {
+  await saveDurableProfileImage(
+    token,
+    Readable.toWeb(createReadStream(filePath)),
+    contentType,
+  );
+
+  const nextProfile = {
     ...storedProfile,
     imageFile,
     profilePictureUrl: `/api/account/profile?image=${encodeURIComponent(token)}`,
-  });
+  };
+  setStoredProfile(session, nextProfile);
+  await saveDurableAccountData(session.user.id, "profile", nextProfile);
 
   await removeImageFile(previousImageFile);
 
@@ -462,6 +503,7 @@ export async function PATCH(request) {
   if (response) {
     return response;
   }
+  await hydrateStoredProfile(session);
   if (
     getDemoSettings(session)?.archived ||
     (!session.demo && getAccountLifecycle(session.user.id).archived)
@@ -574,7 +616,7 @@ export async function PATCH(request) {
     Boolean(storedProfile.imageFile) &&
     profilePictureUrl === storedProfile.profilePictureUrl;
 
-  setStoredProfile(session, {
+  const nextProfile = {
     avatar,
     bio,
     birthday,
@@ -584,7 +626,9 @@ export async function PATCH(request) {
     imageFile: keepsStoredImage ? storedProfile.imageFile : null,
     name,
     profilePictureUrl,
-  });
+  };
+  setStoredProfile(session, nextProfile);
+  await saveDurableAccountData(session.user.id, "profile", nextProfile);
 
   if (enableParentSupervision) {
     updateDemoSettings(session, { parentSupervision: true });

@@ -5,6 +5,10 @@ import {
   normalizeEmail,
   setAccountData,
 } from "../../lib/authSecurity.js";
+import {
+  getDurableAccountData,
+  saveDurableAccountData,
+} from "../../lib/durableAuthStore.js";
 import { enforceOrganizationAppAccess } from "../../lib/organizationPolicies.js";
 
 export const dynamic = "force-dynamic";
@@ -134,6 +138,20 @@ function normalizeHistory(value) {
     }));
 }
 
+async function readAccountValue(accountId, key, fallback) {
+  const durable = await getDurableAccountData(accountId, key);
+  if (durable !== null) {
+    setAccountData(accountId, key, durable);
+    return durable;
+  }
+  return getAccountData(accountId, key, fallback);
+}
+
+async function writeAccountValue(accountId, key, value) {
+  setAccountData(accountId, key, value);
+  await saveDurableAccountData(accountId, key, value);
+}
+
 export async function GET(request) {
   const session = await auth(request);
   if (!session || session.demo) {
@@ -145,12 +163,14 @@ export async function GET(request) {
   }
   const policyResponse = enforceOrganizationAppAccess(session, "meet");
   if (policyResponse) return policyResponse;
+  const [history, settings] = await Promise.all([
+    readAccountValue(session.user.id, historyKey, []),
+    readAccountValue(session.user.id, settingsKey, defaultSettings),
+  ]);
   return response({
     authenticated: true,
-    history: normalizeHistory(getAccountData(session.user.id, historyKey, [])),
-    settings: normalizeSettings(
-      getAccountData(session.user.id, settingsKey, defaultSettings),
-    ),
+    history: normalizeHistory(history),
+    settings: normalizeSettings(settings),
   });
 }
 
@@ -168,7 +188,7 @@ export async function PATCH(request) {
   if (policyResponse) return policyResponse;
   const payload = await request.json().catch(() => ({}));
   const settings = normalizeSettings(payload.settings);
-  setAccountData(session.user.id, settingsKey, settings);
+  await writeAccountValue(session.user.id, settingsKey, settings);
   return response({ settings });
 }
 
@@ -194,7 +214,7 @@ export async function POST(request) {
       return response({ error: "invalid_person" }, { status: 400 });
     }
     const currentSettings = normalizeSettings(
-      getAccountData(session.user.id, settingsKey, defaultSettings),
+      await readAccountValue(session.user.id, settingsKey, defaultSettings),
     );
     const settings = normalizeSettings({
       ...currentSettings,
@@ -211,14 +231,14 @@ export async function POST(request) {
         ...currentSettings.blockedPeople.filter((person) => person.id !== id),
       ],
     });
-    setAccountData(session.user.id, settingsKey, settings);
+    await writeAccountValue(session.user.id, settingsKey, settings);
     return response({ settings }, { status: 201 });
   }
   if (payload.action !== "record_history") {
     return response({ error: "invalid_action" }, { status: 400 });
   }
   const current = normalizeHistory(
-    getAccountData(session.user.id, historyKey, []),
+    await readAccountValue(session.user.id, historyKey, []),
   );
   const [entry] = normalizeHistory([
     {
@@ -230,6 +250,6 @@ export async function POST(request) {
     },
   ]);
   const history = [entry, ...current].slice(0, 100);
-  setAccountData(session.user.id, historyKey, history);
+  await writeAccountValue(session.user.id, historyKey, history);
   return response({ entry, history }, { status: 201 });
 }

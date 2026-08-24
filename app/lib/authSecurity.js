@@ -851,6 +851,7 @@ export function createContactVerification(identifier, fingerprint) {
     process.env.MUNETIOS_EMAIL_TOKEN_SECRET ||
     process.env.AUTH_SECRET ||
     process.env.NEXTAUTH_SECRET ||
+    process.env.RESEND_API_KEY ||
     "";
   let verificationId = randomBytes(18).toString("base64url");
   if (verificationSecret) {
@@ -858,7 +859,6 @@ export function createContactVerification(identifier, fingerprint) {
       JSON.stringify({
         codeHash: hash(code),
         expiresAt,
-        fingerprintHash: hash(fingerprint),
         identifier: normalizedIdentifier,
       }),
       "utf8",
@@ -1012,6 +1012,7 @@ export function verifyContact({
       process.env.MUNETIOS_EMAIL_TOKEN_SECRET ||
       process.env.AUTH_SECRET ||
       process.env.NEXTAUTH_SECRET ||
+      process.env.RESEND_API_KEY ||
       "";
     const [version, encoded, providedSignature, extra] = String(
       verificationId || "",
@@ -1032,7 +1033,6 @@ export function verifyContact({
       return Boolean(
         verification.expiresAt > Date.now() &&
           verification.identifier === normalizedIdentifier &&
-          safeEqual(verification.fingerprintHash, hash(fingerprint)) &&
           safeEqual(verification.codeHash, hash(String(code || "").trim())),
       );
     } catch {
@@ -1177,25 +1177,26 @@ export async function createAccount({
 export function importDurableAccount(account) {
   if (!account?.id || !account?.passwordHash) return null;
   const existing = mapAccount(findAccountByIdStatement.get(account.id));
-  if (existing) return existing;
-  try {
-    insertAccountStatement.run(
-      account.id,
-      account.username,
-      account.email,
-      account.contact,
-      account.contactType,
-      account.name,
-      account.firstName,
-      account.lastName,
-      account.gender,
-      account.birthDate,
-      account.passwordHash,
-      account.plan || "Free",
-      account.createdAt || new Date().toISOString(),
-    );
-  } catch {
-    return mapAccount(findAccountByIdStatement.get(account.id));
+  if (!existing) {
+    try {
+      insertAccountStatement.run(
+        account.id,
+        account.username,
+        account.email,
+        account.contact,
+        account.contactType,
+        account.name,
+        account.firstName,
+        account.lastName,
+        account.gender,
+        account.birthDate,
+        account.passwordHash,
+        account.plan || "Free",
+        account.createdAt || new Date().toISOString(),
+      );
+    } catch {
+      return mapAccount(findAccountByIdStatement.get(account.id));
+    }
   }
   for (const [key, value] of Object.entries(account.durableData || {})) {
     setAccountDataStatement.run(

@@ -3,6 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Readable } from "node:stream";
 import { dataDirectory } from "../../../../lib/dataDirectory.js";
+import { getDurableConnectorIcon } from "../../../../lib/durableAuthStore.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,6 +28,15 @@ export async function GET(_request, { params }) {
       },
     });
   } catch {
-    return new Response(null, { status: 404 });
+    const durableIcon = await getDurableConnectorIcon(iconId);
+    return durableIcon
+      ? new Response(durableIcon.stream, {
+          headers: {
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "Content-Type": durableIcon.contentType,
+            "X-Content-Type-Options": "nosniff",
+          },
+        })
+      : new Response(null, { status: 404 });
   }
 }

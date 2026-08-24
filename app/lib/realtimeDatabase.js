@@ -6,13 +6,18 @@ import {
   randomUUID,
 } from "node:crypto";
 import { mkdirSync } from "node:fs";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { getAccountData } from "./authSecurity.js";
 import { dataDirectory as resolvedDataDirectory } from "./dataDirectory.js";
 import {
-  advanceMeetActivityState,
+  getDurableRealtimeDatabase,
+  saveDurableRealtimeDatabase,
+} from "./durableAuthStore.js";
+import {
   activityForPeer,
+  advanceMeetActivityState,
   createMeetActivityState,
   finalizeMeetActivityState,
   joinMeetActivity,
@@ -22,7 +27,7 @@ import {
 } from "./meetActivities.js";
 
 const databaseDirectory = resolvedDataDirectory;
-const databasePath = join(databaseDirectory, "munetios.sqlite");
+const databasePath = join(databaseDirectory, "realtime.sqlite");
 const realtimeRoomLifetimeMs = 24 * 60 * 60 * 1000;
 const realtimeUserKeySecret =
   process.env.MUNETIOS_REALTIME_USER_KEY_SECRET ||
@@ -221,6 +226,27 @@ function getDatabase() {
     globalThis.__munetiosRealtimeSchemaVersion = realtimeSchemaVersion;
   }
   return globalThis.__munetiosRealtimeDatabase;
+}
+
+let durableHydrationPromise = null;
+
+export async function hydrateRealtimeDatabase() {
+  if (globalThis.__munetiosRealtimeDatabase) return;
+  if (!durableHydrationPromise) {
+    durableHydrationPromise = (async () => {
+      mkdirSync(databaseDirectory, { recursive: true });
+      const stored = await getDurableRealtimeDatabase();
+      if (stored?.length) await writeFile(databasePath, stored);
+    })();
+  }
+  await durableHydrationPromise;
+}
+
+export async function persistRealtimeDatabase() {
+  const database = globalThis.__munetiosRealtimeDatabase;
+  if (!database) return false;
+  database.exec("PRAGMA wal_checkpoint(TRUNCATE);");
+  return saveDurableRealtimeDatabase(await readFile(databasePath));
 }
 
 function hashToken(token) {
