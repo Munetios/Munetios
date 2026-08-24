@@ -230,6 +230,7 @@ function getDatabase() {
 
 let durableHydrationPromise = null;
 let durableRefreshPromise = null;
+let durableRealtimeEtag = "";
 
 export async function hydrateRealtimeDatabase() {
   if (globalThis.__munetiosRealtimeDatabase) return;
@@ -237,7 +238,10 @@ export async function hydrateRealtimeDatabase() {
     durableHydrationPromise = (async () => {
       mkdirSync(databaseDirectory, { recursive: true });
       const stored = await getDurableRealtimeDatabase();
-      if (stored?.length) await writeFile(databasePath, stored);
+      if (stored?.body?.length) {
+        await writeFile(databasePath, stored.body);
+        durableRealtimeEtag = stored.etag || "";
+      }
     })();
   }
   await durableHydrationPromise;
@@ -247,7 +251,7 @@ export async function refreshRealtimeDatabaseFromDurable() {
   if (!durableRefreshPromise) {
     durableRefreshPromise = (async () => {
       const stored = await getDurableRealtimeDatabase();
-      if (!stored?.length) return false;
+      if (!stored?.body?.length) return false;
 
       const database = globalThis.__munetiosRealtimeDatabase;
       if (database) {
@@ -264,7 +268,8 @@ export async function refreshRealtimeDatabaseFromDurable() {
         rm(`${databasePath}-shm`, { force: true }),
         rm(`${databasePath}-wal`, { force: true }),
       ]);
-      await writeFile(databasePath, stored);
+      await writeFile(databasePath, stored.body);
+      durableRealtimeEtag = stored.etag || "";
       durableHydrationPromise = null;
       return true;
     })().finally(() => {
@@ -278,7 +283,12 @@ export async function persistRealtimeDatabase() {
   const database = globalThis.__munetiosRealtimeDatabase;
   if (!database) return false;
   database.exec("PRAGMA wal_checkpoint(TRUNCATE);");
-  return saveDurableRealtimeDatabase(await readFile(databasePath));
+  const saved = await saveDurableRealtimeDatabase(
+    await readFile(databasePath),
+    durableRealtimeEtag,
+  );
+  if (saved?.etag) durableRealtimeEtag = saved.etag;
+  return saved;
 }
 
 function hashToken(token) {

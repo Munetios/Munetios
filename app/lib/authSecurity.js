@@ -30,6 +30,32 @@ const authStore = globalThis.__munetiosAuthStore || {
   verifications: new Map(),
 };
 
+function verificationSigningSecret() {
+  const configured =
+    process.env.MUNETIOS_EMAIL_TOKEN_SECRET ||
+    process.env.AUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    "";
+  if (configured) return configured;
+  const blobCredential =
+    process.env.MUNETIOS_DATABASE_TOKEN ||
+    process.env.MUNETIOS_DATABASE_READ_WRITE_TOKEN ||
+    process.env.BLOB_READ_WRITE_TOKEN ||
+    Object.entries(process.env).find(
+      ([key, value]) =>
+        ((key.includes("BLOB") && key.endsWith("_READ_WRITE_TOKEN")) ||
+          key.endsWith("_DATABASE_READ_WRITE_TOKEN")) &&
+        typeof value === "string" &&
+        value.trim(),
+    )?.[1] ||
+    "";
+  return blobCredential
+    ? createHash("sha256")
+        .update(`munetios-contact-verification:${blobCredential}`)
+        .digest("hex")
+    : "";
+}
+
 globalThis.__munetiosAuthStore = authStore;
 
 function createAuthDatabase() {
@@ -847,11 +873,7 @@ export function createContactVerification(identifier, fingerprint) {
 
   const code = String(randomInt(100000, 1000000));
   const expiresAt = Date.now() + verificationLifetimeMs;
-  const verificationSecret =
-    process.env.MUNETIOS_EMAIL_TOKEN_SECRET ||
-    process.env.AUTH_SECRET ||
-    process.env.NEXTAUTH_SECRET ||
-    "";
+  const verificationSecret = verificationSigningSecret();
   let verificationId = randomBytes(18).toString("base64url");
   if (verificationSecret) {
     const encoded = Buffer.from(
@@ -1007,11 +1029,7 @@ export function verifyContact({
   verificationId,
 }) {
   if (String(verificationId || "").startsWith("v1.")) {
-    const verificationSecret =
-      process.env.MUNETIOS_EMAIL_TOKEN_SECRET ||
-      process.env.AUTH_SECRET ||
-      process.env.NEXTAUTH_SECRET ||
-      "";
+    const verificationSecret = verificationSigningSecret();
     const [version, encoded, providedSignature, extra] = String(
       verificationId || "",
     ).split(".");

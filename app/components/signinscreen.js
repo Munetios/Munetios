@@ -110,6 +110,10 @@ const genderOptions = [
   { key: "authGenderOther", value: "other" },
 ];
 
+function isValidSignupEmail(value) {
+  return /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/u.test(String(value || "").trim());
+}
+
 function getSafeReturnTo() {
   if (typeof window === "undefined") return "/";
   const value = new URL(window.location.href).searchParams.get("returnTo");
@@ -640,6 +644,13 @@ export default function SignInScreen({ addingAccount = false }) {
         ? getInternationalPhone(signup.contact, signup.country)
         : signup.contact;
     if (
+      signup.contactMode === "existing" &&
+      !isValidSignupEmail(identifierValue)
+    ) {
+      showToast({ messageKey: "authRequiredDetails", type: "error" });
+      return false;
+    }
+    if (
       signup.contactMode === "phone" &&
       !isValidPhoneNumber(identifierValue)
     ) {
@@ -653,7 +664,7 @@ export default function SignInScreen({ addingAccount = false }) {
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         method: "POST",
-        signal: AbortSignal.timeout(12_000),
+        signal: AbortSignal.timeout(30_000),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -697,7 +708,9 @@ export default function SignInScreen({ addingAccount = false }) {
     const hasContact =
       signup.contactMode === "munetios"
         ? Boolean(signup.username.trim())
-        : Boolean(signup.contact.trim());
+        : signup.contactMode === "existing"
+          ? isValidSignupEmail(signup.contact)
+          : Boolean(signup.contact.trim());
     if (
       !signup.firstName.trim() ||
       !signup.birthDate ||

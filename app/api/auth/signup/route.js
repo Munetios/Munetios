@@ -124,6 +124,8 @@ export async function POST(request) {
     !firstName ||
     firstName.length > 60 ||
     lastName.length > 60 ||
+    (payload?.gender &&
+      !["woman", "man", "nonbinary", "other"].includes(payload.gender)) ||
     !isStrongPassword(payload?.password)
   ) {
     return response({ error: "invalid_account_details" }, { status: 400 });

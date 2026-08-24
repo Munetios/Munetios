@@ -347,21 +347,35 @@ export async function getDurableRealtimeDatabase() {
       useCache: false,
     });
     if (!result || result.statusCode !== 200 || !result.stream) return null;
-    return new Uint8Array(await new Response(result.stream).arrayBuffer());
+    return {
+      body: new Uint8Array(await new Response(result.stream).arrayBuffer()),
+      etag: result.etag || "",
+    };
   } catch {
     return null;
   }
 }
 
-export async function saveDurableRealtimeDatabase(body) {
+export async function saveDurableRealtimeDatabase(body, expectedEtag = "") {
   if (!hasDurableAuthStore()) return false;
-  await put(`${databasePrefix}/system/realtime.sqlite`, body, {
+  const result = await put(`${databasePrefix}/system/realtime.sqlite`, body, {
     ...blobOptions(),
     addRandomSuffix: false,
-    allowOverwrite: true,
+    ...(expectedEtag
+      ? { allowOverwrite: true, ifMatch: expectedEtag }
+      : { allowOverwrite: false }),
     contentType: "application/vnd.sqlite3",
   });
-  return true;
+  return { etag: result.etag || "", saved: true };
+}
+
+export function isDurableRealtimeWriteConflict(error) {
+  return (
+    error?.name === "BlobPreconditionFailedError" ||
+    error?.status === 412 ||
+    error?.statusCode === 412 ||
+    /precondition|already exists|overwrite/iu.test(String(error?.message || ""))
+  );
 }
 
 export async function saveDurableConnectorIcon(iconId, body, contentType) {

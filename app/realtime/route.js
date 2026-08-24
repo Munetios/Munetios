@@ -1,6 +1,7 @@
 import { auth, hasAccountSessionCookie } from "../../auth.js";
 import { meetEmojiSet } from "../apps/meet/lib/meetEmojis.js";
 import { getAccountData, getRequestFingerprint } from "../lib/authSecurity.js";
+import { isDurableRealtimeWriteConflict } from "../lib/durableAuthStore.js";
 import { enforceStudentAiAccess } from "../lib/education.js";
 import {
   activityForPeer,
@@ -485,13 +486,25 @@ async function handlePOST(request) {
 
 function runRealtimeRequest(handler, persistChanges) {
   const run = realtimeRequestState.queue.then(async () => {
-    await refreshRealtimeDatabaseFromDurable();
-    await hydrateRealtimeDatabase();
-    try {
-      return await handler();
-    } finally {
-      if (persistChanges) await persistRealtimeDatabase();
+    const maximumAttempts = persistChanges ? 3 : 1;
+    for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
+      await refreshRealtimeDatabaseFromDurable();
+      await hydrateRealtimeDatabase();
+      const response = await handler();
+      if (!persistChanges) return response;
+      try {
+        await persistRealtimeDatabase();
+        return response;
+      } catch (error) {
+        if (
+          !isDurableRealtimeWriteConflict(error) ||
+          attempt === maximumAttempts - 1
+        ) {
+          throw error;
+        }
+      }
     }
+    throw new Error("realtime_write_retry_exhausted");
   });
   realtimeRequestState.queue = run.catch(() => undefined);
   return run;
@@ -502,7 +515,7 @@ export function GET(request) {
 }
 
 export function POST(request) {
-  return runRealtimeRequest(() => handlePOST(request), true);
+  return runRealtimeRequest(() => handlePOST(request.clone()), true);
 }
 
 async function handleDELETE(request) {
