@@ -12,6 +12,10 @@ import {
   isVerificationEmailConfigured,
   sendVerificationEmail,
 } from "../../../lib/nodemailerVerificationEmail.js";
+import {
+  isResendEmailConfigured,
+  sendResendVerificationEmail,
+} from "../../../lib/resendEmail.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -82,6 +86,13 @@ async function deliverWithMunetiosEndpoint(identifier, verification) {
 
 async function deliverVerification(identifier, verification) {
   if (identifier.includes("@")) {
+    if (isResendEmailConfigured()) {
+      const resendResult = await sendResendVerificationEmail(
+        identifier,
+        verification,
+      );
+      if (resendResult.delivered) return resendResult;
+    }
     const emailResult = await sendVerificationEmail(
       identifier,
       verification.code,
@@ -141,15 +152,16 @@ export async function POST(request) {
   if (!identifier || identifier.endsWith?.("@munetios.com")) {
     return Response.json({ error: "invalid_or_used_contact" }, { status: 409 });
   }
-  if (identifier.includes("@")) {
+  if (!identifier.includes("@")) {
     return Response.json(
-      { error: "external_signup_coming_soon" },
+      { error: "phone_verification_coming_soon" },
       { headers: { "Cache-Control": "no-store" }, status: 503 },
     );
   }
 
   const emailDeliveryAvailable =
-    identifier.includes("@") && isVerificationEmailConfigured();
+    identifier.includes("@") &&
+    (isResendEmailConfigured() || isVerificationEmailConfigured());
   const deliveryChannel = identifier.includes("@") ? "email" : "sms";
   if (
     !emailDeliveryAvailable &&

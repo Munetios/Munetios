@@ -5,6 +5,7 @@ import {
   getAccountByIdentifier,
   getRequestFingerprint,
 } from "../../../lib/authSecurity.js";
+import { sendResendRecoveryEmail } from "../../../lib/resendEmail.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -37,6 +38,13 @@ export async function POST(request) {
     fingerprint,
     type: payload?.type,
   });
+  const recoveryRecipient = account?.email || account?.contact;
+  if (recoveryRecipient?.includes("@")) {
+    await sendResendRecoveryEmail(recoveryRecipient, {
+      ...recovery,
+      type: payload?.type === "email" ? "email" : "password",
+    }).catch(() => undefined);
+  }
   const deliveryEndpoint = process.env.MUNETIOS_VERIFICATION_DELIVERY_URL;
   const deliveryToken = process.env.MUNETIOS_VERIFICATION_DELIVERY_TOKEN;
   if (account && deliveryEndpoint && deliveryToken) {

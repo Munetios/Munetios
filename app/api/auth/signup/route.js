@@ -62,10 +62,11 @@ export async function POST(request) {
 
   const requestedContactType =
     payload?.contactType === "phone" ? "phone" : "email";
-  const requestedEmail =
-    requestedContactType === "email" ? normalizeEmail(payload?.contact) : "";
-  if (requestedEmail && !requestedEmail.endsWith("@munetios.com")) {
-    return response({ error: "external_signup_coming_soon" }, { status: 503 });
+  if (requestedContactType === "phone") {
+    return response(
+      { error: "phone_verification_coming_soon" },
+      { status: 503 },
+    );
   }
 
   if (

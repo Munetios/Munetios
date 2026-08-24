@@ -4,7 +4,13 @@ slug: resources/changelog
 order: 2
 summary: Review notable additions, improvements, and fixes in the Munetios Beta.
 ---
+
 # Munetios changelog
+
+## 0.1.1 Beta — August 24, 2026
+
+- Made email verification functional.
+- Fixed bugs that auto sign you out when you make a account.
 
 ## 0.1.0 Beta — August 23, 2026
 

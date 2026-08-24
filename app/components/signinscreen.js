@@ -464,12 +464,33 @@ export default function SignInScreen({ addingAccount = false }) {
   }, [checkAuthenticationCookies]);
 
   useEffect(() => {
-    const signupMode = new URL(window.location.href).searchParams.get("signup");
+    const currentUrl = new URL(window.location.href);
+    const signupMode = currentUrl.searchParams.get("signup");
     if (signupMode === "true") setMode("signup");
     if (signupMode === "education") setMode("education");
-    const challengeId = new URL(window.location.href).searchParams.get(
-      "twoFactorChallenge",
-    );
+    const verifiedContact = currentUrl.searchParams.get("contact");
+    const verificationCode = currentUrl.searchParams.get("verificationCode");
+    const verificationId = currentUrl.searchParams.get("verificationId");
+    if (verifiedContact && verificationCode && verificationId) {
+      setMode("signup");
+      setSignup((current) => ({
+        ...current,
+        contact: verifiedContact,
+        contactMode: "existing",
+        username: usernameFromEmail(verifiedContact),
+        verificationCode,
+        verificationId,
+      }));
+      for (const key of ["contact", "verificationCode", "verificationId"]) {
+        currentUrl.searchParams.delete(key);
+      }
+      window.history.replaceState(
+        {},
+        "",
+        `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`,
+      );
+    }
+    const challengeId = currentUrl.searchParams.get("twoFactorChallenge");
     if (challengeId) {
       setMode("signin");
       setTwoFactor({ challengeId, error: "two_factor_required" });
@@ -610,8 +631,8 @@ export default function SignInScreen({ addingAccount = false }) {
   };
 
   const requestVerification = async () => {
-    if (signup.contactMode === "existing") {
-      showToast({ messageKey: "authExternalEmailComingSoon", type: "info" });
+    if (signup.contactMode === "phone") {
+      showToast({ messageKey: "authSmsVerificationUnavailable", type: "info" });
       return false;
     }
     const identifierValue =
@@ -653,7 +674,7 @@ export default function SignInScreen({ addingAccount = false }) {
           ? "authSmsVerificationUnavailable"
           : {
               email_taken: "authEmailTaken",
-              external_signup_coming_soon: "authExternalEmailComingSoon",
+              phone_verification_coming_soon: "authSmsVerificationUnavailable",
               phone_taken: "authPhoneTaken",
               rate_limited: "authVerificationRateLimited",
             }[error.message] || "authVerificationFailed";
@@ -669,8 +690,8 @@ export default function SignInScreen({ addingAccount = false }) {
 
   const submitSignup = async (event) => {
     event.preventDefault();
-    if (signup.contactMode === "existing") {
-      showToast({ messageKey: "authExternalEmailComingSoon", type: "info" });
+    if (signup.contactMode === "phone") {
+      showToast({ messageKey: "authSmsVerificationUnavailable", type: "info" });
       return;
     }
     const hasContact =
@@ -1082,143 +1103,130 @@ export default function SignInScreen({ addingAccount = false }) {
                         value={signup.lastName}
                       />
                     </div>
-                    {signup.contactMode === "existing"
-                      ? <div
-                          aria-live="polite"
-                          className="liquid-glass flex items-start gap-3 rounded-2xl border border-purple-200/20 bg-purple-500/12! p-4 text-purple-50"
-                        >
-                          <icon className="mt-0.5 shrink-0">schedule</icon>
-                          <div>
-                            <strong className="block">{copy.comingSoon}</strong>
-                            <p className="mt-1 text-sm leading-6 text-purple-100/75">
-                              {copy.authExternalEmailComingSoon}
-                            </p>
+                    {signup.contactMode === "phone"
+                      ? <div className="grid items-end gap-3 sm:grid-cols-[11rem_minmax(0,1fr)]">
+                          <div className="min-w-0">
+                            <div className="mb-2 text-sm font-semibold text-white/80">
+                              {copy.authCountry}
+                            </div>
+                            <DropdownWrapper
+                              align="left"
+                              ariaLabel={copy.authCountry}
+                              buttonClassName="h-12 w-full justify-between rounded-xl border border-white/10 bg-white/10! px-3 text-left hover:border-purple-200/35 hover:bg-white/15!"
+                              panelClassName="max-h-72 w-[min(24rem,calc(100vw-1rem))] overflow-y-auto"
+                              trigger={
+                                <>
+                                  <span className="truncate">
+                                    {selectedCountry.code}{" "}
+                                    {selectedCountry.dial}
+                                  </span>
+                                  <icon>expand_more</icon>
+                                </>
+                              }
+                            >
+                              {countries.map((country) => (
+                                <button
+                                  className="flex w-full items-center justify-between gap-4 rounded-lg px-3 py-2 text-left text-sm text-white hover:bg-white/10!"
+                                  key={country.code}
+                                  onClick={() =>
+                                    setSignup((current) => ({
+                                      ...current,
+                                      contact: formatPhoneInput(
+                                        current.contact,
+                                        country.code,
+                                      ),
+                                      country: country.code,
+                                      verificationCode: "",
+                                      verificationId: "",
+                                    }))
+                                  }
+                                  type="button"
+                                >
+                                  <span className="truncate">
+                                    {country.name}
+                                  </span>
+                                  <span className="shrink-0 text-white/60">
+                                    {country.dial}
+                                  </span>
+                                </button>
+                              ))}
+                            </DropdownWrapper>
                           </div>
+                          <AuthInput
+                            autoComplete="tel-national"
+                            icon="phone"
+                            inputMode="tel"
+                            label={copy.authPhoneNumber}
+                            name="phone"
+                            onChange={(event) =>
+                              setSignup((current) => ({
+                                ...current,
+                                contact: formatPhoneInput(
+                                  event.target.value,
+                                  current.country,
+                                ),
+                                verificationCode: "",
+                                verificationId: "",
+                              }))
+                            }
+                            value={signup.contact}
+                          />
                         </div>
-                      : signup.contactMode === "phone"
-                        ? <div className="grid items-end gap-3 sm:grid-cols-[11rem_minmax(0,1fr)]">
-                            <div className="min-w-0">
-                              <div className="mb-2 text-sm font-semibold text-white/80">
-                                {copy.authCountry}
-                              </div>
-                              <DropdownWrapper
-                                align="left"
-                                ariaLabel={copy.authCountry}
-                                buttonClassName="h-12 w-full justify-between rounded-xl border border-white/10 bg-white/10! px-3 text-left hover:border-purple-200/35 hover:bg-white/15!"
-                                panelClassName="max-h-72 w-[min(24rem,calc(100vw-1rem))] overflow-y-auto"
-                                trigger={
-                                  <>
-                                    <span className="truncate">
-                                      {selectedCountry.code}{" "}
-                                      {selectedCountry.dial}
-                                    </span>
-                                    <icon>expand_more</icon>
-                                  </>
-                                }
-                              >
-                                {countries.map((country) => (
-                                  <button
-                                    className="flex w-full items-center justify-between gap-4 rounded-lg px-3 py-2 text-left text-sm text-white hover:bg-white/10!"
-                                    key={country.code}
-                                    onClick={() =>
-                                      setSignup((current) => ({
+                      : <label className="block text-sm font-semibold text-white/80">
+                          <span>
+                            {signup.contactMode === "existing"
+                              ? copy.authEmailAddress
+                              : copy.authMunetiosEmail}
+                          </span>
+                          <span className="relative mt-2 flex h-12 overflow-hidden rounded-xl border border-white/10 bg-white/10! focus-within:border-purple-300/70">
+                            <icon className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-purple-200">
+                              alternate_email
+                            </icon>
+                            <input
+                              autoComplete={
+                                signup.contactMode === "existing"
+                                  ? "email"
+                                  : "username"
+                              }
+                              className="min-w-0 flex-1 bg-transparent! py-2 pl-11 pr-2 text-white outline-none"
+                              name="email"
+                              onChange={(event) =>
+                                setSignup((current) =>
+                                  current.contactMode === "existing"
+                                    ? {
                                         ...current,
-                                        contact: formatPhoneInput(
-                                          current.contact,
-                                          country.code,
+                                        contact: event.target.value,
+                                        username: usernameFromEmail(
+                                          event.target.value,
                                         ),
-                                        country: country.code,
                                         verificationCode: "",
                                         verificationId: "",
-                                      }))
-                                    }
-                                    type="button"
-                                  >
-                                    <span className="truncate">
-                                      {country.name}
-                                    </span>
-                                    <span className="shrink-0 text-white/60">
-                                      {country.dial}
-                                    </span>
-                                  </button>
-                                ))}
-                              </DropdownWrapper>
-                            </div>
-                            <AuthInput
-                              autoComplete="tel-national"
-                              icon="phone"
-                              inputMode="tel"
-                              label={copy.authPhoneNumber}
-                              name="phone"
-                              onChange={(event) =>
-                                setSignup((current) => ({
-                                  ...current,
-                                  contact: formatPhoneInput(
-                                    event.target.value,
-                                    current.country,
-                                  ),
-                                  verificationCode: "",
-                                  verificationId: "",
-                                }))
+                                      }
+                                    : {
+                                        ...current,
+                                        username: event.target.value,
+                                      },
+                                )
                               }
-                              value={signup.contact}
+                              required
+                              type={
+                                signup.contactMode === "existing"
+                                  ? "email"
+                                  : "text"
+                              }
+                              value={
+                                signup.contactMode === "existing"
+                                  ? signup.contact
+                                  : signup.username
+                              }
                             />
-                          </div>
-                        : <label className="block text-sm font-semibold text-white/80">
-                            <span>
-                              {signup.contactMode === "existing"
-                                ? copy.authEmailAddress
-                                : copy.authMunetiosEmail}
-                            </span>
-                            <span className="relative mt-2 flex h-12 overflow-hidden rounded-xl border border-white/10 bg-white/10! focus-within:border-purple-300/70">
-                              <icon className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-purple-200">
-                                alternate_email
-                              </icon>
-                              <input
-                                autoComplete={
-                                  signup.contactMode === "existing"
-                                    ? "email"
-                                    : "username"
-                                }
-                                className="min-w-0 flex-1 bg-transparent! py-2 pl-11 pr-2 text-white outline-none"
-                                name="email"
-                                onChange={(event) =>
-                                  setSignup((current) =>
-                                    current.contactMode === "existing"
-                                      ? {
-                                          ...current,
-                                          contact: event.target.value,
-                                          username: usernameFromEmail(
-                                            event.target.value,
-                                          ),
-                                          verificationCode: "",
-                                          verificationId: "",
-                                        }
-                                      : {
-                                          ...current,
-                                          username: event.target.value,
-                                        },
-                                  )
-                                }
-                                required
-                                type={
-                                  signup.contactMode === "existing"
-                                    ? "email"
-                                    : "text"
-                                }
-                                value={
-                                  signup.contactMode === "existing"
-                                    ? signup.contact
-                                    : signup.username
-                                }
-                              />
-                              {signup.contactMode !== "existing"
-                                ? <span className="flex shrink-0 items-center border-l border-white/10 bg-white/5! px-3 text-sm text-white/65">
-                                    @munetios.com
-                                  </span>
-                                : null}
-                            </span>
-                          </label>}
+                            {signup.contactMode !== "existing"
+                              ? <span className="flex shrink-0 items-center border-l border-white/10 bg-white/5! px-3 text-sm text-white/65">
+                                  @munetios.com
+                                </span>
+                              : null}
+                          </span>
+                        </label>}
                     <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                       {[
                         ["existing", copy.authUseExistingEmailAddress],
@@ -1308,40 +1316,50 @@ export default function SignInScreen({ addingAccount = false }) {
                         </div>
                       : null}
                     {signup.contactMode === "phone"
-                      ? <div className="space-y-3">
-                          {signup.verificationId
-                            ? <AuthInput
-                                autoComplete="one-time-code"
-                                icon="verified_user"
-                                label={copy.authVerificationCode}
-                                name="verification"
-                                onChange={(event) =>
-                                  setSignup((current) => ({
-                                    ...current,
-                                    verificationCode: event.target.value,
-                                  }))
-                                }
-                                value={signup.verificationCode}
-                              />
-                            : null}
-                          <button
-                            className="w-full rounded-xl border border-purple-200/20 bg-purple-600/45! px-4 py-3 text-sm font-semibold hover:bg-purple-500/60! disabled:opacity-60"
-                            disabled={
-                              verificationSending ||
-                              cookiesEnabled === false ||
-                              !signup.contact.trim()
-                            }
-                            onClick={requestVerification}
-                            type="button"
-                          >
-                            {verificationSending
-                              ? copy.authSendingCode
-                              : signup.verificationId
-                                ? copy.authResendCode
-                                : copy.authSendCode}
-                          </button>
+                      ? <div className="liquid-glass flex items-start gap-3 rounded-2xl border border-purple-200/20 bg-purple-500/12! p-4 text-purple-50">
+                          <icon className="mt-0.5 shrink-0">schedule</icon>
+                          <div>
+                            <strong className="block">{copy.comingSoon}</strong>
+                            <p className="mt-1 text-sm leading-6 text-purple-100/75">
+                              {copy.authSmsVerificationUnavailable}
+                            </p>
+                          </div>
                         </div>
-                      : null}
+                      : signup.contactMode === "existing"
+                        ? <div className="space-y-3">
+                            {signup.verificationId
+                              ? <AuthInput
+                                  autoComplete="one-time-code"
+                                  icon="verified_user"
+                                  label={copy.authVerificationCode}
+                                  name="verification"
+                                  onChange={(event) =>
+                                    setSignup((current) => ({
+                                      ...current,
+                                      verificationCode: event.target.value,
+                                    }))
+                                  }
+                                  value={signup.verificationCode}
+                                />
+                              : null}
+                            <button
+                              className="w-full rounded-xl border border-purple-200/20 bg-purple-600/45! px-4 py-3 text-sm font-semibold hover:bg-purple-500/60! disabled:opacity-60"
+                              disabled={
+                                verificationSending ||
+                                cookiesEnabled === false ||
+                                !signup.contact.trim()
+                              }
+                              onClick={requestVerification}
+                              type="button"
+                            >
+                              {verificationSending
+                                ? copy.authSendingCode
+                                : signup.verificationId
+                                  ? copy.authResendCode
+                                  : copy.authSendCode}
+                            </button>
+                          </div>
+                        : null}
                     <PasswordInput
                       copy={copy}
                       onChange={(event) =>
