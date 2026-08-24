@@ -6,7 +6,7 @@ import {
   randomUUID,
 } from "node:crypto";
 import { mkdirSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { getAccountData } from "./authSecurity.js";
@@ -229,6 +229,7 @@ function getDatabase() {
 }
 
 let durableHydrationPromise = null;
+let durableRefreshPromise = null;
 
 export async function hydrateRealtimeDatabase() {
   if (globalThis.__munetiosRealtimeDatabase) return;
@@ -240,6 +241,37 @@ export async function hydrateRealtimeDatabase() {
     })();
   }
   await durableHydrationPromise;
+}
+
+export async function refreshRealtimeDatabaseFromDurable() {
+  if (!durableRefreshPromise) {
+    durableRefreshPromise = (async () => {
+      const stored = await getDurableRealtimeDatabase();
+      if (!stored?.length) return false;
+
+      const database = globalThis.__munetiosRealtimeDatabase;
+      if (database) {
+        try {
+          database.exec("PRAGMA wal_checkpoint(TRUNCATE);");
+        } catch {}
+        try {
+          database.close();
+        } catch {}
+      }
+      globalThis.__munetiosRealtimeDatabase = null;
+      globalThis.__munetiosRealtimeSchemaVersion = null;
+      await Promise.all([
+        rm(`${databasePath}-shm`, { force: true }),
+        rm(`${databasePath}-wal`, { force: true }),
+      ]);
+      await writeFile(databasePath, stored);
+      durableHydrationPromise = null;
+      return true;
+    })().finally(() => {
+      durableRefreshPromise = null;
+    });
+  }
+  return durableRefreshPromise;
 }
 
 export async function persistRealtimeDatabase() {

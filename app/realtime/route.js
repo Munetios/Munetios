@@ -25,6 +25,7 @@ import {
   persistRealtimeDatabase,
   pollRealtimeEvents,
   publishRealtimeSignal,
+  refreshRealtimeDatabaseFromDurable,
   rejoinRealtimeRoom,
   resumeRealtimeRoom,
   startRealtimeActivity,
@@ -125,15 +126,19 @@ function credentials(payload) {
   };
 }
 
+async function authenticatePeer(authFields) {
+  if (!authFields.peerId || !authFields.peerToken || !authFields.roomId) {
+    return false;
+  }
+  if (authenticateRealtimePeer(authFields)) return true;
+  if (!(await refreshRealtimeDatabaseFromDurable())) return false;
+  return Boolean(authenticateRealtimePeer(authFields));
+}
+
 async function handleGET(request) {
   const url = new URL(request.url);
   const authFields = credentials(Object.fromEntries(url.searchParams));
-  if (
-    !authFields.peerId ||
-    !authFields.peerToken ||
-    !authFields.roomId ||
-    !authenticateRealtimePeer(authFields)
-  ) {
+  if (!(await authenticatePeer(authFields))) {
     return respond({ error: "invalid_peer_credentials" }, 403);
   }
   if (!allowRequest(authFields.peerId)) {
@@ -237,12 +242,7 @@ async function handlePOST(request) {
   }
 
   const authFields = credentials(payload);
-  if (
-    !authFields.peerId ||
-    !authFields.peerToken ||
-    !authFields.roomId ||
-    !authenticateRealtimePeer(authFields)
-  ) {
+  if (!(await authenticatePeer(authFields))) {
     return respond({ error: "invalid_peer_credentials" }, 403);
   }
   if (!allowRequest(authFields.peerId)) {
@@ -500,12 +500,7 @@ export async function POST(request) {
 async function handleDELETE(request) {
   const url = new URL(request.url);
   const authFields = credentials(Object.fromEntries(url.searchParams));
-  if (
-    !authFields.peerId ||
-    !authFields.peerToken ||
-    !authFields.roomId ||
-    !authenticateRealtimePeer(authFields)
-  ) {
+  if (!(await authenticatePeer(authFields))) {
     return respond({ error: "invalid_peer_credentials" }, 403);
   }
   leaveRealtimeRoom(authFields);

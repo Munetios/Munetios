@@ -3,6 +3,52 @@ import { del, get, list, put } from "@vercel/blob";
 
 const databasePrefix = "munetios-scratch/v1";
 
+function firstEnvironmentValue(...keys) {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function connectedBlobToken() {
+  const configured = firstEnvironmentValue(
+    "MUNETIOS_DATABASE_TOKEN",
+    "MUNETIOS_DATABASE_READ_WRITE_TOKEN",
+    "BLOB_READ_WRITE_TOKEN",
+  );
+  if (configured) return configured;
+  const connectedStoreEntry = Object.entries(process.env).find(
+    ([key, value]) =>
+      ((key.includes("BLOB") && key.endsWith("_READ_WRITE_TOKEN")) ||
+        key.endsWith("_DATABASE_READ_WRITE_TOKEN")) &&
+      typeof value === "string" &&
+      value.trim(),
+  );
+  if (connectedStoreEntry) return connectedStoreEntry[1].trim();
+  return (
+    Object.values(process.env).find(
+      (value) =>
+        typeof value === "string" && value.startsWith("vercel_blob_rw_"),
+    ) || ""
+  );
+}
+
+function connectedBlobStoreId() {
+  const configured = firstEnvironmentValue(
+    "MUNETIOS_DATABASE_STORE_ID",
+    "BLOB_STORE_ID",
+  );
+  if (configured) return configured;
+  const customStoreEntry = Object.entries(process.env).find(
+    ([key, value]) =>
+      key.endsWith("_BLOB_STORE_ID") &&
+      typeof value === "string" &&
+      value.trim(),
+  );
+  return customStoreEntry?.[1]?.trim() || "";
+}
+
 function hash(value) {
   return createHash("sha256")
     .update(
@@ -14,17 +60,23 @@ function hash(value) {
 }
 
 function blobOptions() {
+  const token = connectedBlobToken();
+  const storeId = connectedBlobStoreId();
+  const oidcToken = firstEnvironmentValue("VERCEL_OIDC_TOKEN");
   return {
     access: "private",
-    token:
-      process.env.MUNETIOS_DATABASE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN,
+    ...(token ? { token } : {}),
+    ...(!token && oidcToken && storeId ? { oidcToken, storeId } : {}),
   };
 }
 
 async function readJson(pathname) {
   if (!hasDurableAuthStore()) return null;
   try {
-    const result = await get(pathname, blobOptions());
+    const result = await get(pathname, {
+      ...blobOptions(),
+      useCache: false,
+    });
     if (!result || result.statusCode !== 200 || !result.stream) return null;
     return await new Response(result.stream).json();
   } catch {
@@ -55,7 +107,8 @@ function sessionPath(token) {
 
 export function hasDurableAuthStore() {
   return Boolean(
-    process.env.MUNETIOS_DATABASE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN,
+    connectedBlobToken() ||
+      (connectedBlobStoreId() && process.env.VERCEL_OIDC_TOKEN),
   );
 }
 
@@ -236,7 +289,7 @@ export async function getDurableProfileImage(token) {
   try {
     const result = await get(
       `${databasePrefix}/profile-images/${encodeURIComponent(token)}`,
-      blobOptions(),
+      { ...blobOptions(), useCache: false },
     );
     if (!result || result.statusCode !== 200 || !result.stream) return null;
     return {
@@ -289,10 +342,10 @@ export async function listDurableCustomConnectors(
 export async function getDurableRealtimeDatabase() {
   if (!hasDurableAuthStore()) return null;
   try {
-    const result = await get(
-      `${databasePrefix}/system/realtime.sqlite`,
-      blobOptions(),
-    );
+    const result = await get(`${databasePrefix}/system/realtime.sqlite`, {
+      ...blobOptions(),
+      useCache: false,
+    });
     if (!result || result.statusCode !== 200 || !result.stream) return null;
     return new Uint8Array(await new Response(result.stream).arrayBuffer());
   } catch {
@@ -331,7 +384,7 @@ export async function getDurableConnectorIcon(iconId) {
   try {
     const result = await get(
       `${databasePrefix}/connector-icons/${encodeURIComponent(iconId)}`,
-      blobOptions(),
+      { ...blobOptions(), useCache: false },
     );
     if (!result || result.statusCode !== 200 || !result.stream) return null;
     return {

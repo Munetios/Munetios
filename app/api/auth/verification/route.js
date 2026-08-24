@@ -11,11 +11,7 @@ import {
 import {
   isVerificationEmailConfigured,
   sendVerificationEmail,
-} from "../../../lib/nodemailerVerificationEmail.js";
-import {
-  isResendEmailConfigured,
-  sendResendVerificationEmail,
-} from "../../../lib/resendEmail.js";
+} from "../../../lib/verificationEmail.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -86,13 +82,6 @@ async function deliverWithMunetiosEndpoint(identifier, verification) {
 
 async function deliverVerification(identifier, verification) {
   if (identifier.includes("@")) {
-    if (isResendEmailConfigured()) {
-      const resendResult = await sendResendVerificationEmail(
-        identifier,
-        verification,
-      );
-      if (resendResult.delivered) return resendResult;
-    }
     const emailResult = await sendVerificationEmail(
       identifier,
       verification.code,
@@ -160,8 +149,7 @@ export async function POST(request) {
   }
 
   const emailDeliveryAvailable =
-    identifier.includes("@") &&
-    (isResendEmailConfigured() || isVerificationEmailConfigured());
+    identifier.includes("@") && isVerificationEmailConfigured();
   const deliveryChannel = identifier.includes("@") ? "email" : "sms";
   if (
     !emailDeliveryAvailable &&

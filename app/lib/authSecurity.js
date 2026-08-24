@@ -1,6 +1,6 @@
 import {
-  createHmac,
   createHash,
+  createHmac,
   randomBytes,
   randomInt,
   randomUUID,
@@ -851,7 +851,6 @@ export function createContactVerification(identifier, fingerprint) {
     process.env.MUNETIOS_EMAIL_TOKEN_SECRET ||
     process.env.AUTH_SECRET ||
     process.env.NEXTAUTH_SECRET ||
-    process.env.RESEND_API_KEY ||
     "";
   let verificationId = randomBytes(18).toString("base64url");
   if (verificationSecret) {
@@ -1012,7 +1011,6 @@ export function verifyContact({
       process.env.MUNETIOS_EMAIL_TOKEN_SECRET ||
       process.env.AUTH_SECRET ||
       process.env.NEXTAUTH_SECRET ||
-      process.env.RESEND_API_KEY ||
       "";
     const [version, encoded, providedSignature, extra] = String(
       verificationId || "",

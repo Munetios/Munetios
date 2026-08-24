@@ -9,7 +9,6 @@ function isAllowedSmtpHost(host) {
     .trim()
     .toLowerCase();
   return (
-    hostname === "smtp.resend.com" ||
     hostname === "munetios.com" ||
     hostname.endsWith(".munetios.com") ||
     hostname === "localhost" ||
@@ -94,10 +93,7 @@ function smtpConfiguration() {
 
   if (
     !isAllowedSmtpHost(host) ||
-    !(
-      emailPattern.test(user || "") ||
-      (host === "smtp.resend.com" && user === "resend")
-    ) ||
+    !emailPattern.test(user || "") ||
     !emailPattern.test(from || "") ||
     !password ||
     (!secure && !startTls && host !== "localhost" && host !== "127.0.0.1")
@@ -280,19 +276,31 @@ async function authenticate(socket, reader, configuration, ehloResponse) {
   throw new Error("SMTP server does not advertise a supported login method.");
 }
 
-function buildMessage({ code, from, recipient }) {
+function buildMessage({ code, from, recipient, type = "verification" }) {
   const messageId = `${crypto.randomUUID()}@munetios.com`;
+  const recovery = type === "email" || type === "password";
+  const subject =
+    type === "email"
+      ? "Recover your Munetios email"
+      : type === "password"
+        ? "Reset your Munetios password"
+        : "Your Munetios verification code";
+  const purpose = recovery
+    ? type === "email"
+      ? "Munetios email recovery code"
+      : "Munetios password reset code"
+    : "Munetios verification code";
   const lines = [
     `From: Munetios <${from}>`,
     `To: ${recipient}`,
-    "Subject: Your Munetios verification code",
+    `Subject: ${subject}`,
     `Message-ID: <${messageId}>`,
     "MIME-Version: 1.0",
     "Content-Type: text/plain; charset=UTF-8",
     "Content-Transfer-Encoding: 8bit",
     "Auto-Submitted: auto-generated",
     "",
-    `${code} is your Munetios verification code.`,
+    `${code} is your ${purpose}.`,
     "",
     "This code expires in 10 minutes. If you did not request it, you can ignore this email.",
   ];
@@ -319,7 +327,7 @@ function getFailureReason(stage, error) {
   return `smtp_${stage}_failed`;
 }
 
-export async function sendVerificationEmail(recipient, code) {
+async function sendEmailCode(recipient, code, type = "verification") {
   const configuration = smtpConfiguration();
   if (!configuration) return null;
   if (!emailPattern.test(recipient || "") || !/^\d{6}$/.test(code || "")) {
@@ -368,7 +376,7 @@ export async function sendVerificationEmail(recipient, code) {
     failureStage = "message";
     await sendCommand(socket, reader, "DATA", [354]);
     socket.write(
-      `${buildMessage({ code, from: configuration.from, recipient })}\r\n.\r\n`,
+      `${buildMessage({ code, from: configuration.from, recipient, type })}\r\n.\r\n`,
     );
     failureStage = "delivery";
     await expectResponse(reader, [250]);
@@ -387,4 +395,16 @@ export async function sendVerificationEmail(recipient, code) {
     reader?.dispose();
     socket?.destroy();
   }
+}
+
+export function sendVerificationEmail(recipient, code) {
+  return sendEmailCode(recipient, code, "verification");
+}
+
+export function sendRecoveryEmail(recipient, code, type = "password") {
+  return sendEmailCode(
+    recipient,
+    code,
+    type === "email" ? "email" : "password",
+  );
 }

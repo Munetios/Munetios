@@ -5,7 +5,6 @@ function tokenSecret() {
     process.env.MUNETIOS_EMAIL_TOKEN_SECRET ||
     process.env.AUTH_SECRET ||
     process.env.NEXTAUTH_SECRET ||
-    process.env.RESEND_API_KEY ||
     ""
   );
 }
