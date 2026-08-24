@@ -715,10 +715,13 @@ export default function SignInScreen({ addingAccount = false }) {
       !signup.firstName.trim() ||
       !signup.birthDate ||
       !signup.password ||
-      !signup.captchaAnswer.trim() ||
       !hasContact
     ) {
       showToast({ messageKey: "authRequiredDetails", type: "error" });
+      return;
+    }
+    if (!signup.captchaAnswer.trim()) {
+      showToast({ messageKey: "authCaptchaInvalid", type: "error" });
       return;
     }
     if (!(await checkAuthenticationCookies())) return;
