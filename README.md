@@ -109,7 +109,6 @@ npm start
 ## Technology
 
 - Next.js
-- React
 - JavaScript
 - CSS
 
