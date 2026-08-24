@@ -1,4 +1,5 @@
 let audioGraphPromise;
+let nativeAudioContext;
 let toneModulePromise;
 
 function loadTone() {
@@ -8,8 +9,26 @@ function loadTone() {
   return toneModulePromise;
 }
 
+function getNativeAudioContext() {
+  if (typeof window === "undefined") return null;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (!nativeAudioContext || nativeAudioContext.state === "closed") {
+    nativeAudioContext = new AudioContextClass();
+  }
+  return nativeAudioContext;
+}
+
 export function prepareMeetAudio() {
-  void loadTone();
+  const context = getNativeAudioContext();
+  const nativeReady = context?.resume?.().catch(() => undefined);
+  const toneReady = loadTone()
+    .then(async (Tone) => {
+      await Tone.start();
+      await Tone.getContext().resume();
+    })
+    .catch(() => undefined);
+  return Promise.all([nativeReady, toneReady]);
 }
 
 async function createAudioGraph() {
@@ -266,15 +285,19 @@ function warningBuzz(graph, time, volume = -8) {
 }
 
 async function playRecipe(recipe, speakerId = "") {
-  const graph = await getAudioGraph(speakerId);
-  const now = graph.Tone.now();
-  recipe(graph, now);
+  try {
+    const graph = await getAudioGraph(speakerId);
+    const now = graph.Tone.now();
+    recipe(graph, now);
+  } catch {
+    await nativeAudioFallback();
+  }
 }
 
-function nativeAudioFallback() {
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) throw new Error("audio_context_unavailable");
-  const context = new AudioContextClass();
+async function nativeAudioFallback() {
+  const context = getNativeAudioContext();
+  if (!context) throw new Error("audio_context_unavailable");
+  if (context.state !== "running") await context.resume();
   const gain = context.createGain();
   gain.gain.setValueAtTime(0.0001, context.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.22, context.currentTime + 0.02);
@@ -293,7 +316,15 @@ function nativeAudioFallback() {
     oscillator.start(context.currentTime + offset);
     oscillator.stop(context.currentTime + offset + 0.24);
   }
-  window.setTimeout(() => void context.close(), 1200);
+  window.setTimeout(() => {
+    oscillatorCleanup(gain);
+  }, 1200);
+}
+
+function oscillatorCleanup(gain) {
+  try {
+    gain.disconnect();
+  } catch {}
 }
 
 export async function playMeetTestAudio(speakerId = "") {

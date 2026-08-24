@@ -47,6 +47,10 @@ const chatImagePattern =
 const encryptedChatPattern = /^e2ee1\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]+$/;
 const rateLimits = globalThis.__munetiosRealtimeRateLimits || new Map();
 globalThis.__munetiosRealtimeRateLimits = rateLimits;
+const realtimeRequestState = globalThis.__munetiosRealtimeRequestState || {
+  queue: Promise.resolve(),
+};
+globalThis.__munetiosRealtimeRequestState = realtimeRequestState;
 
 function respond(payload, status = 200, additionalHeaders = {}) {
   return Response.json(payload, {
@@ -479,22 +483,26 @@ async function handlePOST(request) {
   return respond({ error: "invalid_action" }, 400);
 }
 
-export async function GET(request) {
-  await hydrateRealtimeDatabase();
-  try {
-    return await handleGET(request);
-  } finally {
-    await persistRealtimeDatabase();
-  }
+function runRealtimeRequest(handler, persistChanges) {
+  const run = realtimeRequestState.queue.then(async () => {
+    await refreshRealtimeDatabaseFromDurable();
+    await hydrateRealtimeDatabase();
+    try {
+      return await handler();
+    } finally {
+      if (persistChanges) await persistRealtimeDatabase();
+    }
+  });
+  realtimeRequestState.queue = run.catch(() => undefined);
+  return run;
 }
 
-export async function POST(request) {
-  await hydrateRealtimeDatabase();
-  try {
-    return await handlePOST(request);
-  } finally {
-    await persistRealtimeDatabase();
-  }
+export function GET(request) {
+  return runRealtimeRequest(() => handleGET(request), false);
+}
+
+export function POST(request) {
+  return runRealtimeRequest(() => handlePOST(request), true);
 }
 
 async function handleDELETE(request) {
@@ -507,11 +515,6 @@ async function handleDELETE(request) {
   return respond({ left: true });
 }
 
-export async function DELETE(request) {
-  await hydrateRealtimeDatabase();
-  try {
-    return await handleDELETE(request);
-  } finally {
-    await persistRealtimeDatabase();
-  }
+export function DELETE(request) {
+  return runRealtimeRequest(() => handleDELETE(request), true);
 }
