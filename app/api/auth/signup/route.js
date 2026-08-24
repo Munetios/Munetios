@@ -118,24 +118,30 @@ export async function POST(request) {
       username || String(contact).split("@")[0],
     );
   }
+  if (!username) {
+    return response({ error: "invalid_username" }, { status: 400 });
+  }
+  if (!contact) {
+    return response({ error: "invalid_contact" }, { status: 400 });
+  }
+  if (!firstName || firstName.length > 60 || lastName.length > 60) {
+    return response({ error: "invalid_name" }, { status: 400 });
+  }
   if (
-    !username ||
-    !contact ||
-    !firstName ||
-    firstName.length > 60 ||
-    lastName.length > 60 ||
-    (payload?.gender &&
-      !["woman", "man", "nonbinary", "other"].includes(payload.gender)) ||
-    !isStrongPassword(payload?.password)
+    payload?.gender &&
+    !["woman", "man", "nonbinary", "other"].includes(payload.gender)
   ) {
-    return response({ error: "invalid_account_details" }, { status: 400 });
+    return response({ error: "invalid_gender" }, { status: 400 });
+  }
+  if (!isStrongPassword(payload?.password)) {
+    return response({ error: "weak_password" }, { status: 400 });
   }
   if (
     contactType === "email" &&
     contact.endsWith("@munetios.com") &&
     contact !== `${username}@munetios.com`
   ) {
-    return response({ error: "invalid_account_details" }, { status: 400 });
+    return response({ error: "invalid_contact" }, { status: 400 });
   }
   if (isContactUsed(contact) || (await durableIdentifierUsed(contact))) {
     return response(

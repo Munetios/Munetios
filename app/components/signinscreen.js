@@ -114,6 +114,26 @@ function isValidSignupEmail(value) {
   return /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/u.test(String(value || "").trim());
 }
 
+function isValidSignupUsername(value) {
+  return /^[a-z0-9][a-z0-9._-]{2,29}$/u.test(
+    String(value || "")
+      .trim()
+      .toLowerCase(),
+  );
+}
+
+function isStrongSignupPassword(value) {
+  const password = String(value || "");
+  return (
+    password.length >= 12 &&
+    password.length <= 128 &&
+    /[a-z]/u.test(password) &&
+    /[A-Z]/u.test(password) &&
+    /\d/u.test(password) &&
+    /[^A-Za-z\d]/u.test(password)
+  );
+}
+
 function getSafeReturnTo() {
   if (typeof window === "undefined") return "/";
   const value = new URL(window.location.href).searchParams.get("returnTo");
@@ -724,6 +744,17 @@ export default function SignInScreen({ addingAccount = false }) {
       showToast({ messageKey: "authCaptchaInvalid", type: "error" });
       return;
     }
+    if (
+      signup.contactMode === "munetios" &&
+      !isValidSignupUsername(signup.username)
+    ) {
+      showToast({ messageKey: "authRequiredDetails", type: "error" });
+      return;
+    }
+    if (!isStrongSignupPassword(signup.password)) {
+      showToast({ messageKey: "authPasswordRequirements", type: "error" });
+      return;
+    }
     if (!(await checkAuthenticationCookies())) return;
     const age = getAge(signup.birthDate);
     if (age !== null && age < 13) {
@@ -779,10 +810,15 @@ export default function SignInScreen({ addingAccount = false }) {
         external_signup_coming_soon: "authExternalEmailComingSoon",
         invalid_captcha: "authCaptchaInvalid",
         invalid_account_details: "authRequiredDetails",
+        invalid_contact: "authRequiredDetails",
+        invalid_gender: "authRequiredDetails",
+        invalid_name: "authRequiredDetails",
+        invalid_username: "authRequiredDetails",
         parent_required: "authParentRequired",
         phone_taken: "authPhoneTaken",
         rate_limited: "authTooManyRequests",
         verification_required: "authVerificationRequired",
+        weak_password: "authPasswordRequirements",
       }[error.message];
       showToast({ messageKey: errorKey || "authSignupFailed", type: "error" });
       void loadCaptcha();

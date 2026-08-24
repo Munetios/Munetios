@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { del, get, list, put } from "@vercel/blob";
 
 const databasePrefix = "munetios-scratch/v1";
+const realtimeDatabasePath = `${databasePrefix}/system/realtime-v2.sqlite`;
 
 function firstEnvironmentValue(...keys) {
   for (const key of keys) {
@@ -342,7 +343,7 @@ export async function listDurableCustomConnectors(
 export async function getDurableRealtimeDatabase() {
   if (!hasDurableAuthStore()) return null;
   try {
-    const result = await get(`${databasePrefix}/system/realtime.sqlite`, {
+    const result = await get(realtimeDatabasePath, {
       ...blobOptions(),
       useCache: false,
     });
@@ -358,7 +359,7 @@ export async function getDurableRealtimeDatabase() {
 
 export async function saveDurableRealtimeDatabase(body, expectedEtag = "") {
   if (!hasDurableAuthStore()) return false;
-  const result = await put(`${databasePrefix}/system/realtime.sqlite`, body, {
+  const result = await put(realtimeDatabasePath, body, {
     ...blobOptions(),
     addRandomSuffix: false,
     ...(expectedEtag

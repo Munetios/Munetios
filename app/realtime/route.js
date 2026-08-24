@@ -93,13 +93,14 @@ function userIdentity(session) {
   };
 }
 
-function guestIdentity(nickname, fingerprint) {
+function guestIdentity(nickname, fingerprint, guestId) {
   const displayName = normalizedText(nickname, 80);
+  const stableGuestId = normalizedText(guestId, 80);
   return displayName
     ? {
         avatarUrl: null,
         displayName,
-        userId: `guest:${fingerprint}`,
+        userId: `guest:${stableGuestId || fingerprint}`,
       }
     : null;
 }
@@ -178,7 +179,8 @@ async function handlePOST(request) {
     const sessionIdentity = userIdentity(session);
     const requestFingerprint = getRequestFingerprint(request);
     const identity =
-      sessionIdentity || guestIdentity(payload.nickname, requestFingerprint);
+      sessionIdentity ||
+      guestIdentity(payload.nickname, requestFingerprint, payload.guestId);
     if (!identity) return unauthorized(request);
     const rateLimitKey =
       sessionIdentity?.userId || `guest:${requestFingerprint}`;

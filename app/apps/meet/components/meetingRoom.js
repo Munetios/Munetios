@@ -210,9 +210,24 @@ function credentialsPayload(credentials) {
   };
 }
 
+function getMeetGuestId() {
+  const storageKey = "munetios.meet.guestId";
+  let guestId = window.localStorage.getItem(storageKey) || "";
+  if (!/^[A-Za-z0-9_-]{16,80}$/u.test(guestId)) {
+    guestId = crypto.randomUUID().replaceAll("-", "");
+    window.localStorage.setItem(storageKey, guestId);
+  }
+  return guestId;
+}
+
 async function realtimePost(payload) {
+  const requestPayload = ["create", "join", "rejoin", "resume"].includes(
+    payload?.action,
+  )
+    ? { ...payload, guestId: getMeetGuestId() }
+    : payload;
   const response = await fetch("/api/realtime", {
-    body: JSON.stringify(payload),
+    body: JSON.stringify(requestPayload),
     cache: "no-store",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
