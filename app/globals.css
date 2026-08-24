@@ -20,6 +20,7 @@
   --app-font:
     "Google Sans Flex", "Google Sans", Inter, ui-sans-serif, system-ui,
     sans-serif;
+  --liquid-glass-blur: 3px;
   --font-ss01: 1;
   --font-ss08: 1;
 }
@@ -44,12 +45,51 @@ body {
   min-height: 100%;
   overflow-x: hidden;
 }
+input {
+  border-radius: 0 !important;
+}
+html[data-munetios-theme="munetios-default"] body {
+  background:
+    radial-gradient(
+      circle at 10% 16%,
+      rgb(168 85 247 / 26%) 0 7rem,
+      transparent 16rem
+    ),
+    radial-gradient(
+      circle at 86% 12%,
+      rgb(126 34 206 / 22%) 0 5rem,
+      transparent 14rem
+    ),
+    radial-gradient(
+      circle at 72% 78%,
+      rgb(147 51 234 / 18%) 0 9rem,
+      transparent 20rem
+    ),
+    radial-gradient(
+      circle at 18% 88%,
+      rgb(88 28 135 / 22%) 0 6rem,
+      transparent 17rem
+    ),
+    var(--app-background);
+  background-attachment: fixed;
+}
+
+html[data-munetios-theme="munetios-default"] .liquid-glass {
+  border-color: rgb(216 180 254 / 18%) !important;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 14%),
+    0 1rem 3rem rgb(3 0 9 / 24%);
+}
+
+html[data-munetios-theme="munetios-default"] :is(main, section, aside, nav) {
+  scroll-padding: 1.25rem;
+}
 
 .signin-background {
   background: var(--app-background);
 }
 
-html[data-munetios-theme="munetios-default"] .signin-background {
+html[data-munetios-theme="munetios-classic"] .signin-background {
   background-image: url("/background.jpg");
   background-position: center;
   background-repeat: no-repeat;
@@ -94,7 +134,7 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 2147483647;
+  z-index: 2147483400;
   width: 100%;
   height: 3px;
   overflow: hidden;
@@ -152,8 +192,8 @@ html.reduce-motion *::after {
 html.reduce-transparency *,
 html.reduce-transparency *::before,
 html.reduce-transparency *::after {
-  backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 html.reduce-transparency[data-munetios-theme] .liquid-glass,
@@ -162,8 +202,8 @@ html.reduce-transparency[data-munetios-theme]
 html.reduce-transparency[data-munetios-theme] .munetios-modal-enter,
 html.reduce-transparency[data-munetios-theme] .munetios-error-container {
   isolation: auto !important;
-  backdrop-filter: blur(0) !important;
   -webkit-backdrop-filter: blur(0) !important;
+  backdrop-filter: blur(0) !important;
   background-color: var(
     --theme-surface-container,
     var(--background-secondary)
@@ -186,8 +226,8 @@ html.reduce-transparency[data-munetios-theme]
 
 html.reduce-transparency[data-munetios-theme] [class*="bg-white/"],
 html.reduce-transparency[data-munetios-theme] [class*="bg-purple-"] {
-  backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 html:not(
@@ -241,8 +281,8 @@ html[data-munetios-theme-mode="light"] [class*="text-white/"] {
 }
 
 html.theme-no-glass .liquid-glass {
-  backdrop-filter: blur(0) !important;
   -webkit-backdrop-filter: blur(0) !important;
+  backdrop-filter: blur(0) !important;
   background-color: var(--background-secondary, var(--background)) !important;
   background-image: none !important;
   box-shadow: 0 1px 2px color-mix(in srgb, var(--foreground) 18%, transparent) !important;
@@ -346,6 +386,47 @@ html[data-munetios-theme] .appearance-theme-card,
 html[data-munetios-theme] .munetios-modal-enter,
 html[data-munetios-theme] .munetios-dropdown-enter {
   border-radius: var(--theme-container-radius, 16px) !important;
+}
+.calendar-search input {
+  border-radius: 0 !important;
+}
+html[data-munetios-theme="munetios-default"]:not([data-custom-border-radius])
+  :is(
+    .account-manager-topbar > div > .liquid-glass,
+    .account-manager-topbar > .liquid-glass,
+    .munetios-ai-topbar-menu,
+    .munetios-ai-topbar-actions
+  ) {
+  border-radius: 50px !important;
+}
+
+html[data-munetios-theme="munetios-default"]:not([data-custom-border-radius])
+  :is(#sidebar, .munetios-ai-sidebar) {
+  border-radius: 24px !important;
+}
+
+html[data-munetios-theme="munetios-default"]:not([data-custom-border-radius])
+  #accountmanagercontentcontainer
+  > section {
+  border-radius: 28px !important;
+}
+
+@media (min-width: 768px) {
+  .account-settings-sidebar {
+    height: calc(var(--app-responsive-viewport-height, 100dvh) - 7rem);
+  }
+}
+
+html[data-munetios-theme]
+  :is(
+    button.rounded-full,
+    [role="button"].rounded-full,
+    .munetios-info-tooltip-trigger,
+    .munetios-info-tooltip > button
+  ) {
+  min-width: var(--control-size, 2.25rem);
+  min-height: var(--control-size, 2.25rem);
+  flex: 0 0 auto;
 }
 
 html[data-munetios-theme="google-material-design"] .liquid-glass {
@@ -553,10 +634,14 @@ munetios-app {
   min-height: 100dvh;
 }
 
-.liquid-glass {
+.liquid-glass,
+html[data-munetios-theme]:not(.reduce-transparency):not(.theme-no-glass)
+  .liquid-glass {
   isolation: isolate !important;
-  backdrop-filter: blur(3px) saturate(145%) contrast(1.05) !important;
-  -webkit-backdrop-filter: blur(3px) saturate(145%) contrast(1.05) !important;
+  -webkit-backdrop-filter: blur(var(--liquid-glass-blur, 3px)) saturate(145%)
+    contrast(1.05) !important;
+  backdrop-filter: blur(var(--liquid-glass-blur, 3px)) saturate(145%)
+    contrast(1.05) !important;
   background-image:
     linear-gradient(
       145deg,
@@ -580,6 +665,7 @@ munetios-app {
     inset 0 -1px 0 rgba(255, 255, 255, 0.08),
     0 18px 42px rgba(24, 8, 44, 0.22) !important;
 }
+
 .liquid-glass:not(.munetios-toast) {
   --glass-x: 50%;
   --glass-y: 50%;
@@ -630,6 +716,7 @@ munetios-app {
     inset 0 1px 0 rgba(255, 255, 255, 0.16),
     inset 0 -1px 0 rgba(255, 255, 255, 0.06);
 }
+
 .liquid-glass:not(.munetios-toast) > * {
   position: relative;
   z-index: 1;
@@ -668,11 +755,17 @@ munetios-app {
 }
 
 .munetios-toast-enter {
-  animation: munetios-toast-enter 180ms ease-out both;
+  transform-origin: top right;
+  animation: munetios-toast-enter 520ms cubic-bezier(0.2, 0.85, 0.25, 1.15) both;
+}
+
+.munetios-toast-icon {
+  animation: munetios-toast-icon-enter 620ms cubic-bezier(0.2, 0.9, 0.2, 1.2)
+    both;
 }
 
 .munetios-modal-enter {
-  animation: munetios-modal-enter 180ms ease-out both;
+  animation: munetios-modal-enter 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .munetios-dropdown-enter {
@@ -680,8 +773,8 @@ munetios-app {
 }
 
 .spinner-container {
-  height: 65px;
-  width: 65px;
+  height: 36px;
+  width: 36px;
 }
 
 .google-spinner {
@@ -881,13 +974,28 @@ html[data-munetios-theme][data-munetios-theme-mode="light"] .spinner-container {
 
 @keyframes munetios-modal-enter {
   from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.98);
+    transform: translateY(12px) scale(1.035);
   }
 
   to {
-    opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes munetios-toast-icon-enter {
+  0% {
+    opacity: 0;
+    transform: rotate(-24deg) scale(0.55);
+  }
+
+  65% {
+    opacity: 1;
+    transform: rotate(5deg) scale(1.12);
+  }
+
+  100% {
+    opacity: 1;
+    transform: rotate(0) scale(1);
   }
 }
 
@@ -932,6 +1040,155 @@ html.reduce-transparency .munetios-global-tooltip {
 
 .munetios-global-tooltip.is-above {
   translate: -50% -100%;
+}
+
+.munetios-info-tooltip-root {
+  position: relative;
+  display: inline-flex;
+}
+
+.munetios-info-tooltip-trigger {
+  display: inline-flex;
+  width: 1.65rem;
+  height: 1.65rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50% !important;
+  background: color-mix(in srgb, var(--accent) 16%, transparent) !important;
+  color: color-mix(in srgb, var(--foreground) 72%, transparent);
+}
+
+.munetios-info-tooltip-trigger icon {
+  font-size: 1rem;
+}
+
+.munetios-info-tooltip {
+  position: fixed;
+  z-index: 2147482500;
+  display: grid;
+  width: min(22rem, calc(var(--app-responsive-viewport-width, 100vw) - 1rem));
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  border: 1px solid rgb(216 180 254 / 20%);
+  border-radius: 1rem;
+  background-color: color-mix(
+    in srgb,
+    var(--theme-surface-container, var(--background-secondary)) 42%,
+    transparent
+  ) !important;
+  padding: 0.75rem;
+  box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 32%);
+  color: var(--foreground);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.munetios-info-tooltip[hidden] {
+  display: none !important;
+}
+
+.munetios-info-tooltip:not([hidden]) {
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto;
+}
+
+.munetios-info-tooltip > span:first-child {
+  display: block;
+  min-width: 0;
+  color: var(--foreground);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.munetios-dropdown-panel {
+  background-color: color-mix(
+    in srgb,
+    var(--theme-surface-container, var(--background-secondary)) 34%,
+    transparent
+  ) !important;
+}
+
+.munetios-dropdown-panel.signin-theme-menu {
+  isolation: isolate;
+  border-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--theme-surface-container, var(--background-secondary)) 68%,
+    transparent
+  ) !important;
+  background-image:
+    linear-gradient(145deg, rgb(255 255 255 / 10%), transparent 42%),
+    linear-gradient(180deg, rgb(109 40 217 / 18%), rgb(30 27 75 / 14%));
+  box-shadow:
+    0 1.25rem 3.5rem rgb(8 1 16 / 48%),
+    inset 0 1px 0 rgb(255 255 255 / 8%);
+  -webkit-backdrop-filter: blur(3px) saturate(145%);
+  backdrop-filter: blur(3px) saturate(145%);
+}
+
+.signin-theme-options {
+  max-height: min(20rem, calc(100dvh - 10rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.munetios-dropdown-panel
+  :is(button, [role="menuitem"], [role="menuitemradio"]) {
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  background-color: transparent !important;
+}
+
+.munetios-info-tooltip > button {
+  display: inline-flex;
+  width: 1.7rem;
+  height: 1.7rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50% !important;
+  background: color-mix(in srgb, var(--foreground) 9%, transparent) !important;
+  color: var(--foreground);
+}
+
+.munetios-custom-slider {
+  height: 0.5rem;
+  appearance: none;
+  border: 0;
+  border-radius: 999px !important;
+  outline: none;
+  background: linear-gradient(
+    90deg,
+    var(--accent) 0 var(--slider-progress, 50%),
+    color-mix(in srgb, var(--foreground) 14%, transparent)
+      var(--slider-progress, 50%) 100%
+  ) !important;
+}
+
+.munetios-custom-slider::-webkit-slider-thumb {
+  width: 1.25rem;
+  height: 1.25rem;
+  appearance: none;
+  border: 3px solid color-mix(in srgb, var(--accent) 74%, white 26%);
+  border-radius: 50%;
+  background: var(--theme-surface, #21043a);
+  box-shadow: 0 0.25rem 0.8rem rgb(0 0 0 / 30%);
+  cursor: grab;
+}
+
+.munetios-custom-slider::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border: 3px solid color-mix(in srgb, var(--accent) 74%, white 26%);
+  border-radius: 50%;
+  background: var(--theme-surface, #21043a);
+  box-shadow: 0 0.25rem 0.8rem rgb(0 0 0 / 30%);
+  cursor: grab;
 }
 
 @keyframes munetios-tooltip-enter {
@@ -1128,5 +1385,106 @@ script[data-nextjs-dev-overlay],
     --line: rgba(226, 212, 255, 0.18);
     --purple: #9d6cff;
     --purple-dark: #31164f;
+  }
+}
+.tasks-settings-modal > div:first-child > h2 {
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+html[data-munetios-theme] body :where(*):not(#munetios-regular-weight-override),
+html[data-munetios-theme] body :where(*)::before,
+html[data-munetios-theme] body :where(*)::after {
+  font-weight: 400 !important;
+}
+
+.ai-plan-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  background: rgb(4 0 18 / 24%);
+  padding: 1rem;
+  pointer-events: none;
+}
+
+.ai-checkout-modal {
+  position: relative;
+  display: flex;
+  width: min(68rem, 100%);
+  height: min(48rem, calc(100dvh - 2rem));
+  max-height: calc(100dvh - 2rem);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 1.5rem;
+  background: rgb(20 7 42 / 92%);
+  box-shadow: 0 1.5rem 4.5rem rgb(4 0 18 / 48%);
+  backdrop-filter: blur(3px);
+  pointer-events: auto;
+}
+
+.ai-checkout-modal-header {
+  display: flex;
+  min-height: 4rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgb(255 255 255 / 12%);
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
+}
+
+.ai-checkout-modal-header h2 {
+  color: white;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.ai-checkout-modal-close {
+  z-index: 3;
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 50%;
+  background: rgb(20 8 36 / 42%);
+  color: white;
+}
+
+.ai-checkout-modal-loading {
+  position: absolute;
+  z-index: 2;
+  inset: 4rem 0 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.75rem;
+  background: rgb(28 7 62 / 34%);
+  color: white;
+  backdrop-filter: blur(3px);
+}
+
+.ai-checkout-modal > iframe {
+  display: block;
+  min-height: 0;
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto;
+  border: 0;
+  background: transparent;
+}
+
+@media (max-width: 699.98px) {
+  .ai-plan-overlay {
+    padding: 0.5rem;
+  }
+
+  .ai-checkout-modal {
+    height: calc(100dvh - 1rem);
+    max-height: calc(100dvh - 1rem);
+    border-radius: 1rem;
   }
 }

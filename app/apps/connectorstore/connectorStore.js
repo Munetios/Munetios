@@ -5,12 +5,13 @@ import AccountAvatar from "../../components/accountAvatar";
 import AccountWrapper from "../../components/accountwraper";
 import AppLauncherWrapper from "../../components/appLauncherWrapper";
 import AppTopbarRight from "../../components/appTopbarRight";
-import LoadingSpinner from "../../components/loadingSpinner";
 import CustomFilePicker from "../../components/customFilePicker";
 import CustomToggle from "../../components/customToggle";
+import LoadingSpinner from "../../components/loadingSpinner";
 import { showModal } from "../../components/modal";
 import { showToast } from "../../components/toast";
 import { t } from "../../i18n";
+import { showParentalAwareToast } from "../../lib/parentalControlsClient";
 import { hasSignedInCookie } from "../../lib/signedInCookie";
 
 function StoreSettings({ copy }) {
@@ -59,13 +60,18 @@ function DeveloperBusinessForm({ copy, onVerified }) {
           method: "POST",
         });
         if (!response.ok) {
-          showToast({ messageKey: "connectorDeveloperVerificationFailed", type: "error" });
+          showToast({
+            messageKey: "connectorDeveloperVerificationFailed",
+            type: "error",
+          });
           return;
         }
         onVerified();
       }}
     >
-      <p className="text-sm text-white/65">{copy.connectorDeveloperBusinessDescription}</p>
+      <p className="text-sm text-white/65">
+        {copy.connectorDeveloperBusinessDescription}
+      </p>
       {[
         ["businessName", copy.connectorBusinessName, "text"],
         ["website", copy.connectorBusinessWebsite, "url"],
@@ -75,7 +81,9 @@ function DeveloperBusinessForm({ copy, onVerified }) {
           {label}
           <input
             className="mt-1 w-full rounded-xl border border-white/10 bg-white/8! px-3 py-2 outline-none"
-            onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, [key]: event.target.value }))
+            }
             required
             type={type}
             value={form[key]}
@@ -87,20 +95,28 @@ function DeveloperBusinessForm({ copy, onVerified }) {
         <textarea
           className="mt-1 min-h-24 w-full rounded-xl border border-white/10 bg-white/8! px-3 py-2 outline-none"
           minLength={20}
-          onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              description: event.target.value,
+            }))
+          }
           required
           value={form.description}
         />
       </label>
       <p className="text-xs text-white/50">{copy.connectorNoPhoneRequired}</p>
-      <button className="w-full rounded-xl bg-purple-500/70! px-4 py-2 font-bold" type="submit">
+      <button
+        className="w-full rounded-xl bg-purple-500/70! px-4 py-2 font-bold"
+        type="submit"
+      >
         {copy.connectorVerifyBusiness}
       </button>
     </form>
   );
 }
 
-function CreateConnector({ copy, close, onCreated }) {
+function _CreateConnector({ copy, close, onCreated }) {
   const [needsVerification, setNeedsVerification] = useState(false);
   const [iconFile, setIconFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -175,34 +191,44 @@ function CreateConnector({ copy, close, onCreated }) {
           {label}
           <input
             className="mt-1 w-full rounded-xl border border-white/10 bg-white/8! px-3 py-2 outline-none"
-            onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, [key]: event.target.value }))
+            }
             required={key !== "iconUrl"}
             type={type}
             value={form[key]}
           />
         </label>
       ))}
-      <label className="text-sm font-semibold">
-        {copy.connectorIcon}
+      <div className="text-sm font-semibold">
+        <span>{copy.connectorIcon}</span>
         <div className="mt-1">
           <CustomFilePicker
             copy={copy}
             onChange={({ error, file }) => {
               if (error) {
-                showToast({ messageKey: "filePickerInvalidImage", type: "error" });
+                showToast({
+                  messageKey: "filePickerInvalidImage",
+                  type: "error",
+                });
                 return;
               }
               setIconFile(file);
             }}
           />
         </div>
-      </label>
+      </div>
       <label className="text-sm font-semibold">
         {copy.connectorDescription}
         <textarea
           className="mt-1 min-h-24 w-full rounded-xl border border-white/10 bg-white/8! px-3 py-2 outline-none"
           minLength={20}
-          onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              description: event.target.value,
+            }))
+          }
           required
           value={form.description}
         />
@@ -211,14 +237,21 @@ function CreateConnector({ copy, close, onCreated }) {
         {copy.connectorVisibility}
         <select
           className="mt-1 w-full rounded-xl border border-white/10 bg-purple-950/50! px-3 py-2"
-          onChange={(event) => setForm((current) => ({ ...current, visibility: event.target.value }))}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              visibility: event.target.value,
+            }))
+          }
           value={form.visibility}
         >
           <option value="private">{copy.connectorPrivate}</option>
           <option value="public">{copy.connectorPublishToStore}</option>
         </select>
       </label>
-      <p className="text-xs leading-5 text-white/50">{copy.connectorPublishingRequirements}</p>
+      <p className="text-xs leading-5 text-white/50">
+        {copy.connectorPublishingRequirements}
+      </p>
       <button
         className="rounded-xl bg-purple-500/70! px-4 py-2 font-bold disabled:opacity-55"
         disabled={submitting}
@@ -249,7 +282,9 @@ export default function ConnectorStore() {
         return response.json();
       })
       .then((payload) => setConnectors(payload.connectors || []))
-      .catch(() => showToast({ messageKey: "connectorsLoadFailed", type: "error" }))
+      .catch(() =>
+        showToast({ messageKey: "connectorsLoadFailed", type: "error" }),
+      )
       .finally(() => setLoading(false));
   }, []);
 
@@ -258,16 +293,7 @@ export default function ConnectorStore() {
       window.location.assign("/signin");
       return;
     }
-    showModal(
-      ({ close }) => (
-        <CreateConnector
-          close={close}
-          copy={copy}
-          onCreated={(connector) => setConnectors((current) => [...current, connector])}
-        />
-      ),
-      { title: copy.connectorCreate, width: "min(38rem, calc(100vw - 1rem))" },
-    );
+    showToast({ message: copy.comingSoon, type: "info" });
   };
 
   const disconnect = async (connector) => {
@@ -318,12 +344,15 @@ export default function ConnectorStore() {
         credentials: "include",
         headers: { Accept: "application/json" },
       });
-      if (!response.ok) {
-        throw new Error("connect_failed");
-      }
-      const payload = await response.json();
-      if (!payload.authorizeUrl) {
-        throw new Error("connect_failed");
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.authorizeUrl) {
+        setWorkingConnectorId("");
+        showParentalAwareToast(
+          payload,
+          { messageKey: "connectorConnectFailed", type: "error" },
+          showToast,
+        );
+        return;
       }
       window.location.assign(payload.authorizeUrl);
     } catch {
@@ -343,59 +372,126 @@ export default function ConnectorStore() {
           <strong>{copy.connectorStoreTitle}</strong>
         </div>
         <AppTopbarRight className="topbar-right rounded-2xl border border-white/10 bg-white/10! shadow-xl shadow-black/10 backdrop-blur-[3px]">
-          <button className="grid h-10 w-10 place-items-center rounded-xl transition hover:bg-purple-500/25! active:scale-95" aria-label={copy.connectorCreate} onClick={openCreate} type="button"><icon>add</icon></button>
+          <button
+            className="grid h-10 w-10 place-items-center rounded-xl transition hover:bg-purple-500/25! active:scale-95"
+            aria-label={copy.connectorCreate}
+            onClick={openCreate}
+            type="button"
+          >
+            <icon>add</icon>
+          </button>
           <button
             aria-label={copy.settings}
             className="grid h-10 w-10 place-items-center rounded-xl transition hover:bg-purple-500/25! active:scale-95"
-            onClick={() => showModal(<StoreSettings copy={copy} />, { title: copy.settings })}
+            onClick={() =>
+              showModal(<StoreSettings copy={copy} />, { title: copy.settings })
+            }
             type="button"
-          ><icon>settings</icon></button>
-          <button className="grid h-10 w-10 place-items-center rounded-xl transition hover:bg-purple-500/25! active:scale-95" aria-label={copy.apps} onClick={() => setAppsOpen((open) => !open)} ref={appsRef} type="button"><icon>apps</icon></button>
-          <button className="grid h-10 w-10 place-items-center overflow-hidden rounded-xl transition hover:bg-purple-500/25! active:scale-95" aria-label={copy.account} onClick={() => setAccountOpen((open) => !open)} type="button">
-            {hasSignedInCookie() ? <AccountAvatar account={{ name: "Munetios" }} className="h-9 w-9 rounded-xl" /> : <icon>account_circle</icon>}
+          >
+            <icon>settings</icon>
+          </button>
+          <button
+            className="grid h-10 w-10 place-items-center rounded-xl transition hover:bg-purple-500/25! active:scale-95"
+            aria-label={copy.apps}
+            onClick={() => setAppsOpen((open) => !open)}
+            ref={appsRef}
+            type="button"
+          >
+            <icon>apps</icon>
+          </button>
+          <button
+            className="grid h-10 w-10 place-items-center overflow-hidden rounded-xl transition hover:bg-purple-500/25! active:scale-95"
+            aria-label={copy.account}
+            onClick={() => setAccountOpen((open) => !open)}
+            type="button"
+          >
+            {hasSignedInCookie()
+              ? <AccountAvatar
+                  account={{ name: "Munetios" }}
+                  className="h-9 w-9 rounded-xl"
+                />
+              : <icon>account_circle</icon>}
           </button>
         </AppTopbarRight>
       </header>
-      <AppLauncherWrapper copy={copy} onClose={() => setAppsOpen(false)} open={appsOpen} triggerRef={appsRef} />
-      {accountOpen ? <div className="fixed right-3 top-20 z-[1100] w-[min(30rem,calc(100vw-1.5rem))]"><AccountWrapper appContext /></div> : null}
-      <section className="mx-auto max-w-6xl">
-        <p className="text-sm font-bold uppercase tracking-[0.15em] text-purple-200">Munetios</p>
-        <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em] sm:text-6xl">{copy.connectorStoreTitle}</h1>
-        <p className="mt-4 max-w-2xl text-white/65">{copy.connectorStoreDescription}</p>
-        {loading ? <div className="grid min-h-64 place-items-center"><LoadingSpinner label={copy.connectorsLoading} /></div> : (
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            {connectors.filter((connector) => connector.visibility === "public").map((connector) => (
-              <article className="liquid-glass rounded-3xl border border-white/10 bg-white/8! p-6" key={connector.id}>
-                <img alt="" className="h-16 w-16 rounded-2xl bg-black/40! p-2" src={connector.iconUrl} />
-                <h2 className="mt-4 text-2xl font-bold">{connector.name}</h2>
-                <p className="mt-1 text-sm text-white/50">{connector.developer}</p>
-                <p className="mt-3 text-sm leading-6 text-white/70">{connector.description}</p>
-                <div className="mt-5 flex gap-2">
-                  {connector.connected ? (
-                    <button
-                      className="rounded-xl border border-rose-200/20 bg-rose-500/15! px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={workingConnectorId === connector.id}
-                      onClick={() => void disconnect(connector)}
-                      type="button"
-                    >
-                      {copy.connectorDisconnect}
-                    </button>
-                  ) : connector.slug === "github" ? (
-                    <button
-                      className="rounded-xl bg-purple-500/70! px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={workingConnectorId === connector.id}
-                      onClick={() => void connect(connector)}
-                      type="button"
-                    >
-                      {copy.connectorConnect}
-                    </button>
-                  ) : null}
-                  <a className="rounded-xl border border-white/10 px-4 py-2 text-sm" href={connector.privacyUrl} target="_blank">{copy.footerPrivacy}</a>
-                </div>
-              </article>
-            ))}
+      <AppLauncherWrapper
+        copy={copy}
+        onClose={() => setAppsOpen(false)}
+        open={appsOpen}
+        triggerRef={appsRef}
+      />
+      {accountOpen
+        ? <div className="fixed right-3 top-20 z-[1100] w-[min(30rem,calc(100vw-1.5rem))]">
+            <AccountWrapper appContext />
           </div>
-        )}
+        : null}
+      <section className="mx-auto max-w-6xl">
+        <p className="text-sm font-bold uppercase tracking-[0.15em] text-purple-200">
+          Munetios
+        </p>
+        <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em] sm:text-6xl">
+          {copy.connectorStoreTitle}
+        </h1>
+        <p className="mt-4 max-w-2xl text-white/65">
+          {copy.connectorStoreDescription}
+        </p>
+        {loading
+          ? <div className="grid min-h-64 place-items-center">
+              <LoadingSpinner label={copy.connectorsLoading} />
+            </div>
+          : <div className="mt-8 grid gap-4 md:grid-cols-2">
+              {connectors
+                .filter((connector) => connector.visibility === "public")
+                .map((connector) => (
+                  <article
+                    className="liquid-glass rounded-3xl border border-white/10 bg-white/8! p-6"
+                    key={connector.id}
+                  >
+                    <img
+                      alt=""
+                      className="h-16 w-16 rounded-2xl bg-black/40! p-2"
+                      src={connector.iconUrl}
+                    />
+                    <h2 className="mt-4 text-2xl font-bold">
+                      {connector.name}
+                    </h2>
+                    <p className="mt-1 text-sm text-white/50">
+                      {connector.developer}
+                    </p>
+                    <p className="mt-3 text-sm leading-6 text-white/70">
+                      {connector.description}
+                    </p>
+                    <div className="mt-5 flex gap-2">
+                      {connector.connected
+                        ? <button
+                            className="rounded-xl border border-rose-200/20 bg-rose-500/15! px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={workingConnectorId === connector.id}
+                            onClick={() => void disconnect(connector)}
+                            type="button"
+                          >
+                            {copy.connectorDisconnect}
+                          </button>
+                        : connector.slug === "github"
+                          ? <button
+                              className="rounded-xl bg-purple-500/70! px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60"
+                              disabled={workingConnectorId === connector.id}
+                              onClick={() => void connect(connector)}
+                              type="button"
+                            >
+                              {copy.connectorConnect}
+                            </button>
+                          : null}
+                      <a
+                        className="rounded-xl border border-white/10 px-4 py-2 text-sm"
+                        href={connector.privacyUrl}
+                        target="_blank"
+                      >
+                        {copy.footerPrivacy}
+                      </a>
+                    </div>
+                  </article>
+                ))}
+            </div>}
       </section>
     </main>
   );

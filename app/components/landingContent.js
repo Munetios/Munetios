@@ -1,4 +1,5 @@
 import { t } from "../i18n";
+import LandingStats from "./landingStats";
 
 const products = [
   {
@@ -107,39 +108,6 @@ const features = [
   },
 ];
 
-const pricingPlans = [
-  {
-    ctaId: "personalSignUpButton",
-    ctaKey: "pricingSignUpCta",
-    descriptionKey: "pricingPersonalDescription",
-    priceKey: "pricingPersonalPrice",
-    titleKey: "pricingPersonalTitle",
-  },
-  {
-    ctaId: "businessFreeSignUpButton",
-    ctaKey: "pricingSignUpCta",
-    descriptionKey: "pricingBusinessFreeDescription",
-    priceKey: "pricingBusinessFreePrice",
-    signupHref: "/business/signup?plan=business-free",
-    titleKey: "pricingBusinessFreeTitle",
-  },
-  {
-    ctaId: "getBusinessProButton",
-    ctaKey: "pricingBusinessProCta",
-    descriptionKey: "pricingBusinessProDescription",
-    priceKey: "pricingBusinessProPrice",
-    signupHref: "/business/signup?plan=business-pro",
-    titleKey: "pricingBusinessProTitle",
-  },
-  {
-    ctaId: "getEnterpriseButton",
-    ctaKey: "pricingEnterpriseCta",
-    descriptionKey: "pricingEnterpriseDescription",
-    priceKey: "pricingEnterprisePrice",
-    titleKey: "pricingEnterpriseTitle",
-  },
-];
-
 const privacyCards = [
   {
     titleKey: "privacyEncryptionTitle",
@@ -213,6 +181,34 @@ export default function LandingContent() {
           />
         </div>
       </div>
+
+      <section className="liquid-glass mt-4 w-full rounded-2xl border border-purple-200/15 bg-purple-950/25! p-4 md:p-6">
+        <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+          <div>
+            <h2
+              className="text-xl font-bold"
+              data-translate="landingBetaAvailabilityTitle"
+            >
+              {copy.landingBetaAvailabilityTitle}
+            </h2>
+            <p
+              className="mt-2 text-sm leading-6 text-white/70"
+              data-translate="landingBetaAvailabilityBody"
+            >
+              {copy.landingBetaAvailabilityBody}
+            </p>
+          </div>
+          <div>
+            <h2
+              className="text-xl font-bold"
+              data-translate="landingPrivacyStatsTitle"
+            >
+              {copy.landingPrivacyStatsTitle}
+            </h2>
+            <LandingStats copy={copy} />
+          </div>
+        </div>
+      </section>
 
       <div
         id="productsSection"
@@ -302,40 +298,11 @@ export default function LandingContent() {
         <p className="text-lg leading-relaxed" data-translate="pricingSubTitle">
           Choose the plan that works best for you and your team.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-          {pricingPlans.map((plan) => (
-            <div className="liquid-glass p-4 rounded-xl" key={plan.titleKey}>
-              <h3 className="font-bold mb-1" data-translate={plan.titleKey}>
-                {copy[plan.titleKey]}
-              </h3>
-              <h1
-                className="text-2xl md:text-3xl font-bold"
-                data-translate={plan.priceKey}
-              >
-                {copy[plan.priceKey]}
-              </h1>
-              <p className="text-sm" data-translate={plan.descriptionKey}>
-                {copy[plan.descriptionKey]}
-              </p>
-              {plan.signupHref
-                ? <a
-                    className="liquid-glass inline-flex bg-purple-800/50! text-white font-bold cursor-pointer py-2 px-4 rounded-5xl hover:bg-purple-600! transition duration-300 mt-3"
-                    data-translate={plan.ctaKey}
-                    href={plan.signupHref}
-                    id={plan.ctaId}
-                  >
-                    {copy[plan.ctaKey]}
-                  </a>
-                : <button
-                    className="liquid-glass bg-purple-800/50! text-white font-bold cursor-pointer py-2 px-4 rounded-5xl hover:bg-purple-600! transition duration-300 mt-3"
-                    data-translate={plan.ctaKey}
-                    id={plan.ctaId}
-                    type="button"
-                  >
-                    {copy[plan.ctaKey]}
-                  </button>}
-            </div>
-          ))}
+        <div className="liquid-glass mt-4 rounded-xl border border-purple-200/20 bg-purple-500/15! p-5 text-center">
+          <icon className="text-3xl text-purple-200">schedule</icon>
+          <strong className="mt-2 block text-xl" data-translate="comingSoon">
+            {copy.comingSoon}
+          </strong>
         </div>
       </div>
       <div

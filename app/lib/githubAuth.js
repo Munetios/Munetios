@@ -23,6 +23,7 @@ function getSigningSecret() {
     process.env.GITHUB_AUTH_STATE_SECRET ||
     process.env.GITHUB_AUTH_CLIENT_SECRET ||
     process.env.GITHUB_CONNECTOR_CLIENT_SECRET ||
+    process.env.GITHUB_CLIENT_SECRET ||
     ""
   );
 }
@@ -48,10 +49,12 @@ export function getGithubAuthConfiguration() {
     clientId:
       process.env.GITHUB_AUTH_CLIENT_ID ||
       process.env.GITHUB_CONNECTOR_CLIENT_ID ||
+      process.env.GITHUB_CLIENT_ID ||
       "",
     clientSecret:
       process.env.GITHUB_AUTH_CLIENT_SECRET ||
       process.env.GITHUB_CONNECTOR_CLIENT_SECRET ||
+      process.env.GITHUB_CLIENT_SECRET ||
       "",
   };
 }

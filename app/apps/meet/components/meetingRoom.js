@@ -6,6 +6,7 @@ import DropdownWrapper from "../../../components/dropdownwrapper";
 import LoadingSpinner from "../../../components/loadingSpinner";
 import { showModal } from "../../../components/modal";
 import { showToast } from "../../../components/toast";
+import { meetEmojiCategories } from "../lib/meetEmojis";
 import MeetActivitiesPanel, { MeetActivityTile } from "./meetActivitiesPanel";
 import MeetChatPanel from "./meetChatPanel";
 import {
@@ -31,6 +32,74 @@ const meetRecordingMp4Types = [
   "video/mp4;codecs=h264,aac",
   "video/mp4",
 ];
+const recordingQualityProfiles = {
+  highest: {
+    audioBitrate: 256_000,
+    frameRate: 60,
+    height: 2160,
+    videoBitrate: 20_000_000,
+    width: 3840,
+  },
+  higher: {
+    audioBitrate: 192_000,
+    frameRate: 30,
+    height: 1080,
+    videoBitrate: 9_000_000,
+    width: 1920,
+  },
+  lower: {
+    audioBitrate: 128_000,
+    frameRate: 24,
+    height: 540,
+    videoBitrate: 2_500_000,
+    width: 960,
+  },
+  lowest: {
+    audioBitrate: 96_000,
+    frameRate: 15,
+    height: 360,
+    videoBitrate: 1_000_000,
+    width: 640,
+  },
+  medium: {
+    audioBitrate: 160_000,
+    frameRate: 30,
+    height: 720,
+    videoBitrate: 5_000_000,
+    width: 1280,
+  },
+};
+const recordingChunkIntervals = {
+  default: 2,
+  high: 1,
+  low: 8,
+  medium: 4,
+};
+
+function getSpeechRecognitionConstructor() {
+  if (typeof window === "undefined") return null;
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
+
+function canControlBackgroundBlur(track) {
+  try {
+    const values = track?.getCapabilities?.().backgroundBlur;
+    return (
+      Array.isArray(values) && values.includes(true) && values.includes(false)
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function applyBackgroundBlur(track, enabled) {
+  if (!canControlBackgroundBlur(track)) return false;
+  await track.applyConstraints({
+    ...track.getConstraints(),
+    backgroundBlur: { exact: enabled },
+  });
+  return track.getSettings().backgroundBlur === enabled;
+}
 
 function getEncodedEncryptionKey(value) {
   const key = String(value || "");
@@ -194,7 +263,7 @@ function showModerationConfirmation({
   );
 }
 
-function RemoteVideo({ cameraVisible, stream }) {
+function RemoteVideo({ cameraVisible, screenSharing, stream }) {
   const audioRef = useRef(null);
   const videoRef = useRef(null);
 
@@ -215,9 +284,10 @@ function RemoteVideo({ cameraVisible, stream }) {
       audio.srcObject = stream
         ? new MediaStream(stream.getAudioTracks())
         : null;
-      video.srcObject = stream
-        ? new MediaStream(stream.getVideoTracks())
-        : null;
+      video.srcObject =
+        stream && (cameraVisible || screenSharing)
+          ? new MediaStream(stream.getVideoTracks())
+          : null;
       playRemoteMedia();
     };
     attachRemoteTracks();
@@ -244,7 +314,7 @@ function RemoteVideo({ cameraVisible, stream }) {
       audio.srcObject = null;
       video.srcObject = null;
     };
-  }, [stream]);
+  }, [cameraVisible, screenSharing, stream]);
 
   return (
     <>
@@ -263,6 +333,7 @@ function RemoteVideo({ cameraVisible, stream }) {
 }
 
 function ParticipantTile({
+  actions = null,
   copy,
   focused,
   local = false,
@@ -287,14 +358,20 @@ function ParticipantTile({
         ?.getVideoTracks()
         .some((track) => track.readyState === "live"),
   );
+  const remoteVideoTrackVisible = Boolean(
+    participant.stream
+      ?.getVideoTracks()
+      .some((track) => track.readyState === "live" && !track.muted),
+  );
+  const hasPublishedRemoteVideoState =
+    typeof participant.cameraOn === "boolean" &&
+    typeof participant.screenSharing === "boolean";
   const cameraVisible = local
     ? localCameraVisible || localScreenVisible
-    : Boolean(
-        participant.stream
-          ?.getVideoTracks()
-          .some((track) => track.readyState === "live" && !track.muted) ||
-          participant.cameraVisible,
-      );
+    : remoteVideoTrackVisible &&
+      (hasPublishedRemoteVideoState
+        ? participant.cameraOn || participant.screenSharing
+        : participant.cameraVisible);
   const account = {
     avatarUrl: participant.avatarUrl,
     name: participant.displayName,
@@ -382,6 +459,7 @@ function ParticipantTile({
           </div>
         : <RemoteVideo
             cameraVisible={cameraVisible}
+            screenSharing={isScreenSharing}
             stream={participant.stream}
           />}
       {!cameraVisible
@@ -392,6 +470,18 @@ function ParticipantTile({
               className="meet-participant-avatar-image"
             />
           </div>
+        : null}
+      {participant.statusEmoji
+        ? <span
+            aria-label={`${copy.meetProfileStatus}: ${participant.statusEmoji}`}
+            className="meet-participant-status liquid-glass"
+            role="img"
+          >
+            {participant.statusEmoji}
+          </span>
+        : null}
+      {actions
+        ? <div className="meet-participant-actions">{actions}</div>
         : null}
       <footer className="meet-participant-label liquid-glass">
         <span>{local ? copy.meetYou : participant.displayName}</span>
@@ -408,11 +498,69 @@ function ParticipantTile({
   );
 }
 
+function MeetStatusPicker({ copy, onClose, onSelect, selectedEmoji }) {
+  const [categoryId, setCategoryId] = useState("hearts");
+  const category =
+    meetEmojiCategories.find((entry) => entry.id === categoryId) ||
+    meetEmojiCategories[0];
+  return (
+    <aside
+      aria-label={copy.meetProfileStatus}
+      className="meet-status-picker liquid-glass"
+    >
+      <header>
+        <strong>{copy.meetProfileStatus}</strong>
+        <button aria-label={copy.close} onClick={onClose} type="button">
+          <icon className="meet-status-picker-icon">close</icon>
+        </button>
+      </header>
+      <nav aria-label={copy.meetProfileStatus}>
+        {meetEmojiCategories.map((entry) => (
+          <button
+            aria-label={copy[entry.labelKey]}
+            className={entry.id === category.id ? "is-active" : ""}
+            key={entry.id}
+            onClick={() => setCategoryId(entry.id)}
+            title={copy[entry.labelKey]}
+            type="button"
+          >
+            <icon className="meet-status-picker-icon">{entry.icon}</icon>
+          </button>
+        ))}
+      </nav>
+      <div className="meet-status-emoji-grid">
+        {category.emojis.map((emoji) => (
+          <button
+            aria-label={emoji}
+            className={emoji === selectedEmoji ? "is-active" : ""}
+            key={emoji}
+            onClick={() => onSelect(emoji)}
+            type="button"
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
+      {selectedEmoji
+        ? <button
+            className="meet-status-clear"
+            onClick={() => onSelect("")}
+            type="button"
+          >
+            {copy.meetClearStatus}
+          </button>
+        : null}
+    </aside>
+  );
+}
+
 export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
   const [activity, setActivity] = useState(null);
   const [activitiesOpen, setActivitiesOpen] = useState(false);
   const [activitiesSound, setActivitiesSound] = useState(true);
   const [allowOthersJoinActivity, setAllowOthersJoinActivity] = useState(true);
+  const [backgroundBlurAvailable, setBackgroundBlurAvailable] = useState(false);
+  const [backgroundBlurEnabled, setBackgroundBlurEnabled] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatOpen, setChatOpen] = useState(false);
@@ -422,6 +570,12 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
   const [focusedPeerId, setFocusedPeerId] = useState("");
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [leaveWhenAlone, setLeaveWhenAlone] = useState(false);
+  const [liveTranscriptionAvailable, setLiveTranscriptionAvailable] =
+    useState(false);
+  const [liveTranscriptionEnabled, setLiveTranscriptionEnabled] =
+    useState(false);
+  const [liveTranscriptionFinal, setLiveTranscriptionFinal] = useState("");
+  const [liveTranscriptionInterim, setLiveTranscriptionInterim] = useState("");
   const [localCameraPreviewStream, setLocalCameraPreviewStream] =
     useState(null);
   const [localIdentity, setLocalIdentity] = useState(null);
@@ -434,9 +588,14 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
   const [recording, setRecording] = useState(false);
   const [recordingSaving, setRecordingSaving] = useState(false);
   const [screenSharing, setScreenSharing] = useState(false);
+  const [statusEmoji, setStatusEmoji] = useState("");
+  const [statusOpen, setStatusOpen] = useState(false);
   const [status, setStatus] = useState("connecting");
+  const [startAttempt, setStartAttempt] = useState(0);
   const [ttsVoice, setTtsVoice] = useState("");
   const copyRef = useRef(copy);
+  const backgroundBlurPreferenceRef = useRef(null);
+  const captionClearTimerRef = useRef(null);
   const activityRef = useRef(null);
   const activitiesSoundRef = useRef(true);
   const e2eeCryptoKeyRef = useRef(null);
@@ -445,6 +604,8 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
   const chatOpenRef = useRef(false);
   const chatMessageIdsRef = useRef(new Set());
   const blockedPeerIdsRef = useRef(new Set());
+  const friendsLoadFailedRef = useRef(false);
+  const friendsOpenRef = useRef(false);
   const aloneLeaveTimerRef = useRef(null);
   const credentialsRef = useRef(null);
   const cursorRef = useRef(0);
@@ -453,6 +614,8 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
   const mediaStateRevisionRef = useRef(0);
   const mutedPeerIdsRef = useRef(new Set());
   const noiseCancellationRef = useRef(true);
+  const recordingEncodingChunksRef = useRef("default");
+  const recordingQualityRef = useRef("medium");
   const mediaStateRef = useRef({
     cameraOn: false,
     microphoneOn: false,
@@ -468,13 +631,42 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
   const recordingChunksRef = useRef([]);
   const recordingStartedAtRef = useRef(0);
   const recordingRoomIdRef = useRef("meeting");
+  const speechRecognitionRef = useRef(null);
   const screenAudioTrackRef = useRef(null);
   const screenTrackRef = useRef(null);
   const startedAtRef = useRef(Date.now());
+  const transcriptionEnabledRef = useRef(false);
+  const transcriptionRestartTimerRef = useRef(null);
   const leaveMeetingRef = useRef(null);
   copyRef.current = copy;
   activityRef.current = activity;
   chatOpenRef.current = chatOpen;
+  friendsOpenRef.current = friendsOpen;
+
+  useEffect(() => {
+    setLiveTranscriptionAvailable(Boolean(getSpeechRecognitionConstructor()));
+  }, []);
+
+  const syncBackgroundBlurForTrack = useCallback(async (track) => {
+    const available = canControlBackgroundBlur(track);
+    setBackgroundBlurAvailable(available);
+    if (!available) {
+      setBackgroundBlurEnabled(false);
+      return;
+    }
+
+    const preferred = backgroundBlurPreferenceRef.current;
+    if (typeof preferred === "boolean") {
+      try {
+        await applyBackgroundBlur(track, preferred);
+      } catch {
+        // Keep the actual camera setting when the device rejects the preference.
+      }
+    }
+    const enabled = track.getSettings().backgroundBlur === true;
+    backgroundBlurPreferenceRef.current = enabled;
+    setBackgroundBlurEnabled(enabled);
+  }, []);
 
   const getMeetingCryptoKey = useCallback(() => {
     const rawKey = getEncodedEncryptionKey(e2eeKeyRef.current);
@@ -713,7 +905,12 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
         };
         event.track.onmute = refreshTrackState;
         event.track.onunmute = refreshTrackState;
-        event.track.onended = refreshTrackState;
+        event.track.onended = () => {
+          if (remoteStream.getTracks().some((item) => item.id === track.id)) {
+            remoteStream.removeTrack(track);
+          }
+          refreshTrackState();
+        };
         refreshTrackState();
       };
       connection.onconnectionstatechange = () => {
@@ -765,6 +962,23 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
   );
 
   const stopTracks = useCallback(() => {
+    transcriptionEnabledRef.current = false;
+    if (transcriptionRestartTimerRef.current) {
+      window.clearTimeout(transcriptionRestartTimerRef.current);
+      transcriptionRestartTimerRef.current = null;
+    }
+    if (captionClearTimerRef.current) {
+      window.clearTimeout(captionClearTimerRef.current);
+      captionClearTimerRef.current = null;
+    }
+    if (speechRecognitionRef.current) {
+      speechRecognitionRef.current.onend = null;
+      speechRecognitionRef.current.abort();
+      speechRecognitionRef.current = null;
+    }
+    setLiveTranscriptionEnabled(false);
+    setLiveTranscriptionFinal("");
+    setLiveTranscriptionInterim("");
     if (
       mediaRecorderRef.current &&
       mediaRecorderRef.current.state !== "inactive"
@@ -786,6 +1000,8 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
     });
     localStreamRef.current = null;
     setLocalCameraPreviewStream(null);
+    setBackgroundBlurAvailable(false);
+    setBackgroundBlurEnabled(false);
     for (const connection of peerConnectionsRef.current.values()) {
       connection.close();
     }
@@ -874,6 +1090,18 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
         typeof settings.ttsVoice === "string" ? settings.ttsVoice : "",
       );
       noiseCancellationRef.current = settings.noiseCancellation !== false;
+      recordingEncodingChunksRef.current = Object.hasOwn(
+        recordingChunkIntervals,
+        settings.recordingEncodingChunks,
+      )
+        ? settings.recordingEncodingChunks
+        : "default";
+      recordingQualityRef.current = Object.hasOwn(
+        recordingQualityProfiles,
+        settings.recordingQuality,
+      )
+        ? settings.recordingQuality
+        : "medium";
       const constraints = createMicrophoneConstraints(
         noiseCancellationRef.current,
       );
@@ -910,13 +1138,16 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
     };
   }, [leaveWhenAlone, participants.length, status]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: startAttempt intentionally restarts the complete meeting connection lifecycle.
   useEffect(() => {
     leftRef.current = false;
     chatInitializedRef.current = false;
     chatMessageIdsRef.current = new Set();
     setChatMessages([]);
     setChatUnread(0);
+    setLocalIdentity(null);
     setMediaReady(false);
+    setParticipants([]);
     setStatus("connecting");
     let cancelled = false;
     let meetingFailed = false;
@@ -1105,9 +1336,17 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
         activityRef.current = nextActivity;
         setActivity(nextActivity);
         await updateChatMessages(payload.chatMessages);
+        friendsLoadFailedRef.current = false;
       } catch {
         // The room was already joined successfully. A transient poll failure
         // must not replace the active meeting with a false start error.
+        if (friendsOpenRef.current && !friendsLoadFailedRef.current) {
+          friendsLoadFailedRef.current = true;
+          showMeetToast(
+            "friends-load-failed",
+            copyRef.current.meetFriendsLoadFailed,
+          );
+        }
         return;
       } finally {
         pollBusyRef.current = false;
@@ -1290,6 +1529,7 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
       setMediaReady(true);
       const audioTrack = stream.getAudioTracks()[0] || null;
       const videoTrack = stream.getVideoTracks()[0] || null;
+      await syncBackgroundBlurForTrack(videoTrack);
       setLocalCameraPreviewStream(
         videoTrack ? new MediaStream([videoTrack]) : null,
       );
@@ -1344,25 +1584,29 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
     request.peerId,
     request.peerToken,
     request.roomId,
+    startAttempt,
     publishMediaState,
     recordHistory,
     renegotiatePeerConnections,
     sendSignal,
     signedIn,
     stopTracks,
+    syncBackgroundBlurForTrack,
     updateParticipant,
     updateChatMessages,
   ]);
 
   const replaceOutgoingVideo = useCallback(async (track) => {
-    for (const connection of peerConnectionsRef.current.values()) {
-      const sender = connection.munetiosVideoSender;
-      const transceiver = connection.munetiosVideoTransceiver;
-      if (transceiver) {
-        transceiver.direction = "sendrecv";
-      }
-      if (sender) await sender.replaceTrack(track);
-    }
+    await Promise.allSettled(
+      [...peerConnectionsRef.current.values()].map(async (connection) => {
+        const sender = connection.munetiosVideoSender;
+        const transceiver = connection.munetiosVideoTransceiver;
+        if (transceiver) {
+          transceiver.direction = "sendrecv";
+        }
+        if (sender) await sender.replaceTrack(track);
+      }),
+    );
   }, []);
 
   const toggleMicrophone = async () => {
@@ -1401,14 +1645,16 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
   };
 
   const replaceOutgoingScreenAudio = useCallback(async (track) => {
-    for (const connection of peerConnectionsRef.current.values()) {
-      const sender = connection.munetiosScreenAudioSender;
-      const transceiver = connection.munetiosScreenAudioTransceiver;
-      if (transceiver) {
-        transceiver.direction = "sendrecv";
-      }
-      if (sender) await sender.replaceTrack(track);
-    }
+    await Promise.allSettled(
+      [...peerConnectionsRef.current.values()].map(async (connection) => {
+        const sender = connection.munetiosScreenAudioSender;
+        const transceiver = connection.munetiosScreenAudioTransceiver;
+        if (transceiver) {
+          transceiver.direction = "sendrecv";
+        }
+        if (sender) await sender.replaceTrack(track);
+      }),
+    );
   }, []);
 
   const toggleCamera = async () => {
@@ -1445,6 +1691,7 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
       }
     }
     track.enabled = true;
+    await syncBackgroundBlurForTrack(track);
     setLocalCameraPreviewStream(new MediaStream([track]));
     if (!screenSharing) {
       await replaceOutgoingVideo(track);
@@ -1455,28 +1702,192 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
     void playSound("cameraOn");
   };
 
+  const toggleBackgroundBlur = async () => {
+    const cameraTrack = localStreamRef.current
+      ?.getVideoTracks()
+      .find((track) => track.readyState === "live");
+    if (!cameraTrack || !canControlBackgroundBlur(cameraTrack)) {
+      setBackgroundBlurAvailable(false);
+      showMeetToast(
+        "background-blur-unavailable",
+        copy.meetBackgroundBlurUnavailable,
+        "warning",
+      );
+      return;
+    }
+
+    const nextEnabled = !backgroundBlurEnabled;
+    try {
+      const applied = await applyBackgroundBlur(cameraTrack, nextEnabled);
+      if (!applied) throw new Error("background_blur_not_applied");
+      backgroundBlurPreferenceRef.current = nextEnabled;
+      setBackgroundBlurAvailable(true);
+      setBackgroundBlurEnabled(nextEnabled);
+    } catch {
+      showMeetToast(
+        "background-blur-unavailable",
+        copy.meetBackgroundBlurUnavailable,
+        "warning",
+      );
+    }
+  };
+
+  const stopLiveTranscription = useCallback(() => {
+    transcriptionEnabledRef.current = false;
+    if (transcriptionRestartTimerRef.current) {
+      window.clearTimeout(transcriptionRestartTimerRef.current);
+      transcriptionRestartTimerRef.current = null;
+    }
+    if (captionClearTimerRef.current) {
+      window.clearTimeout(captionClearTimerRef.current);
+      captionClearTimerRef.current = null;
+    }
+    const recognition = speechRecognitionRef.current;
+    speechRecognitionRef.current = null;
+    if (recognition) {
+      recognition.onend = null;
+      try {
+        recognition.stop();
+      } catch {
+        recognition.abort();
+      }
+    }
+    setLiveTranscriptionEnabled(false);
+    setLiveTranscriptionFinal("");
+    setLiveTranscriptionInterim("");
+  }, []);
+
+  const startLiveTranscription = useCallback(() => {
+    const SpeechRecognition = getSpeechRecognitionConstructor();
+    if (!SpeechRecognition) {
+      setLiveTranscriptionAvailable(false);
+      showMeetToast(
+        "live-transcription-unavailable",
+        copyRef.current.meetLiveTranscriptionUnavailable,
+        "warning",
+      );
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang =
+      document.documentElement.lang || navigator.language || "en-US";
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event) => {
+      let finalText = "";
+      let interimText = "";
+      for (
+        let index = event.resultIndex;
+        index < event.results.length;
+        index++
+      ) {
+        const text = String(event.results[index][0]?.transcript || "").trim();
+        if (!text) continue;
+        if (event.results[index].isFinal) {
+          finalText += `${text} `;
+        } else {
+          interimText += `${text} `;
+        }
+      }
+      if (finalText) {
+        setLiveTranscriptionFinal((current) =>
+          `${current} ${finalText}`.trim().slice(-500),
+        );
+      }
+      setLiveTranscriptionInterim(interimText.trim());
+      if (captionClearTimerRef.current) {
+        window.clearTimeout(captionClearTimerRef.current);
+      }
+      captionClearTimerRef.current = window.setTimeout(() => {
+        setLiveTranscriptionFinal("");
+        setLiveTranscriptionInterim("");
+        captionClearTimerRef.current = null;
+      }, 8000);
+    };
+    recognition.onerror = (event) => {
+      if (event.error === "aborted" || event.error === "no-speech") return;
+      transcriptionEnabledRef.current = false;
+      speechRecognitionRef.current = null;
+      setLiveTranscriptionEnabled(false);
+      setLiveTranscriptionInterim("");
+      showMeetToast(
+        "live-transcription-failed",
+        copyRef.current.meetLiveTranscriptionFailedToast,
+        "warning",
+      );
+    };
+    recognition.onend = () => {
+      if (
+        !transcriptionEnabledRef.current ||
+        speechRecognitionRef.current !== recognition
+      ) {
+        return;
+      }
+      transcriptionRestartTimerRef.current = window.setTimeout(() => {
+        try {
+          recognition.start();
+        } catch {
+          transcriptionEnabledRef.current = false;
+          speechRecognitionRef.current = null;
+          setLiveTranscriptionEnabled(false);
+          showMeetToast(
+            "live-transcription-failed",
+            copyRef.current.meetLiveTranscriptionFailedToast,
+            "warning",
+          );
+        }
+      }, 250);
+    };
+
+    speechRecognitionRef.current = recognition;
+    transcriptionEnabledRef.current = true;
+    setLiveTranscriptionAvailable(true);
+    setLiveTranscriptionEnabled(true);
+    try {
+      recognition.start();
+    } catch {
+      speechRecognitionRef.current = null;
+      transcriptionEnabledRef.current = false;
+      setLiveTranscriptionEnabled(false);
+      showMeetToast(
+        "live-transcription-failed",
+        copyRef.current.meetLiveTranscriptionFailedToast,
+        "warning",
+      );
+    }
+  }, []);
+
+  const toggleLiveTranscription = () => {
+    if (liveTranscriptionEnabled) {
+      stopLiveTranscription();
+      return;
+    }
+    startLiveTranscription();
+  };
+
   const stopScreenShare = useCallback(async () => {
-    const cameraTrack = cameraOn
+    const screenTrack = screenTrackRef.current;
+    const screenAudioTrack = screenAudioTrackRef.current;
+    const cameraTrack = mediaStateRef.current.cameraOn
       ? localStreamRef.current?.getVideoTracks()[0] || null
       : null;
-    await replaceOutgoingVideo(cameraTrack);
-    await replaceOutgoingScreenAudio(null);
-    await renegotiatePeerConnections();
-    if (screenTrackRef.current) {
-      screenTrackRef.current.onended = null;
-      screenTrackRef.current.stop();
-    }
-    if (screenAudioTrackRef.current) {
-      screenAudioTrackRef.current.stop();
-    }
+    if (screenTrack) screenTrack.onended = null;
     screenAudioTrackRef.current = null;
     screenTrackRef.current = null;
     setLocalScreenPreviewStream(null);
     setScreenSharing(false);
     publishMediaState({ screenSharing: false });
+    await Promise.all([
+      replaceOutgoingVideo(cameraTrack),
+      replaceOutgoingScreenAudio(null),
+    ]);
+    screenTrack?.stop();
+    screenAudioTrack?.stop();
+    await renegotiatePeerConnections().catch(() => {});
     void playSound("screenShareStop");
   }, [
-    cameraOn,
     publishMediaState,
     renegotiatePeerConnections,
     replaceOutgoingScreenAudio,
@@ -2472,6 +2883,12 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
     const audioNodes = [];
     const connectedAudioTrackIds = new Set();
     let controller = null;
+    const qualityProfile =
+      recordingQualityProfiles[recordingQualityRef.current] ||
+      recordingQualityProfiles.medium;
+    const keyFrameInterval =
+      recordingChunkIntervals[recordingEncodingChunksRef.current] ||
+      recordingChunkIntervals.default;
 
     const stopDisplayTracks = () => {
       window.clearInterval(audioSyncTimer);
@@ -2489,6 +2906,17 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
     };
 
     try {
+      const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        throw new Error("Audio recording is not supported.");
+      }
+      audioContext = new AudioContextClass({
+        latencyHint: "playback",
+        sampleRate: 48_000,
+      });
+      await audioContext.resume();
+
       displayStream = await navigator.mediaDevices.getDisplayMedia({
         audio: true,
         monitorTypeSurfaces: "include",
@@ -2497,7 +2925,18 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
         surfaceSwitching: "exclude",
         systemAudio: "include",
         video: {
-          frameRate: { ideal: 30, max: 30 },
+          frameRate: {
+            ideal: qualityProfile.frameRate,
+            max: qualityProfile.frameRate,
+          },
+          height: {
+            ideal: qualityProfile.height,
+            max: qualityProfile.height,
+          },
+          width: {
+            ideal: qualityProfile.width,
+            max: qualityProfile.width,
+          },
         },
       });
       const displayVideoTrack = displayStream.getVideoTracks()[0];
@@ -2517,8 +2956,7 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
       } = await import("mediabunny");
       const width = Math.max(2, Number(displaySettings.width) || 1920);
       const height = Math.max(2, Number(displaySettings.height) || 1080);
-      const videoBitrate =
-        width * height >= 2560 * 1440 ? 18_000_000 : 12_000_000;
+      const videoBitrate = qualityProfile.videoBitrate;
       if (
         !(await canEncodeVideo("avc", {
           bitrate: videoBitrate,
@@ -2539,25 +2977,21 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
         {
           bitrate: videoBitrate,
           codec: "avc",
-          keyFrameInterval: 2,
+          keyFrameInterval,
           sizeChangeBehavior: "contain",
         },
         {
-          frameRate: 30,
+          frameRate: qualityProfile.frameRate,
           timestampBase: "synced-zero",
         },
       );
       output.addVideoTrack(videoSource, {
-        frameRate: 30,
+        frameRate: qualityProfile.frameRate,
         name: "Munetios Meet",
       });
 
-      const AudioContextClass =
-        window.AudioContext || window.webkitAudioContext;
-      audioContext = AudioContextClass ? new AudioContextClass() : null;
-      const audioDestination = audioContext?.createMediaStreamDestination();
+      const audioDestination = audioContext.createMediaStreamDestination();
       const connectAudio = (stream) => {
-        if (!audioContext || !audioDestination) return;
         const freshTracks =
           stream
             ?.getAudioTracks()
@@ -2578,48 +3012,59 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
       };
 
       const capturedScreenAudio = displayStream.getAudioTracks().length > 0;
-      if (capturedScreenAudio) {
-        connectAudio(displayStream);
-      } else {
+      const syncRecordingAudio = () => {
+        if (capturedScreenAudio) connectAudio(displayStream);
         connectAudio(localStreamRef.current);
-        if (screenAudioTrackRef.current) {
+        if (!capturedScreenAudio && screenAudioTrackRef.current) {
           connectAudio(new MediaStream([screenAudioTrackRef.current]));
         }
-        for (const connection of peerConnectionsRef.current.values()) {
-          connectAudio(connection.munetiosRemoteStream);
-        }
-        audioSyncTimer = window.setInterval(() => {
+        if (!capturedScreenAudio) {
           for (const connection of peerConnectionsRef.current.values()) {
             connectAudio(connection.munetiosRemoteStream);
           }
-        }, 1000);
-      }
+        }
+      };
+      syncRecordingAudio();
+      audioSyncTimer = window.setInterval(syncRecordingAudio, 1000);
 
-      const mixedAudioTrack = audioDestination?.stream.getAudioTracks()[0];
-      if (
-        mixedAudioTrack &&
-        (await canEncodeAudio("aac", {
-          bitrate: 192_000,
-          numberOfChannels: 2,
-          sampleRate: audioContext.sampleRate,
-        }))
-      ) {
-        audioSource = new MediaStreamAudioTrackSource(
-          mixedAudioTrack,
-          {
-            bitrate: 192_000,
-            codec: "aac",
-          },
-          { timestampBase: "synced-zero" },
-        );
-        output.addAudioTrack(audioSource, { name: "Meeting audio" });
+      const mixedAudioTrack = audioDestination.stream.getAudioTracks()[0];
+      if (!mixedAudioTrack) {
+        throw new Error("The recording audio mix could not be created.");
       }
+      const audioChannelCount = Math.max(
+        1,
+        Number(mixedAudioTrack.getSettings().channelCount) || 2,
+      );
+      let audioCodec = "";
+      for (const codec of ["aac", "opus"]) {
+        if (
+          await canEncodeAudio(codec, {
+            bitrate: qualityProfile.audioBitrate,
+            numberOfChannels: audioChannelCount,
+            sampleRate: audioContext.sampleRate,
+          })
+        ) {
+          audioCodec = codec;
+          break;
+        }
+      }
+      if (!audioCodec) {
+        throw new Error("No compatible recording audio encoder was found.");
+      }
+      audioSource = new MediaStreamAudioTrackSource(
+        mixedAudioTrack,
+        {
+          bitrate: qualityProfile.audioBitrate,
+          codec: audioCodec,
+        },
+        { timestampBase: "synced-zero" },
+      );
+      output.addAudioTrack(audioSource, { name: "Meeting audio" });
 
       output.setMetadataTags({
         artist: "Munetios Meet",
         title: `Munetios Meet ${credentialsRef.current?.roomId || "meeting"}`,
       });
-      await audioContext?.resume();
       await output.start();
 
       recordingStartedAtRef.current = Date.now();
@@ -2738,13 +3183,47 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
     void startRecording();
   }, [startRecording]);
 
+  const updateProfileStatus = async (emoji) => {
+    const previousEmoji = statusEmoji;
+    setStatusEmoji(emoji);
+    setStatusOpen(false);
+    try {
+      await realtimePost({
+        action: "profile-status",
+        ...credentialsPayload(credentialsRef.current),
+        emoji,
+      });
+    } catch {
+      setStatusEmoji(previousEmoji);
+      void playSound("error");
+      showMeetToast("profile-status-failed", copy.meetSomethingWentWrongToast);
+    }
+  };
+
   const startActivity = async (type, options) => {
     try {
+      const preferences = await loadMeetPreferences(signedIn);
+      const wordHuntCustomWords =
+        type === "wordhunt"
+          ? String(preferences.wordHuntCustomWords || "")
+          : "";
+      const cheats = {
+        aiPlaysWordHunt: preferences.aiPlaysWordHunt === true,
+        allowAnyAnagramWord: preferences.allowAnyAnagramWord === true,
+        alwaysShowAllWords: preferences.alwaysShowAllActivityWords === true,
+        customChessRules: preferences.customChessRules === true,
+        enabled: preferences.activityCheatsEnabled === true,
+        ignoreChessMoveRules: preferences.ignoreChessMoveRules === true,
+        ignoreDictionary: preferences.ignoreActivityDictionary === true,
+        shareFoundWords: preferences.shareFoundActivityWords === true,
+      };
       const payload = await realtimePost({
         action: "activity-start",
         ...credentialsPayload(credentialsRef.current),
+        cheats,
         type,
         ...options,
+        ...(type === "wordhunt" ? { customWords: wordHuntCustomWords } : {}),
       });
       activityRef.current = payload.activity;
       setActivity(payload.activity);
@@ -2752,7 +3231,7 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
       if (activitiesSound) void playSound("activityStarted");
     } catch {
       void playSound("error");
-      showMeetToast("activity-failed", copy.meetActivityFailed);
+      showMeetToast("activity-launch-failed", copy.meetActivityLaunchFailed);
     }
   };
 
@@ -2785,11 +3264,13 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
       return true;
     } catch (error) {
       const message =
-        error.message === "activity_invalid_word"
-          ? copy.meetActivityInvalidWord
-          : error.message === "activity_not_your_turn"
-            ? copy.meetActivityNotYourTurn
-            : copy.meetActivityFailed;
+        error.message === "activity_word_already_used"
+          ? copy.meetActivityWordAlreadyUsed
+          : error.message === "activity_invalid_word"
+            ? copy.meetActivityInvalidWord
+            : error.message === "activity_not_your_turn"
+              ? copy.meetActivityNotYourTurn
+              : copy.meetActivityFailed;
       void playSound("error");
       showMeetToast(`activity-${error.message}`, message, "warning");
       return false;
@@ -2847,7 +3328,7 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
       return true;
     } catch {
       void playSound("error");
-      showMeetToast("chat-send-failed", copy.meetSomethingWentWrongToast);
+      showMeetToast("chat-send-failed", copy.meetMessageSendFailed);
       return false;
     }
   };
@@ -2992,37 +3473,6 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
     window.dispatchEvent(new Event("munetios:meetdatachange"));
   };
 
-  if (status === "connecting") {
-    return (
-      <section className="meet-room-state">
-        <div className="meet-room-state-card liquid-glass">
-          <LoadingSpinner label={copy.meetStartingMeeting} />
-          <h1>{copy.meetStartingMeeting}</h1>
-        </div>
-      </section>
-    );
-  }
-
-  if (status === "failed") {
-    return (
-      <section className="meet-room-state">
-        <div className="meet-room-state-card liquid-glass" role="alert">
-          <span className="meet-room-state-icon">
-            <icon>error</icon>
-          </span>
-          <h1>{copy.meetStartFailed}</h1>
-          <button
-            onClick={() => void leaveMeeting({ silent: true })}
-            type="button"
-          >
-            <icon>refresh</icon>
-            {copy.retry}
-          </button>
-        </div>
-      </section>
-    );
-  }
-
   if (status === "kicked" || status === "banned") {
     return (
       <section className="meet-room-state">
@@ -3048,10 +3498,29 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
     avatarUrl: localIdentity?.avatarUrl,
     displayName: localIdentity?.displayName || copy.meetYou,
     peerId: localIdentity?.peerId,
+    statusEmoji,
   };
   const visibleParticipants = focusedPeerId
     ? participants.filter((participant) => participant.peerId === focusedPeerId)
     : participants;
+  const meetingConnected = status === "connected";
+  const liveTranscriptionText = [
+    liveTranscriptionFinal,
+    liveTranscriptionInterim,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  const displayedRoomId =
+    localIdentity?.roomId || request.roomId || copy.meetStartingMeeting;
+  const retryMeeting = () => {
+    setActivitiesOpen(false);
+    setChatOpen(false);
+    setFriendsOpen(false);
+    setStatusOpen(false);
+    setStatus("connecting");
+    setStartAttempt((current) => current + 1);
+  };
 
   return (
     <section
@@ -3063,6 +3532,7 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
       <header className="meet-room-topbar">
         <button
           className="meet-invite-code liquid-glass"
+          disabled={!localIdentity?.roomId}
           onClick={copyInviteCode}
           type="button"
         >
@@ -3071,7 +3541,7 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
           </icon>
           <span>
             <small>{copied ? copy.copied : copy.meetInviteCode}</small>
-            <strong>{localIdentity.roomId}</strong>
+            <strong>{displayedRoomId}</strong>
           </span>
         </button>
         <div className="meet-room-topbar-right liquid-glass">
@@ -3081,8 +3551,16 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
               setFriendsOpen((current) => {
                 const next = !current;
                 if (next) {
+                  friendsLoadFailedRef.current = false;
                   setChatOpen(false);
                   setActivitiesOpen(false);
+                  if (!meetingConnected) {
+                    friendsLoadFailedRef.current = true;
+                    showMeetToast(
+                      "friends-load-failed",
+                      copy.meetFriendsLoadFailed,
+                    );
+                  }
                 }
                 return next;
               });
@@ -3111,36 +3589,163 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
           </output>
         : null}
 
-      <div className={`meet-video-grid${focusedPeerId ? " is-focused" : ""}`}>
-        {!focusedPeerId
-          ? <ParticipantTile
-              copy={copy}
-              local
-              localCameraOn={cameraOn}
-              localCameraStream={localCameraPreviewStream}
-              localScreenSharing={screenSharing}
-              localScreenStream={localScreenPreviewStream}
-              participant={localParticipant}
-            />
-          : null}
-        {visibleParticipants.map((participant) => (
-          <ParticipantTile
-            copy={copy}
-            focused={focusedPeerId === participant.peerId}
-            key={participant.peerId}
-            participant={participant}
-          />
-        ))}
-        {activity && !focusedPeerId
-          ? <MeetActivityTile
-              activity={activity}
-              copy={copy}
-              localPeerId={localIdentity?.peerId}
-              onEnd={endActivity}
-              onJoin={joinActivity}
-              onUpdate={updateActivity}
-            />
-          : null}
+      {liveTranscriptionEnabled
+        ? <output
+            aria-atomic="false"
+            aria-label={copy.meetLiveTranscript}
+            aria-live="polite"
+            className="meet-live-transcription liquid-glass"
+          >
+            <icon className="meet-live-transcription-icon">closed_caption</icon>
+            <span>
+              {liveTranscriptionText || copy.meetLiveTranscriptionListening}
+            </span>
+          </output>
+        : null}
+
+      <div
+        className={`meet-video-grid${focusedPeerId ? " is-focused" : ""}${
+          meetingConnected ? "" : " is-state"
+        }`}
+      >
+        {status === "connecting"
+          ? <section
+              aria-label={copy.meetStartingMeeting}
+              className="meet-room-state meet-room-inline-state"
+            >
+              <LoadingSpinner label={copy.meetStartingMeeting} />
+            </section>
+          : status === "failed"
+            ? <section className="meet-room-state meet-room-inline-state">
+                <div className="meet-room-state-card liquid-glass" role="alert">
+                  <span className="meet-room-state-icon">
+                    <icon>error</icon>
+                  </span>
+                  <h1>{copy.meetStartFailed}</h1>
+                  <button onClick={retryMeeting} type="button">
+                    <icon>refresh</icon>
+                    {copy.retry}
+                  </button>
+                </div>
+              </section>
+            : <>
+                {!focusedPeerId
+                  ? <ParticipantTile
+                      actions={
+                        <DropdownWrapper
+                          ariaLabel={copy.meetCameraActions}
+                          buttonClassName="meet-camera-actions-trigger liquid-glass"
+                          className="meet-camera-actions-dropdown"
+                          panelClassName="meet-camera-actions-menu"
+                          trigger={
+                            <>
+                              <icon>video_settings</icon>
+                              <span>{copy.meetCameraActions}</span>
+                            </>
+                          }
+                          triggerAs="button"
+                          triggerGlass={false}
+                        >
+                          <p
+                            className="meet-camera-actions-title"
+                            role="presentation"
+                          >
+                            {copy.meetCameraActions}
+                          </p>
+                          <button
+                            aria-checked={backgroundBlurEnabled}
+                            className="meet-camera-action-item"
+                            data-dropdown-keep-open="true"
+                            onClick={() => void toggleBackgroundBlur()}
+                            role="menuitemcheckbox"
+                            type="button"
+                          >
+                            <icon className="meet-camera-action-icon">
+                              blur_on
+                            </icon>
+                            <span>
+                              <strong>{copy.meetBackgroundBlur}</strong>
+                              <small>
+                                {backgroundBlurAvailable
+                                  ? copy.meetBackgroundBlurDescription
+                                  : copy.meetBackgroundBlurUnavailable}
+                              </small>
+                            </span>
+                            <i
+                              aria-hidden="true"
+                              data-active={backgroundBlurEnabled}
+                            >
+                              <span />
+                            </i>
+                          </button>
+                          <button
+                            aria-checked={liveTranscriptionEnabled}
+                            className="meet-camera-action-item"
+                            data-dropdown-keep-open="true"
+                            onClick={toggleLiveTranscription}
+                            role="menuitemcheckbox"
+                            type="button"
+                          >
+                            <icon className="meet-camera-action-icon">
+                              closed_caption
+                            </icon>
+                            <span>
+                              <strong>{copy.meetLiveTranscription}</strong>
+                              <small>
+                                {liveTranscriptionAvailable
+                                  ? copy.meetLiveTranscriptionDescription
+                                  : copy.meetLiveTranscriptionUnavailable}
+                              </small>
+                            </span>
+                            <i
+                              aria-hidden="true"
+                              data-active={liveTranscriptionEnabled}
+                            >
+                              <span />
+                            </i>
+                          </button>
+                        </DropdownWrapper>
+                      }
+                      copy={copy}
+                      local
+                      localCameraOn={cameraOn}
+                      localCameraStream={localCameraPreviewStream}
+                      localScreenSharing={screenSharing}
+                      localScreenStream={localScreenPreviewStream}
+                      participant={localParticipant}
+                    />
+                  : null}
+                {visibleParticipants.map((participant) => (
+                  <ParticipantTile
+                    actions={
+                      <button
+                        aria-label={`${copy.meetLiveTranscription}: ${participant.displayName}`}
+                        aria-pressed={liveTranscriptionEnabled}
+                        className="meet-participant-transcription-button liquid-glass"
+                        onClick={toggleLiveTranscription}
+                        title={copy.meetLiveTranscription}
+                        type="button"
+                      >
+                        <icon>closed_caption</icon>
+                      </button>
+                    }
+                    copy={copy}
+                    focused={focusedPeerId === participant.peerId}
+                    key={participant.peerId}
+                    participant={participant}
+                  />
+                ))}
+                {activity && !focusedPeerId
+                  ? <MeetActivityTile
+                      activity={activity}
+                      copy={copy}
+                      localPeerId={localIdentity?.peerId}
+                      onEnd={endActivity}
+                      onJoin={joinActivity}
+                      onUpdate={updateActivity}
+                    />
+                  : null}
+              </>}
       </div>
 
       {friendsOpen
@@ -3166,7 +3771,14 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
                   className="meet-friend-avatar"
                 />
                 <span>
-                  <strong>{localParticipant.displayName}</strong>
+                  <strong>
+                    {localParticipant.displayName}
+                    {localParticipant.statusEmoji
+                      ? <i className="meet-friend-status">
+                          {localParticipant.statusEmoji}
+                        </i>
+                      : null}
+                  </strong>
                   <small>{copy.meetYou}</small>
                 </span>
               </div>
@@ -3178,7 +3790,14 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
                     className="meet-friend-avatar"
                   />
                   <span>
-                    <strong>{participant.displayName}</strong>
+                    <strong>
+                      {participant.displayName}
+                      {participant.statusEmoji
+                        ? <i className="meet-friend-status">
+                            {participant.statusEmoji}
+                          </i>
+                        : null}
+                    </strong>
                   </span>
                   <DropdownWrapper
                     ariaLabel={copy.moreOptions}
@@ -3228,7 +3847,7 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
                       <icon>block</icon>
                       <span>{copy.meetBlockUser}</span>
                     </button>
-                    {localIdentity.owner
+                    {localIdentity?.owner
                       ? <>
                           <button
                             className="meet-menu-item is-danger"
@@ -3296,6 +3915,15 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
           </button>
         : null}
 
+      {statusOpen
+        ? <MeetStatusPicker
+            copy={copy}
+            onClose={() => setStatusOpen(false)}
+            onSelect={(emoji) => void updateProfileStatus(emoji)}
+            selectedEmoji={statusEmoji}
+          />
+        : null}
+
       <nav
         aria-label={copy.meetCallControls}
         className="meet-call-controls liquid-glass"
@@ -3358,6 +3986,7 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
               if (next) {
                 setChatUnread(0);
                 setFriendsOpen(false);
+                setStatusOpen(false);
               }
               return next;
             });
@@ -3386,6 +4015,7 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
               const next = !current;
               if (next) {
                 setFriendsOpen(false);
+                setStatusOpen(false);
               }
               return next;
             });
@@ -3399,6 +4029,28 @@ export default function MeetingRoom({ copy, onLeave, request, signedIn }) {
                 title={copy.meetActivityInProgress}
               >
                 1
+              </strong>
+            : null}
+        </button>
+        <button
+          aria-expanded={statusOpen}
+          aria-label={copy.meetProfileStatus}
+          aria-pressed={statusOpen}
+          className="meet-status-control"
+          data-active={Boolean(statusEmoji) || statusOpen}
+          data-tooltip={copy.meetProfileStatus}
+          onClick={() => {
+            setStatusOpen((current) => !current);
+            setActivitiesOpen(false);
+            setChatOpen(false);
+            setFriendsOpen(false);
+          }}
+          type="button"
+        >
+          <icon className="meet-call-control-icon">favorite</icon>
+          {statusEmoji
+            ? <strong className="meet-status-control-badge">
+                {statusEmoji}
               </strong>
             : null}
         </button>

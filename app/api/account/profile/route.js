@@ -5,17 +5,19 @@ import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { requireAuth } from "../../../../auth.js";
 import {
-  accountCollectionCookieName,
   accountDataDirectory,
   getAccountData,
-  getRequestCookie,
-  isAccountInCollection,
+  getAccountLifecycle,
   setAccountData,
 } from "../../../lib/authSecurity.js";
 import {
   getDemoSettings,
   updateDemoSettings,
 } from "../../../lib/demoSettings.js";
+import {
+  enforceStudentRestriction,
+  isStudentAccount,
+} from "../../../lib/education.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -33,6 +35,8 @@ const imageTypes = new Map([
   ["image/png", "png"],
   ["image/webp", "webp"],
 ]);
+const profileImageTokenPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const imageDataUrlPattern = /^data:image\/(?:gif|jpeg|png|webp);base64,/i;
 const hexColorPattern = /^#[\da-f]{6}$/i;
 const birthdayPattern = /^\d{4}-\d{2}-\d{2}$/;
@@ -296,61 +300,48 @@ async function removeImageFile(imageFile) {
   }
 }
 
-async function serveProfileImage(storedProfile, token) {
-  const imageFile = storedProfile.imageFile;
-
-  if (!imageFile || imageFile.token !== token) {
+async function serveProfileImage(token) {
+  if (!profileImageTokenPattern.test(token)) {
     return new Response(null, { status: 404 });
   }
 
-  try {
-    const imageStats = await stat(imageFile.path);
-    const imageStream = Readable.toWeb(createReadStream(imageFile.path));
+  for (const [contentType, extension] of imageTypes) {
+    const imagePath = join(profileImageDirectory, `${token}.${extension}`);
 
-    return new Response(imageStream, {
-      headers: {
-        "Cache-Control": "private, no-store, max-age=0",
-        "Content-Length": String(imageStats.size),
-        "Content-Type": imageFile.contentType,
-        Vary: "Cookie",
-        "X-Content-Type-Options": "nosniff",
-      },
-    });
-  } catch {
-    return new Response(null, { status: 404 });
+    try {
+      const imageStats = await stat(imagePath);
+      if (!imageStats.isFile()) continue;
+      const imageStream = Readable.toWeb(createReadStream(imagePath));
+
+      return new Response(imageStream, {
+        headers: {
+          "Cache-Control": "no-store, max-age=0",
+          "Content-Length": String(imageStats.size),
+          "Content-Type": contentType,
+          "Cross-Origin-Resource-Policy": "same-origin",
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    } catch {
+      // The token may belong to one of the other supported image formats.
+    }
   }
+
+  return new Response(null, { status: 404 });
 }
 
 export async function GET(request) {
-  const { response, session } = await requireAuth(request);
-
-  if (response) {
-    return response;
-  }
-
   const requestUrl = new URL(request.url);
   const imageToken = requestUrl.searchParams.get("image");
 
   if (imageToken) {
-    const requestedAccountId = requestUrl.searchParams.get("accountId");
-    if (!requestedAccountId || requestedAccountId === session.user.id) {
-      return serveProfileImage(getStoredProfile(session), imageToken);
-    }
+    return serveProfileImage(imageToken);
+  }
 
-    if (
-      session.demo ||
-      !isAccountInCollection(
-        getRequestCookie(request, accountCollectionCookieName),
-        requestedAccountId,
-      )
-    ) {
-      return new Response(null, { status: 404 });
-    }
+  const { response, session } = await requireAuth(request);
 
-    return serveProfileImage(
-      getAccountData(requestedAccountId, "profile", {}),
-      imageToken,
-    );
+  if (response) {
+    return response;
   }
 
   return jsonResponse(getProfile(session));
@@ -362,7 +353,12 @@ export async function PUT(request) {
   if (response) {
     return response;
   }
-  if (getDemoSettings(session)?.archived)
+  const educationResponse = enforceStudentRestriction(session, "profile");
+  if (educationResponse) return educationResponse;
+  if (
+    getDemoSettings(session)?.archived ||
+    (!session.demo && getAccountLifecycle(session.user.id).archived)
+  )
     return invalidProfileResponse(
       "Profile changes are not saved for an archived user.",
       403,
@@ -466,7 +462,10 @@ export async function PATCH(request) {
   if (response) {
     return response;
   }
-  if (getDemoSettings(session)?.archived)
+  if (
+    getDemoSettings(session)?.archived ||
+    (!session.demo && getAccountLifecycle(session.user.id).archived)
+  )
     return invalidProfileResponse(
       "Profile changes are not saved for an archived user.",
       403,
@@ -483,6 +482,15 @@ export async function PATCH(request) {
 
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return invalidProfileResponse("Invalid profile details.");
+  }
+
+  if (isStudentAccount(session.user.id)) {
+    const bio = normalizeText(payload.bio ?? "", 1000);
+    if (bio === null) {
+      return invalidProfileResponse("Bio must be 1000 characters or less.");
+    }
+    setStoredProfile(session, { ...getStoredProfile(session), bio });
+    return jsonResponse(getProfile(session));
   }
 
   const currentProfile = getProfile(session);

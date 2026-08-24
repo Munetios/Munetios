@@ -14,6 +14,7 @@ import {
   tasksKeyboardShortcuts,
 } from "../../../components/keyboardShortcutsModal";
 import { showModal } from "../../../components/modal";
+import { hasSignedInCookie } from "../../../lib/signedInCookie";
 import { dismissTaskNotification } from "../lib/collaborationCrypto";
 import { openTasksSettingsModal } from "./tasksSettingsModal";
 
@@ -82,21 +83,23 @@ export default function TasksTopbar({ copy, onSidebarToggle, sidebarOpen }) {
   }, []);
 
   const refreshSession = useCallback(async (signal) => {
+    const signedIn = hasSignedInCookie();
+    setSessionState(signedIn ? "active" : "inactive");
+    if (!signedIn) {
+      setUser(null);
+      setAccountPanelOpen(false);
+      return;
+    }
+
     try {
-      const response = await fetch("/api/signedin", {
+      const response = await fetch("/api/account", {
         cache: "no-store",
         credentials: "include",
         signal,
       });
-      const payload = await response.json();
-      const signedIn = Boolean(
-        response.ok && payload.authenticated && payload.signedIn,
-      );
-      setSessionState(signedIn ? "active" : "inactive");
-      setUser(signedIn ? payload.user : null);
-      if (!signedIn) setAccountPanelOpen(false);
+      if (response.ok) setUser(await response.json());
     } catch (error) {
-      if (error?.name !== "AbortError") {
+      if (error?.name !== "AbortError" && !hasSignedInCookie()) {
         setSessionState("inactive");
         setUser(null);
       }
@@ -379,6 +382,8 @@ export default function TasksTopbar({ copy, onSidebarToggle, sidebarOpen }) {
               className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-white transition hover:bg-white/10!"
               data-dropdown-close
               href="/help"
+              rel="noopener noreferrer"
+              target="_blank"
             >
               <icon>help_center</icon>
               <span>{copy.tasksHelp}</span>

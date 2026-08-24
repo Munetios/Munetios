@@ -186,26 +186,31 @@ export default function MeetShell({ view = "home" }) {
   const accountRef = useRef(null);
   const accountTriggerRef = useRef(null);
   const appsTriggerRef = useRef(null);
+  const meetingActive = Boolean(meetingRequest);
 
   const refreshSession = useCallback(async (signal) => {
     const cookieSignedIn = hasSignedInCookie();
-    if (cookieSignedIn) {
-      setSessionState("active");
+    setSessionState(cookieSignedIn ? "active" : "inactive");
+    if (!cookieSignedIn) {
+      try {
+        const archived = JSON.parse(
+          window.localStorage.getItem("munetios.archivedAccount") || "null",
+        );
+        setUser(archived?.id ? { ...archived, archived: true } : null);
+      } catch {
+        setUser(null);
+      }
+      setAccountOpen(false);
       return;
     }
+
     try {
-      const response = await fetch("/api/signedin", {
+      const response = await fetch("/api/account", {
         cache: "no-store",
         credentials: "include",
         signal,
       });
-      const payload = await response.json();
-      const signedIn = Boolean(
-        response.ok && payload.authenticated && payload.signedIn,
-      );
-      setSessionState(signedIn ? "active" : "inactive");
-      setUser(signedIn ? payload.user : null);
-      if (!signedIn) setAccountOpen(false);
+      if (response.ok) setUser(await response.json());
     } catch (error) {
       if (error?.name !== "AbortError" && !hasSignedInCookie()) {
         setSessionState("inactive");
@@ -384,7 +389,9 @@ export default function MeetShell({ view = "home" }) {
                   className="meet-menu-item"
                   data-dropdown-close
                   href="/help"
+                  rel="noopener noreferrer"
                   role="menuitem"
+                  target="_blank"
                 >
                   <icon>help_center</icon>
                   <span>{copy.meetHelp}</span>
@@ -422,12 +429,16 @@ export default function MeetShell({ view = "home" }) {
               >
                 <icon>apps</icon>
               </TopbarButton>
-              {sessionState === "active"
+              {sessionState === "active" || user?.archived
                 ? <TopbarButton
                     aria-expanded={accountOpen}
                     label={copy.openAccountMenu}
                     onClick={() => {
                       setAppsOpen(false);
+                      if (user?.archived) {
+                        window.location.assign("/account/settings/profile");
+                        return;
+                      }
                       setAccountOpen((current) => !current);
                     }}
                     ref={accountTriggerRef}
@@ -455,6 +466,35 @@ export default function MeetShell({ view = "home" }) {
           </header>
         : null}
 
+      <div
+        aria-hidden={meetingActive || view !== "home"}
+        className="meet-background-view"
+        hidden={meetingActive || view !== "home"}
+        inert={meetingActive || view !== "home" ? "" : undefined}
+      >
+        <MeetHome
+          copy={copy}
+          onStartMeeting={(nextRequest) => {
+            if (nextRequest.roomId) {
+              window.sessionStorage.setItem(
+                activeMeetingStorageKey,
+                JSON.stringify(nextRequest),
+              );
+            }
+            setMeetingRequest(nextRequest);
+          }}
+          sessionState={sessionState}
+        />
+      </div>
+      <div
+        aria-hidden={meetingActive || view !== "history"}
+        className="meet-background-view"
+        hidden={meetingActive || view !== "history"}
+        inert={meetingActive || view !== "history" ? "" : undefined}
+      >
+        <MeetHistory copy={copy} onRejoin={rejoinMeeting} />
+      </div>
+
       {meetingRequest
         ? <MeetingRoom
             copy={copy}
@@ -466,21 +506,7 @@ export default function MeetShell({ view = "home" }) {
             request={meetingRequest}
             signedIn={sessionState === "active"}
           />
-        : view === "history"
-          ? <MeetHistory copy={copy} onRejoin={rejoinMeeting} />
-          : <MeetHome
-              copy={copy}
-              onStartMeeting={(nextRequest) => {
-                if (nextRequest.roomId) {
-                  window.sessionStorage.setItem(
-                    activeMeetingStorageKey,
-                    JSON.stringify(nextRequest),
-                  );
-                }
-                setMeetingRequest(nextRequest);
-              }}
-              sessionState={sessionState}
-            />}
+        : null}
 
       <AppLauncherWrapper
         copy={copy}

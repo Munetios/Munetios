@@ -100,7 +100,7 @@
   };
 
   const ptBr = {
-    searchApps: "Pesquisar apps",
+    searchApps: "Buscar apps",
     openApp: "Abrir {app}",
     mail: "E-mail do Munetios",
     ai: "IA do Munetios",
@@ -134,7 +134,7 @@
     photos: "Fotos do Munetios",
     meals: "Refeições do Munetios",
     tasks: "Tarefas do Munetios",
-    settings: "Definições",
+    settings: "Ajustes",
   };
 
   const nl = {
@@ -495,7 +495,7 @@
     photos: "Fotos de Munetios",
     meals: "Comidas de Munetios",
     tasks: "Tarefas de Munetios",
-    settings: "Configuración",
+    settings: "Axustes",
   };
 
   const fur = {

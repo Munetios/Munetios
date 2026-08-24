@@ -11,6 +11,7 @@ import {
   formatUserTime,
   loadDateTimePreferences,
 } from "../../../lib/dateTimePreferences";
+import { hasSignedInCookie } from "../../../lib/signedInCookie";
 import {
   fetchEncryptedCollaborations,
   shareEncryptedTask,
@@ -50,6 +51,7 @@ const viewKeys = {
   favorites: "tasksFavorites",
   "in-progress": "tasksInProgress",
   shared: "tasksShared",
+  "teacher-assigned": "educationTeacherAssigned",
   trash: "tasksTrash",
 };
 const categorySuggestionKeywords = {
@@ -396,6 +398,26 @@ function ShareForm({ close, copy, onShare, task }) {
           await onShare(task, email.trim(), permission);
           close();
         } catch (shareError) {
+          if (shareError.message === "sensitive_verification_required") {
+            showModal(
+              ({ close: closeVerification }) => (
+                <TaskSensitiveVerification
+                  close={closeVerification}
+                  copy={copy}
+                  onVerified={async () => {
+                    await onShare(task, email.trim(), permission);
+                    close();
+                  }}
+                />
+              ),
+              {
+                ariaLabel: copy.securityVerifyTitle,
+                title: copy.securityVerifyTitle,
+              },
+            );
+            setSaving(false);
+            return;
+          }
           setError(
             shareError.message === "recipient_tasks_key_unavailable"
               ? copy.tasksShareRecipientUnavailable
@@ -443,6 +465,66 @@ function ShareForm({ close, copy, onShare, task }) {
           {copy.tasksSendShare}
         </button>
       </div>
+    </form>
+  );
+}
+
+function TaskSensitiveVerification({ close, copy, onVerified }) {
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [value, setValue] = useState("");
+  const [working, setWorking] = useState(false);
+  useEffect(() => {
+    fetch("/api/account/security", {
+      cache: "no-store",
+      credentials: "include",
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) =>
+        setTwoFactorEnabled(Boolean(payload?.twoFactorEnabled)),
+      )
+      .catch(() => undefined);
+  }, []);
+  return (
+    <form
+      className="tasks-share-form"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        setWorking(true);
+        try {
+          const response = await fetch("/api/account/security", {
+            body: JSON.stringify({
+              action: "verify_sensitive",
+              ...(twoFactorEnabled ? { code: value } : { password: value }),
+            }),
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            method: "POST",
+          });
+          if (!response.ok) throw new Error("verification_failed");
+          await onVerified();
+          close();
+        } catch {
+          showToast({ messageKey: "failedCheckAccount", type: "error" });
+          setWorking(false);
+        }
+      }}
+    >
+      <p>{copy.securityVerifyDescription}</p>
+      <label>
+        {twoFactorEnabled
+          ? copy.authVerificationCode
+          : copy.accountSecurityCurrentPassword}
+        <input
+          autoComplete={twoFactorEnabled ? "one-time-code" : "current-password"}
+          onChange={(event) => setValue(event.target.value)}
+          required
+          type={twoFactorEnabled ? "text" : "password"}
+          value={value}
+        />
+      </label>
+      <button disabled={working} type="submit">
+        {copy.authRecoveryVerify}
+      </button>
     </form>
   );
 }
@@ -646,14 +728,17 @@ function TaskCard({
   lists,
   onAction,
   onToggleItem,
+  onToggleTeacherAssignment,
   sharedItem,
   task,
+  teacherAssignment = false,
   timeFormat,
   locale,
   view,
 }) {
   const category = categories.find((item) => item.id === task.categoryId);
-  const canEdit = !sharedItem || sharedItem.permission === "edit";
+  const canEdit =
+    !teacherAssignment && (!sharedItem || sharedItem.permission === "edit");
   const options = getTaskOptions(task, copy);
   return (
     <article
@@ -684,12 +769,44 @@ function TaskCard({
                     {canEdit ? copy.tasksCanEdit : copy.tasksViewOnly}
                   </span>
                 : null}
+              {teacherAssignment
+                ? <span>
+                    <icon>school</icon>
+                    {copy.educationTeacherAssigned} · {copy.tasksViewOnly}
+                  </span>
+                : null}
             </div>
             <h2>{task.name}</h2>
             {task.description ? <p>{task.description}</p> : null}
           </div>
           <div className="tasks-card-actions">
-            {!sharedItem
+            {teacherAssignment
+              ? <button
+                  aria-label={
+                    task.completed
+                      ? copy.tasksInProgress
+                      : copy.tasksMoveCompleted
+                  }
+                  aria-pressed={task.completed}
+                  onClick={() => onToggleTeacherAssignment(task)}
+                  title={
+                    task.completed
+                      ? copy.tasksInProgress
+                      : copy.tasksMoveCompleted
+                  }
+                  type="button"
+                >
+                  <icon>
+                    {task.completed ? "check_circle" : "radio_button_unchecked"}
+                  </icon>
+                  <span>
+                    {task.completed
+                      ? copy.tasksCompleted
+                      : copy.educationMarkComplete}
+                  </span>
+                </button>
+              : null}
+            {!sharedItem && !teacherAssignment
               ? <button
                   aria-label={copy.tasksShare}
                   onClick={() => onAction("share", task)}
@@ -700,172 +817,178 @@ function TaskCard({
                   <span>{copy.tasksShare}</span>
                 </button>
               : null}
-            <button
-              aria-label={copy.tasksFavorite}
-              aria-pressed={task.favorite}
-              disabled={!canEdit}
-              onClick={() => onAction("favorite", task, sharedItem)}
-              title={copy.tasksFavorite}
-              type="button"
-            >
-              <icon>{task.favorite ? "star" : "star_border"}</icon>
-            </button>
-            <DropdownWrapper
-              align="right"
-              ariaLabel={copy.tasksMoreActions}
-              buttonClassName="tasks-card-more"
-              panelClassName="tasks-card-action-menu w-64"
-              trigger={<icon>more_vert</icon>}
-              zIndex={100000004}
-              triggerAs="div"
-              triggerGlass={false}
-            >
-              {view === "trash"
-                ? <>
-                    <button
-                      data-dropdown-close
-                      onClick={() => onAction("restore", task)}
-                      type="button"
-                    >
-                      <icon>restore</icon>
-                      {copy.tasksRestore}
-                    </button>
-                    <button
-                      className="is-danger"
-                      data-dropdown-close
-                      onClick={() => onAction("delete-forever", task)}
-                      type="button"
-                    >
-                      <icon>delete_forever</icon>
-                      {copy.tasksDeleteForever}
-                    </button>
-                  </>
-                : view === "archived"
-                  ? <>
-                      <button
-                        data-dropdown-close
-                        disabled={!canEdit}
-                        onClick={() => onAction("unarchive", task, sharedItem)}
-                        type="button"
-                      >
-                        <icon>unarchive</icon>
-                        {copy.tasksRestore}
-                      </button>
-                      <button
-                        data-dropdown-close
-                        disabled={!canEdit}
-                        onClick={() => onAction("edit", task, sharedItem)}
-                        type="button"
-                      >
-                        <icon>edit</icon>
-                        {copy.tasksEdit}
-                      </button>
-                    </>
-                  : <>
-                      {task.status === "draft"
-                        ? <button
+            {!teacherAssignment
+              ? <button
+                  aria-label={copy.tasksFavorite}
+                  aria-pressed={task.favorite}
+                  disabled={!canEdit}
+                  onClick={() => onAction("favorite", task, sharedItem)}
+                  title={copy.tasksFavorite}
+                  type="button"
+                >
+                  <icon>{task.favorite ? "star" : "star_border"}</icon>
+                </button>
+              : null}
+            {!teacherAssignment
+              ? <DropdownWrapper
+                  align="right"
+                  ariaLabel={copy.tasksMoreActions}
+                  buttonClassName="tasks-card-more"
+                  panelClassName="tasks-card-action-menu w-64"
+                  trigger={<icon>more_vert</icon>}
+                  zIndex={100000004}
+                  triggerAs="div"
+                  triggerGlass={false}
+                >
+                  {view === "trash"
+                    ? <>
+                        <button
+                          data-dropdown-close
+                          onClick={() => onAction("restore", task)}
+                          type="button"
+                        >
+                          <icon>restore</icon>
+                          {copy.tasksRestore}
+                        </button>
+                        <button
+                          className="is-danger"
+                          data-dropdown-close
+                          onClick={() => onAction("delete-forever", task)}
+                          type="button"
+                        >
+                          <icon>delete_forever</icon>
+                          {copy.tasksDeleteForever}
+                        </button>
+                      </>
+                    : view === "archived"
+                      ? <>
+                          <button
                             data-dropdown-close
                             disabled={!canEdit}
                             onClick={() =>
-                              onAction("activate", task, sharedItem)
+                              onAction("unarchive", task, sharedItem)
                             }
                             type="button"
                           >
-                            <icon>play_circle</icon>
-                            {copy.tasksAllTasks}
+                            <icon>unarchive</icon>
+                            {copy.tasksRestore}
                           </button>
-                        : null}
-                      {task.status === "completed"
-                        ? <button
+                          <button
                             data-dropdown-close
                             disabled={!canEdit}
-                            onClick={() =>
-                              onAction("in-progress", task, sharedItem)
-                            }
+                            onClick={() => onAction("edit", task, sharedItem)}
                             type="button"
                           >
-                            <icon>pending_actions</icon>
-                            {copy.tasksInProgress}
+                            <icon>edit</icon>
+                            {copy.tasksEdit}
                           </button>
-                        : <button
+                        </>
+                      : <>
+                          {task.status === "draft"
+                            ? <button
+                                data-dropdown-close
+                                disabled={!canEdit}
+                                onClick={() =>
+                                  onAction("activate", task, sharedItem)
+                                }
+                                type="button"
+                              >
+                                <icon>play_circle</icon>
+                                {copy.tasksAllTasks}
+                              </button>
+                            : null}
+                          {task.status === "completed"
+                            ? <button
+                                data-dropdown-close
+                                disabled={!canEdit}
+                                onClick={() =>
+                                  onAction("in-progress", task, sharedItem)
+                                }
+                                type="button"
+                              >
+                                <icon>pending_actions</icon>
+                                {copy.tasksInProgress}
+                              </button>
+                            : <button
+                                data-dropdown-close
+                                disabled={!canEdit}
+                                onClick={() =>
+                                  onAction("complete", task, sharedItem)
+                                }
+                                type="button"
+                              >
+                                <icon>task_alt</icon>
+                                {copy.tasksMoveCompleted}
+                              </button>}
+                          {!sharedItem && lists.length > 1
+                            ? <button
+                                data-dropdown-close
+                                onClick={() => onAction("move-to-list", task)}
+                                type="button"
+                              >
+                                <icon>drive_file_move</icon>
+                                {copy.tasksMoveToList}
+                              </button>
+                            : null}
+                          <button
+                            data-dropdown-close
+                            onClick={() => onAction("print", task, sharedItem)}
+                            type="button"
+                          >
+                            <icon>print</icon>
+                            {copy.tasksPrint}
+                          </button>
+                          <button
                             data-dropdown-close
                             disabled={!canEdit}
-                            onClick={() =>
-                              onAction("complete", task, sharedItem)
-                            }
+                            onClick={() => onAction("edit", task, sharedItem)}
                             type="button"
                           >
-                            <icon>task_alt</icon>
-                            {copy.tasksMoveCompleted}
-                          </button>}
-                      {!sharedItem && lists.length > 1
-                        ? <button
-                            data-dropdown-close
-                            onClick={() => onAction("move-to-list", task)}
-                            type="button"
-                          >
-                            <icon>drive_file_move</icon>
-                            {copy.tasksMoveToList}
+                            <icon>edit</icon>
+                            {copy.tasksEdit}
                           </button>
-                        : null}
-                      <button
-                        data-dropdown-close
-                        onClick={() => onAction("print", task, sharedItem)}
-                        type="button"
-                      >
-                        <icon>print</icon>
-                        {copy.tasksPrint}
-                      </button>
-                      <button
-                        data-dropdown-close
-                        disabled={!canEdit}
-                        onClick={() => onAction("edit", task, sharedItem)}
-                        type="button"
-                      >
-                        <icon>edit</icon>
-                        {copy.tasksEdit}
-                      </button>
-                      {!sharedItem
-                        ? <>
-                            <button
-                              data-dropdown-close
-                              disabled={!canMoveUp}
-                              onClick={() => onAction("move-up", task)}
-                              type="button"
-                            >
-                              <icon>arrow_upward</icon>
-                              {copy.tasksMoveUp}
-                            </button>
-                            <button
-                              data-dropdown-close
-                              disabled={!canMoveDown}
-                              onClick={() => onAction("move-down", task)}
-                              type="button"
-                            >
-                              <icon>arrow_downward</icon>
-                              {copy.tasksMoveDown}
-                            </button>
-                            <button
-                              data-dropdown-close
-                              onClick={() => onAction("archive", task)}
-                              type="button"
-                            >
-                              <icon>archive</icon>
-                              {copy.tasksArchive}
-                            </button>
-                            <button
-                              className="is-danger"
-                              data-dropdown-close
-                              onClick={() => onAction("trash", task)}
-                              type="button"
-                            >
-                              <icon>delete</icon>
-                              {copy.tasksMoveTrash}
-                            </button>
-                          </>
-                        : null}
-                    </>}
-            </DropdownWrapper>
+                          {!sharedItem
+                            ? <>
+                                <button
+                                  data-dropdown-close
+                                  disabled={!canMoveUp}
+                                  onClick={() => onAction("move-up", task)}
+                                  type="button"
+                                >
+                                  <icon>arrow_upward</icon>
+                                  {copy.tasksMoveUp}
+                                </button>
+                                <button
+                                  data-dropdown-close
+                                  disabled={!canMoveDown}
+                                  onClick={() => onAction("move-down", task)}
+                                  type="button"
+                                >
+                                  <icon>arrow_downward</icon>
+                                  {copy.tasksMoveDown}
+                                </button>
+                                <button
+                                  data-dropdown-close
+                                  onClick={() => onAction("archive", task)}
+                                  type="button"
+                                >
+                                  <icon>archive</icon>
+                                  {copy.tasksArchive}
+                                </button>
+                                <button
+                                  className="is-danger"
+                                  data-dropdown-close
+                                  onClick={() => onAction("trash", task)}
+                                  type="button"
+                                >
+                                  <icon>delete</icon>
+                                  {copy.tasksMoveTrash}
+                                </button>
+                              </>
+                            : null}
+                        </>}
+                </DropdownWrapper>
+              : null}
           </div>
         </div>
         {options.length
@@ -953,6 +1076,7 @@ export default function TasksWorkspace({
   const [signedIn, setSignedIn] = useState(false);
   const [aiFeaturesAllowed, setAiFeaturesAllowed] = useState(true);
   const [shared, setShared] = useState([]);
+  const [teacherAssignments, setTeacherAssignments] = useState([]);
   const [storageMode, setStorageMode] = useState("local");
   const [vaultData, setVaultData] = useState(null);
   const [workspaceId, setWorkspaceId] = useState("default");
@@ -1013,14 +1137,7 @@ export default function TasksWorkspace({
     const activeWorkspaceId = getActiveTasksWorkspaceId();
     setWorkspaceId(activeWorkspaceId);
     try {
-      const sessionResponse = await fetch("/api/signedin", {
-        cache: "no-store",
-        credentials: "include",
-      });
-      const session = await sessionResponse.json();
-      const isSignedIn = Boolean(
-        sessionResponse.ok && session.authenticated && session.signedIn,
-      );
+      const isSignedIn = hasSignedInCookie();
       setSignedIn(isSignedIn);
       if (isSignedIn) {
         try {
@@ -1232,6 +1349,34 @@ export default function TasksWorkspace({
     }
   }, [save, signedIn]);
 
+  const refreshTeacherAssignments = useCallback(async () => {
+    if (!signedIn || view !== "teacher-assigned") {
+      setTeacherAssignments([]);
+      return;
+    }
+    try {
+      const response = await fetch("/api/education/assignments", {
+        cache: "no-store",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("assignment_load_failed");
+      const payload = await response.json();
+      setTeacherAssignments(
+        Array.isArray(payload.assignments) ? payload.assignments : [],
+      );
+    } catch {
+      setTeacherAssignments([]);
+      showToast({
+        messageKey: "educationAssignmentsLoadFailed",
+        type: "error",
+      });
+    }
+  }, [signedIn, view]);
+
+  useEffect(() => {
+    void refreshTeacherAssignments();
+  }, [refreshTeacherAssignments]);
+
   useEffect(() => {
     void load();
     const channel = new BroadcastChannel("munetios-tasks-sync");
@@ -1337,10 +1482,18 @@ export default function TasksWorkspace({
   const visibleTasks = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
     const tasks =
-      view === "shared" ? shared.map((item) => item.task) : data.tasks;
+      view === "shared"
+        ? shared.map((item) => item.task)
+        : view === "teacher-assigned"
+          ? teacherAssignments.map((assignment) => ({
+              ...assignment,
+              name: assignment.title,
+              status: assignment.completed ? "completed" : "active",
+            }))
+          : data.tasks;
     return tasks.filter((task) => {
       const matchesView =
-        view === "shared"
+        view === "shared" || view === "teacher-assigned"
           ? true
           : view === "trash"
             ? Boolean(task.trashedAt)
@@ -1366,7 +1519,35 @@ export default function TasksWorkspace({
             .includes(normalizedQuery))
       );
     });
-  }, [currentList.id, data.tasks, query, shared, view]);
+  }, [currentList.id, data.tasks, query, shared, teacherAssignments, view]);
+
+  const toggleTeacherAssignment = async (task) => {
+    try {
+      const response = await fetch("/api/education/assignments", {
+        body: JSON.stringify({
+          assignmentId: task.id,
+          completed: !task.completed,
+        }),
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        method: "PATCH",
+      });
+      if (!response.ok) throw new Error("assignment_update_failed");
+      const payload = await response.json();
+      setTeacherAssignments((current) =>
+        current.map((assignment) =>
+          assignment.id === payload.assignment.id
+            ? payload.assignment
+            : assignment,
+        ),
+      );
+    } catch {
+      showToast({
+        messageKey: "educationAssignmentUpdateFailed",
+        type: "error",
+      });
+    }
+  };
 
   const updateTask = async (task, sharedItem) => {
     if (sharedItem) {
@@ -2191,7 +2372,11 @@ export default function TasksWorkspace({
               ? getTaskListName(currentList, copy)
               : copy[viewKeys[view]]}
           </h1>
-          <p>{copy.tasksListDescription}</p>
+          <p>
+            {view === "teacher-assigned"
+              ? copy.educationTeacherAssignedDescription
+              : copy.tasksListDescription}
+          </p>
         </div>
         <span>{visibleTasks.length}</span>
       </header>
@@ -2222,8 +2407,10 @@ export default function TasksWorkspace({
                   lists={data.lists}
                   onAction={handleAction}
                   onToggleItem={toggleItem}
+                  onToggleTeacherAssignment={toggleTeacherAssignment}
                   sharedItem={sharedItem}
                   task={task}
+                  teacherAssignment={view === "teacher-assigned"}
                   timeFormat={timeFormat}
                   locale={locale}
                   view={view}

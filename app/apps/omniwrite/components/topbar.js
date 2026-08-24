@@ -8,7 +8,7 @@ import AppTopbarRight from "../../../components/appTopbarRight";
 import { t } from "../../../i18n";
 import { hasSignedInCookie } from "../../../lib/signedInCookie";
 
-const sessionUrl = "/api/signedin";
+const accountUrl = "/api/account";
 const signedOutBannerStorageKey = "munetios.omniwrite.signedOutBannerDismissed";
 
 function isSignedOutBannerDismissed() {
@@ -43,27 +43,23 @@ export default function OmniWriteTopbar({ sidebarOpen, onSidebarToggle }) {
   }, []);
 
   const refreshSession = useCallback(async (signal) => {
+    const signedIn = hasSignedInCookie();
+    setSessionState(signedIn ? "active" : "inactive");
+    if (!signedIn) {
+      setUser(null);
+      setAccountPanelOpen(false);
+      return;
+    }
+
     try {
-      const response = await fetch(sessionUrl, {
+      const response = await fetch(accountUrl, {
         cache: "no-store",
         credentials: "include",
         headers: { Accept: "application/json" },
         signal,
       });
-      if (!response.ok && response.status !== 401 && hasSignedInCookie()) {
-        setSessionState("active");
-        return;
-      }
-      const payload = await response.json();
-      const signedIn = Boolean(
-        response.ok && payload.authenticated && payload.signedIn,
-      );
-
-      setUser(signedIn ? payload.user : null);
-      setSessionState(signedIn ? "active" : "inactive");
-      if (!signedIn) {
-        setAccountPanelOpen(false);
-      }
+      if (!response.ok) return;
+      setUser(await response.json());
     } catch (error) {
       if (error?.name !== "AbortError" && !hasSignedInCookie()) {
         setUser(null);
@@ -223,7 +219,7 @@ export default function OmniWriteTopbar({ sidebarOpen, onSidebarToggle }) {
                 data-translate-aria-label="openAccountMenu"
                 onClick={() => {
                   updateAccountPanelPosition();
-                  setAccountPanelOpen(true);
+                  setAccountPanelOpen((current) => !current);
                 }}
                 ref={accountTriggerRef}
                 type="button"

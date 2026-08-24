@@ -39,6 +39,45 @@ import vi_VN from "./vi_VN.json" with { type: "json" };
 import zh_CN from "./zh_CN.json" with { type: "json" };
 import zh_TW from "./zh_TW.json" with { type: "json" };
 
+export const britishEnglishLocaleCountries = Object.freeze({
+  "en-AT": "Austria",
+  "en-BE": "Belgium",
+  "en-BG": "Bulgaria",
+  "en-HR": "Croatia",
+  "en-CY": "Cyprus",
+  "en-CZ": "Czechia",
+  "en-DK": "Denmark",
+  "en-EE": "Estonia",
+  "en-FI": "Finland",
+  "en-FR": "France",
+  "en-DE": "Germany",
+  "en-GR": "Greece",
+  "en-HU": "Hungary",
+  "en-IS": "Iceland",
+  "en-IE": "Ireland",
+  "en-IT": "Italy",
+  "en-LV": "Latvia",
+  "en-LI": "Liechtenstein",
+  "en-LT": "Lithuania",
+  "en-LU": "Luxembourg",
+  "en-MT": "Malta",
+  "en-NL": "Netherlands",
+  "en-NO": "Norway",
+  "en-PL": "Poland",
+  "en-PT": "Portugal",
+  "en-RO": "Romania",
+  "en-SK": "Slovakia",
+  "en-SI": "Slovenia",
+  "en-ES": "Spain",
+  "en-SE": "Sweden",
+  "en-CH": "Switzerland",
+  "en-GB": "United Kingdom",
+});
+
+const britishEnglishTranslations = Object.fromEntries(
+  Object.keys(britishEnglishLocaleCountries).map((locale) => [locale, en_GB]),
+);
+
 const baseTranslations = {
   "ar-SA": ar_SA,
   "co-FR": co_FR,
@@ -80,6 +119,7 @@ const baseTranslations = {
   "vi-VN": vi_VN,
   "zh-CN": zh_CN,
   "zh-TW": zh_TW,
+  ...britishEnglishTranslations,
 };
 
 export const translations = baseTranslations;

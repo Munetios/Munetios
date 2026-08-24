@@ -10,17 +10,19 @@ import {
   getAccountCollectionAccounts,
   getAccountCollectionCookie,
   getAccountData,
+  getAccountLifecycle,
   getAvatarLetter,
   getRequestCookie,
+  isDeletedAccountSessionToken,
 } from "../../lib/authSecurity.js";
 import {
   getBusinessCapabilities,
   normalizeBusinessAccount,
 } from "../../lib/businessAccounts.js";
 import { demoPlanLabel, getDemoSettings } from "../../lib/demoSettings.js";
+import { getEducationProfile } from "../../lib/education.js";
 import { getOrganizationContext } from "../../lib/organizationPolicies.js";
 import { getSignedInCookie } from "../../lib/signedInCookie.js";
-import { syncStripeSubscriptionForAccount } from "../../lib/stripeSubscriptionSync.js";
 
 export const dynamic = "force-dynamic";
 
@@ -28,18 +30,30 @@ export async function GET(request) {
   const session = await auth(request);
 
   if (!session) {
+    const sessionToken = getRequestCookie(request, "munetios_session");
+    if (sessionToken && isDeletedAccountSessionToken(sessionToken)) {
+      return Response.json(
+        {
+          deletedAccount: true,
+          error: "account_not_found",
+          message: "Account is not found. Please sign in to a valid account.",
+        },
+        {
+          headers: {
+            "Cache-Control": "no-store",
+            "X-Munetios-Auth-State": "account-not-found",
+          },
+          status: 404,
+        },
+      );
+    }
     return unauthorizedResponse(
-      "Your session token was invalid. Please sign in again and try again",
+      "Your session token is invalid. Please sign in and try again.",
       { invalidSession: hasAccountSessionCookie(request) },
     );
   }
 
-  const syncedPlan = session.demo
-    ? ""
-    : await syncStripeSubscriptionForAccount(session.user).then(
-        ({ plan }) => plan,
-        () => session.user.plan || "Free",
-      );
+  const syncedPlan = session.demo ? "" : session.user.plan || "Free";
   const storedBusiness = session.demo
     ? null
     : getAccountData(session.user.id, "business", null);
@@ -47,6 +61,7 @@ export async function GET(request) {
   const organization = session.demo
     ? null
     : getOrganizationContext(session.user);
+  const education = session.demo ? null : getEducationProfile(session.user.id);
   const isBusinessAccount =
     Boolean(storedBusiness) ||
     /^business\b/i.test(String(syncedPlan || session.user.plan || ""));
@@ -58,6 +73,7 @@ export async function GET(request) {
     ? storedProfile.profilePictureUrl
     : session.user.profilePictureUrl;
   const demoSettings = getDemoSettings(session);
+  const lifecycle = session.demo ? null : getAccountLifecycle(session.user.id);
   const name = storedProfile.name || session.user.name;
   const avatar = storedProfile.avatar || {
     color: "#7c3aed",
@@ -96,9 +112,11 @@ export async function GET(request) {
       accountCount: session.demo ? 1 : Math.max(1, accounts.length),
       accountType: session.demo
         ? "demo"
-        : isBusinessAccount || organization
-          ? "business"
-          : "personal",
+        : education
+          ? "education"
+          : isBusinessAccount || organization
+            ? "business"
+            : "personal",
       business: business
         ? {
             capabilities: getBusinessCapabilities(business),
@@ -115,6 +133,7 @@ export async function GET(request) {
       avatarUrl: profilePictureUrl || session.user.avatarUrl,
       demo: Boolean(session.demo),
       email: storedProfile.email || session.user.email,
+      education: education || undefined,
       gender: Object.hasOwn(storedProfile, "gender")
         ? storedProfile.gender
         : session.user.gender || "",
@@ -126,11 +145,13 @@ export async function GET(request) {
       birthDate: Object.hasOwn(storedProfile, "birthday")
         ? storedProfile.birthday
         : session.user.birthDate || "",
-      archived: Boolean(demoSettings?.archived),
+      archived: Boolean(demoSettings?.archived || lifecycle?.archived),
       demoSettings: demoSettings || undefined,
       plan: session.demo
         ? demoPlanLabel(demoSettings.plan)
-        : syncedPlan || session.user.plan || "Free",
+        : education
+          ? "Education"
+          : syncedPlan || session.user.plan || "Free",
       profilePictureUrl,
       organization: organization || undefined,
     },

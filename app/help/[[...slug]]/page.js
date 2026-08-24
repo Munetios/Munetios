@@ -1,12 +1,19 @@
 import HelpCenter from "../helpCenter";
+import { loadDocumentation } from "../documentationLoader";
 import "../styles.css";
 
 export const metadata = {
   description: "Documentation and support for Munetios apps.",
-  title: "Munetios Help Center",
+  title: "Munetios Documentation",
 };
 
 export default async function HelpPage({ params }) {
   const { slug = [] } = await params;
-  return <HelpCenter initialLocale="en" path={slug} />;
+  return (
+    <HelpCenter
+      documents={await loadDocumentation()}
+      initialLocale="en"
+      path={slug}
+    />
+  );
 }

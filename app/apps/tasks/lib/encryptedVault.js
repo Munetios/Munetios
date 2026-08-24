@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  normalizeTaskLists,
-  normalizeTasksForLists,
-} from "./taskLists";
+import { normalizeTaskLists, normalizeTasksForLists } from "./taskLists";
 
 const iterations = 600_000;
 const additionalData = new TextEncoder().encode("munetios.tasks.v1");
@@ -161,6 +158,65 @@ async function decryptDocument(key, encryptedDocument) {
   };
 }
 
+function mergeImportedTasks(document, manifest) {
+  if (
+    manifest?.format !== "munetios-tasks-import-v1" ||
+    (!Array.isArray(manifest.lists) && !Array.isArray(manifest.tasks))
+  ) {
+    return document;
+  }
+  const workspaces =
+    typeof document?.workspaces === "object" && document.workspaces !== null
+      ? document.workspaces
+      : {};
+  const workspaceId =
+    typeof manifest.workspaceId === "string" && manifest.workspaceId
+      ? manifest.workspaceId
+      : "default";
+  const current = workspaces[workspaceId] || {};
+  const lists = normalizeTaskLists([
+    ...(Array.isArray(current.lists) ? current.lists : []),
+    ...(Array.isArray(manifest.lists) ? manifest.lists : []),
+  ]).filter(
+    (list, index, allLists) =>
+      allLists.findIndex((candidate) => candidate.id === list.id) === index,
+  );
+  const tasks = normalizeTasksForLists(
+    [
+      ...(Array.isArray(current.tasks) ? current.tasks : []),
+      ...(Array.isArray(manifest.tasks) ? manifest.tasks : []),
+    ].filter(
+      (task, index, allTasks) =>
+        task?.id &&
+        allTasks.findIndex((candidate) => candidate?.id === task.id) === index,
+    ),
+    lists,
+  );
+  return {
+    ...document,
+    workspaces: {
+      ...workspaces,
+      [workspaceId]: {
+        ...current,
+        categories: Array.isArray(current.categories) ? current.categories : [],
+        lists,
+        tasks,
+        updatedAt: new Date().toISOString(),
+      },
+    },
+  };
+}
+
+async function applyPendingTaskImport(stored, key, vault, data) {
+  if (!stored?.importManifest) {
+    return { data, document: stored?.document || null };
+  }
+  const merged = mergeImportedTasks(data, stored.importManifest);
+  const document = await encryptDocument(key, vault.keyId, merged);
+  await saveVault(vault, document);
+  return { data: merged, document };
+}
+
 export function getActiveTasksWorkspaceId() {
   if (typeof window === "undefined") return "default";
   return (
@@ -295,10 +351,11 @@ export async function unlockAccountVault(password) {
       tasks: [],
       workspaces: {},
     };
-    const document = await encryptDocument(key, vault.keyId, data);
+    const importedData = mergeImportedTasks(data, stored.importManifest);
+    const document = await encryptDocument(key, vault.keyId, importedData);
     await saveVault(vault, document);
-    unlockedAccount = { data, document, key, vault };
-    return data;
+    unlockedAccount = { data: importedData, document, key, vault };
+    return importedData;
   }
 
   let key;
@@ -311,14 +368,20 @@ export async function unlockAccountVault(password) {
     key = await unwrapVault(stored.vault, password);
   }
 
-  const data = await decryptDocument(key, stored.document);
+  const decrypted = await decryptDocument(key, stored.document);
+  const imported = await applyPendingTaskImport(
+    stored,
+    key,
+    stored.vault,
+    decrypted,
+  );
   unlockedAccount = {
-    data,
-    document: stored.document,
+    data: imported.data,
+    document: imported.document,
     key,
     vault: stored.vault,
   };
-  return data;
+  return imported.data;
 }
 
 export async function ensureAccountVaultUnlocked() {
@@ -350,21 +413,28 @@ async function ensureAccountVaultUnlockedOnce() {
       settings: {},
       workspaces: {},
     };
-    const document = await encryptDocument(key, vault.keyId, data);
+    const importedData = mergeImportedTasks(data, stored.importManifest);
+    const document = await encryptDocument(key, vault.keyId, importedData);
     await saveVault(vault, document);
-    unlockedAccount = { data, document, key, vault };
-    return data;
+    unlockedAccount = { data: importedData, document, key, vault };
+    return importedData;
   }
   if (stored.vault.protection === "account") {
     const key = await importAccountVaultKey(stored.vault);
-    const data = await decryptDocument(key, stored.document);
+    const decrypted = await decryptDocument(key, stored.document);
+    const imported = await applyPendingTaskImport(
+      stored,
+      key,
+      stored.vault,
+      decrypted,
+    );
     unlockedAccount = {
-      data,
-      document: stored.document,
+      data: imported.data,
+      document: imported.document,
       key,
       vault: stored.vault,
     };
-    return data;
+    return imported.data;
   }
   if (stored.vault.protection !== "device") {
     throw new Error("password_required");
@@ -373,14 +443,15 @@ async function ensureAccountVaultUnlockedOnce() {
   if (!key) throw new Error("device_key_unavailable");
   const vault = await createAccountVault(key, stored.vault.keyId);
   await saveVault(vault, stored.document);
-  const data = await decryptDocument(key, stored.document);
+  const decrypted = await decryptDocument(key, stored.document);
+  const imported = await applyPendingTaskImport(stored, key, vault, decrypted);
   unlockedAccount = {
-    data,
-    document: stored.document,
+    data: imported.data,
+    document: imported.document,
     key,
     vault,
   };
-  return data;
+  return imported.data;
 }
 
 export function getUnlockedAccountData() {
@@ -394,14 +465,20 @@ export async function refreshUnlockedAccountData() {
   if (stored.vault.keyId !== unlockedAccount.vault.keyId) {
     throw new Error("vault_key_changed");
   }
-  const data = await decryptDocument(unlockedAccount.key, stored.document);
+  const decrypted = await decryptDocument(unlockedAccount.key, stored.document);
+  const imported = await applyPendingTaskImport(
+    stored,
+    unlockedAccount.key,
+    stored.vault,
+    decrypted,
+  );
   unlockedAccount = {
     ...unlockedAccount,
-    data,
-    document: stored.document,
+    data: imported.data,
+    document: imported.document,
     vault: stored.vault,
   };
-  return data;
+  return imported.data;
 }
 
 export async function saveUnlockedAccountData(data) {

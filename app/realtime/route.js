@@ -1,11 +1,13 @@
 import { auth, hasAccountSessionCookie } from "../../auth.js";
 import { meetEmojiSet } from "../apps/meet/lib/meetEmojis.js";
-import { getRequestFingerprint } from "../lib/authSecurity.js";
+import { getAccountData, getRequestFingerprint } from "../lib/authSecurity.js";
+import { enforceStudentAiAccess } from "../lib/education.js";
 import {
   activityForPeer,
   isValidAnagramCreatorWord,
   isValidWordHuntBoard,
   meetActivityTypes,
+  parseWordHuntCustomWords,
 } from "../lib/meetActivities.js";
 import {
   authenticateRealtimePeer,
@@ -28,6 +30,7 @@ import {
   touchRealtimePeer,
   updateRealtimeActivity,
   updateRealtimePeerState,
+  updateRealtimePeerStatus,
 } from "../lib/realtimeDatabase.js";
 
 export const dynamic = "force-dynamic";
@@ -62,17 +65,22 @@ function normalizedText(value, maximum) {
 function userIdentity(session) {
   const userId = session?.user?.id || session?.user?.email;
   if (!userId) return null;
+  const storedProfile = session.demo
+    ? globalThis.__munetiosAccountProfileStore?.get(userId) || {}
+    : getAccountData(userId, "profile", {});
+  const displayName =
+    storedProfile.name ||
+    session.user.name ||
+    session.user.displayName ||
+    session.user.email ||
+    "Munetios user";
+  const profilePictureUrl = Object.hasOwn(storedProfile, "profilePictureUrl")
+    ? storedProfile.profilePictureUrl
+    : session.user.profilePictureUrl;
   return {
-    displayName:
-      session.user.name ||
-      session.user.displayName ||
-      session.user.email ||
-      "Munetios user",
+    displayName,
     avatarUrl:
-      session.user.profilePictureUrl ||
-      session.user.avatarUrl ||
-      session.user.image ||
-      null,
+      profilePictureUrl || session.user.avatarUrl || session.user.image || null,
     userId,
   };
 }
@@ -154,7 +162,8 @@ export async function POST(request) {
     payload?.action === "rejoin" ||
     payload?.action === "resume"
   ) {
-    const sessionIdentity = userIdentity(await auth(request));
+    const session = await auth(request);
+    const sessionIdentity = userIdentity(session);
     const requestFingerprint = getRequestFingerprint(request);
     const identity =
       sessionIdentity || guestIdentity(payload.nickname, requestFingerprint);
@@ -169,6 +178,10 @@ export async function POST(request) {
       const service = normalizedText(payload.service, 24);
       if (!services.has(service)) {
         return respond({ error: "invalid_service" }, 400);
+      }
+      if (service === "ai-voice") {
+        const educationResponse = enforceStudentAiAccess(session);
+        if (educationResponse) return educationResponse;
       }
       return respond(
         createRealtimeRoom({
@@ -264,6 +277,15 @@ export async function POST(request) {
       ? respond({ updated: true })
       : respond({ error: "peer_not_found" }, 404);
   }
+  if (payload.action === "profile-status") {
+    const emoji = payload.emoji === "" ? "" : normalizedText(payload.emoji, 32);
+    if (emoji === null || (emoji && !meetEmojiSet.has(emoji))) {
+      return respond({ error: "invalid_status" }, 400);
+    }
+    return updateRealtimePeerStatus({ ...authFields, emoji })
+      ? respond({ emoji, updated: true })
+      : respond({ error: "peer_not_found" }, 404);
+  }
   if (payload.action === "chat-send") {
     const submittedBody =
       typeof payload.body === "string" ? payload.body.trim() : "";
@@ -340,10 +362,15 @@ export async function POST(request) {
     const customBoardText =
       type === "wordhunt" ? normalizedText(payload.customBoard, 49) || "" : "";
     const customBoard = customBoardText.replace(/[^a-z]/giu, "");
+    const customWords =
+      type === "wordhunt"
+        ? parseWordHuntCustomWords(payload.customWords || "")
+        : [];
     if (
       type === "wordhunt" &&
       (!new Set([4, 5, 6, 7]).has(boardSize) ||
-        (customBoard && !isValidWordHuntBoard(customBoard, boardSize)))
+        (customBoard && !isValidWordHuntBoard(customBoard, boardSize)) ||
+        !customWords)
     ) {
       return respond({ error: "activity_invalid_board" }, 400);
     }
@@ -351,8 +378,19 @@ export async function POST(request) {
       ...authFields,
       allowOthers: payload.allowOthers !== false,
       boardSize,
+      cheats: {
+        aiPlaysWordHunt: payload.cheats?.aiPlaysWordHunt === true,
+        allowAnyAnagramWord: payload.cheats?.allowAnyAnagramWord === true,
+        alwaysShowAllWords: payload.cheats?.alwaysShowAllWords === true,
+        customChessRules: payload.cheats?.customChessRules === true,
+        enabled: payload.cheats?.enabled === true,
+        ignoreChessMoveRules: payload.cheats?.ignoreChessMoveRules === true,
+        ignoreDictionary: payload.cheats?.ignoreDictionary === true,
+        shareFoundWords: payload.cheats?.shareFoundWords === true,
+      },
       creatorWord,
       customBoard,
+      customWords,
       durationSeconds: payload.durationSeconds,
       type,
     });

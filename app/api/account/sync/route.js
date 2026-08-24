@@ -9,7 +9,6 @@ const appearanceThemes = new Set([
   "munetios-default",
   "google-material-design",
   "carbon",
-  "light-mode",
   "microsoft-fluent",
   "blueish",
   "dymatic",
@@ -53,6 +52,13 @@ function normalizeColors(value, maximum) {
   );
 }
 
+function normalizeNumber(value, minimum, maximum, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number)
+    ? Math.min(maximum, Math.max(minimum, Math.round(number)))
+    : fallback;
+}
+
 function normalizeAppearance(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -64,6 +70,12 @@ function normalizeAppearance(value) {
       : "theme-font";
 
   return {
+    accountSettingsPadding: normalizeNumber(
+      value.accountSettingsPadding,
+      8,
+      32,
+      16,
+    ),
     accentColor: normalizeColor(value.accentColor, "#a855f7"),
     backgroundColor: normalizeColor(value.backgroundColor, "#150627"),
     backgroundColorSecondary: normalizeColor(
@@ -73,10 +85,14 @@ function normalizeAppearance(value) {
     backgroundMode: backgroundModes.has(value.backgroundMode)
       ? value.backgroundMode
       : "gradient",
+    borderRadius: normalizeNumber(value.borderRadius, 0, 50, 24),
+    compactMode: Boolean(value.compactMode),
+    customBorderRadius: Boolean(value.customBorderRadius),
     customColors: normalizeColors(value.customColors, 36),
     fontFamily: fontFamilies.has(fontFamily)
       ? fontFamily
       : fontFamily || "theme-font",
+    glassBlur: normalizeNumber(value.glassBlur, 1, 100, 3),
     gradientAngle: Math.min(
       360,
       Math.max(0, Math.round(Number(value.gradientAngle) || 135)),
@@ -91,6 +107,7 @@ function normalizeAppearance(value) {
     themeMode: appearanceModes.has(value.themeMode)
       ? value.themeMode
       : "system",
+    textSize: normalizeNumber(value.textSize, 25, 1000, 100),
   };
 }
 

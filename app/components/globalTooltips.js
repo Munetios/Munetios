@@ -14,21 +14,26 @@ function getTooltipTarget(node) {
 }
 
 function getTooltipLabel(target) {
-  const translationKey =
-    target.getAttribute("data-tooltip-translate") ||
+  const tooltipTranslationKey = target.getAttribute("data-tooltip-translate");
+  const translatedTooltip = tooltipTranslationKey
+    ? t()[tooltipTranslationKey]
+    : null;
+  const currentLabel =
+    target.getAttribute("aria-label") ||
+    target.getAttribute("data-tooltip") ||
+    target.getAttribute("title");
+  const fallbackTranslationKey =
     target.getAttribute("data-translate-aria-label") ||
     target.getAttribute("data-translate-title");
-  const translatedLabel = translationKey ? t()[translationKey] : null;
+  const translatedFallback = fallbackTranslationKey
+    ? t()[fallbackTranslationKey]
+    : null;
 
-  return (
-    translatedLabel ||
-    target.getAttribute("data-tooltip") ||
-    target.getAttribute("aria-label") ||
-    target.getAttribute("title")
-  );
+  return translatedTooltip || currentLabel || translatedFallback;
 }
 
 export default function GlobalTooltips() {
+  const observerRef = useRef(null);
   const targetRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
 
@@ -40,7 +45,32 @@ export default function GlobalTooltips() {
     const rect = target.getBoundingClientRect();
     const center = rect.left + rect.width / 2;
     const showAbove = window.innerHeight - rect.bottom < 72 && rect.top > 72;
+    observerRef.current?.disconnect();
     targetRef.current = target;
+    observerRef.current = new MutationObserver(() => {
+      if (targetRef.current !== target) return;
+      const currentLabel = getTooltipLabel(target);
+      if (!currentLabel) {
+        observerRef.current?.disconnect();
+        targetRef.current = null;
+        setTooltip(null);
+        return;
+      }
+      setTooltip((current) =>
+        current ? { ...current, label: currentLabel } : current,
+      );
+    });
+    observerRef.current.observe(target, {
+      attributeFilter: [
+        "aria-label",
+        "data-tooltip",
+        "data-tooltip-translate",
+        "data-translate-aria-label",
+        "data-translate-title",
+        "title",
+      ],
+      attributes: true,
+    });
     setTooltip({
       label,
       left: Math.min(Math.max(center, 64), window.innerWidth - 64),
@@ -51,6 +81,7 @@ export default function GlobalTooltips() {
 
   const hideTooltip = useCallback((target) => {
     if (!target || targetRef.current !== target) return;
+    observerRef.current?.disconnect();
     targetRef.current = null;
     setTooltip(null);
   }, []);
@@ -67,6 +98,7 @@ export default function GlobalTooltips() {
     const onFocusIn = (event) => showTooltip(getTooltipTarget(event.target));
     const onFocusOut = (event) => hideTooltip(getTooltipTarget(event.target));
     const clear = () => {
+      observerRef.current?.disconnect();
       targetRef.current = null;
       setTooltip(null);
     };
@@ -85,6 +117,7 @@ export default function GlobalTooltips() {
     window.addEventListener("munetios:localechange", refreshTranslation);
 
     return () => {
+      observerRef.current?.disconnect();
       document.removeEventListener("mouseover", onMouseOver);
       document.removeEventListener("mouseout", onMouseOut);
       document.removeEventListener("focusin", onFocusIn);
@@ -92,10 +125,7 @@ export default function GlobalTooltips() {
       window.removeEventListener("scroll", clear, true);
       window.removeEventListener("resize", clear);
       window.removeEventListener("languagechange", refreshTranslation);
-      window.removeEventListener(
-        "munetios:languagechange",
-        refreshTranslation,
-      );
+      window.removeEventListener("munetios:languagechange", refreshTranslation);
       window.removeEventListener("munetios:localechange", refreshTranslation);
     };
   }, [hideTooltip, showTooltip]);

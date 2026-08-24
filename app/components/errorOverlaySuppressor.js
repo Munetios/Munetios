@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import MunetiosErrorView from "./munetiosErrorView";
-import { showToast } from "./toast";
+import { useEffect } from "react";
+import { showErrorToast } from "./errorToast";
 
 const overlaySelectors = [
   "nextjs-portal",
@@ -36,24 +35,6 @@ const appSourceMarkers = [
   "next/dist/",
   "react-dom",
 ];
-
-let lastFetchErrorToastAt = 0;
-const fetchErrorToastDelayMs = 1500;
-
-function showFetchErrorToast() {
-  const now = Date.now();
-
-  if (now - lastFetchErrorToastAt < fetchErrorToastDelayMs) {
-    return;
-  }
-
-  lastFetchErrorToastAt = now;
-
-  showToast({
-    messageKey: "fetchError",
-    type: "error",
-  });
-}
 
 function hideElement(element) {
   element.setAttribute("aria-hidden", "true");
@@ -183,12 +164,6 @@ function isAppRuntimeFailure(event) {
 }
 
 export default function ErrorOverlaySuppressor() {
-  const [hasRuntimeError, setHasRuntimeError] = useState(false);
-
-  const retry = useCallback(() => {
-    window.location.reload();
-  }, []);
-
   useEffect(() => {
     suppressNextOverlay();
 
@@ -208,7 +183,7 @@ export default function ErrorOverlaySuppressor() {
       if (isInjectedScriptFailure(event)) {
         event.preventDefault?.();
         event.stopImmediatePropagation?.();
-        showFetchErrorToast();
+        showErrorToast();
         suppressNextOverlay();
         return;
       }
@@ -224,14 +199,7 @@ export default function ErrorOverlaySuppressor() {
         event?.reason?.digest === "NEXT_REDIRECT" ||
         event?.reason?.digest === "NEXT_NOT_FOUND";
 
-      const appDidNotLoad =
-        document.querySelector("#munetiosApp")?.childElementCount === 0;
-
-      if (!isRouterError && appDidNotLoad) {
-        setHasRuntimeError(true);
-      } else if (!isRouterError) {
-        showFetchErrorToast();
-      }
+      if (!isRouterError) showErrorToast();
 
       suppressNextOverlay();
     };
@@ -245,13 +213,5 @@ export default function ErrorOverlaySuppressor() {
     };
   }, []);
 
-  if (!hasRuntimeError) {
-    return null;
-  }
-
-  return (
-    <div className="munetios-runtime-error-root">
-      <MunetiosErrorView mode="error" onRetry={retry} />
-    </div>
-  );
+  return null;
 }

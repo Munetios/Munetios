@@ -5,6 +5,7 @@ import {
   consumePasskeyChallenge,
   savePasskey,
 } from "../../../../../lib/authSecurity.js";
+import { enforceStudentRestriction } from "../../../../../lib/education.js";
 import { getPasskeyRequestContext } from "../../../../../lib/passkeys.js";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,8 @@ export async function POST(request) {
   if (!session || session.demo) {
     return Response.json({ error: "signin_required" }, { status: 401 });
   }
+  const educationResponse = enforceStudentRestriction(session, "passkeys");
+  if (educationResponse) return educationResponse;
   let payload;
   try {
     payload = await request.json();

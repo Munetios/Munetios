@@ -9,6 +9,7 @@ import {
   getAvatarLetter,
   getRequestCookie,
 } from "../../../lib/authSecurity.js";
+import { getEducationProfile } from "../../../lib/education.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -38,8 +39,9 @@ export async function GET(request) {
   const accounts = getAccountCollectionAccounts(collection.token).map(
     (account) => {
       const storedProfile = getAccountData(account.id, "profile", {});
+      const education = getEducationProfile(account.id);
       return {
-        accountType: "personal",
+        accountType: education ? "education" : "personal",
         active: account.id === session.user.id,
         avatar: storedProfile.avatar || {
           color: "#7c3aed",
@@ -51,8 +53,9 @@ export async function GET(request) {
         email: storedProfile.email || account.email,
         id: account.id,
         name: storedProfile.name || account.name,
-        personal: true,
-        plan: account.plan || "Free",
+        education: education || undefined,
+        personal: !education,
+        plan: education ? "Education" : account.plan || "Free",
         profilePictureUrl: getCollectionScopedProfilePictureUrl(
           storedProfile.profilePictureUrl,
           account.id,

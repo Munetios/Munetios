@@ -89,7 +89,8 @@ function getWeekdayOptions(locale) {
 }
 
 export default function AccountLanguageTimeSection({ copy }) {
-  const [preferences, setPreferences] = useState(loadDateTimePreferences);
+  const [preferences, setPreferences] = useState(defaultDateTimePreferences);
+  const [locale, setLocale] = useState("en");
   const [location, setLocation] = useState({
     countries: ["US"],
     detectedCountry: "US",
@@ -97,7 +98,11 @@ export default function AccountLanguageTimeSection({ copy }) {
     detectedTimezone: "UTC",
     timezones: ["UTC"],
   });
-  const locale = getCurrentLocale();
+
+  useEffect(() => {
+    setPreferences(loadDateTimePreferences());
+    setLocale(getCurrentLocale());
+  }, []);
 
   useEffect(() => {
     let active = true;

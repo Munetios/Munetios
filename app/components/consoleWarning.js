@@ -21,6 +21,7 @@ export default function ConsoleWarning() {
 
     window.test429 = () => setTestApiFailure(429);
     window.testError = () => setTestApiFailure(503);
+    window.testErrors = () => setTestApiFailure(503);
     window.clearTestError = () => {
       window.sessionStorage.removeItem(testApiFailureKey);
       window.dispatchEvent(
@@ -34,6 +35,7 @@ export default function ConsoleWarning() {
     return () => {
       delete window.test429;
       delete window.testError;
+      delete window.testErrors;
       delete window.clearTestError;
     };
   }, []);

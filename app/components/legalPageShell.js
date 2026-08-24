@@ -38,6 +38,8 @@ export const pageDefinitions = {
       ["privacySecurityTitle", "privacySecurityBody"],
       ["privacyInternationalTitle", "privacyInternationalBody"],
       ["privacyGdprTitle", "privacyGdprBody"],
+      ["privacyCcpaTitle", "privacyCcpaBody"],
+      ["privacyIndiaTitle", "privacyIndiaBody"],
       ["privacyCoppaTitle", "privacyCoppaBody"],
       ["privacyParentRightsTitle", "privacyParentRightsBody"],
       ["privacyRightsTitle", "privacyRightsBody"],
@@ -50,6 +52,7 @@ export const pageDefinitions = {
     icon: "gavel",
     sections: [
       ["termsEligibilityTitle", "termsEligibilityBody"],
+      ["termsBetaAvailabilityTitle", "termsBetaAvailabilityBody"],
       ["termsAccountsTitle", "termsAccountsBody"],
       ["termsUseTitle", "termsUseBody"],
       ["termsPaymentsTitle", "termsPaymentsBody"],
@@ -80,6 +83,11 @@ const wordmarkDontKeys = [
   "brandingDontCrop",
   "brandingDontLowContrast",
   "brandingDontCrowd",
+];
+
+const privacyFocusedWordmarkDontKeys = [
+  "brandingUnapprovedTitle",
+  ...wordmarkDontKeys.slice(1),
 ];
 
 const markDontKeys = [
@@ -113,17 +121,16 @@ function PoliciesTopbar({ copy, locale }) {
   const appsRef = useRef(null);
 
   useEffect(() => {
-    if (hasSignedInCookie()) {
-      setUser({ name: "Munetios" });
+    if (!hasSignedInCookie()) {
+      setUser(null);
+      return;
     }
-    fetch("/api/signedin", { cache: "no-store", credentials: "include" })
+
+    setUser({ name: "Munetios" });
+    fetch("/api/account", { cache: "no-store", credentials: "include" })
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => {
-        if (payload?.authenticated && payload?.signedIn) {
-          setUser(payload.user);
-        } else if (!hasSignedInCookie()) {
-          setUser(null);
-        }
+        if (payload) setUser(payload);
       })
       .catch(() => undefined);
   }, []);
@@ -171,11 +178,9 @@ function PoliciesTopbar({ copy, locale }) {
             }}
             type="button"
           >
-            {user ? (
-              <AccountAvatar account={user} className="h-9 w-9 rounded-xl" />
-            ) : (
-              <icon>account_circle</icon>
-            )}
+            {user
+              ? <AccountAvatar account={user} className="h-9 w-9 rounded-xl" />
+              : <icon>account_circle</icon>}
           </button>
         </AppTopbarRight>
       </header>
@@ -185,19 +190,19 @@ function PoliciesTopbar({ copy, locale }) {
         open={appsOpen}
         triggerRef={appsRef}
       />
-      {accountOpen ? (
-        <div className="fixed inset-0 z-[1090]" role="presentation">
-          <button
-            aria-label={copy.close}
-            className="absolute inset-0 bg-black/20!"
-            onClick={() => setAccountOpen(false)}
-            type="button"
-          />
-          <div className="absolute right-3 top-20 w-[min(30rem,calc(100vw-1.5rem))]">
-            <AccountWrapper appContext legalLinksInNewTab={false} />
+      {accountOpen
+        ? <div className="fixed inset-0 z-[1090]" role="presentation">
+            <button
+              aria-label={copy.close}
+              className="absolute inset-0 bg-black/20!"
+              onClick={() => setAccountOpen(false)}
+              type="button"
+            />
+            <div className="absolute right-3 top-20 w-[min(30rem,calc(100vw-1.5rem))]">
+              <AccountWrapper appContext legalLinksInNewTab={false} />
+            </div>
           </div>
-        </div>
-      ) : null}
+        : null}
     </>
   );
 }
@@ -244,9 +249,12 @@ function PoliciesSidebar({ copy, locale, page }) {
 
 function BrandingPreview({ index = 0, type }) {
   const isMark = type === "mark";
+  const isPrivacyFocusedWordmark = type === "wordmark-privacy-focused";
   const source = isMark
     ? "/favicon.ico"
-    : "/wordmarkwithoutprivacyfocusedtagline.png";
+    : isPrivacyFocusedWordmark
+      ? "/wordmark-munetios.png"
+      : "/wordmarkwithoutprivacyfocusedtagline.png";
   const imageClass = isMark
     ? "h-16 w-16 rounded-2xl object-contain"
     : "max-h-14 w-[82%] object-contain";
@@ -271,37 +279,45 @@ function BrandingPreview({ index = 0, type }) {
       <span className="absolute left-3 top-3 grid h-7 w-7 place-items-center rounded-full bg-rose-500/80! text-sm font-black text-white">
         ×
       </span>
-      {index === 0 && !isMark ? (
-        <span className="text-4xl font-serif tracking-tight text-purple-300">
-          Munetios
-        </span>
-      ) : index === 5 ? (
-        <div className="grid place-items-center text-purple-300 [filter:drop-shadow(0_0_1px_white)]">
-          <img
+      {index === 0 && isPrivacyFocusedWordmark
+        ? <img
             alt=""
-            className={`${imageClass} opacity-20`}
-            src={source}
+            className="w-[88%] rounded-xl object-contain"
+            src="/unapprovedwordmark.png"
           />
-        </div>
-      ) : index === 7 ? (
-        <div className="h-20 w-20 overflow-hidden rounded-full border border-rose-200/30">
-          <img
-            alt=""
-            className={`${imageClass} translate-x-8`}
-            src={source}
-          />
-        </div>
-      ) : index === 9 ? (
-        <div className="grid h-20 w-[86%] place-items-center border border-dashed border-rose-300/35">
-          <img alt="" className={`${imageClass} scale-125`} src={source} />
-        </div>
-      ) : (
-        <img
-          alt=""
-          className={`${imageClass} ${variations[index] || ""}`}
-          src={source}
-        />
-      )}
+        : index === 0 && !isMark
+          ? <span className="text-4xl font-serif tracking-tight text-purple-300">
+              Munetios
+            </span>
+          : index === 5
+            ? <div className="grid place-items-center text-purple-300 [filter:drop-shadow(0_0_1px_white)]">
+                <img
+                  alt=""
+                  className={`${imageClass} opacity-20`}
+                  src={source}
+                />
+              </div>
+            : index === 7
+              ? <div className="h-20 w-20 overflow-hidden rounded-full border border-rose-200/30">
+                  <img
+                    alt=""
+                    className={`${imageClass} translate-x-8`}
+                    src={source}
+                  />
+                </div>
+              : index === 9
+                ? <div className="grid h-20 w-[86%] place-items-center border border-dashed border-rose-300/35">
+                    <img
+                      alt=""
+                      className={`${imageClass} scale-125`}
+                      src={source}
+                    />
+                  </div>
+                : <img
+                    alt=""
+                    className={`${imageClass} ${variations[index] || ""}`}
+                    src={source}
+                  />}
     </figure>
   );
 }
@@ -378,7 +394,11 @@ function BrandingGuidelines({ copy }) {
             {copy.brandingPrimaryMark}
           </p>
           <div className="mt-5 grid min-h-52 place-items-center rounded-3xl bg-white/10!">
-            <img alt={copy.brandingPrimaryMark} className="h-28 w-28" src="/favicon.ico" />
+            <img
+              alt={copy.brandingPrimaryMark}
+              className="h-28 w-28"
+              src="/favicon.ico"
+            />
           </div>
           <p className="mt-4 text-sm leading-6 text-white/65">
             {copy.brandingMarkDescription}
@@ -439,27 +459,6 @@ function BrandingGuidelines({ copy }) {
         </div>
       </section>
 
-      <section className="liquid-glass rounded-3xl border border-rose-200/15 bg-rose-500/10! p-6 backdrop-blur-[3px] sm:p-8">
-        <div className="grid items-center gap-6 lg:grid-cols-[1fr_1.1fr]">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-rose-200">
-              {copy.brandingDoNot}
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold">
-              {copy.brandingUnapprovedTitle}
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-white/65">
-              {copy.brandingUnapprovedDescription}
-            </p>
-          </div>
-          <img
-            alt={copy.brandingUnapprovedAlt}
-            className="w-full rounded-2xl border border-rose-200/15"
-            src="/unapprovedwordmark.png"
-          />
-        </div>
-      </section>
-
       <section className="liquid-glass rounded-3xl border border-emerald-200/15 bg-emerald-500/8! p-6 backdrop-blur-[3px] sm:p-8">
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-200">
           {copy.brandingDo}
@@ -488,13 +487,20 @@ function BrandingGuidelines({ copy }) {
           wordmarkDontKeys,
           "wordmark-plain",
         ],
+        [
+          copy.brandingWordmarkDonts,
+          privacyFocusedWordmarkDontKeys,
+          "wordmark-privacy-focused",
+        ],
         [copy.brandingMarkDonts, markDontKeys, "mark"],
       ].map(([title, keys, type]) => (
         <section
           className="liquid-glass rounded-3xl border border-white/10 bg-white/8! p-6 backdrop-blur-[3px] sm:p-8"
           key={type}
         >
-          <h2 className="text-2xl font-semibold tracking-[-0.025em]">{title}</h2>
+          <h2 className="text-2xl font-semibold tracking-[-0.025em]">
+            {title}
+          </h2>
           <ol className="mt-5 grid gap-4 sm:grid-cols-2">
             {keys.map((key, index) => (
               <li
@@ -538,7 +544,9 @@ export default function LegalPageShell({ page = "privacy" }) {
     if (!query.trim()) return definition.sections;
     const needle = query.trim().toLocaleLowerCase(locale);
     return definition.sections.filter(([titleKey, bodyKey]) =>
-      `${copy[titleKey]} ${copy[bodyKey]}`.toLocaleLowerCase(locale).includes(needle),
+      `${copy[titleKey]} ${copy[bodyKey]}`
+        .toLocaleLowerCase(locale)
+        .includes(needle),
     );
   }, [copy, definition.sections, locale, query]);
 
@@ -547,61 +555,63 @@ export default function LegalPageShell({ page = "privacy" }) {
       <PoliciesTopbar copy={copy} locale={locale} />
       <div className="mx-auto grid w-full max-w-[96rem] gap-5 px-3 pb-12 pt-24 lg:grid-cols-[17rem_minmax(0,1fr)] lg:px-5">
         <PoliciesSidebar copy={copy} locale={locale} page={page} />
-        {page === "branding" ? (
-          <BrandingGuidelines copy={copy} />
-        ) : (
-          <article className="min-w-0">
-            <header className="liquid-glass rounded-[2rem] border border-white/10 bg-purple-500/15! p-6 backdrop-blur-[3px] sm:p-9">
-              <div className="flex items-start justify-between gap-5">
-                <div>
-                  <p className="text-sm font-bold uppercase tracking-[0.16em] text-purple-200">
-                    {copy.policiesTitle}
-                  </p>
-                  <h1 className="mt-3 text-4xl font-semibold tracking-[-0.045em] sm:text-6xl">
-                    {copy[definition.titleKey]}
-                  </h1>
+        {page === "branding"
+          ? <BrandingGuidelines copy={copy} />
+          : <article className="min-w-0">
+              <header className="liquid-glass rounded-[2rem] border border-white/10 bg-purple-500/15! p-6 backdrop-blur-[3px] sm:p-9">
+                <div className="flex items-start justify-between gap-5">
+                  <div>
+                    <p className="text-sm font-bold uppercase tracking-[0.16em] text-purple-200">
+                      {copy.policiesTitle}
+                    </p>
+                    <h1 className="mt-3 text-4xl font-semibold tracking-[-0.045em] sm:text-6xl">
+                      {copy[definition.titleKey]}
+                    </h1>
+                  </div>
+                  <span className="hidden h-14 w-14 place-items-center rounded-2xl bg-purple-500/25! text-purple-100 sm:grid">
+                    <icon>{definition.icon}</icon>
+                  </span>
                 </div>
-                <span className="hidden h-14 w-14 place-items-center rounded-2xl bg-purple-500/25! text-purple-100 sm:grid">
-                  <icon>{definition.icon}</icon>
-                </span>
-              </div>
-              <p className="mt-4 max-w-3xl text-base leading-7 text-white/70">
-                {copy[definition.descriptionKey]}
-              </p>
-              <p className="mt-4 text-xs text-white/45">{copy.legalEffectiveDate}</p>
-              <label className="mt-6 flex max-w-2xl items-center gap-3 rounded-2xl border border-white/10 bg-white/10! px-4">
-                <icon>search</icon>
-                <input
-                  className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-white/40"
-                  id="policy-search"
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder={copy.policiesSearchPlaceholder}
-                  type="search"
-                  value={query}
-                />
-              </label>
-            </header>
-            <div className="mt-5 grid gap-4">
-              {sections.map(([titleKey, bodyKey]) => (
-                <section
-                  className="liquid-glass scroll-mt-24 rounded-3xl border border-white/10 bg-white/8! p-5 backdrop-blur-[3px] sm:p-7"
-                  id={titleKey}
-                  key={titleKey}
-                >
-                  <h2 className="text-xl font-semibold text-white">{copy[titleKey]}</h2>
-                  <p className="mt-3 whitespace-pre-line text-sm leading-7 text-white/72">
-                    {copy[bodyKey]}
-                  </p>
-                </section>
-              ))}
-              {sections.length === 0 ? (
-                <p className="rounded-3xl border border-white/10 bg-white/5! p-8 text-center text-white/60">
-                  {copy.policiesNoResults}
+                <p className="mt-4 max-w-3xl text-base leading-7 text-white/70">
+                  {copy[definition.descriptionKey]}
                 </p>
-              ) : null}
-            </div>
-          </article>
-        )}
+                <p className="mt-4 text-xs text-white/45">
+                  {copy.legalEffectiveDate}
+                </p>
+                <label className="mt-6 flex max-w-2xl items-center gap-3 rounded-2xl border border-white/10 bg-white/10! px-4">
+                  <icon>search</icon>
+                  <input
+                    className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-white/40"
+                    id="policy-search"
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={copy.policiesSearchPlaceholder}
+                    type="search"
+                    value={query}
+                  />
+                </label>
+              </header>
+              <div className="mt-5 grid gap-4">
+                {sections.map(([titleKey, bodyKey]) => (
+                  <section
+                    className="liquid-glass scroll-mt-24 rounded-3xl border border-white/10 bg-white/8! p-5 backdrop-blur-[3px] sm:p-7"
+                    id={titleKey}
+                    key={titleKey}
+                  >
+                    <h2 className="text-xl font-semibold text-white">
+                      {copy[titleKey]}
+                    </h2>
+                    <p className="mt-3 whitespace-pre-line text-sm leading-7 text-white/72">
+                      {copy[bodyKey]}
+                    </p>
+                  </section>
+                ))}
+                {sections.length === 0
+                  ? <p className="rounded-3xl border border-white/10 bg-white/5! p-8 text-center text-white/60">
+                      {copy.policiesNoResults}
+                    </p>
+                  : null}
+              </div>
+            </article>}
       </div>
     </main>
   );

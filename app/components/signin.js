@@ -12,57 +12,15 @@ export default function SignIn() {
     const url = new URL(window.location.href);
     const addAccount =
       url.searchParams.get("addAccount") === "true" ||
-      (url.searchParams.get("embedded") === "true" &&
-        window.parent !== window);
+      (url.searchParams.get("embedded") === "true" && window.parent !== window);
     setAddingAccount(addAccount);
     if (addAccount) {
       setSignedIn(false);
       return undefined;
     }
-    if (hasSignedInCookie()) {
-      setSignedIn(true);
-      return undefined;
-    }
-    let active = true;
-
-    const checkSignedIn = async () => {
-      try {
-        const response = await fetch("/api/signedin");
-        const data = await response.json();
-
-        if (!active) {
-          return;
-        }
-
-        setSignedIn(
-          response.ok &&
-            (data === true ||
-              (data?.authenticated === true && data?.signedIn === true)),
-        );
-      } catch {
-        if (active && !hasSignedInCookie()) {
-          setSignedIn(false);
-        }
-      }
-    };
-
-    checkSignedIn();
-
-    return () => {
-      active = false;
-    };
+    setSignedIn(hasSignedInCookie());
+    return undefined;
   }, []);
-
-  useEffect(() => {
-    if (addingAccount !== false || !signedIn) {
-      return;
-    }
-
-    const returnTo = new URL(window.location.href).searchParams.get("returnTo");
-    const safeReturnTo =
-      returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/";
-    window.location.replace(safeReturnTo);
-  }, [addingAccount, signedIn]);
 
   if (signedIn === null || addingAccount === null) {
     return (
@@ -95,9 +53,5 @@ export default function SignIn() {
     );
   }
 
-  if (!signedIn) {
-    return <SignInScreen />;
-  }
-
-  return null;
+  return <SignInScreen addingAccount={addingAccount || signedIn} />;
 }

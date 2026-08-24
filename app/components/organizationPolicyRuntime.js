@@ -9,6 +9,7 @@ const pathnameApps = [
   ["/apps/omniwrite", "omniwrite"],
   ["/apps/tasks", "tasks"],
   ["/apps/meet", "meet"],
+  ["/apps/mail", "mail"],
   ["/apps/ai", "ai"],
 ];
 

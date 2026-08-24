@@ -20,7 +20,14 @@ function getDevelopmentOrigins() {
         : [address];
     });
 
-  return [...new Set([...configuredOrigins, ...interfaceOrigins])];
+  return [
+    ...new Set([
+      "localhost",
+      "127.0.0.1",
+      ...configuredOrigins,
+      ...interfaceOrigins,
+    ]),
+  ];
 }
 
 const contentSecurityPolicy = [
@@ -35,7 +42,7 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.stripe.com",
   "base-uri 'self'",
-  "form-action 'self'",
+  "form-action 'self' https://*.munetios.com https://munetios.com",
   "frame-ancestors 'self' https://munetios.com https://*.munetios.com http://localhost:* https://localhost:* http://127.0.0.1:* https://127.0.0.1:*",
   "manifest-src 'self'",
   ...(isDev ? [] : ["upgrade-insecure-requests"]),

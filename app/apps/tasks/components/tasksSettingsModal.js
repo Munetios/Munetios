@@ -248,7 +248,7 @@ function TasksSettings({ copy }) {
 export function openTasksSettingsModal({ copy }) {
   return showModal(<TasksSettings copy={copy} />, {
     ariaLabel: copy.settings,
-    modalId: "tasks-settings-modal",
+    className: "tasks-settings-modal",
     title: copy.settings,
     width: "620px",
     zIndex: 100000001,

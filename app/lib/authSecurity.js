@@ -5,10 +5,11 @@ import {
   randomUUID,
   timingSafeEqual,
 } from "node:crypto";
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import { join, sep } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import bcrypt from "bcryptjs";
+import { formatLocation } from "./ipGeolocation.js";
 import { getSecureCookieAttribute } from "./requestSecurity.js";
 
 const captchaLifetimeMs = 5 * 60 * 1000;
@@ -66,6 +67,13 @@ function createAuthDatabase() {
       FOREIGN KEY (account_id) REFERENCES auth_accounts(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS auth_deleted_sessions (
+      token_hash TEXT PRIMARY KEY,
+      account_id TEXT NOT NULL,
+      deleted_at TEXT NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS auth_passkeys (
       credential_id TEXT PRIMARY KEY,
       account_id TEXT NOT NULL,
@@ -96,7 +104,6 @@ function createAuthDatabase() {
       purpose TEXT NOT NULL,
       expires_at INTEGER NOT NULL
     );
-
     CREATE TABLE IF NOT EXISTS auth_account_collections (
       token_hash TEXT PRIMARY KEY,
       expires_at INTEGER NOT NULL,
@@ -184,11 +191,29 @@ function createAuthDatabase() {
   return database;
 }
 
+export function getPublicSignupCount() {
+  const database = createAuthDatabase();
+  try {
+    return Number(
+      database.prepare("SELECT COUNT(*) AS count FROM auth_accounts").get()
+        ?.count || 0,
+    );
+  } finally {
+    database.close();
+  }
+}
+
 const authDatabase = globalThis.__munetiosAuthDatabase || createAuthDatabase();
 globalThis.__munetiosAuthDatabase = authDatabase;
 
 function ensureHotReloadSchema(database) {
   database.exec(`
+    CREATE TABLE IF NOT EXISTS auth_deleted_sessions (
+      token_hash TEXT PRIMARY KEY,
+      account_id TEXT NOT NULL,
+      deleted_at TEXT NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS auth_account_collections (
       token_hash TEXT PRIMARY KEY,
       expires_at INTEGER NOT NULL,
@@ -294,10 +319,24 @@ const insertSessionStatement = authDatabase.prepare(`
 const deleteExpiredSessionsStatement = authDatabase.prepare(`
   DELETE FROM auth_sessions WHERE expires_at <= ?
 `);
+const rememberDeletedSessionsStatement = authDatabase.prepare(`
+  INSERT OR REPLACE INTO auth_deleted_sessions (
+    token_hash, account_id, deleted_at, expires_at
+  )
+  SELECT token_hash, account_id, ?, ? FROM auth_sessions WHERE account_id = ?
+`);
+const findDeletedSessionStatement = authDatabase.prepare(`
+  SELECT account_id FROM auth_deleted_sessions
+  WHERE token_hash = ? AND expires_at > ? LIMIT 1
+`);
+const deleteExpiredDeletedSessionsStatement = authDatabase.prepare(`
+  DELETE FROM auth_deleted_sessions WHERE expires_at <= ?
+`);
 const findSessionStatement = authDatabase.prepare(`
   SELECT
     a.id, a.email, a.name, a.plan, a.birth_date, a.first_name,
-    a.last_name, a.gender, s.expires_at, s.token_hash
+    a.last_name, a.gender, s.expires_at, s.token_hash, s.collection_hash,
+    s.user_agent, s.ip_address, s.location
   FROM auth_sessions s
   JOIN auth_accounts a ON a.id = s.account_id
   WHERE s.token_hash = ? AND s.expires_at > ?
@@ -366,6 +405,27 @@ const listAccountDataStatement = authDatabase.prepare(`
   SELECT account_id, data_json, updated_at FROM auth_account_data
   WHERE data_key = ? ORDER BY updated_at DESC
 `);
+const listAllAccountDataStatement = authDatabase.prepare(`
+  SELECT data_key, data_json, updated_at FROM auth_account_data
+  WHERE account_id = ? ORDER BY data_key ASC
+`);
+const deleteAccountDataStatement = authDatabase.prepare(`
+  DELETE FROM auth_account_data WHERE account_id = ? AND data_key = ?
+`);
+const updateAccountIdentifiersStatement = authDatabase.prepare(`
+  UPDATE auth_accounts
+  SET username = ?, email = ?, contact = ?, contact_type = ?
+  WHERE id = ?
+`);
+const updateManagedAccountProfileStatement = authDatabase.prepare(`
+  UPDATE auth_accounts
+  SET email = ?, contact = ?, name = ?, first_name = ?, last_name = ?,
+      gender = ?, birth_date = ?
+  WHERE id = ?
+`);
+const deleteAccountStatement = authDatabase.prepare(`
+  DELETE FROM auth_accounts WHERE id = ?
+`);
 const setAccountDataStatement = authDatabase.prepare(`
   INSERT INTO auth_account_data (account_id, data_key, data_json, updated_at)
   VALUES (?, ?, ?, ?)
@@ -422,6 +482,10 @@ const updateSessionActivityStatement = authDatabase.prepare(`
       ip_address = CASE WHEN ? = '' THEN ip_address ELSE ? END,
       location = CASE WHEN ? = '' THEN location ELSE ? END
   WHERE token_hash = ?
+`);
+const updateSessionLocationStatement = authDatabase.prepare(`
+  UPDATE auth_sessions SET location = ?
+  WHERE account_id = ? AND token_hash = ?
 `);
 const insertPasskeyStatement = authDatabase.prepare(`
   INSERT INTO auth_passkeys (
@@ -574,20 +638,101 @@ export function getSessionMetadata(request) {
     ?.split(",")[0]
     ?.trim();
   const ipAddress = forwarded || request?.headers?.get("x-real-ip") || "local";
-  const city = request?.headers?.get("x-vercel-ip-city") || "";
-  const region = request?.headers?.get("x-vercel-ip-country-region") || "";
-  const country = request?.headers?.get("x-vercel-ip-country") || "";
-  const location = [city, region, country].filter(Boolean).join(", ");
+  const city =
+    request?.headers?.get("x-vercel-ip-city") ||
+    request?.headers?.get("cf-ipcity") ||
+    "";
+  const region =
+    request?.headers?.get("x-vercel-ip-country-region") ||
+    request?.headers?.get("cf-region") ||
+    "";
+  const country =
+    request?.headers?.get("x-vercel-ip-country") ||
+    request?.headers?.get("cf-ipcountry") ||
+    "";
+  const location = formatLocation({ city, countryCode: country, region });
 
   return {
     ipAddress: String(ipAddress).slice(0, 80),
     location: String(
-      location || (ipAddress === "local" ? "Local device" : "Unknown location"),
+      location || (ipAddress === "local" ? "Local device" : `IP ${ipAddress}`),
     ).slice(0, 180),
     userAgent: String(
       request?.headers?.get("user-agent") || "Unknown device",
     ).slice(0, 500),
   };
+}
+
+function getDeviceSignature(userAgent) {
+  const value = String(userAgent || "");
+  const os = /Windows/i.test(value)
+    ? "Windows"
+    : /iPhone|iPad|iPod/i.test(value)
+      ? "iOS"
+      : /Android/i.test(value)
+        ? "Android"
+        : /Mac OS|Macintosh/i.test(value)
+          ? "macOS"
+          : /Linux/i.test(value)
+            ? "Linux"
+            : "Other";
+  const browser = /Edg\//i.test(value)
+    ? "Microsoft Edge"
+    : /Firefox\//i.test(value)
+      ? "Firefox"
+      : /Chrome\//i.test(value)
+        ? "Chrome"
+        : /Safari\//i.test(value)
+          ? "Safari"
+          : "Browser";
+  return { browser, os };
+}
+
+/**
+ * Scores how likely it is that a request is replaying a stolen session
+ * token from a different device instead of the account's own browser.
+ * A single differing signal (network change, browser update) is common
+ * and tolerated; stacked signals point to token theft.
+ */
+function evaluateSessionRisk(storedSession, request) {
+  const metadata = getSessionMetadata(request);
+  const storedUserAgent = storedSession.user_agent || "";
+  const storedIp = storedSession.ip_address || "";
+  const storedLocation = storedSession.location || "";
+
+  const storedDevice = getDeviceSignature(storedUserAgent);
+  const currentDevice = getDeviceSignature(metadata.userAgent);
+  const deviceChanged = Boolean(
+    storedUserAgent &&
+      (storedDevice.browser !== currentDevice.browser ||
+        storedDevice.os !== currentDevice.os),
+  );
+  const ipChanged = Boolean(
+    storedIp && storedIp !== "local" && storedIp !== metadata.ipAddress,
+  );
+  const locationChanged = Boolean(
+    storedLocation && storedLocation !== metadata.location,
+  );
+
+  const providedCollectionToken = getRequestCookie(
+    request,
+    accountCollectionCookieName,
+  );
+  const providedCollectionHash = providedCollectionToken
+    ? hash(providedCollectionToken)
+    : "";
+  const collectionMismatch = Boolean(
+    storedSession.collection_hash &&
+      providedCollectionHash !== storedSession.collection_hash,
+  );
+
+  const riskScore =
+    (deviceChanged ? 2 : 0) +
+    (ipChanged ? 1 : 0) +
+    (locationChanged ? 1 : 0) +
+    (collectionMismatch ? 3 : 0);
+
+  return { metadata, suspicious: riskScore >= 3 };
 }
 
 export function consumeRateLimit({ key, limit = 8, windowMs = 60_000 }) {
@@ -780,6 +925,45 @@ export async function updateAccountPassword(accountId, password) {
   if (Number(result.changes) < 1) return false;
   deleteAccountSessionsStatement.run(accountId);
   return true;
+}
+
+export function updateManagedAccountProfile(accountId, profile) {
+  const account = getAccountById(accountId);
+  const email = normalizeEmail(profile?.email);
+  const firstName = String(profile?.firstName || "")
+    .trim()
+    .slice(0, 60);
+  const lastName = String(profile?.lastName || "")
+    .trim()
+    .slice(0, 60);
+  const birthDate = String(profile?.birthDate || "");
+  const age = getAge(birthDate);
+  const gender = String(profile?.gender || "");
+  if (
+    !account ||
+    !email ||
+    !firstName ||
+    !lastName ||
+    !/^\d{4}-\d{2}-\d{2}$/u.test(birthDate) ||
+    age === null ||
+    age >= 18 ||
+    !["woman", "man", "nonbinary", "other"].includes(gender)
+  ) {
+    return null;
+  }
+  const existing = getAccountByIdentifier(email);
+  if (existing && existing.id !== accountId) return null;
+  updateManagedAccountProfileStatement.run(
+    email,
+    email,
+    `${firstName} ${lastName}`.trim(),
+    firstName,
+    lastName,
+    gender,
+    birthDate,
+    accountId,
+  );
+  return getAccountById(accountId);
 }
 
 export function updateAccountPlan(accountId, planId) {
@@ -1018,8 +1202,7 @@ export async function createOAuthAccount({
     password: randomBytes(48).toString("base64url"),
     username: availableUsername,
   });
-  const resolvedAccount =
-    account || getAccountByIdentifier(normalizedEmail);
+  const resolvedAccount = account || getAccountByIdentifier(normalizedEmail);
   if (
     resolvedAccount &&
     linkOAuthIdentity(resolvedAccount.id, {
@@ -1141,7 +1324,8 @@ export function createSessionForCollectionAccount(
     return null;
   }
   const account = mapAccount(findAccountByIdStatement.get(accountId));
-  return account
+  const lifecycle = getAccountLifecycle(accountId);
+  return account && !lifecycle.archived && !lifecycle.deletedAt
     ? createAccountSession(account, collectionToken, metadata)
     : null;
 }
@@ -1189,6 +1373,26 @@ export function listAccountData(key) {
   });
 }
 
+export function listAllAccountData(accountId) {
+  if (!accountId) return [];
+  return listAllAccountDataStatement.all(accountId).map((row) => {
+    let value = null;
+    try {
+      value = JSON.parse(row.data_json);
+    } catch {}
+    return {
+      key: row.data_key,
+      updatedAt: row.updated_at,
+      value,
+    };
+  });
+}
+
+export function deleteAccountData(accountId, key) {
+  if (!accountId || !key) return false;
+  return deleteAccountDataStatement.run(accountId, key).changes > 0;
+}
+
 export function setAccountData(accountId, key, value) {
   setAccountDataStatement.run(
     accountId,
@@ -1197,6 +1401,187 @@ export function setAccountData(accountId, key, value) {
     new Date().toISOString(),
   );
   return value;
+}
+
+export function getAccountLifecycle(accountId) {
+  return getAccountData(accountId, "account-lifecycle-v1", {
+    archived: false,
+    deletedAt: "",
+    purgeAt: "",
+  });
+}
+
+export function setAccountArchived(accountId, archived) {
+  const current = getAccountLifecycle(accountId);
+  const next = {
+    ...current,
+    archived: Boolean(archived),
+    archivedAt: archived ? new Date().toISOString() : "",
+    updatedAt: new Date().toISOString(),
+  };
+  setAccountData(accountId, "account-lifecycle-v1", next);
+  if (archived) signOutAllAccountSessions(accountId);
+  return next;
+}
+
+export function findDeletedAccountByIdentifier(identifier) {
+  const normalized = String(identifier || "")
+    .trim()
+    .toLowerCase();
+  if (!normalized) return null;
+  const now = Date.now();
+  for (const entry of listAccountData("account-lifecycle-v1")) {
+    const lifecycle = entry.value || {};
+    if (!lifecycle.deletedAt) continue;
+    if (Date.parse(lifecycle.purgeAt || "") <= now) {
+      purgeDeletedAccount(entry.accountId);
+      continue;
+    }
+    const identifiers = [
+      lifecycle.originalEmail,
+      lifecycle.originalContact,
+      lifecycle.originalUsername,
+    ].map((value) =>
+      String(value || "")
+        .trim()
+        .toLowerCase(),
+    );
+    if (identifiers.includes(normalized)) {
+      return {
+        account: getAccountById(entry.accountId),
+        lifecycle,
+      };
+    }
+  }
+  return null;
+}
+
+function purgeDeletedAccount(accountId) {
+  const lifecycle = getAccountLifecycle(accountId);
+  if (
+    !lifecycle.deletedAt ||
+    Date.parse(lifecycle.purgeAt || "") > Date.now()
+  ) {
+    return false;
+  }
+  const profile = getAccountData(accountId, "profile", {});
+  const profilePath = String(profile?.imageFile?.path || "");
+  const profileDirectory = join(databaseDirectory, "profile-images");
+  if (profilePath?.startsWith(`${profileDirectory}${sep}`)) {
+    try {
+      rmSync(profilePath, { force: true });
+    } catch {}
+  }
+  try {
+    rmSync(
+      join(databaseDirectory, "account-storage", hash(accountId).slice(0, 32)),
+      { force: true, recursive: true },
+    );
+  } catch {}
+  const exportsDirectory = join(databaseDirectory, "account-exports");
+  if (existsSync(exportsDirectory)) {
+    for (const name of readdirSync(exportsDirectory)) {
+      if (!name.startsWith(`${accountId}-`) || !name.endsWith(".zip")) continue;
+      try {
+        rmSync(join(exportsDirectory, name), { force: true });
+      } catch {}
+    }
+  }
+  return deleteAccountStatement.run(accountId).changes > 0;
+}
+
+export function purgeExpiredDeletedAccounts() {
+  let purged = 0;
+  for (const entry of listAccountData("account-lifecycle-v1")) {
+    if (purgeDeletedAccount(entry.accountId)) purged += 1;
+  }
+  return purged;
+}
+
+export function markAccountDeleted(accountId) {
+  const account = getAccountById(accountId);
+  if (!account) return null;
+  const deletedAt = new Date();
+  const suffix = `${deletedAt.getTime()}-${accountId}`;
+  const lifecycle = {
+    ...getAccountLifecycle(accountId),
+    archived: false,
+    deletedAt: deletedAt.toISOString(),
+    originalContact: account.contact,
+    originalContactType: account.contactType,
+    originalEmail: account.email,
+    originalUsername: account.username,
+    purgeAt: new Date(
+      deletedAt.getTime() + 30 * 24 * 60 * 60 * 1000,
+    ).toISOString(),
+    updatedAt: deletedAt.toISOString(),
+  };
+  setAccountData(accountId, "account-lifecycle-v1", lifecycle);
+  updateAccountIdentifiersStatement.run(
+    `deleted-${suffix}`,
+    `deleted-${suffix}@deleted.munetios.invalid`,
+    `deleted-${suffix}@deleted.munetios.invalid`,
+    "email",
+    accountId,
+  );
+  signOutAllAccountSessions(accountId);
+  return lifecycle;
+}
+
+export function permanentlyDeleteAccount(accountId) {
+  const now = Date.now();
+  rememberDeletedSessionsStatement.run(
+    new Date(now).toISOString(),
+    now + sessionLifetimeMs,
+    accountId,
+  );
+  const lifecycle = markAccountDeleted(accountId);
+  if (!lifecycle) return false;
+  setAccountData(accountId, "account-lifecycle-v1", {
+    ...lifecycle,
+    purgeAt: new Date(0).toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+  return purgeDeletedAccount(accountId);
+}
+
+export function isDeletedAccountSessionToken(token) {
+  const now = Date.now();
+  deleteExpiredDeletedSessionsStatement.run(now);
+  return Boolean(findDeletedSessionStatement.get(hash(token || ""), now));
+}
+
+export function recoverDeletedAccount(accountId) {
+  const lifecycle = getAccountLifecycle(accountId);
+  if (
+    !lifecycle.deletedAt ||
+    Date.parse(lifecycle.purgeAt || "") <= Date.now()
+  ) {
+    return { error: "recovery_expired" };
+  }
+  if (
+    isContactUsed(lifecycle.originalEmail) ||
+    isContactUsed(lifecycle.originalContact) ||
+    isUsernameUsed(lifecycle.originalUsername)
+  ) {
+    return { error: "identifier_in_use" };
+  }
+  updateAccountIdentifiersStatement.run(
+    lifecycle.originalUsername,
+    lifecycle.originalEmail,
+    lifecycle.originalContact,
+    lifecycle.originalContactType === "phone" ? "phone" : "email",
+    accountId,
+  );
+  const next = {
+    archived: false,
+    deletedAt: "",
+    purgeAt: "",
+    recoveredAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  setAccountData(accountId, "account-lifecycle-v1", next);
+  return { account: getAccountById(accountId), lifecycle: next };
 }
 
 export function signOutSession(sessionToken) {
@@ -1214,7 +1599,11 @@ export function listAccountSessions(accountId, currentSessionToken = "") {
     id: session.token_hash,
     ipAddress: session.ip_address,
     lastSeenAt: session.last_seen_at || session.created_at,
-    location: session.location || "Unknown location",
+    location:
+      session.location ||
+      (session.ip_address && session.ip_address !== "local"
+        ? `IP ${session.ip_address}`
+        : "Local device"),
     userAgent: session.user_agent || "Unknown device",
   }));
 }
@@ -1222,6 +1611,19 @@ export function listAccountSessions(accountId, currentSessionToken = "") {
 export function signOutAccountSession(accountId, sessionId) {
   const result = deleteAccountSessionStatement.run(accountId, sessionId);
   return result.changes > 0;
+}
+
+export function setAccountSessionLocation(accountId, sessionId, location) {
+  const normalized = String(location || "")
+    .trim()
+    .slice(0, 180);
+  if (!normalized || !/^[a-f\d]{64}$/i.test(String(sessionId || ""))) {
+    return false;
+  }
+  return (
+    updateSessionLocationStatement.run(normalized, accountId, sessionId)
+      .changes > 0
+  );
 }
 
 export function signOutAllAccountSessions(accountId) {
@@ -1324,6 +1726,7 @@ export function consumePasskeyChallenge(challengeId, purpose) {
 }
 
 export function getAccountSession(token, request = null) {
+  purgeExpiredDeletedAccounts();
   const now = Date.now();
   deleteExpiredSessionsStatement.run(now);
   const tokenHash = hash(token || "");
@@ -1331,9 +1734,19 @@ export function getAccountSession(token, request = null) {
   if (!account) {
     return null;
   }
+  const lifecycle = getAccountLifecycle(account.id);
+  if (lifecycle.archived || lifecycle.deletedAt) {
+    deleteSessionByTokenStatement.run(tokenHash);
+    return null;
+  }
 
   if (request) {
-    const metadata = getSessionMetadata(request);
+    const { metadata, suspicious } = evaluateSessionRisk(account, request);
+    if (suspicious) {
+      deleteSessionByTokenStatement.run(tokenHash);
+      return null;
+    }
+
     const lastSeenAt = new Date(now).toISOString();
     updateSessionActivityStatement.run(
       lastSeenAt,

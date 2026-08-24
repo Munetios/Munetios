@@ -57,11 +57,12 @@ export function hasAccountSessionCookie(request) {
 }
 
 export async function auth(request) {
+  const sessionRequest = request?.headers?.get ? request : null;
   for (const cookieName of authCookieNames) {
     const cookieValue = getCookieValue(request, cookieName);
 
     if (hasUsefulValue(cookieValue)) {
-      return getAccountSession(cookieValue, request);
+      return getAccountSession(cookieValue, sessionRequest);
     }
   }
 

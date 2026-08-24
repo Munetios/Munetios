@@ -1,11 +1,44 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { t } from "../i18n";
 import { DROPDOWN_STACKING_LAYER } from "./layering";
 
 const openDropdowns = new Map();
+const dropdownItemClassName =
+  "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-white/10! text-rose-100 hover:bg-rose-500/20!";
+
+function styleDropdownItems(children) {
+  return Children.map(children, (child) => {
+    if (!isValidElement(child)) return child;
+    const childChildren = child.props.children
+      ? styleDropdownItems(child.props.children)
+      : child.props.children;
+    const isMenuItem =
+      child.props["data-dropdown-item-style"] !== "false" &&
+      (child.type === "button" ||
+        String(child.props.role || "").startsWith("menuitem"));
+    return cloneElement(child, {
+      ...(isMenuItem
+        ? {
+            className:
+              `${dropdownItemClassName} ${child.props.className || ""}`.trim(),
+          }
+        : {}),
+      children: childChildren,
+    });
+  });
+}
 
 function isDropdownInteractionTarget(target) {
   return Boolean(
@@ -19,19 +52,6 @@ function getLatestOpenDropdown() {
   return Array.from(openDropdowns.values()).at(-1);
 }
 
-function closeStackedDropdowns(currentDropdownId) {
-  for (const [dropdownId, dropdown] of openDropdowns) {
-    if (dropdownId !== currentDropdownId) {
-      dropdown.close?.();
-      openDropdowns.delete(dropdownId);
-    }
-  }
-}
-
-function getDropdownStackIndex(dropdownId) {
-  return Math.max(0, Array.from(openDropdowns.keys()).indexOf(dropdownId));
-}
-
 export default function DropdownWrapper({
   align = "right",
   ariaLabel,
@@ -40,16 +60,18 @@ export default function DropdownWrapper({
   className = "",
   icon = "expand_more",
   label,
+  onOpenChange,
   openOnHover = false,
   panelClassName = "",
   persistent = false,
+  closeOnTriggerClick = true,
+  defaultOpen = false,
   placement = "bottom",
   trigger = null,
   triggerAs = "div",
   triggerGlass = true,
   triggerId,
   translationKey,
-  zIndex = DROPDOWN_STACKING_LAYER,
 }) {
   const copy = t("en");
   const dropdownId = useId();
@@ -58,16 +80,17 @@ export default function DropdownWrapper({
   const closeTimerRef = useRef(null);
   const panelRef = useRef(null);
   const [mounted, setMounted] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [persistentOpenCount, setPersistentOpenCount] = useState(0);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const [panelPosition, setPanelPosition] = useState({
     left: 8,
     maxHeight: null,
     right: null,
     top: 48,
   });
-  const isOpen = persistent ? persistentOpenCount > 0 : open;
 
+  useEffect(() => {
+    if (mounted) onOpenChange?.(isOpen);
+  }, [isOpen, mounted, onOpenChange]);
   const updatePanelPosition = useCallback(() => {
     const triggerElement = rootRef.current;
     if (!triggerElement) {
@@ -158,18 +181,8 @@ export default function DropdownWrapper({
     openDropdowns.delete(dropdownId);
     openDropdowns.set(dropdownId, {
       buttonRef,
-      close: () => {
-        if (persistent) {
-          setPersistentOpenCount((currentCount) =>
-            Math.max(0, currentCount - 1),
-          );
-          return;
-        }
-
-        setOpen(false);
-      },
+      close: () => setIsOpen(false),
       id: dropdownId,
-      openCount: persistentOpenCount,
       panelRef,
       rootRef,
     });
@@ -180,7 +193,7 @@ export default function DropdownWrapper({
         return;
       }
 
-      setOpen(false);
+      setIsOpen(false);
     };
 
     const onKeyDown = (event) => {
@@ -188,13 +201,7 @@ export default function DropdownWrapper({
         event.key === "Escape" &&
         getLatestOpenDropdown()?.id === dropdownId
       ) {
-        if (persistent) {
-          setPersistentOpenCount((currentCount) =>
-            Math.max(0, currentCount - 1),
-          );
-        } else {
-          setOpen(false);
-        }
+        setIsOpen(false);
         buttonRef.current?.focus();
       }
     };
@@ -217,13 +224,7 @@ export default function DropdownWrapper({
       window.removeEventListener("scroll", updatePanelPosition, true);
       window.removeEventListener("munetios:localechange", updatePanelPosition);
     };
-  }, [
-    dropdownId,
-    isOpen,
-    persistent,
-    persistentOpenCount,
-    updatePanelPosition,
-  ]);
+  }, [dropdownId, isOpen, persistent, updatePanelPosition]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -246,13 +247,7 @@ export default function DropdownWrapper({
       closeTimerRef.current = null;
     }
     updatePanelPosition();
-    if (persistent) {
-      setPersistentOpenCount((currentCount) => currentCount + 1);
-      return;
-    }
-
-    closeStackedDropdowns(dropdownId);
-    setOpen(true);
+    setIsOpen(true);
   };
 
   const closeDropdown = () => {
@@ -262,35 +257,26 @@ export default function DropdownWrapper({
 
     if (openOnHover) {
       closeTimerRef.current = window.setTimeout(() => {
-        setOpen(false);
+        setIsOpen(false);
       }, 350);
       return;
     }
 
-    setOpen(false);
+    setIsOpen(false);
   };
 
   const toggleDropdown = () => {
     updatePanelPosition();
-    if (persistent) {
-      setPersistentOpenCount((currentCount) => currentCount + 1);
-      return;
-    }
-
-    if (open) {
-      setOpen(false);
-      return;
-    }
-
-    closeStackedDropdowns(dropdownId);
-    setOpen(true);
+    setIsOpen((current) => !(current && closeOnTriggerClick));
   };
 
   const onTriggerKeyDown = (event) => {
-    if (
-      triggerAs !== "button" &&
-      (event.key === "Enter" || event.key === " ")
-    ) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      if (!event.repeat) toggleDropdown();
+      return;
+    }
+    if (triggerAs !== "button" && event.key === " ") {
       event.preventDefault();
       toggleDropdown();
     }
@@ -311,11 +297,7 @@ export default function DropdownWrapper({
   };
 
   const closeAfterMenuAction = () => {
-    if (persistent) {
-      setPersistentOpenCount((currentCount) => Math.max(0, currentCount - 1));
-    } else {
-      setOpen(false);
-    }
+    setIsOpen(false);
     buttonRef.current?.focus();
   };
 
@@ -344,10 +326,7 @@ export default function DropdownWrapper({
     triggerAs === "button"
       ? `${triggerSurfaceClassName} flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-white transition ${buttonClassName}`
       : `${triggerSurfaceClassName} flex h-10 cursor-pointer items-center gap-2 rounded-xl px-3 text-sm font-semibold text-white transition ${buttonClassName}`;
-  const renderedPanelCount = persistent ? persistentOpenCount : isOpen ? 1 : 0;
-  const controlledPanelId = persistent
-    ? `${dropdownId}-${Math.max(1, persistentOpenCount)}`
-    : dropdownId;
+  const controlledPanelId = `${dropdownId}-panel`;
 
   return (
     <fieldset
@@ -381,62 +360,49 @@ export default function DropdownWrapper({
         )}
       </TriggerElement>
 
-      {mounted
-        ? Array.from({ length: renderedPanelCount }, (_, panelIndex) => {
-            const panelId = persistent
-              ? `${dropdownId}-${panelIndex + 1}`
-              : dropdownId;
-
-            return createPortal(
-              <div
-                className={`munetios-dropdown-enter liquid-glass fixed z-[100000003] min-w-48 rounded-xl border border-white/10 bg-purple-950/10! p-2 text-white shadow-2xl ${panelClassName}`}
-                data-munetios-dropdown-portal="true"
-                id={panelId}
-                onClick={closeOnMenuItemClick}
-                onKeyDown={closeOnMenuItemKeyDown}
-                onMouseEnter={
-                  openOnHover && !persistent ? openDropdown : undefined
-                }
-                onMouseLeave={
-                  openOnHover && !persistent ? closeDropdown : undefined
-                }
-                ref={
-                  !persistent || panelIndex === renderedPanelCount - 1
-                    ? panelRef
-                    : undefined
-                }
-                role="menu"
-                style={{
-                  left:
-                    typeof panelPosition.left === "number"
-                      ? `${panelPosition.left}px`
-                      : undefined,
-                  right:
-                    typeof panelPosition.right === "number"
-                      ? `${panelPosition.right}px`
-                      : undefined,
-                  maxHeight:
-                    typeof panelPosition.maxHeight === "number"
-                      ? `${panelPosition.maxHeight}px`
-                      : undefined,
-                  overflowY:
-                    typeof panelPosition.maxHeight === "number"
-                      ? "auto"
-                      : undefined,
-                  top: `${panelPosition.top}px`,
-                  zIndex:
-                    Math.max(DROPDOWN_STACKING_LAYER, zIndex) +
-                    getDropdownStackIndex(dropdownId) * 100 +
-                    panelIndex,
-                }}
-                tabIndex={-1}
-              >
-                {children}
-              </div>,
-              document.body,
-              panelId,
-            );
-          })
+      {mounted && isOpen
+        ? createPortal(
+            <div
+              className={`munetios-dropdown-panel munetios-dropdown-enter liquid-glass fixed z-[100000003] min-w-48 rounded-xl border border-white/10 p-2 text-white shadow-2xl ${panelClassName}`}
+              data-munetios-dropdown-portal="true"
+              id={controlledPanelId}
+              onClick={closeOnMenuItemClick}
+              onKeyDown={closeOnMenuItemKeyDown}
+              onMouseEnter={
+                openOnHover && !persistent ? openDropdown : undefined
+              }
+              onMouseLeave={
+                openOnHover && !persistent ? closeDropdown : undefined
+              }
+              ref={panelRef}
+              role="menu"
+              style={{
+                left:
+                  typeof panelPosition.left === "number"
+                    ? `${panelPosition.left}px`
+                    : undefined,
+                right:
+                  typeof panelPosition.right === "number"
+                    ? `${panelPosition.right}px`
+                    : undefined,
+                maxHeight:
+                  typeof panelPosition.maxHeight === "number"
+                    ? `${panelPosition.maxHeight}px`
+                    : undefined,
+                overflowY:
+                  typeof panelPosition.maxHeight === "number"
+                    ? "auto"
+                    : undefined,
+                top: `${panelPosition.top}px`,
+                zIndex: DROPDOWN_STACKING_LAYER,
+              }}
+              tabIndex={-1}
+            >
+              {styleDropdownItems(children)}
+            </div>,
+            document.body,
+            controlledPanelId,
+          )
         : null}
     </fieldset>
   );

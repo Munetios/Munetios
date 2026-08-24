@@ -468,6 +468,32 @@ export default function MeetHome({ copy, onStartMeeting, sessionState }) {
           </Link>
         </footer>
       </section>
+      <footer className="meet-site-footer">
+        <Link
+          className="meet-site-footer-brand"
+          href="/apps/meet"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          <icon className="meet-site-footer-icon">videocam</icon>
+          <span>{copy.meetAppName}</span>
+        </Link>
+        <nav aria-label={copy.meetNavigation}>
+          <Link href="/help" rel="noopener noreferrer" target="_blank">
+            {copy.meetHelp}
+          </Link>
+          <Link href="/privacy" rel="noopener noreferrer" target="_blank">
+            {copy.privacyPolicyTitle}
+          </Link>
+          <Link href="/terms" rel="noopener noreferrer" target="_blank">
+            {copy.termsTitle}
+          </Link>
+          <Link href="/cookies" rel="noopener noreferrer" target="_blank">
+            {copy.cookiePolicyTitle}
+          </Link>
+        </nav>
+        <small>© {new Date().getFullYear()} Munetios</small>
+      </footer>
     </section>
   );
 }

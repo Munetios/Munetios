@@ -24,6 +24,8 @@ function AccountSwitcherContent({ close, copy: suppliedCopy, initialAdding }) {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(Boolean(initialAdding));
   const [switchingId, setSwitchingId] = useState("");
+  const [twoFactor, setTwoFactor] = useState(null);
+  const [twoFactorCode, setTwoFactorCode] = useState("");
 
   const loadAccounts = useCallback(async () => {
     setLoading(true);
@@ -74,12 +76,44 @@ function AccountSwitcherContent({ close, copy: suppliedCopy, initialAdding }) {
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
+      const payload = await response.json().catch(() => ({}));
+      if (response.status === 202 && payload.error === "two_factor_required") {
+        setTwoFactor(payload);
+        setSwitchingId("");
+        return;
+      }
       if (!response.ok) throw new Error("switch_failed");
       window.dispatchEvent(new Event("munetios:authchange"));
       close();
       window.location.reload();
     } catch {
       window.showToast?.({ messageKey: "accountSwitchFailed", type: "error" });
+      setSwitchingId("");
+    }
+  };
+
+  const verifyTwoFactor = async (event) => {
+    event.preventDefault();
+    setSwitchingId("two-factor");
+    try {
+      const response = await fetch("/api/auth/two-factor/verify", {
+        body: JSON.stringify({
+          challengeId: twoFactor?.challengeId,
+          code: twoFactorCode,
+        }),
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("verification_failed");
+      window.dispatchEvent(new Event("munetios:authchange"));
+      close();
+      window.location.reload();
+    } catch {
+      window.showToast?.({
+        messageKey: "authRecoveryCodeInvalid",
+        type: "error",
+      });
       setSwitchingId("");
     }
   };
@@ -96,12 +130,40 @@ function AccountSwitcherContent({ close, copy: suppliedCopy, initialAdding }) {
           {copy.accountBack}
         </button>
         <iframe
-          className="h-[min(42rem,75dvh)] w-full rounded-2xl border border-white/10 bg-purple-950/60!"
+          className="h-[min(56rem,80dvh)] w-full rounded-2xl border border-white/10 bg-purple-950/60!"
           sandbox="allow-forms allow-same-origin allow-scripts"
           src="/signin?addAccount=true&embedded=true"
           title={copy.addAccount}
         />
       </div>
+    );
+  }
+
+  if (twoFactor) {
+    return (
+      <form className="space-y-4" onSubmit={verifyTwoFactor}>
+        <p className="text-sm leading-6 text-white/65">
+          {copy.authEnterTwoFactorCode}
+        </p>
+        <label className="block text-sm font-semibold text-white/80">
+          {copy.authVerificationCode}
+          <input
+            autoComplete="one-time-code"
+            className="liquid-glass mt-2 w-full rounded-xl border border-white/10 bg-purple-950/35! px-3 py-3 text-white outline-none"
+            inputMode="numeric"
+            onChange={(event) => setTwoFactorCode(event.target.value)}
+            required
+            value={twoFactorCode}
+          />
+        </label>
+        <button
+          className="liquid-glass w-full rounded-xl bg-purple-600/70! px-4 py-3 font-semibold text-white disabled:opacity-60"
+          disabled={Boolean(switchingId) || !twoFactorCode.trim()}
+          type="submit"
+        >
+          {copy.authRecoveryVerify}
+        </button>
+      </form>
     );
   }
 
@@ -135,7 +197,9 @@ function AccountSwitcherContent({ close, copy: suppliedCopy, initialAdding }) {
                     {account.email}
                   </small>
                   <span className="mt-1 inline-flex rounded-full border border-purple-200/20 bg-purple-500/20! px-2 py-0.5 text-[0.68rem] font-bold text-purple-100">
-                    {copy.personalAccountBadge}
+                    {account.accountType === "education"
+                      ? account.plan
+                      : copy.personalAccountBadge}
                   </span>
                 </span>
                 {switchingId === account.id
@@ -170,13 +234,17 @@ export function openAccountSwitcher({ addAccount = false, copy } = {}) {
     ),
     {
       ariaLabel: resolvedCopy.switchAccount,
+      maxHeight:
+        "min(968px, calc(var(--app-responsive-viewport-height, 100dvh) - 28px))",
       title: addAccount ? resolvedCopy.addAccount : resolvedCopy.switchAccount,
       width: "min(34rem, calc(100vw - 1rem))",
     },
   );
 }
 
-function SigningOut({ copy }) {
+function SigningOut({ close, copy }) {
+  const [secondsRemaining, setSecondsRemaining] = useState(5);
+
   useEffect(() => {
     const signOut = async () => {
       try {
@@ -205,23 +273,48 @@ function SigningOut({ copy }) {
         window.location.replace("/");
       }
     };
-    void signOut();
+
+    const countdownInterval = window.setInterval(() => {
+      setSecondsRemaining((current) => Math.max(0, current - 1));
+    }, 1000);
+    const signOutTimeout = window.setTimeout(() => {
+      window.clearInterval(countdownInterval);
+      void signOut();
+    }, 5000);
+
+    return () => {
+      window.clearInterval(countdownInterval);
+      window.clearTimeout(signOutTimeout);
+    };
   }, []);
 
   return (
     <div className="flex min-h-[16rem] flex-col items-center justify-center gap-4 text-center">
-      <LoadingSpinner label={copy.signingOutThisBrowser} />
+      <div
+        aria-live="polite"
+        className="liquid-glass flex h-16 w-16 items-center justify-center rounded-full border border-purple-200/25 bg-purple-600/25! text-2xl font-black text-purple-100"
+      >
+        {secondsRemaining}
+      </div>
       <h2 className="text-xl font-bold text-white">
-        {copy.signingOutThisBrowser}
+        {copy.signOutBrowserCountdown.replace("{seconds}", secondsRemaining)}
       </h2>
+      <button
+        className="rounded-xl border border-white/10 bg-white/5! px-5 py-2.5 text-sm font-semibold text-white/80 transition hover:bg-white/10! hover:text-white"
+        onClick={close}
+        type="button"
+      >
+        {copy.cancel}
+      </button>
     </div>
   );
 }
 
 export function signOutAllAccounts({ copy } = {}) {
   const resolvedCopy = copy || t();
-  showModal(<SigningOut copy={resolvedCopy} />, {
+  showModal(({ close }) => <SigningOut close={close} copy={resolvedCopy} />, {
     ariaLabel: resolvedCopy.signingOutThisBrowser,
+    dismissible: false,
     fullViewport: true,
     height: "100vh",
     title: resolvedCopy.signOut,
@@ -230,15 +323,11 @@ export function signOutAllAccounts({ copy } = {}) {
 }
 
 function BrowserSignOutConfirmation({ close, copy }) {
-  const [confirmation, setConfirmation] = useState("");
-  const canSignOut = confirmation === copy.signOutConfirmationWord;
-
   return (
     <form
       className="space-y-4"
       onSubmit={(event) => {
         event.preventDefault();
-        if (!canSignOut) return;
         close();
         signOutAllAccounts({ copy });
       }}
@@ -246,20 +335,6 @@ function BrowserSignOutConfirmation({ close, copy }) {
       <p className="text-sm leading-6 text-white/75">
         {copy.signOutBrowserConfirmMessage}
       </p>
-      <label className="block space-y-2">
-        <span className="text-sm font-medium text-white/85">
-          {copy.signOutTypeToConfirm}
-        </span>
-        <input
-          autoComplete="off"
-          className="w-full rounded-xl border border-white/15 bg-purple-950/45! px-3.5 py-3 text-white outline-none transition placeholder:text-white/35 focus:border-purple-300/70 focus:ring-2 focus:ring-purple-400/25"
-          onChange={(event) => setConfirmation(event.target.value)}
-          placeholder={copy.signOutConfirmationWord}
-          spellCheck="false"
-          type="text"
-          value={confirmation}
-        />
-      </label>
       <div className="flex justify-end gap-2">
         <button
           className="rounded-xl border border-white/10 bg-white/5! px-4 py-2.5 text-sm text-white/75 transition hover:bg-white/10! hover:text-white"
@@ -269,8 +344,7 @@ function BrowserSignOutConfirmation({ close, copy }) {
           {copy.cancel}
         </button>
         <button
-          className="rounded-xl border border-rose-200/25 bg-rose-500/80! px-4 py-2.5 text-sm font-semibold text-white transition enabled:hover:bg-rose-400/90! disabled:cursor-not-allowed disabled:opacity-45"
-          disabled={!canSignOut}
+          className="signout-button rounded-xl border border-rose-200/25 bg-rose-500/80! px-4 py-2.5 text-sm font-semibold text-white transition enabled:hover:bg-rose-400/90! disabled:cursor-not-allowed disabled:opacity-45"
           type="submit"
         >
           {copy.signOut}

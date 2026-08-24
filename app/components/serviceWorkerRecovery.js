@@ -7,6 +7,11 @@ const CACHE_PREFIX = "munetios-omniwrite-";
 const RECOVERY_KEY = "munetios-omniwrite-worker-recovery-v7";
 const SERVICE_WORKER_PATH = "/sw.js";
 
+function isAuthenticationRoute() {
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+  return pathname === "/signin" || pathname.startsWith("/signin/");
+}
+
 function getWorker(registration) {
   return registration.active || registration.waiting || registration.installing;
 }
@@ -64,6 +69,7 @@ export default function ServiceWorkerRecovery() {
       if (
         controlledByOmniWriteWorker &&
         obsoleteRegistrations.length > 0 &&
+        !isAuthenticationRoute() &&
         window.sessionStorage.getItem(RECOVERY_KEY) !== "complete"
       ) {
         window.sessionStorage.setItem(RECOVERY_KEY, "complete");

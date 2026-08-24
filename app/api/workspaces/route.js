@@ -4,11 +4,16 @@ import {
   consumeRateLimit,
   getAccountById,
   getAccountData,
+  getAccountLifecycle,
   getRequestFingerprint,
   setAccountData,
   verifyAccountPassword,
 } from "../../lib/authSecurity.js";
 import { getDemoSettings } from "../../lib/demoSettings.js";
+import {
+  enforceStudentRestriction,
+  getEducationProfile,
+} from "../../lib/education.js";
 import { getOrganizationContext } from "../../lib/organizationPolicies.js";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +37,11 @@ function isBusinessAccount(session) {
     Boolean(getOrganizationContext(session.user)) ||
     /^business\b/i.test(String(account?.plan || ""))
   );
+}
+
+function getDefaultWorkspaceName(session) {
+  if (!session.demo && getEducationProfile(session.user.id)) return "Education";
+  return isBusinessAccount(session) ? "Business" : "Personal";
 }
 
 function organizationWorkspaceRestriction(session, action, workspace = null) {
@@ -84,9 +94,7 @@ function getUserWorkspaces(session) {
 
   if (session.demo) {
     if (!workspaceStore.has(session.sessionKey)) {
-      const defaultWorkspaceName = isBusinessAccount(session)
-        ? "Business"
-        : "Personal";
+      const defaultWorkspaceName = getDefaultWorkspaceName(session);
       workspaceStore.set(
         session.sessionKey,
         [defaultWorkspaceName, "Work", "School"].map((name, index) =>
@@ -102,11 +110,9 @@ function getUserWorkspaces(session) {
 
   if (workspaces.length === 0) {
     workspaces = [
-      createWorkspace(
-        isBusinessAccount(session) ? "Business" : "Personal",
-        session.user.id,
-        { primary: true },
-      ),
+      createWorkspace(getDefaultWorkspaceName(session), session.user.id, {
+        primary: true,
+      }),
     ];
     saveUserWorkspaces(session, workspaces);
     return workspaces;
@@ -119,11 +125,24 @@ function getUserWorkspaces(session) {
   let changed = false;
   const normalizedWorkspaces = workspaces.map((workspace, index) => {
     const primary = index === primaryIndex;
-    if (workspace?.primary === primary) {
+    const educationDefault =
+      !session.demo &&
+      Boolean(getEducationProfile(session.user.id)) &&
+      primary &&
+      workspace?.name === "Personal";
+    if (workspace?.primary === primary && !educationDefault) {
       return workspace;
     }
     changed = true;
-    return { ...workspace, primary };
+    return educationDefault
+      ? {
+          ...workspace,
+          name: "Education",
+          primary,
+          title: "Education",
+          updatedAt: new Date().toISOString(),
+        }
+      : { ...workspace, primary };
   });
 
   if (changed) {
@@ -163,7 +182,10 @@ export async function GET(request) {
   if (response) {
     return response;
   }
-  if (getDemoSettings(session)?.archived)
+  if (
+    getDemoSettings(session)?.archived ||
+    (!session.demo && getAccountLifecycle(session.user.id).archived)
+  )
     return jsonResponse({ workspaces: [] });
 
   return jsonResponse({
@@ -181,6 +203,8 @@ export async function POST(request) {
   if (response) {
     return response;
   }
+  const educationResponse = enforceStudentRestriction(session, "workspaces");
+  if (educationResponse) return educationResponse;
   const policyResponse = organizationWorkspaceRestriction(session, "create");
   if (policyResponse) return policyResponse;
 
@@ -226,6 +250,8 @@ export async function PATCH(request) {
   }
   const { response, session } = await requireAuth(request);
   if (response) return response;
+  const educationResponse = enforceStudentRestriction(session, "workspaces");
+  if (educationResponse) return educationResponse;
   let payload;
   try {
     payload = await request.json();
@@ -314,6 +340,8 @@ export async function DELETE(request) {
 
   const { response, session } = await requireAuth(request);
   if (response) return response;
+  const educationResponse = enforceStudentRestriction(session, "workspaces");
+  if (educationResponse) return educationResponse;
 
   const rateLimit = consumeRateLimit({
     key: `workspace-delete:${session.user.id}:${getRequestFingerprint(request)}`,

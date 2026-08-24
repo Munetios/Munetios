@@ -141,6 +141,12 @@ export async function POST(request) {
   if (!identifier || identifier.endsWith?.("@munetios.com")) {
     return Response.json({ error: "invalid_or_used_contact" }, { status: 409 });
   }
+  if (identifier.includes("@")) {
+    return Response.json(
+      { error: "external_signup_coming_soon" },
+      { headers: { "Cache-Control": "no-store" }, status: 503 },
+    );
+  }
 
   const emailDeliveryAvailable =
     identifier.includes("@") && isVerificationEmailConfigured();

@@ -25,6 +25,53 @@ const canonicalLocales = {
   vi: "vi-VN",
   zh: "zh-CN",
 };
+const supportedCountries = new Set([
+  "AR",
+  "AT",
+  "BE",
+  "BG",
+  "BR",
+  "CY",
+  "CZ",
+  "DE",
+  "DK",
+  "DO",
+  "EE",
+  "ES",
+  "FI",
+  "FR",
+  "GR",
+  "HR",
+  "HU",
+  "IE",
+  "IN",
+  "IT",
+  "LT",
+  "LU",
+  "LV",
+  "MT",
+  "NG",
+  "NL",
+  "PL",
+  "PR",
+  "PT",
+  "RO",
+  "SE",
+  "SI",
+  "SK",
+  "US",
+]);
+
+function setLocaleCookie(response, locale) {
+  if (locale) {
+    response.cookies.set("munetios_locale", locale, {
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/",
+      sameSite: "lax",
+    });
+  }
+  return response;
+}
 
 export function proxy(request) {
   const segments = request.nextUrl.pathname.split("/").filter(Boolean);
@@ -32,31 +79,45 @@ export function proxy(request) {
   const hasLocale = localePattern.test(locale || "");
   const canonicalLocale = hasLocale ? canonicalLocales[locale] || locale : null;
   const routeSegments = hasLocale ? segments.slice(1) : segments;
+  const routeName = routeSegments[0] || "";
+  const isLegalRoute = ["privacy", "terms", "policies", "cookies"].includes(
+    routeName,
+  );
+  const country = String(
+    request.headers.get("x-vercel-ip-country") ||
+      request.headers.get("cf-ipcountry") ||
+      "",
+  ).toUpperCase();
+
+  if (country && !supportedCountries.has(country) && routeName === "api") {
+    return NextResponse.json(
+      { error: "country_not_supported" },
+      { headers: { "Cache-Control": "no-store" }, status: 451 },
+    );
+  }
+
+  if (
+    country &&
+    !supportedCountries.has(country) &&
+    !isLegalRoute &&
+    routeName !== "unavailable"
+  ) {
+    const destination = request.nextUrl.clone();
+    destination.pathname = "/unavailable";
+    destination.search = "";
+    return setLocaleCookie(NextResponse.rewrite(destination), canonicalLocale);
+  }
 
   if (!hasLocale) return NextResponse.next();
-
-  // Help routes have native locale-aware App Router pages.
-  if (routeSegments[0] === "help") {
-    const response = NextResponse.next();
-    response.cookies.set("munetios_locale", canonicalLocale, {
-      maxAge: 60 * 60 * 24 * 365,
-      path: "/",
-      sameSite: "lax",
-    });
-    return response;
+  if (routeName === "help") {
+    return setLocaleCookie(NextResponse.next(), canonicalLocale);
   }
 
   const destination = request.nextUrl.clone();
   destination.pathname = `/${routeSegments.join("/")}`;
-  const response = NextResponse.rewrite(destination);
-  response.cookies.set("munetios_locale", canonicalLocale, {
-    maxAge: 60 * 60 * 24 * 365,
-    path: "/",
-    sameSite: "lax",
-  });
-  return response;
+  return setLocaleCookie(NextResponse.rewrite(destination), canonicalLocale);
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };

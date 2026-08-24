@@ -1,14 +1,15 @@
 import { requireAuth } from "../../../auth.js";
-import { translations } from "../../i18n.js";
+import {
+  clearAccountLanguage,
+  getAccountLanguage,
+  normalizeAccountLanguage,
+  setAccountLanguage,
+} from "../../lib/accountLanguage.js";
 
 export const dynamic = "force-dynamic";
 
-const languagePreferenceStore =
-  globalThis.__munetiosLanguagePreferenceStore || new Map();
 const localeCookieName = "munetios_locale";
 const localeCookieMaxAge = 31_536_000;
-
-globalThis.__munetiosLanguagePreferenceStore = languagePreferenceStore;
 
 function getProfileKey(session) {
   return session.user.id;
@@ -34,23 +35,6 @@ function getCookieValue(request, name) {
   } catch {
     return cookie.slice(name.length + 1);
   }
-}
-
-function normalizeLanguage(language) {
-  if (typeof language !== "string" || !language.trim()) {
-    return null;
-  }
-
-  const candidate = language.trim().replaceAll("_", "-");
-  const exactLocale = Object.keys(translations).find(
-    (locale) => locale.toLowerCase() === candidate.toLowerCase(),
-  );
-
-  if (exactLocale) {
-    return exactLocale;
-  }
-
-  return null;
 }
 
 function localeCookie(language) {
@@ -83,8 +67,8 @@ export async function GET(request) {
     return response;
   }
 
-  const accountLanguage = languagePreferenceStore.get(getProfileKey(session));
-  const cookieLanguage = normalizeLanguage(
+  const accountLanguage = getAccountLanguage(getProfileKey(session));
+  const cookieLanguage = normalizeAccountLanguage(
     getCookieValue(request, localeCookieName),
   );
   const language = accountLanguage || cookieLanguage || null;
@@ -121,7 +105,7 @@ export async function POST(request) {
   }
 
   if (payload?.language === "auto") {
-    languagePreferenceStore.delete(getProfileKey(session));
+    clearAccountLanguage(getProfileKey(session));
 
     return jsonResponse(
       {
@@ -137,7 +121,7 @@ export async function POST(request) {
     );
   }
 
-  const language = normalizeLanguage(payload?.language);
+  const language = normalizeAccountLanguage(payload?.language);
 
   if (!language) {
     return jsonResponse(
@@ -150,7 +134,7 @@ export async function POST(request) {
     );
   }
 
-  languagePreferenceStore.set(getProfileKey(session), language);
+  setAccountLanguage(getProfileKey(session), language);
 
   return jsonResponse(
     {

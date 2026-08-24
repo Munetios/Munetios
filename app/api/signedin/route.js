@@ -1,4 +1,8 @@
-import { auth } from "../../../auth.js";
+import {
+  auth,
+  hasAccountSessionCookie,
+  unauthorizedResponse,
+} from "../../../auth.js";
 import { getAccountData, getAvatarLetter } from "../../lib/authSecurity.js";
 import { getSignedInCookie } from "../../lib/signedInCookie.js";
 
@@ -18,6 +22,13 @@ export async function GET(request) {
   const session = await auth(request);
 
   if (!session) {
+    if (hasAccountSessionCookie(request)) {
+      return unauthorizedResponse(
+        "Your session token is invalid. Please sign back in and try again.",
+        { invalidSession: true },
+      );
+    }
+
     return jsonResponse(
       {
         authenticated: false,

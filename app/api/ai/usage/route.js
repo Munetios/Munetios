@@ -5,6 +5,11 @@ import {
   normalizeEmail,
   setAccountData,
 } from "../../../lib/authSecurity.js";
+import {
+  enforceStudentAiCapability,
+  getEducationProfile,
+} from "../../../lib/education.js";
+import { enforceParentalAiAccess } from "../../../lib/family.js";
 import { sendAiInvitationEmail } from "../../../lib/nodemailerVerificationEmail.js";
 import { enforceOrganizationAppAccess } from "../../../lib/organizationPolicies.js";
 
@@ -45,7 +50,7 @@ function windowStart(date, type) {
   return next.toISOString();
 }
 
-function normalizeUsage(saved = {}) {
+function normalizeUsage(saved = {}, plan = "free") {
   const now = new Date();
   const hourStart = windowStart(now, "hour");
   const dayStart = windowStart(now, "day");
@@ -57,7 +62,9 @@ function normalizeUsage(saved = {}) {
     hourStart,
     usageResets: Number.isFinite(saved.usageResets)
       ? Math.max(0, Math.floor(saved.usageResets))
-      : 3,
+      : plan === "proLite"
+        ? 5
+        : 3,
   };
 }
 
@@ -69,6 +76,17 @@ function response(payload, init = {}) {
 }
 
 function usagePayload(session, usage) {
+  if (getEducationProfile(session.user.id)?.role === "student") {
+    return {
+      ...usage,
+      dayResetAt: null,
+      extendedRequests: false,
+      hourResetAt: null,
+      limits: { daily: null, hourly: null },
+      modelCosts: Object.fromEntries(Object.keys(models).map((id) => [id, 0])),
+      plan: "education",
+    };
+  }
   const plan = getPlan(session.user.plan);
   const limits = planLimits[plan];
   const hourResetAt = new Date(
@@ -114,8 +132,13 @@ export async function GET(request) {
   if (authResponse) return authResponse;
   const policyResponse = enforceOrganizationAppAccess(session, "ai");
   if (policyResponse) return policyResponse;
+  const parentalResponse = enforceParentalAiAccess(session);
+  if (parentalResponse) return parentalResponse;
   return response(
-    usagePayload(session, normalizeUsage(getStoredUsage(session))),
+    usagePayload(
+      session,
+      normalizeUsage(getStoredUsage(session), getPlan(session.user.plan)),
+    ),
   );
 }
 
@@ -126,6 +149,8 @@ export async function POST(request) {
     mutating: true,
   });
   if (policyResponse) return policyResponse;
+  const parentalResponse = enforceParentalAiAccess(session);
+  if (parentalResponse) return parentalResponse;
 
   let payload;
   try {
@@ -134,8 +159,25 @@ export async function POST(request) {
     return response({ error: "invalid_request" }, { status: 400 });
   }
 
-  const usage = normalizeUsage(getStoredUsage(session));
+  if (getEducationProfile(session.user.id)?.role === "student") {
+    if (payload.feature === "agent") {
+      const capabilityResponse = enforceStudentAiCapability(session, "agent");
+      if (capabilityResponse) return capabilityResponse;
+    }
+    if (payload.action !== "consume" || !models[payload.model]) {
+      return response({ error: "invalid_action" }, { status: 400 });
+    }
+    return response({
+      ...usagePayload(session, normalizeUsage({}, "pro")),
+      allowed: true,
+      cost: 0,
+      fallbackModel: null,
+      limitReached: false,
+    });
+  }
+
   const plan = getPlan(session.user.plan);
+  const usage = normalizeUsage(getStoredUsage(session), plan);
   const limits = planLimits[plan];
 
   if (payload.action === "invite") {
@@ -178,7 +220,11 @@ export async function POST(request) {
   const limitReached =
     (limits.hourly !== null && usage.hourlyUsed + cost > limits.hourly) ||
     (limits.daily !== null && usage.dailyUsed + cost > limits.daily);
-  if (limitReached && plan === "free") {
+  if (
+    limitReached &&
+    plan === "free" &&
+    !["agent", "advanced"].includes(payload.feature)
+  ) {
     return response({
       ...usagePayload(session, usage),
       allowed: true,
@@ -186,6 +232,16 @@ export async function POST(request) {
       fallbackModel: "munet-1-instant",
       limitReached: true,
     });
+  }
+  if (limitReached && plan === "free") {
+    return response(
+      {
+        ...usagePayload(session, usage),
+        error: "usage_limit_reached",
+        featureDisabled: payload.feature || "advanced",
+      },
+      { status: 429 },
+    );
   }
   if (limitReached) {
     return response(

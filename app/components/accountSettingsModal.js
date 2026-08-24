@@ -108,15 +108,22 @@ function AccountSettingsFrame({ frameUrl }) {
   );
 }
 
-export function openAccountSettingsModal() {
+export function openAccountSettingsModal({ page = "" } = {}) {
   const copy = t();
+  const normalizedPage = String(page || "")
+    .trim()
+    .replace(/[^a-z0-9-]/giu, "");
+  const frameUrl = normalizedPage
+    ? `/account/settings/${encodeURIComponent(normalizedPage)}`
+    : "/account/settings";
 
-  return showModal(<AccountSettingsFrame frameUrl="/account/settings" />, {
+  return showModal(<AccountSettingsFrame frameUrl={frameUrl} />, {
     ariaLabel: copy.accountSettings,
-    className: "flex flex-col",
+    className: "munetios-modal-wide flex flex-col",
     contentClassName: "min-h-0 flex-1",
     height: "1100px",
-    modalId: "account-settings-modal",
+    maxHeight: "min(1100px, calc(100dvh - 28px))",
+    maxWidth: "min(1000px, calc(100vw - 28px))",
     title: copy.accountSettings,
     width: "1000px",
     zIndex: 100000001,

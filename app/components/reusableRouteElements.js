@@ -25,40 +25,25 @@ function ReusableRouteSlot({ active, children, name }) {
 }
 
 export default function ReusableRouteElements({
+  initialLoggedIn = false,
   initialPlan = "business-free",
   route = "home",
 }) {
-  const [signedIn, setSignedIn] = useState(() => hasSignedInCookie());
+  const [signedIn, setSignedIn] = useState(() => Boolean(initialLoggedIn));
   const businessPlan = normalizeSignupPlan(initialPlan);
 
   useEffect(() => {
-    let active = true;
-    const refreshSignedInState = async () => {
-      try {
-        const response = await fetch("/api/signedin", {
-          cache: "no-store",
-          credentials: "include",
-        });
-        const payload = await response.json();
-        if (active) {
-          setSignedIn(
-            hasSignedInCookie() ||
-              (response.ok && payload?.authenticated === true),
-          );
-        }
-      } catch {
-        if (active && !hasSignedInCookie()) setSignedIn(false);
-      }
+    const refreshSignedInState = () => {
+      setSignedIn(hasSignedInCookie());
     };
 
-    void refreshSignedInState();
+    if (!initialLoggedIn) refreshSignedInState();
     window.addEventListener("munetios:authchange", refreshSignedInState);
 
     return () => {
-      active = false;
       window.removeEventListener("munetios:authchange", refreshSignedInState);
     };
-  }, []);
+  }, [initialLoggedIn]);
 
   const activeRoute = useMemo(() => {
     if (route === "business-signup") {

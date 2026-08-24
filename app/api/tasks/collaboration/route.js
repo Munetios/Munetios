@@ -7,7 +7,10 @@ import {
   getRequestFingerprint,
   setAccountData,
 } from "../../../lib/authSecurity.js";
+import { getMailSettings, storeMessage } from "../../../lib/mail.js";
+import { sendUserEmail } from "../../../lib/nodemailerVerificationEmail.js";
 import { enforceOrganizationAppAccess } from "../../../lib/organizationPolicies.js";
+import { hasSensitiveGrant } from "../../../lib/twoFactorSecurity.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -183,6 +186,13 @@ export async function POST(request) {
   }
 
   if (payload?.action === "share") {
+    const security = getAccountData(session.user.id, "security", {});
+    if (security.lockdownMode && !hasSensitiveGrant(request, session.user.id)) {
+      return respond(
+        { error: "sensitive_verification_required" },
+        { status: 403 },
+      );
+    }
     const recipient = getAccountByIdentifier(payload.email);
     if (!recipient) {
       return respond({ error: "account_not_found" }, { status: 404 });
@@ -235,6 +245,25 @@ export async function POST(request) {
       recipient.id,
       notificationsKey,
       [notification, ...readNotifications(recipient.id)].slice(0, 50),
+    );
+    storeMessage(recipient.id, {
+      from: "tasks@munetios.com",
+      html: "<p>A Munetios user shared an encrypted task with you.</p><p>Open Munetios Tasks to view it.</p>",
+      read: false,
+      subject: "A task was shared with you",
+      text: `${record.ownerName} shared an encrypted task with you. Open Munetios Tasks to view it.`,
+      to: recipient.email,
+    });
+    const mailSettings = getMailSettings(recipient.id, recipient.email);
+    await Promise.allSettled(
+      mailSettings.notificationEmails.map((to) =>
+        sendUserEmail({
+          fromName: "Munetios Tasks",
+          subject: "A task was shared with you",
+          text: `${record.ownerName} shared an encrypted task with you. Sign in to Munetios Tasks to view it.`,
+          to,
+        }),
+      ),
     );
     return respond({ id: record.id, shared: true });
   }

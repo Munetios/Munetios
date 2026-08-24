@@ -2,6 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getCurrentLocale, t } from "../i18n";
+import {
+  developerSettingsChangeEvent,
+  developerSettingsDefaults,
+  loadDeveloperSettings,
+  saveDeveloperSettings,
+} from "../lib/developerSettings";
 import AccountAvatar from "./accountAvatar";
 import { openAccountSettingsModal } from "./accountSettingsModal";
 import { confirmBrowserSignOut, openAccountSwitcher } from "./accountSwitcher";
@@ -74,7 +80,10 @@ async function fetchJson(url, options) {
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    const error = new Error(`Request failed: ${response.status}`);
+    error.authState = response.headers.get("X-Munetios-Auth-State");
+    error.status = response.status;
+    throw error;
   }
 
   return response.json();
@@ -235,10 +244,24 @@ function storagePercent(value) {
   return maximum ? Math.min(100, Math.round((toGb(used) / maximum) * 100)) : 0;
 }
 
+function hexToRgb(hex) {
+  const match = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex || "");
+  return match ? match.slice(1).map((part) => Number.parseInt(part, 16)) : null;
+}
+
+function getAccentRgb() {
+  const fallback = [167, 139, 250];
+  if (typeof document === "undefined") return fallback;
+  const value = window
+    .getComputedStyle(document.documentElement)
+    .getPropertyValue("--accent");
+  return hexToRgb(value) || fallback;
+}
+
 function storageBarColor(percent) {
   const value = Math.max(0, Math.min(100, Number(percent) || 0));
   const stops = [
-    { color: [167, 139, 250], percent: 0 },
+    { color: getAccentRgb(), percent: 0 },
     { color: [96, 165, 250], percent: 55 },
     { color: [252, 211, 77], percent: 82 },
     { color: [251, 113, 133], percent: 100 },
@@ -450,7 +473,7 @@ function AddWorkspaceForm({ close, copy, onCreated }) {
           {copy.cancel}
         </button>
         <button
-          className="rounded-xl border border-purple-200/25 bg-purple-500/80! px-3 py-2 text-sm font-semibold text-white transition hover:border-purple-100/40 hover:bg-purple-400/90! disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[var(--accent)]/80! px-3 py-2 text-sm font-semibold text-white transition hover:border-[color-mix(in_srgb,var(--accent)_55%,transparent)] hover:bg-[var(--accent)]/95! disabled:cursor-not-allowed disabled:opacity-60"
           disabled={submitting}
           type="submit"
         >
@@ -478,6 +501,36 @@ export default function AccountWrapper({
   const [workspacesFailed, setWorkspacesFailed] = useState(false);
   const [workspacesLoading, setWorkspacesLoading] = useState(true);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState(null);
+  const [familyRole, setFamilyRole] = useState(null);
+  const [developerSettings, setDeveloperSettings] = useState(
+    developerSettingsDefaults,
+  );
+
+  useEffect(() => {
+    const refreshDeveloperSettings = (event) =>
+      setDeveloperSettings(event?.detail || loadDeveloperSettings());
+    refreshDeveloperSettings();
+    window.addEventListener(
+      developerSettingsChangeEvent,
+      refreshDeveloperSettings,
+    );
+    return () =>
+      window.removeEventListener(
+        developerSettingsChangeEvent,
+        refreshDeveloperSettings,
+      );
+  }, []);
+
+  useEffect(() => {
+    if (!account?.education) return;
+    const current = loadDeveloperSettings();
+    if (!current.developerMode && !current.showHiddenItems) return;
+    saveDeveloperSettings({
+      ...current,
+      developerMode: false,
+      showHiddenItems: false,
+    });
+  }, [account?.education]);
 
   useEffect(() => {
     setStorageDisplay((currentStorageDisplay) =>
@@ -646,18 +699,28 @@ export default function AccountWrapper({
           setAccountFailed(false);
         }
         return true;
-      } catch {
+      } catch (error) {
+        if (error?.authState === "invalid-session") {
+          if (isMounted) {
+            setAccountFailed(true);
+            setWorkspacesFailed(true);
+            setWorkspacesLoading(false);
+          }
+          return "invalid-session";
+        }
         return false;
       }
     };
 
     const startAccountCheck = async () => {
-      if (await checkAccount()) {
+      const initialResult = await checkAccount();
+      if (initialResult === true || initialResult === "invalid-session") {
         return;
       }
 
       intervalId = window.setInterval(async () => {
-        if (await checkAccount()) {
+        const result = await checkAccount();
+        if (result === true || result === "invalid-session") {
           window.clearInterval(intervalId);
           window.clearTimeout(timeoutId);
         }
@@ -695,6 +758,24 @@ export default function AccountWrapper({
       if (timeoutId) window.clearTimeout(timeoutId);
     };
   }, [loadStorage, loadWorkspaces]);
+
+  useEffect(() => {
+    if (!account?.id) {
+      setFamilyRole(null);
+      return;
+    }
+    let cancelled = false;
+    fetchJson("/api/account/family")
+      .then((payload) => {
+        if (!cancelled) setFamilyRole(payload?.role || null);
+      })
+      .catch(() => {
+        if (!cancelled) setFamilyRole(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [account?.id]);
 
   useEffect(() => {
     const refreshDemo = () => {
@@ -871,14 +952,24 @@ export default function AccountWrapper({
     window.location.assign("/account/settings");
   };
 
+  const openAdminControls = () => {
+    if (appContext || window.location.pathname.startsWith("/apps/")) {
+      openAccountSettingsModal({ page: "admin-controls" });
+      return;
+    }
+
+    window.location.assign("/account/settings/admin-controls");
+  };
+
   const openUpgrade = () => {
     showModal(({ close }) => <UpgradePlans close={close} copy={copy} />, {
       ariaLabel: copy.demoUpgradeTitle,
-      fullViewport: true,
-      height: "100vh",
-      style: { maxHeight: "100vh", maxWidth: "100%" },
+      className: "munetios-modal-wide",
+      height: "1000px",
+      maxHeight: "min(1000px, calc(100dvh - 28px))",
+      maxWidth: "min(1200px, calc(100vw - 28px))",
       title: copy.demoUpgradeTitle,
-      width: "100%",
+      width: "1200px",
     });
   };
 
@@ -902,6 +993,11 @@ export default function AccountWrapper({
   const accountSettingsLabel =
     appContext === "tasks" ? copy.tasksManageAccount : copy.settings;
   const usedStoragePercent = storageUsagePercent;
+  const showHiddenItems = Boolean(
+    !account?.education &&
+      developerSettings.developerMode &&
+      developerSettings.showHiddenItems,
+  );
   const legalLinkProps = legalLinksInNewTab
     ? { rel: "noopener noreferrer", target: "_blank" }
     : {};
@@ -933,12 +1029,14 @@ export default function AccountWrapper({
                 : null}
               {!account?.demo
                 ? <span className="mt-1.5 inline-flex rounded-full border border-purple-200/20 bg-purple-500/20! px-2 py-0.5 text-xs font-bold text-purple-100">
-                    {account?.accountType === "business"
+                    {account?.accountType === "business" ||
+                    account?.accountType === "education"
                       ? account.plan
                       : copy.personalAccountBadge}
                   </span>
                 : null}
-              {account?.demoSettings?.parentSupervision
+              {account?.demoSettings?.parentSupervision ||
+              familyRole === "child"
                 ? <span className="mt-1 block text-xs font-semibold text-amber-100">
                     {copy.demoManagedByParent}
                   </span>
@@ -949,6 +1047,11 @@ export default function AccountWrapper({
                       "{business}",
                       account.organization.businessName,
                     )}
+                  </span>
+                : null}
+              {account?.education?.role === "student"
+                ? <span className="mt-1 block text-xs font-semibold text-purple-100">
+                    {copy.educationManagedByTeacher}
                   </span>
                 : null}
             </div>
@@ -966,14 +1069,16 @@ export default function AccountWrapper({
                   >
                     {copy.workspaces}
                   </h3>
-                  <button
-                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-purple-200/25 bg-purple-500/80! px-3 text-sm font-semibold text-white transition hover:border-purple-100/40 hover:bg-purple-400/90!"
-                    onClick={openAddWorkspace}
-                    type="button"
-                  >
-                    <icon>add</icon>
-                    {copy.addWorkspace}
-                  </button>
+                  {account?.education?.role !== "student"
+                    ? <button
+                        className="inline-flex h-9 items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[var(--accent)]/80! px-3 text-sm font-semibold text-white transition hover:border-[color-mix(in_srgb,var(--accent)_55%,transparent)] hover:bg-[var(--accent)]/95!"
+                        onClick={openAddWorkspace}
+                        type="button"
+                      >
+                        <icon>add</icon>
+                        {copy.addWorkspace}
+                      </button>
+                    : null}
                 </div>
 
                 {workspacesLoading
@@ -1013,7 +1118,7 @@ export default function AccountWrapper({
                               activeWorkspaceId ===
                               getWorkspaceId(workspace, index)
                             }
-                            className={`flex min-w-0 flex-1 items-center justify-between rounded-xl border px-3 py-2 text-left transition ${activeWorkspaceId === getWorkspaceId(workspace, index) ? "border-purple-200/45 bg-purple-500/30!" : "border-white/10 bg-white/5! hover:border-white/20 hover:bg-white/10!"}`}
+                            className={`flex min-w-0 flex-1 items-center justify-between rounded-xl border px-3 py-2 text-left transition ${activeWorkspaceId === getWorkspaceId(workspace, index) ? "border-[color-mix(in_srgb,var(--accent)_45%,transparent)] bg-[color-mix(in_srgb,var(--accent)_30%,transparent)]!" : "border-white/10 bg-white/5! hover:border-white/20 hover:bg-white/10!"}`}
                             onClick={() => selectWorkspace(workspace, index)}
                             type="button"
                           >
@@ -1040,13 +1145,15 @@ export default function AccountWrapper({
                                   : "chevron_right"}
                             </icon>
                           </button>
-                          <WorkspaceOptionsWrapper
-                            copy={copy}
-                            demo={Boolean(account?.demo)}
-                            onDeleted={deleteWorkspaceLocally}
-                            onSaved={saveWorkspaceLocally}
-                            workspace={workspace}
-                          />
+                          {account?.education?.role !== "student"
+                            ? <WorkspaceOptionsWrapper
+                                copy={copy}
+                                demo={Boolean(account?.demo)}
+                                onDeleted={deleteWorkspaceLocally}
+                                onSaved={saveWorkspaceLocally}
+                                workspace={workspace}
+                              />
+                            : null}
                         </li>
                       ))}
                     </ul>
@@ -1082,7 +1189,7 @@ export default function AccountWrapper({
                       }}
                     />
                   </div>
-                  {usedStoragePercent >= 100
+                  {usedStoragePercent >= 100 || showHiddenItems
                     ? <p className="mt-3 text-xs font-semibold text-rose-200">
                         {copy.storageFullWarning}
                       </p>
@@ -1097,10 +1204,20 @@ export default function AccountWrapper({
 
           <div className="mt-auto space-y-2 pt-2">
             {languageSelector}
+            {showHiddenItems
+              ? <button
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-purple-200/20 bg-purple-600/35! px-3 py-2 text-sm font-semibold text-purple-50 transition hover:border-purple-100/35 hover:bg-purple-600/50!"
+                  onClick={openAdminControls}
+                  type="button"
+                >
+                  <icon>admin_panel_settings</icon>
+                  {copy.developerAdminControls}
+                </button>
+              : null}
             {account?.demo &&
             ["Business Free", "Business Standard"].includes(account.plan)
               ? <button
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-purple-200/25 bg-purple-500/80! px-3 py-2 text-sm font-semibold text-white"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[var(--accent)]/80! px-3 py-2 text-sm font-semibold text-white"
                   onClick={openUpgrade}
                   type="button"
                 >
@@ -1109,7 +1226,7 @@ export default function AccountWrapper({
                 </button>
               : null}
             <button
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-purple-200/25 bg-purple-500/80! px-3 py-2 text-sm font-semibold text-white transition hover:border-purple-100/40 hover:bg-purple-400/90!"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[var(--accent)]/80! px-3 py-2 text-sm font-semibold text-white transition hover:border-[color-mix(in_srgb,var(--accent)_55%,transparent)] hover:bg-[var(--accent)]/95!"
               onClick={openAccountManager}
               type="button"
             >
@@ -1117,7 +1234,7 @@ export default function AccountWrapper({
               {accountSettingsLabel}
             </button>
             <button
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10! px-3 py-2 text-sm font-semibold text-white transition hover:border-purple-200/30 hover:bg-purple-500/20!"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10! px-3 py-2 text-sm font-semibold text-white transition hover:border-[color-mix(in_srgb,var(--accent)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--accent)_20%,transparent)]!"
               onClick={() => openAccountSwitcher({ copy })}
               type="button"
             >

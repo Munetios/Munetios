@@ -11,6 +11,7 @@ import {
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getCurrentLocale, t } from "../i18n";
+import { supportedCountryCodeSet } from "../lib/supportedCountries";
 import {
   appearanceThemes,
   applyAppearanceSettings,
@@ -19,9 +20,69 @@ import {
 } from "./appearanceRuntime";
 import DatePicker from "./datePicker";
 import DropdownWrapper from "./dropdownwrapper";
+import EducationSignup from "./educationSignup";
 import { openFeedbackModal } from "./feedbackModal";
 import LanguageSelector from "./languageSelector";
+import { showModal } from "./modal";
 import { showToast } from "./toast";
+
+function AccountRecoveryPrompt({ accountId, close, copy, password, type }) {
+  const [working, setWorking] = useState(false);
+  const archived = type === "account_archived";
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-amber-200/20 bg-amber-500/10! p-4 text-sm leading-6 text-amber-50/85">
+        {archived ? copy.archivedSignInMessage : copy.deletedSignInMessage}
+      </div>
+      <div className="flex justify-end gap-2">
+        <button
+          className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold"
+          onClick={close}
+          type="button"
+        >
+          {copy.cancel}
+        </button>
+        <button
+          className="liquid-glass rounded-xl bg-purple-600/75! px-4 py-2 text-sm font-bold disabled:opacity-50"
+          disabled={working}
+          onClick={async () => {
+            setWorking(true);
+            try {
+              const response = await fetch(
+                archived ? "/api/account/archive" : "/api/account/recover",
+                {
+                  body: JSON.stringify({ accountId, password }),
+                  credentials: "include",
+                  headers: { "Content-Type": "application/json" },
+                  method: archived ? "PUT" : "POST",
+                },
+              );
+              if (!response.ok) throw new Error("recovery_failed");
+              window.localStorage.removeItem("munetios.archivedAccount");
+              window.localStorage.removeItem("munetios.deletedAccount");
+              window.dispatchEvent(new Event("munetios:authchange"));
+              close();
+              window.location.assign("/apps");
+            } catch {
+              showToast({
+                messageKey: "accountDataRequestFailed",
+                type: "error",
+              });
+              setWorking(false);
+            }
+          }}
+          type="button"
+        >
+          {working
+            ? copy.accountProcessing
+            : archived
+              ? copy.unarchiveAccount
+              : copy.recoverAccount}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function getPhoneCountries(locale) {
   let displayNames = null;
@@ -32,6 +93,7 @@ function getPhoneCountries(locale) {
   }
 
   return getPhoneCountryCodes()
+    .filter((code) => supportedCountryCodeSet.has(code))
     .map((code) => ({
       code,
       dial: `+${getCountryCallingCode(code)}`,
@@ -214,7 +276,7 @@ function ThemeSelector({
       align="right"
       ariaLabel={copy.signInTheme}
       buttonClassName={buttonClassName}
-      panelClassName="max-h-80 w-[min(22rem,calc(100vw-1rem))] overflow-y-auto"
+      panelClassName="signin-theme-menu w-[min(22rem,calc(100vw-1rem))] overflow-hidden"
       placement="top"
       trigger={<icon>palette</icon>}
     >
@@ -233,6 +295,7 @@ function ThemeSelector({
           aria-label={copy.accountAppearanceColorMode}
           aria-checked={resolvedThemeMode === "dark"}
           className={`relative h-7 w-12 shrink-0 rounded-full border transition ${resolvedThemeMode === "dark" ? "border-purple-200/35 bg-purple-500/70!" : "border-white/15 bg-white/10!"}`}
+          data-dropdown-item-style="false"
           onClick={toggleThemeMode}
           role="switch"
           type="button"
@@ -242,7 +305,7 @@ function ThemeSelector({
           />
         </button>
       </div>
-      <div className="space-y-1 border-t border-white/10 pt-2">
+      <div className="signin-theme-options space-y-1 border-t border-white/10 pt-2">
         {appearanceThemes.map((option) => (
           <button
             className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-white transition hover:bg-white/10!"
@@ -259,7 +322,12 @@ function ThemeSelector({
   );
 }
 
-function SignUpMenu({ copy, openSelfSignup }) {
+function SignUpMenu({
+  copy,
+  openChildSignup,
+  openEducationSignup,
+  openSelfSignup,
+}) {
   return (
     <DropdownWrapper
       align="right"
@@ -278,9 +346,8 @@ function SignUpMenu({ copy, openSelfSignup }) {
           {copy.signUpForMyself}
         </button>
         <button
-          aria-disabled="true"
-          className="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-white/45"
-          disabled
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-white hover:bg-white/10!"
+          onClick={openChildSignup}
           type="button"
         >
           <icon>child_care</icon>
@@ -293,17 +360,27 @@ function SignUpMenu({ copy, openSelfSignup }) {
           <icon>business</icon>
           {copy.signUpForMyBusiness}
         </a>
+        <button
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-white hover:bg-white/10!"
+          onClick={openEducationSignup}
+          type="button"
+        >
+          <icon>school</icon>
+          {copy.signUpForEducation}
+        </button>
       </div>
     </DropdownWrapper>
   );
 }
 
-export default function SignInScreen() {
+export default function SignInScreen({ addingAccount = false }) {
   const [locale, setLocale] = useState(() => getCurrentLocale());
   const [copy, setCopy] = useState(() => t());
   const [mode, setMode] = useState("signin");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [twoFactor, setTwoFactor] = useState(null);
+  const [twoFactorCode, setTwoFactorCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [signingInWithGithub, setSigningInWithGithub] = useState(false);
   const [cookiesEnabled, setCookiesEnabled] = useState(null);
@@ -332,9 +409,7 @@ export default function SignInScreen() {
   );
 
   const completeAuthentication = useCallback(() => {
-    const addAccount =
-      new URL(window.location.href).searchParams.get("addAccount") === "true";
-    if (addAccount && window.parent !== window) {
+    if (addingAccount && window.parent !== window) {
       window.parent.postMessage(
         { type: "munetios:account-added" },
         window.location.origin,
@@ -342,7 +417,7 @@ export default function SignInScreen() {
       return;
     }
     window.location.assign(getSafeReturnTo());
-  }, []);
+  }, [addingAccount]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -389,8 +464,15 @@ export default function SignInScreen() {
   }, [checkAuthenticationCookies]);
 
   useEffect(() => {
-    if (new URL(window.location.href).searchParams.get("signup") === "true") {
-      setMode("signup");
+    const signupMode = new URL(window.location.href).searchParams.get("signup");
+    if (signupMode === "true") setMode("signup");
+    if (signupMode === "education") setMode("education");
+    const challengeId = new URL(window.location.href).searchParams.get(
+      "twoFactorChallenge",
+    );
+    if (challengeId) {
+      setMode("signin");
+      setTwoFactor({ challengeId, error: "two_factor_required" });
     }
 
     const refreshCopy = () => {
@@ -424,6 +506,10 @@ export default function SignInScreen() {
 
   const submitSignIn = async (event) => {
     event.preventDefault();
+    if (!identifier.trim() || !password) {
+      showToast({ messageKey: "authRequiredDetails", type: "error" });
+      return;
+    }
     if (!(await checkAuthenticationCookies())) return;
     setSubmitting(true);
     try {
@@ -434,17 +520,69 @@ export default function SignInScreen() {
         method: "POST",
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || "signin_failed");
+      if (response.status === 202 && payload.error === "two_factor_required") {
+        setTwoFactor(payload);
+        setPassword("");
+        return;
+      }
+      if (!response.ok) {
+        if (["account_deleted", "account_archived"].includes(payload.error)) {
+          showModal({
+            title:
+              payload.error === "account_deleted"
+                ? copy.deletedAccountTitle
+                : copy.archivedAccountTitle,
+            content: ({ close }) => (
+              <AccountRecoveryPrompt
+                accountId={payload.accountId}
+                close={close}
+                copy={copy}
+                password={password}
+                type={payload.error}
+              />
+            ),
+          });
+          return;
+        }
+        throw new Error(payload.error || "signin_failed");
+      }
       window.dispatchEvent(new CustomEvent("munetios:authchange"));
       completeAuthentication();
     } catch (error) {
       showToast({
         messageKey:
           {
-            account_not_found: "authAccountDoesNotExist",
+            account_not_found: "incorrectSignIn",
+            invalid_credentials: "incorrectSignIn",
+            rate_limited: "authTooManySignInRequests",
           }[error.message] || "failedSignIn",
         type: "error",
       });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitTwoFactor = async (event) => {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      const response = await fetch("/api/auth/two-factor/verify", {
+        body: JSON.stringify({
+          challengeId: twoFactor?.challengeId,
+          code: twoFactorCode,
+        }),
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("invalid_two_factor_code");
+      window.dispatchEvent(new CustomEvent("munetios:authchange"));
+      completeAuthentication();
+    } catch {
+      showToast({ messageKey: "authRecoveryCodeInvalid", type: "error" });
+      setTwoFactor(null);
+      setTwoFactorCode("");
     } finally {
       setSubmitting(false);
     }
@@ -457,7 +595,8 @@ export default function SignInScreen() {
     const query = new URLSearchParams({
       returnTo: getSafeReturnTo(),
     });
-    for (const parameter of ["addAccount", "embedded"]) {
+    if (addingAccount) query.set("addAccount", "true");
+    for (const parameter of ["embedded"]) {
       if (currentUrl.searchParams.get(parameter) === "true") {
         query.set(parameter, "true");
       }
@@ -471,6 +610,10 @@ export default function SignInScreen() {
   };
 
   const requestVerification = async () => {
+    if (signup.contactMode === "existing") {
+      showToast({ messageKey: "authExternalEmailComingSoon", type: "info" });
+      return false;
+    }
     const identifierValue =
       signup.contactMode === "phone"
         ? getInternationalPhone(signup.contact, signup.country)
@@ -489,6 +632,7 @@ export default function SignInScreen() {
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         method: "POST",
+        signal: AbortSignal.timeout(12_000),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -509,6 +653,7 @@ export default function SignInScreen() {
           ? "authSmsVerificationUnavailable"
           : {
               email_taken: "authEmailTaken",
+              external_signup_coming_soon: "authExternalEmailComingSoon",
               phone_taken: "authPhoneTaken",
               rate_limited: "authVerificationRateLimited",
             }[error.message] || "authVerificationFailed";
@@ -524,6 +669,25 @@ export default function SignInScreen() {
 
   const submitSignup = async (event) => {
     event.preventDefault();
+    if (signup.contactMode === "existing") {
+      showToast({ messageKey: "authExternalEmailComingSoon", type: "info" });
+      return;
+    }
+    const hasContact =
+      signup.contactMode === "munetios"
+        ? Boolean(signup.username.trim())
+        : Boolean(signup.contact.trim());
+    if (
+      !signup.firstName.trim() ||
+      !signup.birthDate ||
+      !signup.gender ||
+      !signup.password ||
+      !signup.captchaAnswer.trim() ||
+      !hasContact
+    ) {
+      showToast({ messageKey: "authRequiredDetails", type: "error" });
+      return;
+    }
     if (!(await checkAuthenticationCookies())) return;
     const age = getAge(signup.birthDate);
     if (age !== null && age < 13) {
@@ -576,9 +740,12 @@ export default function SignInScreen() {
       const errorKey = {
         account_already_exists: "authAccountAlreadyUsed",
         email_taken: "authEmailTaken",
+        external_signup_coming_soon: "authExternalEmailComingSoon",
         invalid_captcha: "authCaptchaInvalid",
+        invalid_account_details: "authRequiredDetails",
         parent_required: "authParentRequired",
         phone_taken: "authPhoneTaken",
+        rate_limited: "authTooManyRequests",
         verification_required: "authVerificationRequired",
       }[error.message];
       showToast({ messageKey: errorKey || "authSignupFailed", type: "error" });
@@ -616,6 +783,14 @@ export default function SignInScreen() {
           method: "POST",
         },
       );
+      const verifyPayload = await verifyResponse.json().catch(() => ({}));
+      if (
+        verifyResponse.status === 202 &&
+        verifyPayload.error === "two_factor_required"
+      ) {
+        setTwoFactor(verifyPayload);
+        return;
+      }
       if (!verifyResponse.ok) throw new Error("passkey_signin_failed");
       window.dispatchEvent(new CustomEvent("munetios:authchange"));
       completeAuthentication();
@@ -637,9 +812,11 @@ export default function SignInScreen() {
           >
             <h1
               className="mb-4 text-3xl font-bold"
-              data-translate="signInAccountHeading"
+              data-translate={
+                addingAccount ? "addAccount" : "signInAccountHeading"
+              }
             >
-              {copy.signInAccountHeading}
+              {addingAccount ? copy.addAccount : copy.signInAccountHeading}
             </h1>
           </div>
           <div
@@ -679,13 +856,34 @@ export default function SignInScreen() {
                 src="/favicon.ico"
                 width={56}
               />
-              <h1 className="text-3xl font-bold" data-translate="signIn">
-                {mode === "signin" ? copy.signIn : copy.signUp}
+              <h1
+                className="text-3xl font-bold"
+                data-translate={
+                  mode === "signin"
+                    ? addingAccount
+                      ? "addAccount"
+                      : "signIn"
+                    : mode === "education"
+                      ? "signUpForEducation"
+                      : "signUp"
+                }
+              >
+                {mode === "signin"
+                  ? addingAccount
+                    ? copy.addAccount
+                    : copy.signIn
+                  : mode === "education"
+                    ? copy.signUpForEducation
+                    : copy.signUp}
               </h1>
             </div>
             {mode === "signin"
               ? <SignUpMenu
                   copy={copy}
+                  openChildSignup={() =>
+                    window.location.assign("/signin/child")
+                  }
+                  openEducationSignup={() => setMode("education")}
                   openSelfSignup={() => setMode("signup")}
                 />
               : <button
@@ -700,455 +898,530 @@ export default function SignInScreen() {
             className="flex h-[calc(100%-4rem)] w-full items-start justify-center overflow-y-auto px-2 py-6"
             id="signInFormContainer"
           >
-            {mode === "signin"
-              ? <form
-                  className="w-full max-w-md space-y-5"
-                  onSubmit={submitSignIn}
-                >
-                  {cookiesEnabled === false
-                    ? <CookieWarning copy={copy} />
-                    : null}
-                  <div>
-                    <h1 className="text-3xl font-bold tracking-[-0.03em]">
-                      {copy.signIn}
-                    </h1>
-                    <p className="mt-2 text-sm leading-6 text-white/65">
-                      {copy.authWelcomeBack}
-                    </p>
-                  </div>
-                  <AuthInput
-                    autoComplete="username"
-                    icon="alternate_email"
-                    label={copy.signInEmailOrPhone}
-                    name="identifier"
-                    onChange={(event) => setIdentifier(event.target.value)}
-                    value={identifier}
-                  />
-                  <PasswordInput
-                    copy={copy}
-                    onChange={(event) => setPassword(event.target.value)}
-                    value={password}
-                  />
-                  <div className="flex flex-wrap justify-between gap-3 text-sm">
-                    <a
-                      className="text-purple-200 hover:underline"
-                      href="/forgot-password"
+            {mode === "education"
+              ? <EducationSignup embedded />
+              : mode === "signin"
+                ? twoFactor
+                  ? <form
+                      className="w-full max-w-md space-y-5"
+                      onSubmit={submitTwoFactor}
                     >
-                      {copy.forgotPassword}
-                    </a>
-                    <a
-                      className="text-purple-200 hover:underline"
-                      href="/forgot-email"
+                      <div>
+                        <h1 className="text-3xl font-bold tracking-[-0.03em]">
+                          {copy.authEnterTwoFactorCode}
+                        </h1>
+                        <p className="mt-2 text-sm leading-6 text-white/65">
+                          {copy.accountSettingsSecurityDescription}
+                        </p>
+                      </div>
+                      <AuthInput
+                        autoComplete="one-time-code"
+                        icon="verified_user"
+                        label={copy.authVerificationCode}
+                        name="twoFactorCode"
+                        onChange={(event) =>
+                          setTwoFactorCode(event.target.value)
+                        }
+                        value={twoFactorCode}
+                      />
+                      <button
+                        className="liquid-glass w-full rounded-xl bg-purple-600/80! px-4 py-3 font-semibold text-white disabled:opacity-60"
+                        disabled={submitting || !twoFactorCode.trim()}
+                        type="submit"
+                      >
+                        {copy.authRecoveryVerify}
+                      </button>
+                      <button
+                        className="w-full text-sm text-purple-200 hover:underline"
+                        onClick={() => {
+                          setTwoFactor(null);
+                          setTwoFactorCode("");
+                        }}
+                        type="button"
+                      >
+                        {copy.authBackToSignIn}
+                      </button>
+                    </form>
+                  : <form
+                      className="w-full max-w-md space-y-5"
+                      noValidate
+                      onSubmit={submitSignIn}
                     >
-                      {copy.forgotEmail}
-                    </a>
-                  </div>
-                  <button
-                    className="liquid-glass w-full rounded-xl bg-purple-600/80! px-4 py-3 font-semibold text-white transition hover:bg-purple-500/90! disabled:opacity-60"
-                    disabled={submitting || cookiesEnabled === false}
-                    type="submit"
+                      {cookiesEnabled === false
+                        ? <CookieWarning copy={copy} />
+                        : null}
+                      <div>
+                        <h1 className="text-3xl font-bold tracking-[-0.03em]">
+                          {addingAccount ? copy.addAccount : copy.signIn}
+                        </h1>
+                        <p className="mt-2 text-sm leading-6 text-white/65">
+                          {addingAccount
+                            ? copy.addAccountDescription
+                            : copy.authWelcomeBack}
+                        </p>
+                        {!addingAccount
+                          ? <p className="mt-3 flex items-start gap-2 rounded-xl border border-purple-200/15 bg-purple-500/10! p-3 text-sm leading-6 text-purple-100">
+                              <icon className="mt-0.5 shrink-0">
+                                forward_to_inbox
+                              </icon>
+                              <span>{copy.authEmailForwardingComingSoon}</span>
+                            </p>
+                          : null}
+                      </div>
+                      <AuthInput
+                        autoComplete="username"
+                        icon="alternate_email"
+                        label={copy.signInEmailOrPhone}
+                        name="identifier"
+                        onChange={(event) => setIdentifier(event.target.value)}
+                        value={identifier}
+                      />
+                      <PasswordInput
+                        copy={copy}
+                        onChange={(event) => setPassword(event.target.value)}
+                        value={password}
+                      />
+                      <div className="flex flex-wrap justify-between gap-3 text-sm">
+                        <a
+                          className="text-purple-200 hover:underline"
+                          href="/forgot-password"
+                        >
+                          {copy.forgotPassword}
+                        </a>
+                        <a
+                          className="text-purple-200 hover:underline"
+                          href="/forgot-email"
+                        >
+                          {copy.forgotEmail}
+                        </a>
+                      </div>
+                      <button
+                        className="liquid-glass w-full rounded-xl bg-purple-600/80! px-4 py-3 font-semibold text-white transition hover:bg-purple-500/90! disabled:opacity-60"
+                        disabled={submitting || cookiesEnabled === false}
+                        type="submit"
+                      >
+                        {submitting
+                          ? copy.authSigningIn
+                          : addingAccount
+                            ? copy.addAccount
+                            : copy.signIn}
+                      </button>
+                      <div className="flex items-center gap-3 text-xs uppercase tracking-[0.16em] text-white/45">
+                        <span className="h-px flex-1 bg-white/10" />
+                        {copy.authOr}
+                        <span className="h-px flex-1 bg-white/10" />
+                      </div>
+                      <button
+                        className="liquid-glass flex w-full items-center justify-center gap-3 rounded-xl border border-white/15 bg-[#24292f]/80! px-4 py-3 font-semibold text-white transition hover:bg-[#24292f]/90!"
+                        disabled={signingInWithGithub}
+                        onClick={() => void signInWithGithub()}
+                        type="button"
+                      >
+                        <Image
+                          alt=""
+                          aria-hidden="true"
+                          height={24}
+                          src="/connectors/github.svg"
+                          width={25}
+                        />
+                        {signingInWithGithub
+                          ? copy.signingInWithGitHub
+                          : copy.signInWithGitHub}
+                      </button>
+                      <button
+                        className="liquid-glass flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/8! px-4 py-3 font-semibold hover:bg-white/14!"
+                        onClick={signInWithPasskey}
+                        type="button"
+                      >
+                        <icon>passkey</icon>
+                        {copy.signInWithPasskey}
+                      </button>
+                    </form>
+                : <form
+                    className="w-full max-w-xl space-y-5"
+                    noValidate
+                    onSubmit={submitSignup}
                   >
-                    {submitting ? copy.authSigningIn : copy.signIn}
-                  </button>
-                  <div className="flex items-center gap-3 text-xs uppercase tracking-[0.16em] text-white/45">
-                    <span className="h-px flex-1 bg-white/10" />
-                    {copy.authOr}
-                    <span className="h-px flex-1 bg-white/10" />
-                  </div>
-                  <button
-                    className="liquid-glass flex w-full items-center justify-center gap-3 rounded-xl border border-white/15 bg-[#24292f]/80! px-4 py-3 font-semibold text-white transition hover:bg-[#24292f]/90!"
-                    disabled={signingInWithGithub}
-                    onClick={() => void signInWithGithub()}
-                    type="button"
-                  >
-                    <Image
-                      alt=""
-                      aria-hidden="true"
-                      height={24}
-                      src="/connectors/github.svg"
-                      width={25}
-                    />
-                    {signingInWithGithub
-                      ? copy.signingInWithGitHub
-                      : copy.signInWithGitHub}
-                  </button>
-                  <button
-                    className="liquid-glass flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/8! px-4 py-3 font-semibold hover:bg-white/14!"
-                    onClick={signInWithPasskey}
-                    type="button"
-                  >
-                    <icon>passkey</icon>
-                    {copy.signInWithPasskey}
-                  </button>
-                </form>
-              : <form
-                  className="w-full max-w-xl space-y-5"
-                  onSubmit={submitSignup}
-                >
-                  {cookiesEnabled === false
-                    ? <CookieWarning copy={copy} />
-                    : null}
-                  <div>
-                    <h1 className="text-3xl font-bold tracking-[-0.03em]">
-                      {copy.createMunetiosAccount}
-                    </h1>
-                    <p className="mt-2 text-sm leading-6 text-white/65">
-                      {copy.authCreateAccountDescription}
-                    </p>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <AuthInput
-                      autoComplete="given-name"
-                      icon="person"
-                      label={copy.authFirstName}
-                      name="firstName"
-                      onChange={(event) =>
-                        setSignup((current) => ({
-                          ...current,
-                          firstName: event.target.value,
-                        }))
-                      }
-                      value={signup.firstName}
-                    />
-                    <AuthInput
-                      autoComplete="family-name"
-                      icon="person_outline"
-                      label={copy.authLastNameOptional}
-                      name="lastName"
-                      onChange={(event) =>
-                        setSignup((current) => ({
-                          ...current,
-                          lastName: event.target.value,
-                        }))
-                      }
-                      required={false}
-                      value={signup.lastName}
-                    />
-                  </div>
-                  {signup.contactMode === "phone"
-                    ? <div className="grid items-end gap-3 sm:grid-cols-[11rem_minmax(0,1fr)]">
-                        <div className="min-w-0">
-                          <div className="mb-2 text-sm font-semibold text-white/80">
-                            {copy.authCountry}
+                    {cookiesEnabled === false
+                      ? <CookieWarning copy={copy} />
+                      : null}
+                    <div>
+                      <h1 className="text-3xl font-bold tracking-[-0.03em]">
+                        {copy.createMunetiosAccount}
+                      </h1>
+                      <p className="mt-2 text-sm leading-6 text-white/65">
+                        {copy.authCreateAccountDescription}
+                      </p>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <AuthInput
+                        autoComplete="given-name"
+                        icon="person"
+                        label={copy.authFirstName}
+                        name="firstName"
+                        onChange={(event) =>
+                          setSignup((current) => ({
+                            ...current,
+                            firstName: event.target.value,
+                          }))
+                        }
+                        value={signup.firstName}
+                      />
+                      <AuthInput
+                        autoComplete="family-name"
+                        icon="person_outline"
+                        label={copy.authLastNameOptional}
+                        name="lastName"
+                        onChange={(event) =>
+                          setSignup((current) => ({
+                            ...current,
+                            lastName: event.target.value,
+                          }))
+                        }
+                        required={false}
+                        value={signup.lastName}
+                      />
+                    </div>
+                    {signup.contactMode === "existing"
+                      ? <div
+                          aria-live="polite"
+                          className="liquid-glass flex items-start gap-3 rounded-2xl border border-purple-200/20 bg-purple-500/12! p-4 text-purple-50"
+                        >
+                          <icon className="mt-0.5 shrink-0">schedule</icon>
+                          <div>
+                            <strong className="block">{copy.comingSoon}</strong>
+                            <p className="mt-1 text-sm leading-6 text-purple-100/75">
+                              {copy.authExternalEmailComingSoon}
+                            </p>
                           </div>
-                          <DropdownWrapper
-                            align="left"
-                            ariaLabel={copy.authCountry}
-                            buttonClassName="h-12 w-full justify-between rounded-xl border border-white/10 bg-white/10! px-3 text-left hover:border-purple-200/35 hover:bg-white/15!"
-                            panelClassName="max-h-72 w-[min(24rem,calc(100vw-1rem))] overflow-y-auto"
-                            trigger={
-                              <>
-                                <span className="truncate">
-                                  {selectedCountry.code} {selectedCountry.dial}
-                                </span>
-                                <icon>expand_more</icon>
-                              </>
-                            }
-                          >
-                            {countries.map((country) => (
-                              <button
-                                className="flex w-full items-center justify-between gap-4 rounded-lg px-3 py-2 text-left text-sm text-white hover:bg-white/10!"
-                                key={country.code}
-                                onClick={() =>
-                                  setSignup((current) => ({
-                                    ...current,
-                                    contact: formatPhoneInput(
-                                      current.contact,
-                                      country.code,
-                                    ),
-                                    country: country.code,
-                                    verificationCode: "",
-                                    verificationId: "",
-                                  }))
-                                }
-                                type="button"
-                              >
-                                <span className="truncate">{country.name}</span>
-                                <span className="shrink-0 text-white/60">
-                                  {country.dial}
-                                </span>
-                              </button>
-                            ))}
-                          </DropdownWrapper>
                         </div>
-                        <AuthInput
-                          autoComplete="tel-national"
-                          icon="phone"
-                          inputMode="tel"
-                          label={copy.authPhoneNumber}
-                          name="phone"
-                          onChange={(event) =>
+                      : signup.contactMode === "phone"
+                        ? <div className="grid items-end gap-3 sm:grid-cols-[11rem_minmax(0,1fr)]">
+                            <div className="min-w-0">
+                              <div className="mb-2 text-sm font-semibold text-white/80">
+                                {copy.authCountry}
+                              </div>
+                              <DropdownWrapper
+                                align="left"
+                                ariaLabel={copy.authCountry}
+                                buttonClassName="h-12 w-full justify-between rounded-xl border border-white/10 bg-white/10! px-3 text-left hover:border-purple-200/35 hover:bg-white/15!"
+                                panelClassName="max-h-72 w-[min(24rem,calc(100vw-1rem))] overflow-y-auto"
+                                trigger={
+                                  <>
+                                    <span className="truncate">
+                                      {selectedCountry.code}{" "}
+                                      {selectedCountry.dial}
+                                    </span>
+                                    <icon>expand_more</icon>
+                                  </>
+                                }
+                              >
+                                {countries.map((country) => (
+                                  <button
+                                    className="flex w-full items-center justify-between gap-4 rounded-lg px-3 py-2 text-left text-sm text-white hover:bg-white/10!"
+                                    key={country.code}
+                                    onClick={() =>
+                                      setSignup((current) => ({
+                                        ...current,
+                                        contact: formatPhoneInput(
+                                          current.contact,
+                                          country.code,
+                                        ),
+                                        country: country.code,
+                                        verificationCode: "",
+                                        verificationId: "",
+                                      }))
+                                    }
+                                    type="button"
+                                  >
+                                    <span className="truncate">
+                                      {country.name}
+                                    </span>
+                                    <span className="shrink-0 text-white/60">
+                                      {country.dial}
+                                    </span>
+                                  </button>
+                                ))}
+                              </DropdownWrapper>
+                            </div>
+                            <AuthInput
+                              autoComplete="tel-national"
+                              icon="phone"
+                              inputMode="tel"
+                              label={copy.authPhoneNumber}
+                              name="phone"
+                              onChange={(event) =>
+                                setSignup((current) => ({
+                                  ...current,
+                                  contact: formatPhoneInput(
+                                    event.target.value,
+                                    current.country,
+                                  ),
+                                  verificationCode: "",
+                                  verificationId: "",
+                                }))
+                              }
+                              value={signup.contact}
+                            />
+                          </div>
+                        : <label className="block text-sm font-semibold text-white/80">
+                            <span>
+                              {signup.contactMode === "existing"
+                                ? copy.authEmailAddress
+                                : copy.authMunetiosEmail}
+                            </span>
+                            <span className="relative mt-2 flex h-12 overflow-hidden rounded-xl border border-white/10 bg-white/10! focus-within:border-purple-300/70">
+                              <icon className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-purple-200">
+                                alternate_email
+                              </icon>
+                              <input
+                                autoComplete={
+                                  signup.contactMode === "existing"
+                                    ? "email"
+                                    : "username"
+                                }
+                                className="min-w-0 flex-1 bg-transparent! py-2 pl-11 pr-2 text-white outline-none"
+                                name="email"
+                                onChange={(event) =>
+                                  setSignup((current) =>
+                                    current.contactMode === "existing"
+                                      ? {
+                                          ...current,
+                                          contact: event.target.value,
+                                          username: usernameFromEmail(
+                                            event.target.value,
+                                          ),
+                                          verificationCode: "",
+                                          verificationId: "",
+                                        }
+                                      : {
+                                          ...current,
+                                          username: event.target.value,
+                                        },
+                                  )
+                                }
+                                required
+                                type={
+                                  signup.contactMode === "existing"
+                                    ? "email"
+                                    : "text"
+                                }
+                                value={
+                                  signup.contactMode === "existing"
+                                    ? signup.contact
+                                    : signup.username
+                                }
+                              />
+                              {signup.contactMode !== "existing"
+                                ? <span className="flex shrink-0 items-center border-l border-white/10 bg-white/5! px-3 text-sm text-white/65">
+                                    @munetios.com
+                                  </span>
+                                : null}
+                            </span>
+                          </label>}
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                      {[
+                        ["existing", copy.authUseExistingEmailAddress],
+                        ["phone", copy.authUsePhoneNumberInstead],
+                      ].map(([value, label]) => (
+                        <button
+                          aria-pressed={signup.contactMode === value}
+                          className={`rounded-lg px-1 py-1 text-purple-200 transition hover:text-white hover:underline ${signup.contactMode === value ? "font-semibold underline" : ""}`}
+                          key={value}
+                          onClick={() =>
                             setSignup((current) => ({
                               ...current,
-                              contact: formatPhoneInput(
-                                event.target.value,
-                                current.country,
-                              ),
+                              contact: "",
+                              contactMode:
+                                current.contactMode === value
+                                  ? "munetios"
+                                  : value,
                               verificationCode: "",
                               verificationId: "",
                             }))
                           }
-                          value={signup.contact}
-                        />
-                      </div>
-                    : <label className="block text-sm font-semibold text-white/80">
-                        <span>
-                          {signup.contactMode === "existing"
-                            ? copy.authEmailAddress
-                            : copy.authMunetiosEmail}
-                        </span>
-                        <span className="relative mt-2 flex h-12 overflow-hidden rounded-xl border border-white/10 bg-white/10! focus-within:border-purple-300/70">
-                          <icon className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-purple-200">
-                            alternate_email
-                          </icon>
-                          <input
-                            autoComplete={
-                              signup.contactMode === "existing"
-                                ? "email"
-                                : "username"
-                            }
-                            className="min-w-0 flex-1 bg-transparent! py-2 pl-11 pr-2 text-white outline-none"
-                            name="email"
-                            onChange={(event) =>
-                              setSignup((current) =>
-                                current.contactMode === "existing"
-                                  ? {
-                                      ...current,
-                                      contact: event.target.value,
-                                      username: usernameFromEmail(
-                                        event.target.value,
-                                      ),
-                                      verificationCode: "",
-                                      verificationId: "",
-                                    }
-                                  : {
-                                      ...current,
-                                      username: event.target.value,
-                                    },
-                              )
-                            }
-                            required
-                            type={
-                              signup.contactMode === "existing"
-                                ? "email"
-                                : "text"
-                            }
-                            value={
-                              signup.contactMode === "existing"
-                                ? signup.contact
-                                : signup.username
-                            }
-                          />
-                          {signup.contactMode !== "existing"
-                            ? <span className="flex shrink-0 items-center border-l border-white/10 bg-white/5! px-3 text-sm text-white/65">
-                                @munetios.com
-                              </span>
-                            : null}
-                        </span>
-                      </label>}
-                  <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-                    {[
-                      ["existing", copy.authUseExistingEmailAddress],
-                      ["phone", copy.authUsePhoneNumberInstead],
-                    ].map(([value, label]) => (
-                      <button
-                        aria-pressed={signup.contactMode === value}
-                        className={`rounded-lg px-1 py-1 text-purple-200 transition hover:text-white hover:underline ${signup.contactMode === value ? "font-semibold underline" : ""}`}
-                        key={value}
-                        onClick={() =>
-                          setSignup((current) => ({
-                            ...current,
-                            contact: "",
-                            contactMode:
-                              current.contactMode === value
-                                ? "munetios"
-                                : value,
-                            verificationCode: "",
-                            verificationId: "",
-                          }))
-                        }
-                        type="button"
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                  <DatePicker
-                    copy={copy}
-                    label={copy.authBirthday}
-                    onChange={(birthDate) =>
-                      setSignup((current) => ({
-                        ...current,
-                        birthDate,
-                      }))
-                    }
-                    value={signup.birthDate}
-                  />
-                  <div>
-                    <div className="mb-2 text-sm font-semibold text-white/80">
-                      {copy.authGenderOptional}
-                    </div>
-                    <DropdownWrapper
-                      align="left"
-                      ariaLabel={copy.authGenderOptional}
-                      buttonClassName="h-12 w-full justify-between rounded-xl border border-white/10 bg-white/10! px-3 text-left hover:border-purple-200/35 hover:bg-white/15!"
-                      panelClassName="w-[min(22rem,calc(100vw-1rem))]"
-                      trigger={
-                        <>
-                          <span>
-                            {
-                              copy[
-                                genderOptions.find(
-                                  (option) => option.value === signup.gender,
-                                )?.key || "authGenderNotSpecified"
-                              ]
-                            }
-                          </span>
-                          <icon>expand_more</icon>
-                        </>
-                      }
-                    >
-                      {genderOptions.map((option) => (
-                        <button
-                          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-white hover:bg-white/10!"
-                          key={option.key}
-                          onClick={() =>
-                            setSignup((current) => ({
-                              ...current,
-                              gender: option.value,
-                            }))
-                          }
                           type="button"
                         >
-                          <span>{copy[option.key]}</span>
-                          {signup.gender === option.value
-                            ? <icon>check</icon>
-                            : null}
+                          {label}
                         </button>
                       ))}
-                    </DropdownWrapper>
-                  </div>
-                  {getAge(signup.birthDate) !== null &&
-                  getAge(signup.birthDate) < 13
-                    ? <div className="rounded-xl border border-amber-300/25 bg-amber-500/12! p-3 text-sm text-amber-100">
-                        {copy.authParentRequired}
+                    </div>
+                    <DatePicker
+                      copy={copy}
+                      label={copy.authBirthday}
+                      onChange={(birthDate) =>
+                        setSignup((current) => ({
+                          ...current,
+                          birthDate,
+                        }))
+                      }
+                      value={signup.birthDate}
+                    />
+                    <div>
+                      <div className="mb-2 text-sm font-semibold text-white/80">
+                        {copy.authGenderOptional}
                       </div>
-                    : null}
-                  {signup.contactMode !== "munetios"
-                    ? <div className="space-y-3">
-                        {signup.verificationId
-                          ? <AuthInput
-                              autoComplete="one-time-code"
-                              icon="verified_user"
-                              label={copy.authVerificationCode}
-                              name="verification"
-                              onChange={(event) =>
-                                setSignup((current) => ({
-                                  ...current,
-                                  verificationCode: event.target.value,
-                                }))
+                      <DropdownWrapper
+                        align="left"
+                        ariaLabel={copy.authGenderOptional}
+                        buttonClassName="h-12 w-full justify-between rounded-xl border border-white/10 bg-white/10! px-3 text-left hover:border-purple-200/35 hover:bg-white/15!"
+                        panelClassName="w-[min(22rem,calc(100vw-1rem))]"
+                        trigger={
+                          <>
+                            <span>
+                              {
+                                copy[
+                                  genderOptions.find(
+                                    (option) => option.value === signup.gender,
+                                  )?.key || "authGenderNotSpecified"
+                                ]
                               }
-                              value={signup.verificationCode}
+                            </span>
+                            <icon>expand_more</icon>
+                          </>
+                        }
+                      >
+                        {genderOptions.map((option) => (
+                          <button
+                            className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-white hover:bg-white/10!"
+                            key={option.key}
+                            onClick={() =>
+                              setSignup((current) => ({
+                                ...current,
+                                gender: option.value,
+                              }))
+                            }
+                            type="button"
+                          >
+                            <span>{copy[option.key]}</span>
+                            {signup.gender === option.value
+                              ? <icon>check</icon>
+                              : null}
+                          </button>
+                        ))}
+                      </DropdownWrapper>
+                    </div>
+                    {getAge(signup.birthDate) !== null &&
+                    getAge(signup.birthDate) < 13
+                      ? <div className="rounded-xl border border-amber-300/25 bg-amber-500/12! p-3 text-sm text-amber-100">
+                          {copy.authParentRequired}
+                        </div>
+                      : null}
+                    {signup.contactMode === "phone"
+                      ? <div className="space-y-3">
+                          {signup.verificationId
+                            ? <AuthInput
+                                autoComplete="one-time-code"
+                                icon="verified_user"
+                                label={copy.authVerificationCode}
+                                name="verification"
+                                onChange={(event) =>
+                                  setSignup((current) => ({
+                                    ...current,
+                                    verificationCode: event.target.value,
+                                  }))
+                                }
+                                value={signup.verificationCode}
+                              />
+                            : null}
+                          <button
+                            className="w-full rounded-xl border border-purple-200/20 bg-purple-600/45! px-4 py-3 text-sm font-semibold hover:bg-purple-500/60! disabled:opacity-60"
+                            disabled={
+                              verificationSending ||
+                              cookiesEnabled === false ||
+                              !signup.contact.trim()
+                            }
+                            onClick={requestVerification}
+                            type="button"
+                          >
+                            {verificationSending
+                              ? copy.authSendingCode
+                              : signup.verificationId
+                                ? copy.authResendCode
+                                : copy.authSendCode}
+                          </button>
+                        </div>
+                      : null}
+                    <PasswordInput
+                      copy={copy}
+                      onChange={(event) =>
+                        setSignup((current) => ({
+                          ...current,
+                          password: event.target.value,
+                        }))
+                      }
+                      value={signup.password}
+                    />
+                    <p className="text-xs leading-5 text-white/50">
+                      {copy.authPasswordRequirements}
+                    </p>
+                    <div className="rounded-2xl border border-white/10 bg-white/5! p-3">
+                      <div className="flex items-center gap-3">
+                        {captcha?.imageUrl
+                          ? <Image
+                              alt={copy.authCaptchaAlt}
+                              className="h-[90px] min-w-0 flex-1 rounded-xl object-contain"
+                              height={90}
+                              src={captcha.imageUrl}
+                              unoptimized
+                              width={280}
                             />
-                          : null}
+                          : <div className="h-[90px] flex-1 animate-pulse rounded-xl bg-white/10!" />}
                         <button
-                          className="w-full rounded-xl border border-purple-200/20 bg-purple-600/45! px-4 py-3 text-sm font-semibold hover:bg-purple-500/60! disabled:opacity-60"
-                          disabled={
-                            verificationSending ||
-                            cookiesEnabled === false ||
-                            !signup.contact.trim()
-                          }
-                          onClick={requestVerification}
+                          aria-label={copy.authRefreshCaptcha}
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10! hover:bg-white/15!"
+                          onClick={loadCaptcha}
                           type="button"
                         >
-                          {verificationSending
-                            ? copy.authSendingCode
-                            : signup.verificationId
-                              ? copy.authResendCode
-                              : copy.authSendCode}
+                          <icon>refresh</icon>
                         </button>
                       </div>
-                    : null}
-                  <PasswordInput
-                    copy={copy}
-                    onChange={(event) =>
-                      setSignup((current) => ({
-                        ...current,
-                        password: event.target.value,
-                      }))
-                    }
-                    value={signup.password}
-                  />
-                  <p className="text-xs leading-5 text-white/50">
-                    {copy.authPasswordRequirements}
-                  </p>
-                  <div className="rounded-2xl border border-white/10 bg-white/5! p-3">
-                    <div className="flex items-center gap-3">
-                      {captcha?.imageUrl
-                        ? <Image
-                            alt={copy.authCaptchaAlt}
-                            className="h-[90px] min-w-0 flex-1 rounded-xl object-contain"
-                            height={90}
-                            src={captcha.imageUrl}
-                            unoptimized
-                            width={280}
-                          />
-                        : <div className="h-[90px] flex-1 animate-pulse rounded-xl bg-white/10!" />}
-                      <button
-                        aria-label={copy.authRefreshCaptcha}
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10! hover:bg-white/15!"
-                        onClick={loadCaptcha}
-                        type="button"
+                      <div className="mt-3">
+                        <AuthInput
+                          autoComplete="off"
+                          icon="shield_lock"
+                          label={copy.authCaptchaLabel}
+                          name="captcha"
+                          onChange={(event) =>
+                            setSignup((current) => ({
+                              ...current,
+                              captchaAnswer: event.target.value,
+                            }))
+                          }
+                          value={signup.captchaAnswer}
+                        />
+                      </div>
+                    </div>
+                    <button
+                      className="liquid-glass w-full rounded-xl bg-purple-600/80! px-4 py-3 font-semibold text-white hover:bg-purple-500/90! disabled:opacity-60"
+                      disabled={
+                        submitting ||
+                        cookiesEnabled === false ||
+                        (getAge(signup.birthDate) !== null &&
+                          getAge(signup.birthDate) < 13)
+                      }
+                      type="submit"
+                    >
+                      {submitting ? copy.authCreatingAccount : copy.signUp}
+                    </button>
+                    <p className="text-center text-xs leading-5 text-white/55">
+                      {copy.authBySigningUp}{" "}
+                      <a
+                        className="text-purple-200 hover:underline"
+                        href="/terms"
                       >
-                        <icon>refresh</icon>
-                      </button>
-                    </div>
-                    <div className="mt-3">
-                      <AuthInput
-                        autoComplete="off"
-                        icon="shield_lock"
-                        label={copy.authCaptchaLabel}
-                        name="captcha"
-                        onChange={(event) =>
-                          setSignup((current) => ({
-                            ...current,
-                            captchaAnswer: event.target.value,
-                          }))
-                        }
-                        value={signup.captchaAnswer}
-                      />
-                    </div>
-                  </div>
-                  <button
-                    className="liquid-glass w-full rounded-xl bg-purple-600/80! px-4 py-3 font-semibold text-white hover:bg-purple-500/90! disabled:opacity-60"
-                    disabled={
-                      submitting ||
-                      cookiesEnabled === false ||
-                      (getAge(signup.birthDate) !== null &&
-                        getAge(signup.birthDate) < 13)
-                    }
-                    type="submit"
-                  >
-                    {submitting ? copy.authCreatingAccount : copy.signUp}
-                  </button>
-                  <p className="text-center text-xs leading-5 text-white/55">
-                    {copy.authBySigningUp}{" "}
-                    <a
-                      className="text-purple-200 hover:underline"
-                      href="/terms"
-                    >
-                      {copy.footerTerms}
-                    </a>{" "}
-                    {copy.authAnd}{" "}
-                    <a
-                      className="text-purple-200 hover:underline"
-                      href="/privacy"
-                    >
-                      {copy.footerPrivacy}
-                    </a>
-                    .
-                  </p>
-                </form>}
+                        {copy.footerTerms}
+                      </a>{" "}
+                      {copy.authAnd}{" "}
+                      <a
+                        className="text-purple-200 hover:underline"
+                        href="/privacy"
+                      >
+                        {copy.footerPrivacy}
+                      </a>
+                      .
+                    </p>
+                  </form>}
           </div>
         </div>
       </div>

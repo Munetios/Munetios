@@ -9,14 +9,20 @@ const avatarFonts = {
   serif: "ui-serif, serif",
 };
 
-function getInitial(account) {
+function getInitials(account) {
   const value =
     account?.avatar?.value ||
     account?.avatarLetter ||
     account?.name ||
+    account?.displayName ||
     account?.email ||
     "M";
-  return Array.from(String(value).trim())[0]?.toLocaleUpperCase() || "M";
+  const parts = String(value).trim().split(/\s+/u).filter(Boolean);
+  const initials =
+    parts.length > 1
+      ? `${Array.from(parts[0])[0] || ""}${Array.from(parts.at(-1))[0] || ""}`
+      : Array.from(parts[0] || "").slice(0, 2).join("");
+  return initials.toLocaleUpperCase() || "M";
 }
 
 function withRetryToken(source, attempt) {
@@ -84,7 +90,7 @@ export default function AccountAvatar({
   const value =
     avatar?.type === "emoji"
       ? avatar.value || "😊"
-      : avatar?.value || getInitial(account);
+      : avatar?.value || getInitials(account);
 
   return (
     <span

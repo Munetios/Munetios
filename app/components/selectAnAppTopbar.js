@@ -180,7 +180,7 @@ export default function SelectAnAppTopbar({ active = true }) {
 
   return (
     <div className="fixed top-0 z-[1000] flex w-full items-center justify-between bg-transparent p-2">
-      <div className="liquid-glass topbar-left flex h-14 items-center gap-2 px-4 text-[var(--foreground)] [border-radius:var(--theme-container-radius)]">
+      <div className="liquid-glass topbar-left flex h-12 items-center gap-2 px-3 text-[var(--foreground)] [border-radius:var(--theme-container-radius)]">
         <a href="/" className="flex items-center gap-2">
           <img
             src="https://www.munetios.com/apple-touch-icon-new.png"
@@ -194,7 +194,7 @@ export default function SelectAnAppTopbar({ active = true }) {
         </a>
       </div>
 
-      <div className="liquid-glass topbar-right flex h-14 items-center gap-2 px-3 text-[var(--foreground)] [border-radius:var(--theme-container-radius)]">
+      <div className="liquid-glass topbar-right flex h-12 items-center gap-2 px-2 text-[var(--foreground)] [border-radius:var(--theme-container-radius)]">
         <button
           aria-label={copy.openAccountMenu}
           aria-controls="accountWrapperPanel"
@@ -203,7 +203,7 @@ export default function SelectAnAppTopbar({ active = true }) {
           className="flex h-10 w-10 cursor-pointer items-center justify-center text-[var(--foreground)] transition-all hover:bg-[color-mix(in_srgb,var(--accent)_30%,transparent)]! [border-radius:var(--theme-radius)] [transition-duration:var(--theme-transition)]"
           onClick={() => {
             updateAccountPanelPosition();
-            setAccountWrapperOpen(true);
+            setAccountWrapperOpen((current) => !current);
           }}
           ref={accountTriggerRef}
           type="button"

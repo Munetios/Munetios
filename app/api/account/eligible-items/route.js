@@ -1,6 +1,6 @@
 import { requireAuth } from "../../../../auth.js";
 import { getAccountData } from "../../../lib/authSecurity.js";
-import { getDemoSettings } from "../../../lib/demoSettings.js";
+import { getEducationProfile } from "../../../lib/education.js";
 import { getOrganizationContext } from "../../../lib/organizationPolicies.js";
 
 export const dynamic = "force-dynamic";
@@ -27,18 +27,14 @@ export async function GET(request) {
     return response;
   }
 
-  const settings = getDemoSettings(session);
   const isBusinessAccount =
     Boolean(getAccountData(session.user.id, "business", null)) ||
     Boolean(getOrganizationContext(session.user));
+  const isEducationAccount = Boolean(getEducationProfile(session.user.id));
   const items =
-    settings?.archived || isBusinessAccount
+    isBusinessAccount || isEducationAccount
       ? []
-      : eligibleSidebarItems.filter((item) =>
-          item.name === "Trusted People"
-            ? settings?.eligibleTrustedPeople !== false
-            : settings?.eligibleFamilies !== false,
-        );
+      : eligibleSidebarItems.filter((item) => item.name === "Families");
   return Response.json(
     {
       items,

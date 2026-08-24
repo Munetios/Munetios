@@ -1,7 +1,7 @@
 export default function LoadingSpinner({
   className = "",
   label = "Loading",
-  strokeWidth = 5,
+  strokeWidth = 4,
 }) {
   return (
     <output aria-label={label} className={`spinner-container ${className}`}>

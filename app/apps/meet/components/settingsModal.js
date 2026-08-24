@@ -12,16 +12,27 @@ import { playMeetTestAudio, prepareMeetAudio } from "./meetSounds";
 const localSettingsKey = "munetios.meet.settings";
 const localDevicesKey = "munetios.meet.devices";
 const defaults = {
+  activityCheatsEnabled: false,
   activitiesSound: true,
+  aiPlaysWordHunt: false,
+  allowAnyAnagramWord: false,
   allowOthersJoinActivity: true,
+  alwaysShowAllActivityWords: false,
   blockedEmails: [],
   blockedPeople: [],
   contactsOnly: false,
+  customChessRules: false,
   desktopNotifications: true,
   leaveWhenAlone: false,
+  ignoreActivityDictionary: false,
+  ignoreChessMoveRules: false,
   noiseCancellation: true,
+  recordingEncodingChunks: "default",
+  recordingQuality: "medium",
+  shareFoundActivityWords: false,
   ttsVoice: "",
   useActivities: true,
+  wordHuntCustomWords: "",
 };
 const panels = [
   ["general", "settings", "meetSettingsGeneral"],
@@ -30,14 +41,69 @@ const panels = [
   ["activities", "extension", "meetSettingsActivities"],
 ];
 
-function Toggle({ checked, description, label, onChange }) {
+function Toggle({ checked, description, disabled = false, label, onChange }) {
   return (
     <div className="meet-settings-toggle">
       <span>
-        <strong>{label}</strong>
+        <span className="ai-settings-toggle-label">
+          <strong>{label}</strong>
+        </span>
         {description ? <small>{description}</small> : null}
       </span>
-      <CustomToggle checked={checked} label={label} onChange={onChange} />
+      <CustomToggle
+        checked={checked}
+        disabled={disabled}
+        label={label}
+        onChange={onChange}
+      />
+    </div>
+  );
+}
+
+function CustomDictionary({ copy, onSave, signedIn, value }) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+  const wordCount = [
+    ...new Set(
+      draft
+        .split(/[\s,;]+/u)
+        .map((word) => word.trim().toLowerCase())
+        .filter((word) => /^[a-z]{2,49}$/u.test(word)),
+    ),
+  ].length;
+  return (
+    <div className="meet-settings-dictionary">
+      <label htmlFor="meetWordHuntCustomDictionary">
+        <strong>{copy.meetActivityCustomDictionary}</strong>
+        <small>{copy.meetActivityCustomDictionaryPlaceholder}</small>
+      </label>
+      <textarea
+        autoComplete="off"
+        disabled={!signedIn}
+        id="meetWordHuntCustomDictionary"
+        onChange={(event) => setDraft(event.target.value)}
+        placeholder={copy.meetActivityCustomDictionaryPlaceholder}
+        spellCheck={false}
+        value={draft}
+      />
+      <footer>
+        <small>
+          {signedIn
+            ? copy.meetActivityDictionaryCount.replace(
+                "{count}",
+                wordCount.toLocaleString(),
+              )
+            : copy.signIn}
+        </small>
+        <button
+          className="meet-settings-primary-link"
+          disabled={!signedIn || draft === value}
+          onClick={() => onSave(draft)}
+          type="button"
+        >
+          {copy.meetActivityCustomDictionarySave}
+        </button>
+      </footer>
     </div>
   );
 }
@@ -90,6 +156,50 @@ function DeviceSelect({ copy, devices, label, onChange, value }) {
         ))}
       </DropdownWrapper>
     </label>
+  );
+}
+
+function RecordingSelect({ label, onChange, options, value }) {
+  const selected =
+    options.find((option) => option.value === value) || options[0];
+  return (
+    <div className="meet-device-field">
+      <span>{label}</span>
+      <DropdownWrapper
+        align="left"
+        ariaLabel={label}
+        buttonClassName="meet-device-trigger liquid-glass"
+        panelClassName="w-[min(32rem,calc(100vw-2rem))]"
+        trigger={
+          <>
+            <span>{selected.label}</span>
+            <icon>expand_more</icon>
+          </>
+        }
+      >
+        {options.map((option) => (
+          <button
+            className="meet-menu-item meet-recording-setting-option"
+            data-dropdown-close
+            key={option.value}
+            onClick={() => onChange(option.value)}
+            role="menuitemradio"
+            aria-checked={value === option.value}
+            type="button"
+          >
+            <icon>
+              {value === option.value
+                ? "radio_button_checked"
+                : "radio_button_unchecked"}
+            </icon>
+            <span>
+              <strong>{option.label}</strong>
+              {option.description ? <small>{option.description}</small> : null}
+            </span>
+          </button>
+        ))}
+      </DropdownWrapper>
+    </div>
   );
 }
 
@@ -299,7 +409,7 @@ function formatRecordingSize(bytes) {
   return `${Math.max(1, Math.round(value / 1024))} KB`;
 }
 
-function RecordingsPanel({ copy, signedIn }) {
+function RecordingsPanel({ copy, onUpdate, settings, signedIn }) {
   const [payload, setPayload] = useState(null);
   const [failed, setFailed] = useState(false);
   const load = useCallback(() => {
@@ -322,45 +432,73 @@ function RecordingsPanel({ copy, signedIn }) {
     return () =>
       window.removeEventListener("munetios:meetrecordingschange", load);
   }, [load]);
-  if (!signedIn) {
-    return (
-      <div className="meet-settings-card">
-        <p>{copy.meetRecordingsSignInDescription}</p>
-      </div>
-    );
-  }
-  if (failed) {
-    return (
-      <div className="meet-settings-card">
-        <p>{copy.meetRecordingsLoadFailed}</p>
-        <button
-          className="meet-settings-primary-link"
-          onClick={load}
-          type="button"
-        >
-          {copy.retry}
-        </button>
-      </div>
-    );
-  }
-  if (!payload) {
-    return (
-      <div className="meet-settings-card">
-        <LoadingSpinner label={copy.loading} />
-      </div>
-    );
-  }
-  const used = formatRecordingSize(payload.capacity?.usedBytes);
-  const limit = formatRecordingSize(payload.capacity?.limitBytes);
+  const qualityOptions = [
+    ["lowest", copy.meetRecordingQualityLowest],
+    ["lower", copy.meetRecordingQualityLower],
+    ["medium", copy.meetRecordingQualityMedium],
+    ["higher", copy.meetRecordingQualityHigher],
+    ["highest", copy.meetRecordingQualityHighest],
+  ].map(([value, label]) => ({ label, value }));
+  const chunkOptions = [
+    ["default", copy.meetRecordingEncodingChunksDefault],
+    [
+      "high",
+      copy.meetRecordingEncodingChunksHigh,
+      copy.meetRecordingEncodingChunksHighDescription,
+    ],
+    ["medium", copy.meetRecordingEncodingChunksMedium],
+    [
+      "low",
+      copy.meetRecordingEncodingChunksLow,
+      copy.meetRecordingEncodingChunksLowDescription,
+    ],
+  ].map(([value, label, description]) => ({ description, label, value }));
+  const used = formatRecordingSize(payload?.capacity?.usedBytes);
+  const limit = formatRecordingSize(payload?.capacity?.limitBytes);
   return (
     <div className="meet-settings-stack">
       <section className="meet-settings-card">
-        <strong>{copy.storage}</strong>
-        <p>
-          {used} / {limit} {copy.storageUsed}
-        </p>
+        <RecordingSelect
+          label={copy.meetRecordingQuality}
+          onChange={(recordingQuality) => onUpdate({ recordingQuality })}
+          options={qualityOptions}
+          value={settings.recordingQuality}
+        />
+        <RecordingSelect
+          label={copy.meetRecordingEncodingChunks}
+          onChange={(recordingEncodingChunks) =>
+            onUpdate({ recordingEncodingChunks })
+          }
+          options={chunkOptions}
+          value={settings.recordingEncodingChunks}
+        />
       </section>
-      {payload.recordings.length
+      {!signedIn
+        ? <div className="meet-settings-card">
+            <p>{copy.meetRecordingsSignInDescription}</p>
+          </div>
+        : failed
+          ? <div className="meet-settings-card">
+              <p>{copy.meetRecordingsLoadFailed}</p>
+              <button
+                className="meet-settings-primary-link"
+                onClick={load}
+                type="button"
+              >
+                {copy.retry}
+              </button>
+            </div>
+          : !payload
+            ? <div className="meet-settings-card">
+                <LoadingSpinner label={copy.loading} />
+              </div>
+            : <section className="meet-settings-card">
+                <strong>{copy.storage}</strong>
+                <p>
+                  {used} / {limit} {copy.storageUsed}
+                </p>
+              </section>}
+      {signedIn && payload?.recordings.length
         ? <div className="meet-recordings-list">
             {payload.recordings.map((recording) => (
               <article className="meet-settings-card" key={recording.id}>
@@ -400,9 +538,11 @@ function RecordingsPanel({ copy, signedIn }) {
               </article>
             ))}
           </div>
-        : <div className="meet-settings-card">
-            <p>{copy.meetNoRecordings}</p>
-          </div>}
+        : signedIn && payload && !failed
+          ? <div className="meet-settings-card">
+              <p>{copy.meetNoRecordings}</p>
+            </div>
+          : null}
     </div>
   );
 }
@@ -587,8 +727,18 @@ function MeetSettingsContent({ copy, signedIn }) {
       <aside aria-label={copy.meetSettingsNav}>
         {panels.map(([id, icon, key]) => (
           <button
-            aria-current={activePanel === id ? "page" : undefined}
-            className={activePanel === id ? "is-active" : ""}
+            aria-current={
+              activePanel === id ||
+              (id === "activities" && activePanel === "advancedActivities")
+                ? "page"
+                : undefined
+            }
+            className={
+              activePanel === id ||
+              (id === "activities" && activePanel === "advancedActivities")
+                ? "is-active"
+                : ""
+            }
             key={id}
             onClick={() => setActivePanel(id)}
             type="button"
@@ -599,7 +749,11 @@ function MeetSettingsContent({ copy, signedIn }) {
         ))}
       </aside>
       <section className="meet-settings-content">
-        <h2>{copy[panels.find(([id]) => id === activePanel)?.[2]]}</h2>
+        <h2>
+          {activePanel === "advancedActivities"
+            ? copy.meetActivityAdvanced
+            : copy[panels.find(([id]) => id === activePanel)?.[2]]}
+        </h2>
         {activePanel === "general"
           ? <div className="meet-settings-stack">
               <section className="meet-settings-card">
@@ -752,8 +906,120 @@ function MeetSettingsContent({ copy, signedIn }) {
                     label={copy.meetActivitiesSound}
                     onChange={(activitiesSound) => update({ activitiesSound })}
                   />
+                  <CustomDictionary
+                    copy={copy}
+                    onSave={(wordHuntCustomWords) =>
+                      update({ wordHuntCustomWords })
+                    }
+                    signedIn={signedIn}
+                    value={settings.wordHuntCustomWords}
+                  />
+                  <button
+                    className="meet-settings-row-button"
+                    onClick={() => setActivePanel("advancedActivities")}
+                    type="button"
+                  >
+                    <span>
+                      <strong>{copy.meetActivityAdvanced}</strong>
+                      <small>{copy.meetActivityAdvancedDescription}</small>
+                    </span>
+                    <icon>chevron_right</icon>
+                  </button>
                 </div>
-              : <RecordingsPanel copy={copy} signedIn={signedIn} />}
+              : activePanel === "advancedActivities"
+                ? <div className="meet-settings-stack">
+                    <button
+                      className="meet-settings-back"
+                      onClick={() => setActivePanel("activities")}
+                      type="button"
+                    >
+                      <icon>arrow_back</icon>
+                      {copy.meetActivityBackToActivities}
+                    </button>
+                    <div className="meet-settings-card">
+                      <Toggle
+                        checked={settings.activityCheatsEnabled}
+                        description={copy.meetActivityCheatsWarning}
+                        label={copy.meetActivityCheatsEnabled}
+                        onChange={(activityCheatsEnabled) =>
+                          update({ activityCheatsEnabled })
+                        }
+                      />
+                      <div
+                        className="meet-settings-cheat-options"
+                        data-enabled={settings.activityCheatsEnabled}
+                      >
+                        <Toggle
+                          checked={settings.ignoreActivityDictionary}
+                          disabled={!settings.activityCheatsEnabled}
+                          label={copy.meetActivityIgnoreDictionary}
+                          onChange={(ignoreActivityDictionary) =>
+                            update({ ignoreActivityDictionary })
+                          }
+                        />
+                        <Toggle
+                          checked={settings.alwaysShowAllActivityWords}
+                          disabled={!settings.activityCheatsEnabled}
+                          label={copy.meetActivityAlwaysShowAllWords}
+                          onChange={(alwaysShowAllActivityWords) =>
+                            update({ alwaysShowAllActivityWords })
+                          }
+                        />
+                        <Toggle
+                          checked={settings.aiPlaysWordHunt}
+                          disabled={!settings.activityCheatsEnabled}
+                          label={copy.meetActivityAiPlaysWordHunt}
+                          onChange={(aiPlaysWordHunt) =>
+                            update({ aiPlaysWordHunt })
+                          }
+                        />
+                        <Toggle
+                          checked={settings.shareFoundActivityWords}
+                          disabled={!settings.activityCheatsEnabled}
+                          label={copy.meetActivityShareFoundWords}
+                          onChange={(shareFoundActivityWords) =>
+                            update({ shareFoundActivityWords })
+                          }
+                        />
+                        <Toggle
+                          checked={settings.allowAnyAnagramWord}
+                          disabled={!settings.activityCheatsEnabled}
+                          label={copy.meetActivityAllowAnyAnagramWord}
+                          onChange={(allowAnyAnagramWord) =>
+                            update({ allowAnyAnagramWord })
+                          }
+                        />
+                        <Toggle
+                          checked={settings.customChessRules}
+                          disabled={!settings.activityCheatsEnabled}
+                          label={copy.meetActivityCustomChessRules}
+                          onChange={(customChessRules) =>
+                            update({ customChessRules })
+                          }
+                        />
+                        <Toggle
+                          checked={settings.ignoreChessMoveRules}
+                          disabled={!settings.activityCheatsEnabled}
+                          label={copy.meetActivityIgnoreChessMoveRules}
+                          onChange={(ignoreChessMoveRules) =>
+                            update({ ignoreChessMoveRules })
+                          }
+                        />
+                      </div>
+                      {settings.activityCheatsEnabled
+                        ? <p className="meet-settings-cheat-warning">
+                            <icon>warning</icon>
+                            {copy.meetActivityCompetitiveDisabled}
+                          </p>
+                        : null}
+                    </div>
+                  </div>
+                : <RecordingsPanel
+                    copy={copy}
+                    onUpdate={update}
+                    settings={settings}
+                    signedIn={signedIn}
+                  />}
       </section>
     </div>
   );
@@ -762,6 +1028,7 @@ function MeetSettingsContent({ copy, signedIn }) {
 export function openMeetSettingsModal({ copy, signedIn }) {
   showModal(<MeetSettingsContent copy={copy} signedIn={signedIn} />, {
     ariaLabel: copy.settings,
+    className: "meet-settings-modal",
     contentClassName: "overflow-hidden",
     height: "min(46rem, calc(100dvh - 1rem))",
     title: copy.settings,

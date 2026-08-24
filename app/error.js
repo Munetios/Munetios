@@ -1,7 +1,7 @@
 "use client";
 
-import MunetiosErrorView from "./components/munetiosErrorView";
+import ErrorToast from "./components/errorToast";
 
-export default function AppError({ reset, unstable_retry }) {
-  return <MunetiosErrorView mode="error" onRetry={unstable_retry ?? reset} />;
+export default function AppError({ error }) {
+  return <ErrorToast error={error} />;
 }

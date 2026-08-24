@@ -114,6 +114,7 @@ function PaymentMethodEditor({ close, copy, onChanged, paymentMethods }) {
         const setup = await billingAction({ action: "setup_payment_method" });
         const stripeInstance = await loadStripe(setup.publishableKey, {
           developerTools: { assistant: { enabled: false } },
+          locale: setup.locale || "en",
         });
         if (!stripeInstance || !active) return;
         const elementsInstance = stripeInstance.elements({
@@ -130,6 +131,7 @@ function PaymentMethodEditor({ close, copy, onChanged, paymentMethods }) {
             },
           },
           clientSecret: setup.clientSecret,
+          locale: setup.locale || "en",
         });
         paymentElement = elementsInstance.create("payment", {
           layout: { type: "tabs" },
@@ -417,7 +419,12 @@ function ChangeSubscriptionForm({ close, copy, onChanged, subscriptions }) {
 export default function AccountBillingSection({ copy }) {
   const [billing, setBilling] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadFailures, setLoadFailures] = useState({
+    invoices: false,
+    subscriptions: false,
+  });
   const [openingAction, setOpeningAction] = useState("");
+  const [allowPayments, setAllowPayments] = useState("allow");
 
   const loadBilling = useCallback(async () => {
     setLoading(true);
@@ -427,9 +434,14 @@ export default function AccountBillingSection({ copy }) {
         credentials: "include",
       });
       if (!response.ok) throw new Error("billing_load_failed");
-      setBilling(await response.json());
+      const payload = await response.json();
+      setBilling(payload);
+      setLoadFailures({
+        invoices: payload.invoicesLoadFailed === true,
+        subscriptions: payload.subscriptionsLoadFailed === true,
+      });
     } catch {
-      // The shared API watcher presents the translated subscription failure toast.
+      setLoadFailures({ invoices: true, subscriptions: true });
     } finally {
       setLoading(false);
     }
@@ -438,6 +450,29 @@ export default function AccountBillingSection({ copy }) {
   useEffect(() => {
     void loadBilling();
   }, [loadBilling]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const response = await fetch("/api/account/family", {
+          credentials: "include",
+        });
+        if (!response.ok) throw new Error("family_load_failed");
+        const payload = await response.json();
+        if (!active) return;
+        const value = payload?.self?.parentalControls?.allowPayments;
+        setAllowPayments(value || "allow");
+      } catch {
+        if (active) setAllowPayments("allow");
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const managedView = billing?.managedView === true;
 
   const openPortal = async (action = "portal") => {
     setOpeningAction(action);
@@ -538,6 +573,19 @@ export default function AccountBillingSection({ copy }) {
   const paymentMethods = billing?.paymentMethods || [];
   const invoices = billing?.invoices || [];
 
+  const upgradeBlocked = managedView && allowPayments !== "allow";
+  const upgradeDisabled = managedView && allowPayments === "disallow";
+
+  const handleUpgradeClick = (event) => {
+    if (!upgradeBlocked) return;
+    event.preventDefault();
+    if (upgradeDisabled) return;
+    showToast({
+      message: copy.familyUpgradeRequiresApproval,
+      type: "info",
+    });
+  };
+
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <div>
@@ -546,6 +594,12 @@ export default function AccountBillingSection({ copy }) {
           {copy.accountSettingsBillingDescription}
         </p>
       </div>
+
+      {managedView
+        ? <p className="rounded-2xl border border-amber-200/25 bg-amber-500/15! p-4 text-sm leading-6 text-amber-50">
+            {copy.familyManagedByParentNotice}
+          </p>
+        : null}
 
       <section className="liquid-glass rounded-2xl border border-white/10 bg-purple-950/30! p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -560,8 +614,15 @@ export default function AccountBillingSection({ copy }) {
             </p>
           </div>
           <a
-            className="liquid-glass rounded-xl border border-purple-200/20 bg-purple-600/65! px-4 py-2.5 text-center text-sm font-bold text-white transition hover:bg-purple-500/80!"
+            aria-disabled={upgradeDisabled}
+            className={`liquid-glass rounded-xl border border-purple-200/20 bg-purple-600/65! px-4 py-2.5 text-center text-sm font-bold text-white transition hover:bg-purple-500/80! ${
+              upgradeDisabled
+                ? "pointer-events-none cursor-not-allowed opacity-50"
+                : ""
+            }`}
             href="/apps/ai/pricing"
+            onClick={handleUpgradeClick}
+            title={upgradeDisabled ? copy.familyUpgradeNotAllowed : undefined}
           >
             {copy.aiProfileUpgradePlan}
           </a>
@@ -584,21 +645,23 @@ export default function AccountBillingSection({ copy }) {
           >
             {copy.retry}
           </button>
-          <button
-            className="liquid-glass rounded-xl bg-[var(--accent)]! px-3 py-2 text-sm font-bold text-white disabled:opacity-55"
-            disabled={
-              loading ||
-              !subscriptions.some((subscription) =>
-                ["active", "trialing", "past_due"].includes(
-                  subscription.status,
-                ),
-              )
-            }
-            onClick={openSubscriptionChanger}
-            type="button"
-          >
-            {copy.billingChangeSubscription}
-          </button>
+          {managedView
+            ? null
+            : <button
+                className="liquid-glass rounded-xl bg-[var(--accent)]! px-3 py-2 text-sm font-bold text-white disabled:opacity-55"
+                disabled={
+                  loading ||
+                  !subscriptions.some((subscription) =>
+                    ["active", "trialing", "past_due"].includes(
+                      subscription.status,
+                    ),
+                  )
+                }
+                onClick={openSubscriptionChanger}
+                type="button"
+              >
+                {copy.billingChangeSubscription}
+              </button>}
         </div>
         <div className="mt-4 space-y-3">
           {subscriptions.map((subscription) => (
@@ -630,9 +693,8 @@ export default function AccountBillingSection({ copy }) {
                         )}
                   </p>
                 </div>
-                {["active", "trialing", "past_due"].includes(
-                  subscription.status,
-                )
+                {!managedView &&
+                ["active", "trialing", "past_due"].includes(subscription.status)
                   ? subscription.cancelAtPeriodEnd
                     ? <button
                         className="rounded-xl border border-emerald-200/20 bg-emerald-700/25! px-3 py-2 text-sm font-semibold"
@@ -657,7 +719,12 @@ export default function AccountBillingSection({ copy }) {
               </div>
             </article>
           ))}
-          {!loading && subscriptions.length === 0
+          {!loading && loadFailures.subscriptions
+            ? <p className="rounded-xl border border-rose-200/20 bg-rose-950/25! p-4 text-sm text-rose-100">
+                {copy.billingSubscriptionsLoadFailed}
+              </p>
+            : null}
+          {!loading && !loadFailures.subscriptions && subscriptions.length === 0
             ? <p className="rounded-xl border border-white/10 bg-white/5! p-4 text-sm text-white/60">
                 {copy.billingNoSubscriptions}
               </p>
@@ -673,14 +740,16 @@ export default function AccountBillingSection({ copy }) {
               {copy.billingPaymentMethodsDescription}
             </p>
           </div>
-          <button
-            className="liquid-glass rounded-xl bg-purple-700/55! px-3 py-2 text-sm font-bold disabled:opacity-55"
-            disabled={loading}
-            onClick={openPaymentMethodEditor}
-            type="button"
-          >
-            {copy.billingEditPaymentMethods}
-          </button>
+          {managedView
+            ? null
+            : <button
+                className="liquid-glass rounded-xl bg-purple-700/55! px-3 py-2 text-sm font-bold disabled:opacity-55"
+                disabled={loading}
+                onClick={openPaymentMethodEditor}
+                type="button"
+              >
+                {copy.billingEditPaymentMethods}
+              </button>}
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {paymentMethods.map((paymentMethod) => (
@@ -755,29 +824,36 @@ export default function AccountBillingSection({ copy }) {
               </div>
             </article>
           ))}
-          {!loading && invoices.length === 0
+          {!loading && loadFailures.invoices
+            ? <p className="rounded-xl border border-rose-200/20 bg-rose-950/25! p-4 text-sm text-rose-100">
+                {copy.billingInvoicesLoadFailed}
+              </p>
+            : null}
+          {!loading && !loadFailures.invoices && invoices.length === 0
             ? <p className="text-sm text-white/60">{copy.billingNoInvoices}</p>
             : null}
         </div>
       </section>
 
-      <section className="liquid-glass rounded-2xl border border-white/10 bg-purple-950/30! p-5">
-        <h2 className="text-lg font-bold">{copy.billingManageTitle}</h2>
-        <p className="mt-2 text-sm leading-6 text-white/65">
-          {copy.billingManageDescription}
-        </p>
-        <button
-          className="liquid-glass mt-4 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-purple-700/55! px-4 py-2.5 text-sm font-bold transition hover:bg-purple-600/70! disabled:opacity-55"
-          disabled={loading || Boolean(openingAction)}
-          onClick={() => openPortal("portal")}
-          type="button"
-        >
-          <icon>open_in_new</icon>
-          {openingAction === "portal"
-            ? copy.billingOpeningPortal
-            : copy.billingOpenPortal}
-        </button>
-      </section>
+      {managedView
+        ? null
+        : <section className="liquid-glass rounded-2xl border border-white/10 bg-purple-950/30! p-5">
+            <h2 className="text-lg font-bold">{copy.billingManageTitle}</h2>
+            <p className="mt-2 text-sm leading-6 text-white/65">
+              {copy.billingManageDescription}
+            </p>
+            <button
+              className="liquid-glass mt-4 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-purple-700/55! px-4 py-2.5 text-sm font-bold transition hover:bg-purple-600/70! disabled:opacity-55"
+              disabled={loading || Boolean(openingAction)}
+              onClick={() => openPortal("portal")}
+              type="button"
+            >
+              <icon>open_in_new</icon>
+              {openingAction === "portal"
+                ? copy.billingOpeningPortal
+                : copy.billingOpenPortal}
+            </button>
+          </section>}
     </div>
   );
 }

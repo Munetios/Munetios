@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import DropdownWrapper from "../../../components/dropdownwrapper";
 import { showToast } from "../../../components/toast";
+import { hasSignedInCookie } from "../../../lib/signedInCookie";
 import {
   ensureAccountVaultUnlocked,
   getActiveTasksWorkspaceId,
@@ -49,14 +50,7 @@ const navigationItems = [
 
 async function updateStoredList(update) {
   const workspaceId = getActiveTasksWorkspaceId();
-  const sessionResponse = await fetch("/api/signedin", {
-    cache: "no-store",
-    credentials: "include",
-  });
-  const session = await sessionResponse.json();
-  const signedIn = Boolean(
-    sessionResponse.ok && session.authenticated && session.signedIn,
-  );
+  const signedIn = hasSignedInCookie();
   const document = signedIn
     ? getUnlockedAccountData()
       ? await refreshUnlockedAccountData()
@@ -236,6 +230,7 @@ function TaskListOptionsWrapper({ copy, list, lists, onNavigate }) {
 export default function TasksSidebar({ copy, expanded, onNavigate }) {
   const pathname = usePathname();
   const [lists, setLists] = useState(() => readCachedTaskLists("default"));
+  const [studentAccount, setStudentAccount] = useState(false);
 
   useEffect(() => {
     const refresh = (event) => {
@@ -252,6 +247,16 @@ export default function TasksSidebar({ copy, expanded, onNavigate }) {
       window.removeEventListener("munetios:tasklistschange", refresh);
       window.removeEventListener("munetios:workspacechange", refresh);
     };
+  }, []);
+
+  useEffect(() => {
+    if (!hasSignedInCookie()) return;
+    fetch("/api/account", { cache: "no-store", credentials: "include" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((account) =>
+        setStudentAccount(account?.education?.role === "student"),
+      )
+      .catch(() => setStudentAccount(false));
   }, []);
 
   return (
@@ -310,6 +315,29 @@ export default function TasksSidebar({ copy, expanded, onNavigate }) {
                 </Link>
               </header>
               <div>
+                {studentAccount
+                  ? <div className="tasks-sidebar-list-row">
+                      <Link
+                        aria-current={
+                          pathname.startsWith("/apps/tasks/teacher-assigned")
+                            ? "page"
+                            : undefined
+                        }
+                        aria-label={copy.educationTeacherAssigned}
+                        className="tasks-sidebar-item"
+                        href="/apps/tasks/teacher-assigned"
+                        onClick={onNavigate}
+                        title={copy.educationTeacherAssigned}
+                      >
+                        <span className="tasks-sidebar-icon">
+                          <icon>assignment_turned_in</icon>
+                        </span>
+                        <span className="tasks-nav-label">
+                          {copy.educationTeacherAssigned}
+                        </span>
+                      </Link>
+                    </div>
+                  : null}
                 {lists.map((list) => {
                   const href = getTaskListHref(list);
                   const isCurrent = list.system
@@ -328,9 +356,7 @@ export default function TasksSidebar({ copy, expanded, onNavigate }) {
                         title={getTaskListName(list, copy)}
                       >
                         <span className="tasks-sidebar-icon">
-                          <icon>
-                            {list.system ? "checklist" : "list_alt"}
-                          </icon>
+                          <icon>{list.system ? "checklist" : "list_alt"}</icon>
                         </span>
                         <span className="tasks-nav-label">
                           {getTaskListName(list, copy)}

@@ -41,6 +41,10 @@ const compactMoreItems = [
   { icon: "delete", key: "omniWriteTrash" },
 ];
 
+function openOmniWriteHelp() {
+  window.open("/help", "_blank", "noopener,noreferrer");
+}
+
 function useTranslatedCopy() {
   const [copy, setCopy] = useState(() => t());
 
@@ -182,16 +186,19 @@ function CompactSidebarMoreMenu({ copy }) {
     >
       <div className="space-y-1">
         {compactMoreItems.map((item) => (
-          <div
-            className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white transition hover:bg-white/10!"
+          <button
+            className="flex w-full cursor-pointer items-center gap-3 rounded-xl border-0 bg-transparent px-3 py-2.5 text-left text-sm text-white transition hover:bg-white/10!"
             data-dropdown-close
             key={item.key}
+            onClick={
+              item.key === "omniWriteHelp" ? openOmniWriteHelp : undefined
+            }
             role="menuitem"
-            tabIndex={0}
+            type="button"
           >
             <icon>{item.icon}</icon>
             <span data-translate={item.key}>{copy[item.key]}</span>
-          </div>
+          </button>
         ))}
       </div>
     </DropdownWrapper>
@@ -403,8 +410,8 @@ export default function OmniWriteSidebar({ open, onToggle }) {
                   item.key === "businessFeedback"
                     ? () => openFeedbackModal({ context: "omniwrite" })
                     : item.key === "omniWriteHelp"
-                      ? () => window.location.assign("/help")
-                    : undefined
+                      ? openOmniWriteHelp
+                      : undefined
                 }
               />,
         )}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { t } from "../../../i18n";
+import { createResponsiveMediaQuery } from "../../../lib/responsiveMediaQuery";
 import TasksSidebar from "./sidebar";
 import TasksPwaRegistration from "./tasksPwaRegistration";
 import TasksTopbar from "./topbar";
@@ -14,7 +15,7 @@ export default function TasksShell({ children = null }) {
   const [sidebarOverlayMode, setSidebarOverlayMode] = useState(true);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia(sidebarOverlayQuery);
+    const mediaQuery = createResponsiveMediaQuery(sidebarOverlayQuery);
     const syncSidebarMode = (event) => {
       setSidebarOverlayMode(event.matches);
       setSidebarOpen(!event.matches);

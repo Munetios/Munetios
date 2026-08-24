@@ -183,24 +183,6 @@
       <div class="app-folder-grid liquid-glass">
         <div
           class="app-launcher-item"
-          data-app-url="https://mail.munetios.com/"
-          data-i18n-app="mail"
-          id="munetiosMailApp"
-        >
-          <img src="mail.png" alt="Munetios Mail" width="120" />
-          <div class="app-launcher-text" data-i18n-text="mail">Mail</div>
-        </div>
-        <div
-          class="app-launcher-item"
-          data-app-url="/apps/ai"
-          data-i18n-app="ai"
-          id="munetiosAIApp"
-        >
-          <img src="ai.png" alt="Munetios AI" width="120" />
-          <div class="app-launcher-text" data-i18n-text="ai">Munetios AI</div>
-        </div>
-        <div
-          class="app-launcher-item"
           data-app-url="/apps/calendar"
           data-i18n-app="calendar"
           id="munetiosCalendarApp"
@@ -210,18 +192,10 @@
             Calendar
           </div>
         </div>
+
         <div
           class="app-launcher-item"
-          data-app-url="https://drive.munetios.com/"
-          data-i18n-app="drive"
-          id="munetiosDriveApp"
-        >
-          <img src="drive.png" alt="Munetios Drive" width="120" />
-          <div class="app-launcher-text" data-i18n-text="drive">Drive</div>
-        </div>
-        <div
-          class="app-launcher-item"
-          data-app-url="/apps/omniwrite"
+          data-app-url="https://omniwrite.munetios.com/"
           data-i18n-app="omniwrite"
           id="munetiosOmniWriteApp"
         >
@@ -239,38 +213,11 @@
           <img src="meet.png" alt="Munetios Meet" width="120" />
           <div class="app-launcher-text" data-i18n-text="meet">Meet</div>
         </div>
-        <div
-          class="app-launcher-item"
-          data-app-url="https://chat.munetios.com/"
-          data-i18n-app="chat"
-          id="munetiosChatApp"
-        >
-          <img src="chat.png" alt="Munetios Chat" width="120" />
-          <div class="app-launcher-text" data-i18n-text="chat">Chat</div>
-        </div>
-        <div
-          class="app-launcher-item"
-          data-app-url="https://sheets.munetios.com/"
-          data-i18n-app="sheets"
-          id="munetiosSheetsApp"
-        >
-          <img src="sheets.png" alt="Munetios Sheets" width="120" />
-          <div class="app-launcher-text" data-i18n-text="sheets">Sheets</div>
-        </div>
-        <div
-          class="app-launcher-item"
-          data-app-url="https://slides.munetios.com/"
-          data-i18n-app="slides"
-          id="munetiosSlidesApp"
-        >
-          <img src="slides.png" alt="Munetios Slides" width="120" />
-          <div class="app-launcher-text" data-i18n-text="slides">Slides</div>
-        </div>
       </div>
       <div class="app-folder-grid liquid-glass">
         <div
           class="app-launcher-item"
-          data-app-url="/apps/notes"
+          data-app-url="https://notes.munetios.com/"
           data-i18n-app="supanotes"
           id="munetiosSupaNotesApp"
         >
@@ -285,7 +232,7 @@
         </div>
         <div
           class="app-launcher-item"
-          data-app-url="/apps/photos"
+          data-app-url="https://photos.munetios.com/"
           data-i18n-app="photos"
           id="munetiosPhotosApp"
         >
@@ -298,7 +245,7 @@
         </div>
         <div
           class="app-launcher-item"
-          data-app-url="/apps/meals"
+          data-app-url="https://calendar.munetios.com/new/meals"
           data-i18n-app="meals"
           id="munetiosMealsApp"
         >
@@ -362,15 +309,11 @@
           Array.from(document.querySelectorAll(".app-launcher-item"));
 
         const organizationAppIds = {
-          ai: "munetiosAIApp",
           calendar: "munetiosCalendarApp",
-          chat: "munetiosChatApp",
-          drive: "munetiosDriveApp",
-          mail: "munetiosMailApp",
+
           meet: "munetiosMeetApp",
           omniwrite: "munetiosOmniWriteApp",
-          sheets: "munetiosSheetsApp",
-          slides: "munetiosSlidesApp",
+
           tasks: "munetiosTasksApp",
         };
 
@@ -518,6 +461,15 @@
           const url = item?.dataset.appUrl;
 
           if (!url) {
+            return;
+          }
+
+          const openInNewTab =
+            readLocalStorage("munetios.openAppLauncherLinksInNewTab") !==
+            "false";
+
+          if (openInNewTab) {
+            window.open(url, "_blank", "noopener,noreferrer");
             return;
           }
 

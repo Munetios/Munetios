@@ -79,8 +79,8 @@ export function getUserHour12(locale, preferences) {
   }).resolvedOptions().hour12;
 }
 
-function formatCustomDate(date, locale, preferences) {
-  const timeZone = getTimeZone(preferences);
+function formatCustomDate(date, locale, preferences, timeZoneOverride) {
+  const timeZone = timeZoneOverride || getTimeZone(preferences);
   const numericParts = new Intl.DateTimeFormat("en-US", {
     day: "2-digit",
     month: "2-digit",
@@ -136,18 +136,24 @@ export function formatUserDate(value, options = {}) {
     preferences.dateFormat === "auto"
       ? getRegionalLocale(getUserLocale(options.locale), preferences)
       : getUserLocale(options.locale);
+  const timeZone = options.timeZone || getTimeZone(preferences);
   if (preferences.dateFormat === "custom") {
-    return formatCustomDate(date, locale, preferences);
+    return formatCustomDate(date, locale, preferences, timeZone);
   }
   if (preferences.dateFormat && preferences.dateFormat !== "auto") {
-    return formatCustomDate(date, locale, {
-      ...preferences,
-      customDateFormat: preferences.dateFormat,
-    });
+    return formatCustomDate(
+      date,
+      locale,
+      {
+        ...preferences,
+        customDateFormat: preferences.dateFormat,
+      },
+      timeZone,
+    );
   }
   return new Intl.DateTimeFormat(locale, {
     dateStyle: options.dateStyle || "medium",
-    timeZone: getTimeZone(preferences),
+    timeZone,
   }).format(date);
 }
 
@@ -160,12 +166,13 @@ export function formatUserTime(value, options = {}) {
       ? getRegionalLocale(getUserLocale(options.locale), preferences)
       : getUserLocale(options.locale);
   const hour12 = getUserHour12(locale, preferences);
+  const timeZone = options.timeZone || getTimeZone(preferences);
   const formatter = new Intl.DateTimeFormat(locale, {
     hour: "numeric",
     hour12,
     minute: "2-digit",
     second: options.includeSeconds ? "2-digit" : undefined,
-    timeZone: getTimeZone(preferences),
+    timeZone,
   });
   const amSymbol = String(preferences.amSymbol || "").trim();
   const pmSymbol = String(preferences.pmSymbol || "").trim();
@@ -178,7 +185,7 @@ export function formatUserTime(value, options = {}) {
         new Intl.DateTimeFormat("en-US", {
           hour: "numeric",
           hour12: false,
-          timeZone: getTimeZone(preferences),
+          timeZone,
         })
           .formatToParts(date)
           .find((entry) => entry.type === "hour")?.value,

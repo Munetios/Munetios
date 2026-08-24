@@ -1,9 +1,18 @@
 import { auth } from "../../../../auth.js";
+import { translationReportLanguages } from "../../../help/helpLanguages.js";
 import { createHelpReport } from "../../../lib/helpReportDatabase.js";
 
 export const dynamic = "force-dynamic";
 
-const allowedApps = new Set(["ai", "meet", "omniwrite", "tasks", "account"]);
+const allowedApps = new Set([
+  "account",
+  "ai",
+  "calendar",
+  "meet",
+  "omniwrite",
+  "resources",
+  "tasks",
+]);
 const allowedCategories = new Set([
   "accessibility",
   "account",
@@ -15,6 +24,9 @@ const allowedCategories = new Set([
   "security",
   "translation",
 ]);
+const allowedTranslationLanguages = new Set(
+  translationReportLanguages.map((language) => language.value),
+);
 const blockedLanguage =
   /\b(?:fuck|fucking|shit|bitch|asshole|cunt|nigger|faggot|puta|puto|mierda|joder|cabron|cabrón)\b/iu;
 const unsafeContent =
@@ -75,6 +87,13 @@ export async function POST(request) {
   const app = normalize(payload?.app, 40).toLowerCase();
   const category = normalize(payload?.category, 40).toLowerCase();
   const context = normalize(payload?.context, 8000);
+  const translationLanguage = normalize(payload?.translationLanguage, 32);
+  const translationShownText = normalize(payload?.translationShownText, 2000);
+  const translationExpectedText = normalize(
+    payload?.translationExpectedText,
+    2000,
+  );
+  const translationLocation = normalize(payload?.translationLocation, 500);
   const reportType =
     payload?.reportType === "feature-request"
       ? "feature-request"
@@ -94,10 +113,20 @@ export async function POST(request) {
   if (email && !emailPattern.test(email)) {
     return response({ error: "invalid_email" }, 400);
   }
-  if (blockedLanguage.test(`${subject} ${context}`)) {
+  if (
+    category === "translation" &&
+    (!allowedTranslationLanguages.has(translationLanguage) ||
+      !translationShownText ||
+      !translationExpectedText ||
+      !translationLocation)
+  ) {
+    return response({ error: "missing_translation_fields" }, 400);
+  }
+  const reportText = `${subject} ${context} ${translationShownText} ${translationExpectedText} ${translationLocation}`;
+  if (blockedLanguage.test(reportText)) {
     return response({ error: "profanity_not_allowed" }, 400);
   }
-  if (unsafeContent.test(`${subject} ${context}`)) {
+  if (unsafeContent.test(reportText)) {
     return response({ error: "unsafe_content_not_allowed" }, 400);
   }
 
@@ -122,10 +151,20 @@ export async function POST(request) {
   }
 
   reportRateLimits.set(fingerprint, [...attempts, now]);
+  const storedContext =
+    category === "translation"
+      ? [
+          `Affected language: ${translationLanguage}`,
+          `Text shown: ${translationShownText}`,
+          `Expected translation: ${translationExpectedText}`,
+          `Location: ${translationLocation}`,
+          `Additional details: ${context}`,
+        ].join("\n")
+      : context;
   const report = createHelpReport({
     app,
     category,
-    context,
+    context: storedContext,
     createdAt: new Date(now).toISOString(),
     email,
     id: `help-report-${crypto.randomUUID()}`,

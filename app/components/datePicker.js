@@ -61,9 +61,10 @@ export default function DatePicker({
   const monthOptions = useMemo(
     () =>
       Array.from({ length: 12 }, (_, index) => ({
-        label: new Intl.DateTimeFormat(locale, { month: "long" }).format(
-          new Date(Date.UTC(2024, index, 1)),
-        ),
+        label: new Intl.DateTimeFormat(locale, {
+          month: "long",
+          timeZone: "UTC",
+        }).format(new Date(Date.UTC(2024, index, 1))),
         value: index + 1,
       })),
     [locale],

@@ -8,11 +8,15 @@ import {
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { getAccountData } from "./authSecurity.js";
 import {
+  advanceMeetActivityState,
   activityForPeer,
   createMeetActivityState,
   finalizeMeetActivityState,
   joinMeetActivity,
+  meetAnagramsDictionarySize,
+  parseWordHuntCustomWords,
   updateMeetActivityState,
 } from "./meetActivities.js";
 
@@ -24,9 +28,9 @@ const realtimeUserKeySecret =
   process.env.MUNETIOS_REALTIME_USER_KEY_SECRET ||
   process.env.AUTH_SECRET ||
   "munetios-realtime-user-key";
-// Version 4 introduced activities. Recording state was added afterward, so it
-// needs its own version to migrate databases held open by Next.js hot reload.
-const realtimeSchemaVersion = 6;
+// Activity, recording, and profile-status migrations each increment this so
+// databases held open by Next.js hot reload receive the latest peer columns.
+const realtimeSchemaVersion = 7;
 
 function ensureRealtimeChatSchema(database) {
   database.exec(`
@@ -110,6 +114,11 @@ function ensureRealtimePeerStateSchema(database) {
   if (!stateColumns.includes("recording_on")) {
     database.exec(
       "ALTER TABLE realtime_peer_states ADD COLUMN recording_on INTEGER NOT NULL DEFAULT 0;",
+    );
+  }
+  if (!stateColumns.includes("status_emoji")) {
+    database.exec(
+      "ALTER TABLE realtime_peer_states ADD COLUMN status_emoji TEXT NOT NULL DEFAULT '';",
     );
   }
 }
@@ -573,6 +582,19 @@ export function updateRealtimePeerState({
   return Number(result.changes) > 0;
 }
 
+export function updateRealtimePeerStatus({ emoji, peerId, roomId }) {
+  const database = getDatabase();
+  const result = database
+    .prepare(
+      `UPDATE realtime_peer_states
+       SET status_emoji = ?, updated_at = ?
+       WHERE peer_id = ? AND room_id = ?`,
+    )
+    .run(emoji, Date.now(), peerId, roomId);
+  touchRealtimePeer(peerId);
+  return Number(result.changes) > 0;
+}
+
 export function publishRealtimeSignal({
   fromPeerId,
   kind,
@@ -647,7 +669,8 @@ export function pollRealtimeEvents({ after, peerId, roomId }) {
               COALESCE(s.microphone_on, 0) AS microphone_on,
               COALESCE(s.camera_on, 0) AS camera_on,
               COALESCE(s.screen_sharing, 0) AS screen_sharing,
-              COALESCE(s.recording_on, 0) AS recording_on
+              COALESCE(s.recording_on, 0) AS recording_on,
+              COALESCE(s.status_emoji, '') AS status_emoji
        FROM realtime_peers p
        LEFT JOIN realtime_kicks k ON k.peer_id = p.id
        LEFT JOIN realtime_peer_states s ON s.peer_id = p.id
@@ -664,6 +687,7 @@ export function pollRealtimeEvents({ after, peerId, roomId }) {
       peerId: peer.id,
       recordingOn: Boolean(peer.recording_on),
       screenSharing: Boolean(peer.screen_sharing),
+      statusEmoji: peer.status_emoji || "",
       userKey: publicUserKey(peer.user_id),
     }));
   return {
@@ -694,7 +718,39 @@ export function getRealtimeActivity(roomId) {
     )
     .get(roomId);
   if (!row) return null;
-  const state = JSON.parse(row.state_json);
+  let state = JSON.parse(row.state_json);
+  if (state.type === "wordhunt" && state.customDictionaryVersion !== 1) {
+    const owner = database
+      .prepare(
+        "SELECT user_id FROM realtime_peers WHERE id = ? AND room_id = ? LIMIT 1",
+      )
+      .get(row.owner_peer_id, roomId);
+    const settings = owner?.user_id
+      ? getAccountData(owner.user_id, "meet-settings-v1", {})
+      : {};
+    const customWords =
+      parseWordHuntCustomWords(settings.wordHuntCustomWords || "") || [];
+    state = {
+      ...state,
+      customDictionaryVersion: 1,
+      customWords,
+      dictionarySize: meetAnagramsDictionarySize + customWords.length,
+    };
+    database
+      .prepare(
+        "UPDATE realtime_activities SET state_json = ?, updated_at = ? WHERE room_id = ?",
+      )
+      .run(JSON.stringify(state), Date.now(), roomId);
+  }
+  const advancedState = advanceMeetActivityState(state);
+  if (advancedState !== state) {
+    state = advancedState;
+    database
+      .prepare(
+        "UPDATE realtime_activities SET state_json = ?, updated_at = ? WHERE room_id = ?",
+      )
+      .run(JSON.stringify(state), Date.now(), roomId);
+  }
   if (
     (state.type === "anagrams" || state.type === "wordhunt") &&
     !state.ended &&
@@ -726,8 +782,10 @@ export function getRealtimeActivity(roomId) {
 export function startRealtimeActivity({
   allowOthers,
   boardSize,
+  cheats,
   creatorWord,
   customBoard,
+  customWords,
   durationSeconds,
   peerId,
   roomId,
@@ -740,8 +798,10 @@ export function startRealtimeActivity({
   const state = createMeetActivityState({
     allowOthers,
     boardSize,
+    cheats,
     creatorWord,
     customBoard,
+    customWords,
     durationSeconds,
     ownerName: peer.display_name,
     ownerPeerId: peer.id,

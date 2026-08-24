@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -8,10 +9,13 @@ import AccountWrapper from "../components/accountwraper";
 import AppLauncherWrapper from "../components/appLauncherWrapper";
 import AppTopbarRight from "../components/appTopbarRight";
 import CustomToggle from "../components/customToggle";
+import DropdownWrapper from "../components/dropdownwrapper";
 import { openFeedbackModal } from "../components/feedbackModal";
 import { showToast } from "../components/toast";
+import { hasSignedInCookie } from "../lib/signedInCookie";
 import { getArticlesForApp, getHelpArticle, helpApps } from "./helpContent";
 import { getHelpCopy, helpLocales, normalizeHelpLocale } from "./helpI18n";
+import { translationReportLanguages } from "./helpLanguages";
 
 function routePrefix(locale) {
   return locale === "en" ? "" : `/${locale}`;
@@ -30,9 +34,44 @@ function readFile(file) {
   });
 }
 
+function HelpDropdown({ label, onChange, options, value }) {
+  const selected =
+    options.find((option) => option.value === value) || options[0];
+  return (
+    <div className="help-custom-dropdown">
+      <span>{label}</span>
+      <DropdownWrapper
+        align="left"
+        ariaLabel={label}
+        className="help-dropdown-root"
+        buttonClassName="help-dropdown-trigger"
+        trigger={
+          <>
+            <span>{selected?.label}</span>
+            <icon>expand_more</icon>
+          </>
+        }
+      >
+        <div className="help-dropdown-options">
+          {options.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => onChange(option.value)}
+              role="menuitem"
+              type="button"
+            >
+              <span>{option.label}</span>
+              {option.value === value ? <icon>check</icon> : null}
+            </button>
+          ))}
+        </div>
+      </DropdownWrapper>
+    </div>
+  );
+}
+
 function HelpSettings({ close, copy, locale, preferences, setPreferences }) {
-  const chooseLocale = (event) => {
-    const nextLocale = event.target.value;
+  const chooseLocale = (nextLocale) => {
     window.location.assign(
       `${helpHref(nextLocale)}${window.location.pathname.includes("/submit") ? "/submit" : ""}`,
     );
@@ -51,33 +90,28 @@ function HelpSettings({ close, copy, locale, preferences, setPreferences }) {
             <icon>close</icon>
           </button>
         </header>
-        <label>
-          <span>{copy.language}</span>
-          <select onChange={chooseLocale} value={locale}>
-            {Object.entries(helpLocales).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>{copy.theme}</span>
-          <select
-            onChange={(event) =>
-              setPreferences((current) => ({
-                ...current,
-                theme: event.target.value,
-              }))
-            }
-            value={preferences.theme}
-          >
-            <option value="account">{copy.account}</option>
-            <option value="system">{copy.themeSystem}</option>
-            <option value="dark">{copy.themeDark}</option>
-            <option value="light">{copy.themeLight}</option>
-          </select>
-        </label>
+        <HelpDropdown
+          label={copy.language}
+          onChange={chooseLocale}
+          options={Object.entries(helpLocales).map(([value, label]) => ({
+            label,
+            value,
+          }))}
+          value={locale}
+        />
+        <HelpDropdown
+          label={copy.theme}
+          onChange={(theme) =>
+            setPreferences((current) => ({ ...current, theme }))
+          }
+          options={[
+            { label: copy.account, value: "account" },
+            { label: copy.themeSystem, value: "system" },
+            { label: copy.themeDark, value: "dark" },
+            { label: copy.themeLight, value: "light" },
+          ]}
+          value={preferences.theme}
+        />
         <div className="help-toggle">
           <span>{copy.largeFont}</span>
           <CustomToggle
@@ -109,8 +143,58 @@ function HelpSettings({ close, copy, locale, preferences, setPreferences }) {
   );
 }
 
-function HelpTopbar({ copy, locale, preferences, setPreferences }) {
+function HelpChatbotWrapper({ close, copy, locale, path, theme }) {
+  const frameRef = useRef(null);
+  const context = path.filter(Boolean).slice(0, 2).join("/");
+  const source = `/help/chatbot?locale=${encodeURIComponent(locale)}&theme=${encodeURIComponent(theme)}&context=${encodeURIComponent(context)}`;
+
+  useEffect(() => {
+    const receiveMessage = (event) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === "munetios-help-chatbot-close") close();
+    };
+    const closeWithKeyboard = (event) => {
+      if (event.key === "Escape") close();
+    };
+    window.addEventListener("message", receiveMessage);
+    document.addEventListener("keydown", closeWithKeyboard);
+    return () => {
+      window.removeEventListener("message", receiveMessage);
+      document.removeEventListener("keydown", closeWithKeyboard);
+    };
+  }, [close]);
+
+  useEffect(() => {
+    frameRef.current?.contentWindow?.postMessage(
+      { theme, type: "munetios-help-chatbot-theme" },
+      window.location.origin,
+    );
+  }, [theme]);
+
+  return (
+    <aside
+      aria-label={copy.chatbotAssistant}
+      className="help-chatbot-wrapper liquid-glass"
+    >
+      <iframe
+        allow="clipboard-write"
+        onLoad={() =>
+          frameRef.current?.contentWindow?.postMessage(
+            { theme, type: "munetios-help-chatbot-theme" },
+            window.location.origin,
+          )
+        }
+        ref={frameRef}
+        src={source}
+        title={copy.chatbotAssistant}
+      />
+    </aside>
+  );
+}
+
+function HelpTopbar({ copy, locale, path, preferences, setPreferences }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [chatbotOpen, setChatbotOpen] = useState(false);
   const [appsOpen, setAppsOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [user, setUser] = useState(null);
@@ -125,13 +209,17 @@ function HelpTopbar({ copy, locale, preferences, setPreferences }) {
   }, []);
 
   useEffect(() => {
-    fetch("/api/signedin", { cache: "no-store", credentials: "include" })
+    if (!hasSignedInCookie()) {
+      setUser(null);
+      return;
+    }
+
+    setUser({ name: "Munetios" });
+    fetch("/api/account", { cache: "no-store", credentials: "include" })
       .then((response) => (response.ok ? response.json() : null))
-      .then((payload) =>
-        setUser(
-          payload?.authenticated && payload?.signedIn ? payload.user : null,
-        ),
-      )
+      .then((payload) => {
+        if (payload) setUser(payload);
+      })
       .catch(() => undefined);
   }, []);
 
@@ -171,15 +259,29 @@ function HelpTopbar({ copy, locale, preferences, setPreferences }) {
         <div className="help-topbar-left topbar-left">
           <Link className="help-brand liquid-glass" href={helpHref(locale)}>
             <img alt="" src="/favicon.ico" />
-            <span>Munetios {copy.helpCenter}</span>
+            <span>Munetios {copy.documentation}</span>
           </Link>
         </div>
         <AppTopbarRight className="help-topbar-actions help-topbar-right topbar-right">
-          <button className="help-topbar-item" onClick={() => setSettingsOpen(true)} type="button">
+          <button
+            className="help-topbar-item"
+            onClick={() => setSettingsOpen(true)}
+            type="button"
+          >
             <icon>settings</icon>
             <span>{copy.settings}</span>
           </button>
-          <button className="help-topbar-item" disabled title={copy.comingSoon} type="button">
+          <button
+            aria-expanded={chatbotOpen}
+            aria-label={copy.chatbotAssistant}
+            className="help-topbar-item"
+            onClick={() => {
+              setAppsOpen(false);
+              setAccountOpen(false);
+              setChatbotOpen((open) => !open);
+            }}
+            type="button"
+          >
             <icon>smart_toy</icon>
             <span>{copy.chatbot}</span>
           </button>
@@ -252,11 +354,23 @@ function HelpTopbar({ copy, locale, preferences, setPreferences }) {
             setPreferences={setPreferences}
           />
         : null}
+      {chatbotOpen && typeof document !== "undefined"
+        ? createPortal(
+            <HelpChatbotWrapper
+              close={() => setChatbotOpen(false)}
+              copy={copy}
+              locale={locale}
+              path={path}
+              theme={preferences.theme}
+            />,
+            document.body,
+          )
+        : null}
     </>
   );
 }
 
-function HelpSidebar({ copy, locale, path }) {
+function HelpSidebar({ copy, documents, locale, path }) {
   const selectedKey = path.slice(0, 2).join("/");
   return (
     <aside className="help-sidebar">
@@ -268,7 +382,7 @@ function HelpSidebar({ copy, locale, path }) {
             <span>{app.name}</span>
           </summary>
           <nav>
-            {getArticlesForApp(app.id).map((article) => {
+            {getArticlesForApp(documents, app.id).map((article) => {
               const articleKey = `${article.appId}/${article.id}`;
               return (
                 <div className="help-sidebar-category" key={article.id}>
@@ -294,113 +408,123 @@ function HelpSidebar({ copy, locale, path }) {
         <icon>campaign</icon>
         <span>{copy.submitRequest}</span>
       </Link>
+      <div className="help-community">
+        <h2>{copy.community}</h2>
+        {[
+          ["youtube", "YouTube", "https://www.youtube.com/@Munetios"],
+          ["x", "X", "https://x.com/Munetios"],
+          ["tiktok", "TikTok", "https://www.tiktok.com/@munetios"],
+          ["github", "GitHub", "https://github.com/Munetios"],
+          ["discord", "Discord", "https://discord.gg/sNgVNf9MdB"],
+        ].map(([asset, label, href]) => (
+          <a href={href} key={label}>
+            <Image
+              alt=""
+              aria-hidden="true"
+              className="help-social-icon"
+              height={20}
+              src={`/documentation/assets/${asset}.svg`}
+              width={20}
+            />
+            <span>{label}</span>
+          </a>
+        ))}
+      </div>
     </aside>
   );
 }
 
-function useTranslatedArticle(article, locale) {
-  const [translated, setTranslated] = useState(article);
-  useEffect(() => {
-    setTranslated(article);
-    if (locale === "en") return undefined;
-    const texts = [
-      article.title,
-      article.summary,
-      ...(article.visual
-        ? [
-            article.visual.alt,
-            article.visual.caption,
-            ...article.visual.tooltips.map((tooltip) => tooltip.label),
-          ]
-        : []),
-      ...article.sections.flatMap((section) => [
-        section.title,
-        ...section.paragraphs,
-      ]),
-    ];
-    const controller = new AbortController();
-    fetch("/api/help/translate", {
-      body: JSON.stringify({ target: locale, texts }),
-      headers: { "Content-Type": "application/json" },
-      method: "POST",
-      signal: controller.signal,
-    })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload) => {
-        if (!payload?.translations) return;
-        let index = 0;
-        const next = {
-          ...article,
-          title: payload.translations[index++] || article.title,
-          summary: payload.translations[index++] || article.summary,
-          visual: article.visual
-            ? {
-                ...article.visual,
-                alt: payload.translations[index++] || article.visual.alt,
-                caption:
-                  payload.translations[index++] || article.visual.caption,
-                tooltips: article.visual.tooltips.map((tooltip) => ({
-                  ...tooltip,
-                  label: payload.translations[index++] || tooltip.label,
-                })),
-              }
-            : null,
-          sections: article.sections.map((section) => ({
-            ...section,
-            title: payload.translations[index++] || section.title,
-            paragraphs: section.paragraphs.map(
-              (paragraph) => payload.translations[index++] || paragraph,
-            ),
-          })),
-        };
-        setTranslated(next);
-      })
-      .catch(() => undefined);
-    return () => controller.abort();
-  }, [article, locale]);
-  return translated;
+function inlineMarkdown(text) {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g);
+  return parts.map((part) => {
+    if (part.startsWith("**"))
+      return <strong key={`${part}-strong`}>{part.slice(2, -2)}</strong>;
+    if (part.startsWith("`"))
+      return <code key={`${part}-code`}>{part.slice(1, -1)}</code>;
+    const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (link)
+      return (
+        <a href={link[2]} key={`${part}-link`}>
+          {link[1]}
+        </a>
+      );
+    return part;
+  });
 }
 
-function Documentation({ copy, locale, path }) {
-  const sourceArticle = useMemo(() => getHelpArticle(path), [path]);
-  const article = useTranslatedArticle(sourceArticle, locale);
+function MarkdownBlocks({ lines }) {
+  const blocks = [];
+  for (let index = 0; index < lines.length; ) {
+    const line = lines[index].trim();
+    if (!line) {
+      index += 1;
+      continue;
+    }
+    const image = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (image) {
+      blocks.push(
+        <figure
+          className={`help-markdown-image ${image[2].includes("/screenshots/") ? "is-screenshot" : "is-logo"}`}
+          key={index}
+        >
+          <img alt={image[1]} src={image[2]} />
+          <figcaption>{image[1]}</figcaption>
+        </figure>,
+      );
+      index += 1;
+      continue;
+    }
+    if (/^(\d+\.|-) /.test(line)) {
+      const ordered = /^\d+\. /.test(line);
+      const items = [];
+      while (
+        index < lines.length &&
+        (ordered
+          ? /^\d+\. /.test(lines[index].trim())
+          : /^- /.test(lines[index].trim()))
+      ) {
+        items.push(
+          lines[index].trim().replace(ordered ? /^\d+\. / : /^- /, ""),
+        );
+        index += 1;
+      }
+      const List = ordered ? "ol" : "ul";
+      blocks.push(
+        <List key={index}>
+          {items.map((item) => (
+            <li key={item}>{inlineMarkdown(item)}</li>
+          ))}
+        </List>,
+      );
+      continue;
+    }
+    blocks.push(<p key={index}>{inlineMarkdown(line)}</p>);
+    index += 1;
+  }
+  return blocks;
+}
+
+function Documentation({ copy, documents, locale, path }) {
+  const article = useMemo(
+    () => getHelpArticle(documents, path),
+    [documents, path],
+  );
   return (
     <>
       <article className="help-article">
         {locale !== "en"
           ? <div className="help-translation-note">
               <icon>translate</icon>
-              <span>
-                {copy.mayContainErrors} {copy.translatedBy}
-              </span>
+              <span>{copy.englishDocumentation}</span>
             </div>
           : null}
         <p className="help-eyebrow">{copy.documentation}</p>
         <h1>{article.title}</h1>
         <p className="help-summary">{article.summary}</p>
-        {article.visual
-          ? <figure className="help-article-visual">
-              <div className="help-visual-stage">
-                <img alt={article.visual.alt} src={article.visual.src} />
-                {article.visual.tooltips.map((tooltip) => (
-                  <span
-                    className={`help-visual-tooltip ${tooltip.position}`}
-                    key={tooltip.label}
-                  >
-                    <icon>{tooltip.icon}</icon>
-                    <span>{tooltip.label}</span>
-                  </span>
-                ))}
-              </div>
-              <figcaption>{article.visual.caption}</figcaption>
-            </figure>
-          : null}
         {article.sections.map((section) => (
           <section id={section.id} key={section.id}>
             <h2>{section.title}</h2>
-            {section.paragraphs.map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
-            ))}
+            <MarkdownBlocks lines={section.markdown} />
           </section>
         ))}
       </article>
@@ -425,6 +549,10 @@ function SubmitReport({ copy }) {
     reportType: "bug-report",
     screenshot: "",
     subject: "",
+    translationExpectedText: "",
+    translationLanguage: "en",
+    translationLocation: "",
+    translationShownText: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const categories = [
@@ -440,11 +568,13 @@ function SubmitReport({ copy }) {
   ];
 
   useEffect(() => {
-    fetch("/api/signedin", { cache: "no-store", credentials: "include" })
+    if (!hasSignedInCookie()) return;
+
+    fetch("/api/account", { cache: "no-store", credentials: "include" })
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => {
-        if (payload?.user?.email) {
-          setForm((current) => ({ ...current, email: payload.user.email }));
+        if (payload?.email) {
+          setForm((current) => ({ ...current, email: payload.email }));
         }
       })
       .catch(() => undefined);
@@ -479,6 +609,9 @@ function SubmitReport({ copy }) {
         context: "",
         screenshot: "",
         subject: "",
+        translationExpectedText: "",
+        translationLocation: "",
+        translationShownText: "",
       }));
     } catch (error) {
       showToast({
@@ -529,33 +662,79 @@ function SubmitReport({ copy }) {
           />
         </label>
         <div className="help-form-row">
-          <label>
-            <span>{copy.apps}</span>
-            <select
-              onChange={(event) => update("app", event.target.value)}
-              value={form.app}
-            >
-              {helpApps.map((app) => (
-                <option key={app.id} value={app.id}>
-                  {app.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>{copy.category}</span>
-            <select
-              onChange={(event) => update("category", event.target.value)}
-              value={form.category}
-            >
-              {categories.map(([category, label]) => (
-                <option key={category} value={category}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <HelpDropdown
+            label={copy.apps}
+            onChange={(app) => update("app", app)}
+            options={helpApps.map((app) => ({
+              label: app.name,
+              value: app.id,
+            }))}
+            value={form.app}
+          />
+          <HelpDropdown
+            label={copy.category}
+            onChange={(category) => update("category", category)}
+            options={categories.map(([value, label]) => ({ label, value }))}
+            value={form.category}
+          />
         </div>
+        {form.category === "translation"
+          ? <section className="help-translation-report-fields liquid-glass">
+              <div className="help-translation-report-heading">
+                <icon>translate</icon>
+                <span>
+                  <strong>{copy.translationIssueTitle}</strong>
+                  <small>{copy.translationIssueDescription}</small>
+                </span>
+              </div>
+              <HelpDropdown
+                label={copy.translationIssueLanguage}
+                onChange={(translationLanguage) =>
+                  update("translationLanguage", translationLanguage)
+                }
+                options={translationReportLanguages}
+                value={form.translationLanguage}
+              />
+              <label>
+                <span>{copy.translationIssueShownText}</span>
+                <textarea
+                  maxLength={2000}
+                  onChange={(event) =>
+                    update("translationShownText", event.target.value)
+                  }
+                  placeholder={copy.translationIssueShownTextPlaceholder}
+                  required
+                  rows={3}
+                  value={form.translationShownText}
+                />
+              </label>
+              <label>
+                <span>{copy.translationIssueExpectedText}</span>
+                <textarea
+                  maxLength={2000}
+                  onChange={(event) =>
+                    update("translationExpectedText", event.target.value)
+                  }
+                  placeholder={copy.translationIssueExpectedTextPlaceholder}
+                  required
+                  rows={3}
+                  value={form.translationExpectedText}
+                />
+              </label>
+              <label>
+                <span>{copy.translationIssueLocation}</span>
+                <input
+                  maxLength={500}
+                  onChange={(event) =>
+                    update("translationLocation", event.target.value)
+                  }
+                  placeholder={copy.translationIssueLocationPlaceholder}
+                  required
+                  value={form.translationLocation}
+                />
+              </label>
+            </section>
+          : null}
         <label>
           <span>{copy.context}</span>
           <textarea
@@ -603,7 +782,11 @@ function SubmitReport({ copy }) {
   );
 }
 
-export default function HelpCenter({ initialLocale = "en", path = [] }) {
+export default function HelpCenter({
+  documents,
+  initialLocale = "en",
+  path = [],
+}) {
   const locale = normalizeHelpLocale(initialLocale);
   const copy = getHelpCopy(locale);
   const [query, setQuery] = useState("");
@@ -630,13 +813,13 @@ export default function HelpCenter({ initialLocale = "en", path = [] }) {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return [];
     return helpApps.flatMap((app) =>
-      getArticlesForApp(app.id).filter((article) =>
+      getArticlesForApp(documents, app.id).filter((article) =>
         `${article.title} ${article.summary} ${app.name}`
           .toLowerCase()
           .includes(normalized),
       ),
     );
-  }, [query]);
+  }, [documents, query]);
 
   return (
     <main
@@ -648,6 +831,7 @@ export default function HelpCenter({ initialLocale = "en", path = [] }) {
       <HelpTopbar
         copy={copy}
         locale={locale}
+        path={path}
         preferences={preferences}
         setPreferences={setPreferences}
       />
@@ -676,10 +860,20 @@ export default function HelpCenter({ initialLocale = "en", path = [] }) {
           : null}
       </div>
       <div className="help-layout">
-        <HelpSidebar copy={copy} locale={locale} path={path} />
+        <HelpSidebar
+          copy={copy}
+          documents={documents}
+          locale={locale}
+          path={path}
+        />
         {isSubmit
           ? <SubmitReport copy={copy} />
-          : <Documentation copy={copy} locale={locale} path={path} />}
+          : <Documentation
+              copy={copy}
+              documents={documents}
+              locale={locale}
+              path={path}
+            />}
       </div>
     </main>
   );

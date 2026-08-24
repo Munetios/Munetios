@@ -129,6 +129,29 @@ export const meetActivityTypes = new Set(["anagrams", "chess", "wordhunt"]);
 export const meetAnagramsDictionarySize = wordSet.size;
 export const meetWordHuntBoardSizes = wordHuntBoardSizes;
 
+const aiPeerId = "munetios-activity-ai";
+
+function normalizeActivityCheats(value = {}) {
+  const enabled = Boolean(value.enabled);
+  return {
+    aiPlaysWordHunt: enabled && Boolean(value.aiPlaysWordHunt),
+    allowAnyAnagramWord: enabled && Boolean(value.allowAnyAnagramWord),
+    alwaysShowAllWords: enabled && Boolean(value.alwaysShowAllWords),
+    customChessRules: enabled && Boolean(value.customChessRules),
+    enabled,
+    ignoreChessMoveRules: enabled && Boolean(value.ignoreChessMoveRules),
+    ignoreDictionary: enabled && Boolean(value.ignoreDictionary),
+    shareFoundWords: enabled && Boolean(value.shareFoundWords),
+  };
+}
+
+export function compareActivityWords(left, right) {
+  return (
+    String(right).length - String(left).length ||
+    String(left).localeCompare(String(right), "en", { sensitivity: "base" })
+  );
+}
+
 function chessBoard(chess) {
   return chess
     .board()
@@ -176,6 +199,16 @@ export function isValidWordHuntBoard(value, boardSize) {
   return wordHuntBoardSizes.has(size) && letters.length === size * size;
 }
 
+export function parseWordHuntCustomWords(value) {
+  if (typeof value !== "string") return null;
+  const words = value
+    .split(/[\s,;]+/u)
+    .map((word) => word.trim().toLowerCase())
+    .filter(Boolean);
+  if (words.some((word) => !/^[a-z]{2,49}$/u.test(word))) return null;
+  return [...new Set(words)];
+}
+
 function createWordHuntBoard(boardSize, customBoard = "") {
   const size = wordHuntBoardSizes.has(Number(boardSize))
     ? Number(boardSize)
@@ -198,22 +231,29 @@ function createWordHuntBoard(boardSize, customBoard = "") {
 export function createMeetActivityState({
   allowOthers = true,
   boardSize,
+  cheats,
   creatorWord = "",
   customBoard = "",
+  customWords = [],
   durationSeconds,
   ownerName,
   ownerPeerId,
   type,
 }) {
+  const activityCheats = normalizeActivityCheats(cheats);
   if (type === "chess") {
     const chess = new Chess();
     return {
+      achievementsEligible: !activityCheats.enabled,
       allowOthers: Boolean(allowOthers),
       board: chessBoard(chess),
       check: false,
+      cheats: activityCheats,
+      competitiveEligible: !activityCheats.enabled,
       draw: false,
       ended: false,
       fen: chess.fen(),
+      leaderboardEligible: !activityCheats.enabled,
       lastMove: null,
       players: [
         { color: "white", name: ownerName, peerId: ownerPeerId, score: 0 },
@@ -231,30 +271,48 @@ export function createMeetActivityState({
     const normalizedBoardSize = wordHuntBoardSizes.has(Number(boardSize))
       ? Number(boardSize)
       : 4;
-    return {
+    const state = {
+      achievementsEligible: !activityCheats.enabled,
       allowOthers: Boolean(allowOthers),
       board: createWordHuntBoard(normalizedBoardSize, customBoard),
       boardSize: normalizedBoardSize,
-      dictionarySize: meetAnagramsDictionarySize,
+      cheats: activityCheats,
+      competitiveEligible: !activityCheats.enabled,
+      customDictionaryVersion: 1,
+      customWords,
+      dictionarySize: meetAnagramsDictionarySize + customWords.length,
       ended: false,
       endsAt: now + duration * 1000,
-      players: [{ name: ownerName, peerId: ownerPeerId, score: 0 }],
+      leaderboardEligible: !activityCheats.enabled,
+      players: [
+        { name: ownerName, peerId: ownerPeerId, score: 0 },
+        ...(activityCheats.aiPlaysWordHunt
+          ? [{ isAi: true, name: "Munetios AI", peerId: aiPeerId, score: 0 }]
+          : []),
+      ],
       startedAt: now,
       submittedWords: [],
       type,
       winnerPeerIds: [],
     };
+    return activityCheats.alwaysShowAllWords || activityCheats.aiPlaysWordHunt
+      ? { ...state, allWords: availableWordsForState(state), aiWordIndex: 0 }
+      : state;
   }
   const normalizedCreatorWord = isValidAnagramCreatorWord(creatorWord)
     ? String(creatorWord).trim().toLowerCase()
     : "";
   return {
+    achievementsEligible: !activityCheats.enabled,
     allowOthers: Boolean(allowOthers),
+    cheats: activityCheats,
+    competitiveEligible: !activityCheats.enabled,
     customWords: normalizedCreatorWord ? [normalizedCreatorWord] : [],
     dictionarySize: meetAnagramsDictionarySize,
     ended: false,
     endsAt: now + duration * 1000,
     letters: shuffledLetters(creatorWord),
+    leaderboardEligible: !activityCheats.enabled,
     players: [{ name: ownerName, peerId: ownerPeerId, score: 0 }],
     startedAt: now,
     submittedWords: [],
@@ -267,7 +325,7 @@ function validWordHuntPath(path, boardSize, boardLength) {
   if (
     !Array.isArray(path) ||
     path.length < 2 ||
-    path.length > 12 ||
+    path.length > boardLength ||
     !wordHuntBoardSizes.has(Number(boardSize))
   ) {
     return false;
@@ -316,27 +374,38 @@ function applyWordHuntWord(state, peerId, payload) {
     .map((index) => state.board[index])
     .join("")
     .toLowerCase();
+  if (state.submittedWords.some((entry) => entry.word === word)) {
+    return { error: "activity_word_already_used" };
+  }
   if (
-    !wordSet.has(word) ||
-    state.submittedWords.some(
-      (entry) => entry.word === word && entry.peerId === peerId,
-    )
+    !state.cheats?.ignoreDictionary &&
+    !wordSet.has(word) &&
+    !state.customWords?.includes(word)
   ) {
     return { error: "activity_invalid_word" };
   }
   const score = anagramsScore(word.length);
+  const recipients = state.cheats?.shareFoundWords
+    ? state.players
+    : [state.players[playerIndex]];
   return {
     points: score,
     state: {
       ...state,
-      players: state.players.map((player, index) =>
-        index === playerIndex
+      players: state.players.map((player) =>
+        recipients.some((recipient) => recipient.peerId === player.peerId)
           ? { ...player, score: player.score + score }
           : player,
       ),
-      submittedWords: [...state.submittedWords, { peerId, score, word }].slice(
-        -500,
-      ),
+      submittedWords: [
+        ...state.submittedWords,
+        ...recipients.map((recipient) => ({
+          peerId: recipient.peerId,
+          score,
+          shared: recipient.peerId !== peerId,
+          word,
+        })),
+      ],
     },
   };
 }
@@ -364,7 +433,11 @@ function chessSquare(index) {
 
 function applyChessMove(state, peerId, payload) {
   const player = state.players.find((entry) => entry.peerId === peerId);
-  if (!player || player.color !== state.turn || state.ended) {
+  if (
+    !player ||
+    (!state.cheats?.customChessRules && player.color !== state.turn) ||
+    state.ended
+  ) {
     return { error: "activity_not_your_turn" };
   }
   const from = Number(payload.from);
@@ -374,7 +447,39 @@ function applyChessMove(state, peerId, payload) {
   if (!fromSquare || !toSquare) {
     return { error: "activity_invalid_move" };
   }
-  const chess = new Chess(state.fen || undefined);
+  if (state.cheats?.ignoreChessMoveRules) {
+    const board = [...state.board];
+    const piece = board[from];
+    const target = board[to];
+    if (
+      !piece ||
+      piece[0] !== player.color[0] ||
+      target?.[0] === player.color[0]
+    ) {
+      return { error: "activity_invalid_move" };
+    }
+    board[to] = piece;
+    board[from] = null;
+    const capturedKing = target?.[1] === "k";
+    return {
+      points: capturedKing ? 1 : 0,
+      state: {
+        ...state,
+        board,
+        check: false,
+        draw: false,
+        ended: capturedKing,
+        lastMove: { from, peerId, to },
+        turn: player.color === "white" ? "black" : "white",
+        winnerPeerId: capturedKing ? peerId : null,
+      },
+    };
+  }
+  const fenParts = String(state.fen || "").split(" ");
+  if (state.cheats?.customChessRules && fenParts.length === 6) {
+    fenParts[1] = player.color[0];
+  }
+  const chess = new Chess(fenParts.join(" ") || undefined);
   let move;
   try {
     move = chess.move({
@@ -430,7 +535,9 @@ function applyAnagramWord(state, peerId, payload) {
     .trim()
     .toLowerCase();
   if (
-    (!wordSet.has(word) && !state.customWords?.includes(word)) ||
+    (!state.cheats?.allowAnyAnagramWord &&
+      !wordSet.has(word) &&
+      !state.customWords?.includes(word)) ||
     !lettersFit(word, state.letters) ||
     state.submittedWords.some(
       (entry) => entry.word === word && entry.peerId === peerId,
@@ -468,11 +575,107 @@ export function finalizeMeetActivityState(state) {
   const highest = Math.max(0, ...state.players.map((player) => player.score));
   return {
     ...state,
+    allWords: availableWordsForState(state),
     ended: true,
+    endedByTimer: true,
     winnerPeerIds: state.players
       .filter((player) => player.score === highest)
       .map((player) => player.peerId),
   };
+}
+
+function wordExistsOnBoard(word, board, boardSize) {
+  const search = (position, offset, visited) => {
+    if (board[position].toLowerCase() !== word[offset]) return false;
+    if (offset === word.length - 1) return true;
+    const row = Math.floor(position / boardSize);
+    const column = position % boardSize;
+    visited.add(position);
+    for (let rowOffset = -1; rowOffset <= 1; rowOffset += 1) {
+      for (let columnOffset = -1; columnOffset <= 1; columnOffset += 1) {
+        const nextRow = row + rowOffset;
+        const nextColumn = column + columnOffset;
+        const next = nextRow * boardSize + nextColumn;
+        if (
+          (rowOffset || columnOffset) &&
+          nextRow >= 0 &&
+          nextRow < boardSize &&
+          nextColumn >= 0 &&
+          nextColumn < boardSize &&
+          !visited.has(next) &&
+          search(next, offset + 1, visited)
+        ) {
+          visited.delete(position);
+          return true;
+        }
+      }
+    }
+    visited.delete(position);
+    return false;
+  };
+  return board.some((_, index) => search(index, 0, new Set()));
+}
+
+function availableWordsForState(state) {
+  if (state.type !== "anagrams" && state.type !== "wordhunt") return [];
+  const candidates = new Set([...wordSet, ...(state.customWords || [])]);
+  const words = [...candidates].filter((word) => {
+    if (word.length < 2) return false;
+    if (state.type === "anagrams") {
+      return word.length <= state.letters.length && lettersFit(word, state.letters);
+    }
+    return (
+      word.length <= state.board.length &&
+      lettersFit(word, state.board.join("")) &&
+      wordExistsOnBoard(word, state.board, state.boardSize)
+    );
+  });
+  return words.sort(compareActivityWords);
+}
+
+export function advanceMeetActivityState(state, now = Date.now()) {
+  if (
+    state?.type !== "wordhunt" ||
+    state.ended ||
+    !state.cheats?.aiPlaysWordHunt
+  ) {
+    return state;
+  }
+  const allWords = state.allWords || availableWordsForState(state);
+  const targetIndex = Math.min(
+    allWords.length,
+    Math.floor(Math.max(0, now - Number(state.startedAt)) / 2500),
+  );
+  if (state.allWords && Number(state.aiWordIndex || 0) === targetIndex) {
+    return state;
+  }
+  let next = { ...state, allWords };
+  for (let index = Number(state.aiWordIndex || 0); index < targetIndex; index += 1) {
+    const word = allWords[index];
+    if (!word || next.submittedWords.some((entry) => entry.word === word)) continue;
+    const score = anagramsScore(word.length);
+    const recipients = next.cheats?.shareFoundWords
+      ? next.players
+      : next.players.filter((player) => player.peerId === aiPeerId);
+    next = {
+      ...next,
+      players: next.players.map((player) =>
+        recipients.some((recipient) => recipient.peerId === player.peerId)
+          ? { ...player, score: player.score + score }
+          : player,
+      ),
+      submittedWords: [
+        ...next.submittedWords,
+        ...recipients.map((recipient) => ({
+          peerId: recipient.peerId,
+          score,
+          shared: recipient.peerId !== aiPeerId,
+          word,
+        })),
+      ],
+    };
+  }
+  return { ...next, aiWordIndex: targetIndex };
 }
 
 export function activityForPeer(activity, peerId) {
@@ -483,7 +686,12 @@ export function activityForPeer(activity, peerId) {
     return activity;
   }
   const ended = Boolean(activity.state?.ended);
-  const { customWords: _customWords, ...visibleState } = activity.state || {};
+  const {
+    allWords,
+    customWords: _customWords,
+    ...visibleState
+  } = activity.state || {};
+  const revealAllWords = ended || activity.state?.cheats?.alwaysShowAllWords;
   return {
     ...activity,
     state: {
@@ -493,6 +701,7 @@ export function activityForPeer(activity, peerId) {
         score: ended || player.peerId === peerId ? player.score : null,
       })),
       submittedWords: ended ? activity.state?.submittedWords || [] : [],
+      ...(revealAllWords ? { allWords: allWords || availableWordsForState(activity.state) } : {}),
     },
   };
 }

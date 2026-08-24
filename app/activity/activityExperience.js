@@ -34,6 +34,98 @@ function send(type, payload) {
   );
 }
 
+function compareWords(left, right) {
+  return (
+    String(right).length - String(left).length ||
+    String(left).localeCompare(String(right), undefined, {
+      sensitivity: "base",
+    })
+  );
+}
+
+function orderedActivityPlayers(state) {
+  const longestWords = new Map();
+  for (const entry of state.submittedWords || []) {
+    const current = longestWords.get(entry.peerId) || "";
+    if (compareWords(entry.word, current) < 0) {
+      longestWords.set(entry.peerId, entry.word);
+    }
+  }
+  return [...state.players].sort(
+    (left, right) =>
+      Number(right.score || 0) - Number(left.score || 0) ||
+      String(longestWords.get(right.peerId) || "").length -
+        String(longestWords.get(left.peerId) || "").length ||
+      String(left.name).localeCompare(String(right.name), undefined, {
+        sensitivity: "base",
+      }),
+  );
+}
+
+function FinalLeaderboard({ copy, localPeerId, state }) {
+  const orderedPlayers = orderedActivityPlayers(state);
+  const topScore = Number(orderedPlayers[0]?.score || 0);
+  const localPlayer = orderedPlayers.find(
+    (player) => player.peerId === localPeerId,
+  );
+  const tiedWinners = orderedPlayers.filter(
+    (player) => Number(player.score || 0) === topScore,
+  );
+  const outcome = !localPlayer
+    ? copy.meetActivityEnded
+    : Number(localPlayer.score || 0) !== topScore
+      ? copy.meetActivityYouLost
+      : tiedWinners.length > 1
+        ? copy.meetActivityYouTied
+        : copy.meetActivityYouWon;
+  const longestWordFor = (peerId) =>
+    (state.submittedWords || [])
+      .filter((entry) => entry.peerId === peerId)
+      .map((entry) => entry.word)
+      .sort(compareWords)[0] || "—";
+  return (
+    <section className="activity-results">
+      <h2 className="activity-outcome">{outcome}</h2>
+      <div className="activity-final-scores">
+        {orderedPlayers.slice(0, 2).map((entry, index) => (
+          <article
+            className={`activity-result-card liquid-glass is-${index === 0 ? "first" : "second"}`}
+            key={entry.peerId}
+          >
+            <span className="activity-result-rank">{index + 1}</span>
+            <div>
+              <small>
+                {index === 0
+                  ? copy.meetActivityFirstPlace
+                  : copy.meetActivitySecondPlace}
+              </small>
+              <strong>{entry.name}</strong>
+              <small>
+                {copy.meetActivityPoints.replace(
+                  "{score}",
+                  Number(entry.score || 0).toLocaleString(),
+                )}
+              </small>
+              <small>
+                {copy.meetActivityLongestWord.replace(
+                  "{word}",
+                  longestWordFor(entry.peerId),
+                )}
+              </small>
+            </div>
+          </article>
+        ))}
+      </div>
+      {state.competitiveEligible === false
+        ? <p className="activity-competitive-warning liquid-glass">
+            <icon>warning</icon>
+            {copy.meetActivityCompetitiveDisabled}
+          </p>
+        : null}
+    </section>
+  );
+}
+
 async function createMusic(type) {
   const Tone = await import("tone/build/esm/index.js");
   await Tone.start();
@@ -122,7 +214,13 @@ function Chess({ activity, copy, localPeerId }) {
   const [selected, setSelected] = useState(null);
   const player = state.players.find((entry) => entry.peerId === localPeerId);
   const chooseSquare = (index) => {
-    if (!player || state.ended || state.turn !== player.color) return;
+    if (
+      !player ||
+      state.ended ||
+      (!state.cheats?.customChessRules && state.turn !== player.color)
+    ) {
+      return;
+    }
     if (selected === null) {
       if (state.board[index]?.[0] === player.color[0]) setSelected(index);
       return;
@@ -133,6 +231,13 @@ function Chess({ activity, copy, localPeerId }) {
   const winner = state.players.find(
     (entry) => entry.peerId === state.winnerPeerId,
   );
+  const resultState = {
+    ...state,
+    players: state.players.map((entry) => ({
+      ...entry,
+      score: entry.peerId === state.winnerPeerId ? 1 : 0,
+    })),
+  };
   return (
     <main className="activity-game activity-chess">
       <div className="activity-scorebar liquid-glass">
@@ -186,11 +291,18 @@ function Chess({ activity, copy, localPeerId }) {
         ? <output className="activity-status liquid-glass">Check</output>
         : null}
       {state.ended
-        ? <p className="activity-result liquid-glass">
-            {winner
-              ? copy.meetActivityChessWinner.replace("{name}", winner.name)
-              : copy.meetActivityEnded}
-          </p>
+        ? <>
+            <FinalLeaderboard
+              copy={copy}
+              localPeerId={localPeerId}
+              state={resultState}
+            />
+            <p className="activity-result liquid-glass">
+              {winner
+                ? copy.meetActivityChessWinner.replace("{name}", winner.name)
+                : copy.meetActivityEnded}
+            </p>
+          </>
         : null}
       {activity.ownerPeerId === localPeerId && !state.ended
         ? <button
@@ -205,7 +317,7 @@ function Chess({ activity, copy, localPeerId }) {
   );
 }
 
-function FinalWords({ copy, state }) {
+function _FinalWords({ copy, state }) {
   if (!state.ended) return null;
   const playerNames = new Map(
     state.players.map((player) => [player.peerId, player.name]),
@@ -233,6 +345,88 @@ function FinalWords({ copy, state }) {
   );
 }
 
+function PlayerWordsList({ copy, state }) {
+  if (!state.ended) return null;
+  const players = orderedActivityPlayers(state).map((player) => ({
+    ...player,
+    words: [
+      ...new Set(
+        (state.submittedWords || [])
+          .filter((entry) => entry.peerId === player.peerId)
+          .map((entry) => String(entry.word || "").trim())
+          .filter(Boolean),
+      ),
+    ].sort(compareWords),
+  }));
+  return (
+    <section className="activity-player-words liquid-glass">
+      <h3>{copy.meetActivityFinalWords}</h3>
+      <div className="activity-player-word-cards">
+        {players.map((player) => (
+          <article key={player.peerId}>
+            <header>
+              <strong>{player.name}</strong>
+              <small>
+                {copy.meetActivityPoints.replace(
+                  "{score}",
+                  Number(player.score || 0).toLocaleString(),
+                )}
+              </small>
+            </header>
+            {player.words.length
+              ? <div className="activity-player-word-list">
+                  {player.words.map((word) => (
+                    <span key={word}>
+                      <strong>{word}</strong>
+                      <small>{word.length}</small>
+                    </span>
+                  ))}
+                </div>
+              : <p>{copy.meetActivityNoWords}</p>}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AllWordsReveal({ copy, state }) {
+  const automaticallyRevealed = Boolean(state.cheats?.alwaysShowAllWords);
+  const [revealed, setRevealed] = useState(automaticallyRevealed);
+  const revealAvailable = Boolean(state.endedByTimer || automaticallyRevealed);
+  if (!revealAvailable) return null;
+  const words = [...(state.allWords || [])].sort(compareWords);
+  return (
+    <section className="activity-final-words liquid-glass">
+      <header>
+        <h3>{copy.meetActivityAllWords}</h3>
+        <button
+          className="activity-reveal-words"
+          onClick={() => setRevealed((current) => !current)}
+          type="button"
+        >
+          <icon>{revealed ? "visibility_off" : "visibility"}</icon>
+          {revealed
+            ? copy.meetActivityHideAllWords
+            : copy.meetActivityRevealAllWords}
+        </button>
+      </header>
+      {revealed
+        ? words.length
+          ? <div className="activity-all-words">
+              {words.map((word) => (
+                <span key={word}>
+                  <strong>{word}</strong>
+                  <small>{word.length}</small>
+                </span>
+              ))}
+            </div>
+          : <p>{copy.meetActivityNoWords}</p>
+        : null}
+    </section>
+  );
+}
+
 function Anagrams({ activity, copy, localPeerId }) {
   const state = activity.state;
   const [word, setWord] = useState("");
@@ -245,13 +439,8 @@ function Anagrams({ activity, copy, localPeerId }) {
   const secondsLeft = Math.max(0, (Number(state.endsAt) - now) / 1000);
   const ended = state.ended || secondsLeft <= 0;
   const orderedPlayers = useMemo(
-    () =>
-      ended
-        ? [...state.players].sort(
-            (left, right) => Number(right.score) - Number(left.score),
-          )
-        : state.players,
-    [ended, state.players],
+    () => (ended ? orderedActivityPlayers(state) : state.players),
+    [ended, state],
   );
   const letterSlots = useMemo(() => {
     const occurrences = new Map();
@@ -325,32 +514,21 @@ function Anagrams({ activity, copy, localPeerId }) {
               )}
             </small>
           </section>
-        : <section className="activity-final-scores liquid-glass">
-            {orderedPlayers.map((entry, index) => (
-              <span key={entry.peerId}>
-                <strong>
-                  {index + 1}. {entry.name}
-                </strong>
-                <small>
-                  {copy.meetActivityPoints.replace(
-                    "{score}",
-                    Number(entry.score || 0).toLocaleString(),
-                  )}
-                </small>
-              </span>
-            ))}
-          </section>}
+        : <FinalLeaderboard
+            copy={copy}
+            localPeerId={localPeerId}
+            state={state}
+          />}
       {ended
-        ? <>
-            <p className="activity-result liquid-glass">
-              {copy.meetActivityAnagramsWinner.replace(
-                "{name}",
-                orderedPlayers[0]?.name || copy.meetParticipant,
-              )}
-            </p>
-            <FinalWords copy={copy} state={state} />
-          </>
+        ? <p className="activity-result liquid-glass">
+            {copy.meetActivityAnagramsWinner.replace(
+              "{name}",
+              orderedPlayers[0]?.name || copy.meetParticipant,
+            )}
+          </p>
         : null}
+      <PlayerWordsList copy={copy} state={state} />
+      <AllWordsReveal copy={copy} state={state} />
       {activity.ownerPeerId === localPeerId && !state.ended
         ? <button
             className="activity-secondary"
@@ -375,13 +553,8 @@ function WordHunt({ activity, copy, localPeerId, updateResult }) {
   const player = state.players.find((entry) => entry.peerId === localPeerId);
   const ended = state.ended || Number(state.endsAt) <= now;
   const orderedPlayers = useMemo(
-    () =>
-      ended
-        ? [...state.players].sort(
-            (left, right) => Number(right.score) - Number(left.score),
-          )
-        : state.players,
-    [ended, state.players],
+    () => (ended ? orderedActivityPlayers(state) : state.players),
+    [ended, state],
   );
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 250);
@@ -526,29 +699,20 @@ function WordHunt({ activity, copy, localPeerId, updateResult }) {
             </small>
           </section>
         : <>
-            <section className="activity-final-scores liquid-glass">
-              {orderedPlayers.map((entry, index) => (
-                <span key={entry.peerId}>
-                  <strong>
-                    {index + 1}. {entry.name}
-                  </strong>
-                  <small>
-                    {copy.meetActivityPoints.replace(
-                      "{score}",
-                      Number(entry.score || 0).toLocaleString(),
-                    )}
-                  </small>
-                </span>
-              ))}
-            </section>
+            <FinalLeaderboard
+              copy={copy}
+              localPeerId={localPeerId}
+              state={state}
+            />
             <p className="activity-result liquid-glass">
               {copy.meetActivityAnagramsWinner.replace(
                 "{name}",
                 orderedPlayers[0]?.name || copy.meetParticipant,
               )}
             </p>
-            <FinalWords copy={copy} state={state} />
           </>}
+      <PlayerWordsList copy={copy} state={state} />
+      <AllWordsReveal copy={copy} state={state} />
       {activity.ownerPeerId === localPeerId && !state.ended
         ? <button
             className="activity-secondary"

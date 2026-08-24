@@ -1,17 +1,27 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import {
+  applyDeveloperCss,
+  developerSettingsChangeEvent,
+  loadDeveloperSettings,
+} from "../lib/developerSettings";
 
 export const appearanceStorageKey = "munetios.appearance";
 const appearanceSyncUrl = "/api/account/sync";
 
 export const appearanceDefaults = {
+  accountSettingsPadding: 16,
   accentColor: "#a855f7",
   backgroundColor: "#150627",
   backgroundColorSecondary: "#31164f",
   backgroundMode: "gradient",
+  borderRadius: 24,
+  compactMode: false,
+  customBorderRadius: false,
   customColors: [],
   fontFamily: "theme-font",
+  glassBlur: 3,
   gradientAngle: 135,
   gradientColors: [],
   reduceMotion: false,
@@ -21,9 +31,26 @@ export const appearanceDefaults = {
   ss08: true,
   theme: "munetios-default",
   themeMode: "system",
+  textSize: 100,
 };
 
 export const appearanceThemes = [
+  {
+    accent: "#a855f7",
+    background: "#08020f",
+    backgroundSecondary: "#23053b",
+    font: '"Google Sans Flex", "Google Sans", system-ui, sans-serif',
+    foreground: "#f7f2ff",
+    glass: true,
+    hoverY: "-3px",
+    id: "munetios-default",
+    labelKey: "accountThemeMunetiosDefault",
+    name: "Munetios Default Redesign",
+    containerRadius: "30px",
+    radius: "26px",
+    spacing: "0.3rem",
+    transition: "240ms",
+  },
   {
     accent: "#a855f7",
     background: "#150627",
@@ -32,8 +59,9 @@ export const appearanceThemes = [
     foreground: "#f7f2ff",
     glass: true,
     hoverY: "-2px",
-    id: "munetios-default",
-    labelKey: "accountThemeMunetiosDefault",
+    id: "munetios-classic",
+    labelKey: "accountThemeClassic",
+    name: "Munetios Classic",
     containerRadius: "28px",
     radius: "50px",
     spacing: "0.25rem",
@@ -76,21 +104,6 @@ export const appearanceThemes = [
     radius: "2px",
     spacing: "0.23rem",
     transition: "110ms",
-  },
-  {
-    accent: "#6d28d9",
-    background: "#f8f7fb",
-    backgroundSecondary: "#e9e5f2",
-    font: '"Google Sans Flex", system-ui, sans-serif',
-    foreground: "#17121f",
-    glass: true,
-    hoverY: "-1px",
-    id: "light-mode",
-    labelKey: "accountThemeLightMode",
-    lightOnly: true,
-    radius: "18px",
-    spacing: "0.26rem",
-    transition: "180ms",
   },
   {
     accent: "#8b5cf6",
@@ -183,6 +196,11 @@ export const appearanceThemes = [
 
 const lightThemePalettes = {
   "munetios-default": {
+    background: "#f7f0ff",
+    backgroundSecondary: "#dec9f7",
+    foreground: "#1e1029",
+  },
+  "munetios-classic": {
     background: "#f8f3ff",
     backgroundSecondary: "#e9dcf8",
     foreground: "#24152f",
@@ -196,11 +214,6 @@ const lightThemePalettes = {
     background: "#f4f4f4",
     backgroundSecondary: "#e0e0e0",
     foreground: "#161616",
-  },
-  "light-mode": {
-    background: "#f8f7fb",
-    backgroundSecondary: "#e9e5f2",
-    foreground: "#17121f",
   },
   "microsoft-fluent": {
     background: "#faf9f8",
@@ -234,19 +247,137 @@ const lightThemePalettes = {
   },
 };
 
-const darkThemePaletteOverrides = {
-  "light-mode": {
-    background: "#18151f",
-    backgroundSecondary: "#292431",
-    foreground: "#f8f7fb",
-  },
-};
+const darkThemePaletteOverrides = {};
 
 function normalizeHex(value, fallback) {
   const normalized = typeof value === "string" ? value.trim() : "";
   return /^#[\da-f]{6}$/i.test(normalized)
     ? normalized.toLowerCase()
     : fallback;
+}
+
+function clampAppearanceNumber(value, minimum, maximum, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number)
+    ? Math.min(maximum, Math.max(minimum, number))
+    : fallback;
+}
+
+const originalResponsiveMediaQueries = new WeakMap();
+const responsiveMediaQueryRules = new Set();
+let currentResponsiveMediaQueryScale = null;
+
+function scaleMediaQueryLength(value, scale) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return value;
+  return String(Math.round(number * scale * 1000) / 1000);
+}
+
+function getScaledResponsiveMediaQuery(mediaText, scale) {
+  const scaleLength = (_match, prefix, value, unit) =>
+    `${prefix}${scaleMediaQueryLength(value, scale)}${unit}`;
+
+  return mediaText
+    .replace(
+      /(\b(?:min-|max-)?(?:width|height)\s*:\s*)(\d*\.?\d+)(px|rem|em)\b/gi,
+      scaleLength,
+    )
+    .replace(
+      /(\b(?:width|height)\s*(?:<=|>=|<|>)\s*)(\d*\.?\d+)(px|rem|em)\b/gi,
+      scaleLength,
+    )
+    .replace(
+      /(\d*\.?\d+)(px|rem|em)(\s*(?:<=|>=|<|>)\s*(?:width|height)\b)/gi,
+      (_match, value, unit, suffix) =>
+        `${scaleMediaQueryLength(value, scale)}${unit}${suffix}`,
+    );
+}
+
+function updateResponsiveMediaRuleList(ruleList, scale) {
+  for (const rule of ruleList) {
+    if (rule.media?.mediaText) {
+      if (!originalResponsiveMediaQueries.has(rule)) {
+        originalResponsiveMediaQueries.set(rule, rule.media.mediaText);
+      }
+      responsiveMediaQueryRules.add(rule);
+
+      const originalMediaText = originalResponsiveMediaQueries.get(rule);
+      const scaledMediaText = getScaledResponsiveMediaQuery(
+        originalMediaText,
+        scale,
+      );
+      if (rule.media.mediaText !== scaledMediaText) {
+        try {
+          rule.media.mediaText = scaledMediaText;
+        } catch {
+          // Some browser-managed stylesheets expose read-only media rules.
+        }
+      }
+    }
+
+    if (rule.cssRules) {
+      updateResponsiveMediaRuleList(rule.cssRules, scale);
+    }
+  }
+}
+
+export function applyResponsiveMediaQueryScale(textSize) {
+  if (typeof document === "undefined") return;
+
+  const scale =
+    clampAppearanceNumber(textSize, 25, 1000, appearanceDefaults.textSize) /
+    100;
+
+  for (const stylesheet of document.styleSheets) {
+    try {
+      updateResponsiveMediaRuleList(stylesheet.cssRules, scale);
+    } catch {
+      // Cross-origin stylesheets cannot be inspected through CSSOM.
+    }
+  }
+
+  if (
+    typeof window !== "undefined" &&
+    currentResponsiveMediaQueryScale !== scale
+  ) {
+    currentResponsiveMediaQueryScale = scale;
+    window.dispatchEvent(
+      new CustomEvent("munetios:responsivechange", {
+        detail: { scale },
+      }),
+    );
+  }
+}
+
+function restoreResponsiveMediaQueries() {
+  for (const rule of responsiveMediaQueryRules) {
+    const originalMediaText = originalResponsiveMediaQueries.get(rule);
+    if (!originalMediaText || !rule.media) continue;
+    try {
+      rule.media.mediaText = originalMediaText;
+    } catch {
+      // The stylesheet may have been replaced during navigation or hot reload.
+    }
+  }
+  responsiveMediaQueryRules.clear();
+}
+
+function applyResponsiveViewportDimensions(textSize) {
+  if (typeof document === "undefined" || typeof window === "undefined") return;
+  const scale =
+    clampAppearanceNumber(textSize, 25, 1000, appearanceDefaults.textSize) /
+    100;
+  const viewportWidth = window.visualViewport?.width || window.innerWidth;
+  const viewportHeight = window.visualViewport?.height || window.innerHeight;
+  const root = document.documentElement;
+  root.style.setProperty(
+    "--app-responsive-viewport-width",
+    `${viewportWidth / scale}px`,
+  );
+  root.style.setProperty(
+    "--app-responsive-viewport-height",
+    `${viewportHeight / scale}px`,
+  );
 }
 
 function getReadableTextColor(hex) {
@@ -293,9 +424,15 @@ export function loadAppearanceSettings() {
   if (typeof window === "undefined") return appearanceDefaults;
 
   try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(appearanceStorageKey) || "{}",
+    );
     return {
       ...appearanceDefaults,
-      ...JSON.parse(window.localStorage.getItem(appearanceStorageKey) || "{}"),
+      ...stored,
+      theme: appearanceThemes.some((theme) => theme.id === stored.theme)
+        ? stored.theme
+        : appearanceDefaults.theme,
     };
   } catch {
     return appearanceDefaults;
@@ -350,6 +487,36 @@ export function applyAppearanceSettings(settings) {
         .filter(Boolean)
     : [];
   const accent = normalizeHex(resolved.accentColor, theme.accent);
+  const borderRadius = clampAppearanceNumber(
+    resolved.borderRadius,
+    0,
+    50,
+    appearanceDefaults.borderRadius,
+  );
+  const accountSettingsPadding = clampAppearanceNumber(
+    resolved.accountSettingsPadding,
+    8,
+    32,
+    appearanceDefaults.accountSettingsPadding,
+  );
+  const glassBlur = clampAppearanceNumber(
+    resolved.glassBlur,
+    1,
+    100,
+    appearanceDefaults.glassBlur,
+  );
+  const textSize = clampAppearanceNumber(
+    resolved.textSize,
+    25,
+    1000,
+    appearanceDefaults.textSize,
+  );
+  const radius = resolved.customBorderRadius
+    ? `${borderRadius}px`
+    : theme.radius;
+  const spacing = resolved.compactMode
+    ? `${Math.max(0.12, (Number.parseFloat(theme.spacing) || 0.25) * 0.78).toFixed(3)}rem`
+    : theme.spacing;
   const font =
     resolved.fontFamily === "theme-font"
       ? theme.font
@@ -365,6 +532,7 @@ export function applyAppearanceSettings(settings) {
       : "dark"
     : resolvedMode;
   root.classList.toggle("reduce-motion", Boolean(resolved.reduceMotion));
+  root.classList.toggle("compact-mode", Boolean(resolved.compactMode));
   root.classList.toggle(
     "reduce-transparency",
     Boolean(resolved.reduceTransparency),
@@ -390,34 +558,54 @@ export function applyAppearanceSettings(settings) {
     isCustomColor ? getReadableTextColor(background) : palette.foreground,
   );
   root.style.setProperty("--app-font", font);
+  root.style.setProperty("--liquid-glass-blur", `${glassBlur}px`);
+  root.style.setProperty("--app-text-scale", String(textSize / 100));
+  root.style.setProperty("zoom", `${textSize}%`);
+  applyResponsiveViewportDimensions(textSize);
   root.style.setProperty("--font-ss01", resolved.ss01 ? "1" : "0");
   root.style.setProperty("--font-ss08", resolved.ss08 ? "1" : "0");
-  root.style.setProperty("--theme-radius", theme.radius);
+  root.style.setProperty("--theme-radius", radius);
+  root.toggleAttribute(
+    "data-custom-border-radius",
+    Boolean(resolved.customBorderRadius),
+  );
   root.style.setProperty(
     "--theme-container-radius",
-    theme.containerRadius || theme.radius,
+    resolved.customBorderRadius
+      ? radius
+      : theme.containerRadius || theme.radius,
   );
-  root.style.setProperty("--theme-spacing-unit", theme.spacing);
+  root.style.setProperty("--theme-spacing-unit", spacing);
+  root.style.setProperty(
+    "--account-settings-padding",
+    `${accountSettingsPadding}px`,
+  );
   root.style.setProperty("--theme-transition", theme.transition);
   root.style.setProperty("--theme-hover-y", theme.hoverY);
   root.style.setProperty("--spinner-primary", accent);
   root.style.setProperty("--spinner-secondary", secondary);
-  root.style.setProperty("--spacing", theme.spacing);
+  root.style.setProperty("--spacing", spacing);
   root.style.setProperty(
     "--radius-sm",
-    `max(0px, calc(${theme.radius} - 10px))`,
+    resolved.customBorderRadius ? radius : `max(0px, calc(${radius} - 10px))`,
   );
   root.style.setProperty(
     "--radius-md",
-    `max(0px, calc(${theme.radius} - 6px))`,
+    resolved.customBorderRadius ? radius : `max(0px, calc(${radius} - 6px))`,
   );
   root.style.setProperty(
     "--radius-lg",
-    `max(0px, calc(${theme.radius} - 2px))`,
+    resolved.customBorderRadius ? radius : `max(0px, calc(${radius} - 2px))`,
   );
-  root.style.setProperty("--radius-xl", theme.radius);
-  root.style.setProperty("--radius-2xl", `calc(${theme.radius} + 4px)`);
-  root.style.setProperty("--radius-3xl", `calc(${theme.radius} + 8px)`);
+  root.style.setProperty("--radius-xl", radius);
+  root.style.setProperty(
+    "--radius-2xl",
+    resolved.customBorderRadius ? radius : `calc(${radius} + 4px)`,
+  );
+  root.style.setProperty(
+    "--radius-3xl",
+    resolved.customBorderRadius ? radius : `calc(${radius} + 8px)`,
+  );
   root.style.setProperty("--default-transition-duration", theme.transition);
   const colorRoles =
     resolvedMode === "dark" && !isCustomColor
@@ -482,14 +670,18 @@ function updateViewportBehavior(enabled) {
     );
   };
 
-  if (!enabled || !window.visualViewport) {
+  if (!enabled) {
     setDeviceViewport();
     return () => undefined;
   }
 
   let lastWidth = 0;
-  const syncVisualViewport = () => {
-    const width = Math.max(320, Math.round(window.visualViewport.width));
+  const syncResponsiveViewport = () => {
+    const visibleWidth =
+      enabled && window.visualViewport
+        ? window.visualViewport.width
+        : window.innerWidth;
+    const width = Math.max(320, Math.round(visibleWidth));
     if (Math.abs(width - lastWidth) < 2) return;
     lastWidth = width;
     viewport.setAttribute(
@@ -499,9 +691,15 @@ function updateViewportBehavior(enabled) {
     window.dispatchEvent(new Event("resize"));
   };
 
-  window.visualViewport.addEventListener("resize", syncVisualViewport);
+  syncResponsiveViewport();
+  window.addEventListener("orientationchange", syncResponsiveViewport);
+  window.visualViewport?.addEventListener("resize", syncResponsiveViewport);
   return () => {
-    window.visualViewport.removeEventListener("resize", syncVisualViewport);
+    window.removeEventListener("orientationchange", syncResponsiveViewport);
+    window.visualViewport?.removeEventListener(
+      "resize",
+      syncResponsiveViewport,
+    );
     setDeviceViewport();
   };
 }
@@ -510,11 +708,22 @@ export default function AppearanceRuntime() {
   const localChangeRef = useRef(false);
 
   useEffect(() => {
+    const refreshDeveloperCss = (event) =>
+      applyDeveloperCss(event?.detail || loadDeveloperSettings());
+    refreshDeveloperCss();
+    window.addEventListener(developerSettingsChangeEvent, refreshDeveloperCss);
     let viewportCleanup = () => undefined;
+    let mediaQueryRefreshFrame = 0;
+    let currentTextSize = appearanceDefaults.textSize;
     const colorSchemeMedia = window.matchMedia("(prefers-color-scheme: light)");
+    const reducedMotionMedia = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    );
     const refresh = (event) => {
       const settings = event?.detail || loadAppearanceSettings();
       applyAppearanceSettings(settings);
+      currentTextSize = settings.textSize;
+      applyResponsiveMediaQueryScale(currentTextSize);
       viewportCleanup();
       viewportCleanup = updateViewportBehavior(
         Boolean(settings.resizeViewportOnPinch),
@@ -556,6 +765,28 @@ export default function AppearanceRuntime() {
       }
     };
     void loadAccountAppearance();
+    const refreshResponsiveMediaQueries = () => {
+      window.cancelAnimationFrame(mediaQueryRefreshFrame);
+      mediaQueryRefreshFrame = window.requestAnimationFrame(() => {
+        applyResponsiveMediaQueryScale(currentTextSize);
+      });
+    };
+    const refreshResponsiveViewportDimensions = () => {
+      applyResponsiveViewportDimensions(currentTextSize);
+    };
+    const stylesheetObserver = new MutationObserver(
+      refreshResponsiveMediaQueries,
+    );
+    stylesheetObserver.observe(document.head, {
+      childList: true,
+      subtree: true,
+    });
+    document.addEventListener("load", refreshResponsiveMediaQueries, true);
+    window.addEventListener("resize", refreshResponsiveViewportDimensions);
+    window.visualViewport?.addEventListener(
+      "resize",
+      refreshResponsiveViewportDimensions,
+    );
     const refreshSystemTheme = () => {
       const settings = loadAppearanceSettings();
       if (settings.themeMode === "system") refresh({ detail: settings });
@@ -572,13 +803,57 @@ export default function AppearanceRuntime() {
       "munetios:appearance-change",
       handleAppearanceChange,
     );
+    const handleMaterialPress = (event) => {
+      const target = event.target?.closest?.(
+        "button:not(:disabled), a[href], [role='button']:not([aria-disabled='true'])",
+      );
+      if (!target || reducedMotionMedia.matches) return;
+      const rect = target.getBoundingClientRect();
+      const originX = `${event.clientX - rect.left}px`;
+      const originY = `${event.clientY - rect.top}px`;
+      target.animate(
+        [
+          {
+            backgroundImage: `radial-gradient(circle at ${originX} ${originY}, rgb(255 255 255 / 24%) 0, transparent 0)`,
+            transform: "scale(1)",
+          },
+          {
+            backgroundImage: `radial-gradient(circle at ${originX} ${originY}, rgb(255 255 255 / 15%) 38%, transparent 70%)`,
+            transform: "scale(0.975)",
+          },
+          {
+            backgroundImage: `radial-gradient(circle at ${originX} ${originY}, transparent 70%)`,
+            transform: "scale(1)",
+          },
+        ],
+        {
+          duration: 420,
+          easing: "cubic-bezier(0.2, 0, 0, 1)",
+        },
+      );
+    };
+    document.addEventListener("pointerdown", handleMaterialPress);
     return () => {
+      window.removeEventListener(
+        developerSettingsChangeEvent,
+        refreshDeveloperCss,
+      );
+      window.cancelAnimationFrame(mediaQueryRefreshFrame);
+      stylesheetObserver.disconnect();
+      document.removeEventListener("load", refreshResponsiveMediaQueries, true);
+      window.removeEventListener("resize", refreshResponsiveViewportDimensions);
+      window.visualViewport?.removeEventListener(
+        "resize",
+        refreshResponsiveViewportDimensions,
+      );
+      restoreResponsiveMediaQueries();
       viewportCleanup();
       colorSchemeMedia.removeEventListener("change", refreshSystemTheme);
       window.removeEventListener(
         "munetios:appearance-change",
         handleAppearanceChange,
       );
+      document.removeEventListener("pointerdown", handleMaterialPress);
     };
   }, []);
 

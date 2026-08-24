@@ -26,7 +26,7 @@ database.exec(`
   );
   CREATE TABLE IF NOT EXISTS connector_oauth_states (
     state TEXT PRIMARY KEY, account_id TEXT NOT NULL, connector_id TEXT NOT NULL,
-    expires_at INTEGER NOT NULL
+    expires_at INTEGER NOT NULL, return_to TEXT NOT NULL DEFAULT '/account/settings/connectors'
   );
   CREATE TABLE IF NOT EXISTS connector_developer_businesses (
     account_id TEXT PRIMARY KEY, business_name TEXT NOT NULL,
@@ -34,6 +34,15 @@ database.exec(`
     description TEXT NOT NULL, status TEXT NOT NULL, submitted_at TEXT NOT NULL
   );
 `);
+
+try {
+  database.exec(
+    "ALTER TABLE connector_oauth_states ADD COLUMN return_to TEXT NOT NULL DEFAULT '/account/settings/connectors'",
+  );
+} catch (error) {
+  if (!String(error?.message || "").includes("duplicate column name"))
+    throw error;
+}
 
 database
   .prepare(`INSERT OR IGNORE INTO connectors (
@@ -78,7 +87,9 @@ function rowConnector(row, connected = false) {
 
 export function listPublicConnectors() {
   return database
-    .prepare("SELECT * FROM connectors WHERE visibility = 'public' AND status = 'published' ORDER BY name")
+    .prepare(
+      "SELECT * FROM connectors WHERE visibility = 'public' AND status = 'published' ORDER BY name",
+    )
     .all()
     .map((row) => rowConnector(row));
 }
@@ -95,75 +106,143 @@ export function listAccountConnectors(accountId) {
 }
 
 export function getConnector(slug) {
-  const row = database.prepare("SELECT * FROM connectors WHERE slug = ?").get(slug);
+  const row = database
+    .prepare("SELECT * FROM connectors WHERE slug = ?")
+    .get(slug);
   return row ? rowConnector(row) : null;
 }
 
 export function createPrivateConnector(accountId, input) {
   const id = randomUUID();
-  const slug = `${input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${id.slice(0, 8)}`;
-  database.prepare(`INSERT INTO connectors (
+  const slug = `${input.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")}-${id.slice(0, 8)}`;
+  database
+    .prepare(`INSERT INTO connectors (
     id, slug, name, description, developer, icon_url, terms_url, privacy_url,
     website_url, owner_user_id, visibility, status, created_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
-    id, slug, input.name, input.description, input.developer, input.iconUrl,
-    input.termsUrl, input.privacyUrl, input.websiteUrl, accountId,
-    input.visibility, input.visibility === "private" ? "private" : "pending",
-    new Date().toISOString(),
-  );
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(
+      id,
+      slug,
+      input.name,
+      input.description,
+      input.developer,
+      input.iconUrl,
+      input.termsUrl,
+      input.privacyUrl,
+      input.websiteUrl,
+      accountId,
+      input.visibility,
+      input.visibility === "private" ? "private" : "pending",
+      new Date().toISOString(),
+    );
   return getConnector(slug);
 }
 
 export function disconnectConnector(accountId, connectorId) {
-  return database
-    .prepare("DELETE FROM connector_connections WHERE account_id = ? AND connector_id = ?")
-    .run(accountId, connectorId).changes > 0;
+  return (
+    database
+      .prepare(
+        "DELETE FROM connector_connections WHERE account_id = ? AND connector_id = ?",
+      )
+      .run(accountId, connectorId).changes > 0
+  );
 }
 
-export function createOAuthState(accountId, connectorId) {
+export function createOAuthState(
+  accountId,
+  connectorId,
+  returnTo = "/account/settings/connectors",
+) {
   const state = randomBytes(32).toString("base64url");
-  database.prepare("DELETE FROM connector_oauth_states WHERE expires_at < ?").run(Date.now());
-  database.prepare("INSERT INTO connector_oauth_states VALUES (?, ?, ?, ?)").run(
-    state, accountId, connectorId, Date.now() + 10 * 60 * 1000,
-  );
+  database
+    .prepare("DELETE FROM connector_oauth_states WHERE expires_at < ?")
+    .run(Date.now());
+  database
+    .prepare(
+      "INSERT INTO connector_oauth_states (state, account_id, connector_id, expires_at, return_to) VALUES (?, ?, ?, ?, ?)",
+    )
+    .run(state, accountId, connectorId, Date.now() + 10 * 60 * 1000, returnTo);
   return state;
 }
 
 export function consumeOAuthState(state, connectorId) {
   const row = database
-    .prepare("SELECT * FROM connector_oauth_states WHERE state = ? AND connector_id = ? AND expires_at >= ?")
+    .prepare(
+      "SELECT * FROM connector_oauth_states WHERE state = ? AND connector_id = ? AND expires_at >= ?",
+    )
     .get(state, connectorId, Date.now());
-  if (row) database.prepare("DELETE FROM connector_oauth_states WHERE state = ?").run(state);
+  if (row)
+    database
+      .prepare("DELETE FROM connector_oauth_states WHERE state = ?")
+      .run(state);
   return row || null;
 }
 
-export function connectConnector(accountId, connectorId, externalAccount, accessToken) {
-  database.prepare(`INSERT INTO connector_connections
+export function connectConnector(
+  accountId,
+  connectorId,
+  externalAccount,
+  accessToken,
+) {
+  database
+    .prepare(`INSERT INTO connector_connections
     (account_id, connector_id, external_account, access_token, connected_at)
     VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(account_id, connector_id) DO UPDATE SET
       external_account = excluded.external_account,
       access_token = excluded.access_token,
-      connected_at = excluded.connected_at`).run(
-    accountId, connectorId, externalAccount || "", accessToken || "", new Date().toISOString(),
+      connected_at = excluded.connected_at`)
+    .run(
+      accountId,
+      connectorId,
+      externalAccount || "",
+      accessToken || "",
+      new Date().toISOString(),
+    );
+}
+
+export function getConnectorConnection(accountId, connectorId) {
+  return (
+    database
+      .prepare(
+        `SELECT external_account, access_token, connected_at
+         FROM connector_connections
+         WHERE account_id = ? AND connector_id = ?`,
+      )
+      .get(accountId, connectorId) || null
   );
 }
 
 export function getDeveloperBusiness(accountId) {
-  return database.prepare("SELECT * FROM connector_developer_businesses WHERE account_id = ?").get(accountId) || null;
+  return (
+    database
+      .prepare(
+        "SELECT * FROM connector_developer_businesses WHERE account_id = ?",
+      )
+      .get(accountId) || null
+  );
 }
 
 export function verifyDeveloperBusiness(accountId, input) {
   const submittedAt = new Date().toISOString();
-  database.prepare(`INSERT INTO connector_developer_businesses
+  database
+    .prepare(`INSERT INTO connector_developer_businesses
     (account_id, business_name, website, contact_email, description, status, submitted_at)
     VALUES (?, ?, ?, ?, ?, 'verified', ?)
     ON CONFLICT(account_id) DO UPDATE SET business_name = excluded.business_name,
       website = excluded.website, contact_email = excluded.contact_email,
       description = excluded.description, status = 'verified',
-      submitted_at = excluded.submitted_at`).run(
-    accountId, input.businessName, input.website, input.contactEmail,
-    input.description, submittedAt,
-  );
+      submitted_at = excluded.submitted_at`)
+    .run(
+      accountId,
+      input.businessName,
+      input.website,
+      input.contactEmail,
+      input.description,
+      submittedAt,
+    );
   return getDeveloperBusiness(accountId);
 }

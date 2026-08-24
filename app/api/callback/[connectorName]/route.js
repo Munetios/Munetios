@@ -18,17 +18,23 @@ import {
   consumeOAuthState,
   getConnector,
 } from "../../../lib/connectorDatabase.js";
+import { isStudentAccount } from "../../../lib/education.js";
+import { isParentalConnectorBlocked } from "../../../lib/family.js";
 import {
   clearGithubAuthCookie,
   getGithubAuthConfiguration,
   readGithubAuthRequest,
 } from "../../../lib/githubAuth.js";
 import { getSignedInCookie } from "../../../lib/signedInCookie.js";
+import {
+  createSignInChallenge,
+  getTwoFactorState,
+} from "../../../lib/twoFactorSecurity.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const githubOrigin = "https://localhost:3000";
+const githubOrigin = "http://localhost:3000";
 const githubCallbackUrl = `${githubOrigin}/api/callback/github`;
 
 function redirect(location, headers = new Headers()) {
@@ -174,6 +180,23 @@ async function completeGithubSignIn(request, code, state, authRequest) {
         accessToken,
       );
     }
+    const twoFactor = getTwoFactorState(account.id);
+    if (twoFactor.enabled) {
+      const challengeId = createSignInChallenge(account.id);
+      const destination = new URL("/signin", githubOrigin);
+      destination.searchParams.set("twoFactorChallenge", challengeId);
+      destination.searchParams.set(
+        "returnTo",
+        String(authRequest.returnTo || "/"),
+      );
+      if (authRequest.addAccount)
+        destination.searchParams.set("addAccount", "true");
+      if (authRequest.embedded)
+        destination.searchParams.set("embedded", "true");
+      const headers = new Headers();
+      headers.append("Set-Cookie", clearGithubAuthCookie(request));
+      return redirect(destination.toString(), headers);
+    }
     const session = createAccountSession(
       account,
       getRequestCookie(request, accountCollectionCookieName),
@@ -224,18 +247,18 @@ export async function GET(request, { params }) {
     connector.slug !== "github" ||
     !code ||
     !oauthState ||
-    oauthState.account_id !== session.user.id
+    oauthState.account_id !== session.user.id ||
+    isStudentAccount(session.user.id) ||
+    isParentalConnectorBlocked(session.user.id, "github")
   ) {
     destination.searchParams.set("connectorError", "connect");
     return redirect(destination.toString());
   }
 
   try {
-    const accessToken = await exchangeGithubCode(
-      code,
-      process.env.GITHUB_CONNECTOR_CLIENT_ID,
-      process.env.GITHUB_CONNECTOR_CLIENT_SECRET,
-    );
+    const { clientId, clientSecret } = getGithubAuthConfiguration();
+    if (!clientId || !clientSecret) throw new Error("oauth_unavailable");
+    const accessToken = await exchangeGithubCode(code, clientId, clientSecret);
     const { profile } = await getGithubProfile(accessToken);
     connectConnector(
       oauthState.account_id,
@@ -247,5 +270,12 @@ export async function GET(request, { params }) {
   } catch {
     destination.searchParams.set("connectorError", "connect");
   }
-  return redirect(destination.toString());
+  const returnDestination = new URL(
+    oauthState.return_to || "/account/settings/connectors",
+    githubOrigin,
+  );
+  for (const [key, value] of destination.searchParams) {
+    returnDestination.searchParams.set(key, value);
+  }
+  return redirect(returnDestination.toString());
 }

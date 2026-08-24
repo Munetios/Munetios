@@ -22,17 +22,45 @@ const supportedImageTypes = new Set([
 function ProfileWorkspaces({ copy }) {
   const [workspaces, setWorkspaces] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadErrorKey, setLoadErrorKey] = useState("");
+
   useEffect(() => {
-    fetch("/api/workspaces", { cache: "no-store", credentials: "include" })
+    let active = true;
+    const controller = new AbortController();
+
+    fetch("/api/workspaces", {
+      cache: "no-store",
+      credentials: "include",
+      signal: controller.signal,
+    })
       .then((response) => {
-        if (!response.ok) throw new Error("workspaces_load_failed");
+        if (!response.ok) {
+          const error = new Error("workspaces_load_failed");
+          error.messageKey = "failedLoadWorkspaces";
+          throw error;
+        }
         return response.json();
       })
-      .then((payload) => setWorkspaces(payload.workspaces || []))
-      .catch(() =>
-        showToast({ messageKey: "failedLoadWorkspaces", type: "error" }),
-      )
-      .finally(() => setLoading(false));
+      .then((payload) => {
+        if (!active) return;
+        setWorkspaces(payload.workspaces || []);
+        setLoadErrorKey("");
+      })
+      .catch((error) => {
+        if (!active || error?.name === "AbortError") return;
+
+        const messageKey = error?.messageKey || "failedLoadWorkspaces";
+        setLoadErrorKey(messageKey);
+        showToast({ messageKey, type: "error" });
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, []);
 
   return (
@@ -45,7 +73,12 @@ function ProfileWorkspaces({ copy }) {
         {loading
           ? <p className="text-sm text-white/60">{copy.loadingWorkspaces}</p>
           : null}
-        {!loading && workspaces.length === 0
+        {!loading && loadErrorKey
+          ? <p className="text-sm text-rose-100" role="alert">
+              {copy[loadErrorKey]}
+            </p>
+          : null}
+        {!loading && !loadErrorKey && workspaces.length === 0
           ? <p className="text-sm text-white/60">{copy.noWorkspaces}</p>
           : null}
         {workspaces.map((workspace) => (
@@ -975,12 +1008,14 @@ function ProfilePreview({ copy, loadState, profile }) {
   );
 }
 
-export default function AccountProfileSection({ copy }) {
+export default function AccountProfileSection({
+  copy,
+  managedStudent = false,
+}) {
   const fallbackNameRef = useRef(copy.accountNameFallback);
   const requestControllerRef = useRef(null);
   const draftObjectUrlRef = useRef(null);
   const [loadState, setLoadState] = useState("loading");
-  const [unauthorized, setUnauthorized] = useState(false);
   const [savedProfile, setSavedProfile] = useState(() =>
     createFallbackProfile(copy.accountNameFallback),
   );
@@ -1007,9 +1042,9 @@ export default function AccountProfileSection({ copy }) {
       });
 
       if (!response.ok) {
-        const isUnauthorized = response.status === 401;
-        setUnauthorized(isUnauthorized);
-        throw new Error(`Profile request failed: ${response.status}`);
+        const error = new Error(`Profile request failed: ${response.status}`);
+        error.status = response.status;
+        throw error;
       }
 
       const payload = await response.json();
@@ -1020,7 +1055,6 @@ export default function AccountProfileSection({ copy }) {
       setSavedProfile(nextProfile);
       setProfile(nextProfile);
       setLoadState("ready");
-      setUnauthorized(false);
     } catch (error) {
       if (error?.name === "AbortError") {
         return;
@@ -1032,14 +1066,12 @@ export default function AccountProfileSection({ copy }) {
       setSavedProfile(fallbackProfile);
       setProfile(fallbackProfile);
       setLoadState("error");
-      if (!unauthorized) {
-        showToast({
-          messageKey: "accountProfileLoadFailed",
-          type: "error",
-        });
-      }
+      showToast({
+        messageKey: "accountProfileLoadFailed",
+        type: "error",
+      });
     }
-  }, [unauthorized]);
+  }, []);
 
   useEffect(() => {
     fallbackNameRef.current = copy.accountNameFallback;
@@ -1057,25 +1089,13 @@ export default function AccountProfileSection({ copy }) {
   }, [loadProfile]);
 
   useEffect(() => {
-    if (unauthorized) {
-      setProfileError(
-        copy.accountProfileSignInToViewProfile || "Sign in to view profile.",
-      );
-      return;
-    }
-
     if (loadState === "error") {
       setProfileError(copy.accountProfileLoadFailed);
       return;
     }
 
     setProfileError(null);
-  }, [
-    copy.accountProfileLoadFailed,
-    copy.accountProfileSignInToViewProfile,
-    loadState,
-    unauthorized,
-  ]);
+  }, [copy.accountProfileLoadFailed, loadState]);
 
   useEffect(() => {
     const availableAt = new Date(
@@ -1193,7 +1213,6 @@ export default function AccountProfileSection({ copy }) {
             />,
       {
         ariaLabel: copy.accountProfileUnder13Title,
-        modalId: "account-profile-under-13-modal",
         title: copy.accountProfileUnder13Title,
       },
     );
@@ -1358,6 +1377,7 @@ export default function AccountProfileSection({ copy }) {
   };
 
   const formDisabled = loadState === "loading" || saving;
+  const managedFieldDisabled = managedStudent || formDisabled;
   const canSave =
     !formDisabled &&
     hasChanges &&
@@ -1383,6 +1403,11 @@ export default function AccountProfileSection({ copy }) {
           {copy.accountProfileDescription}
         </p>
       </header>
+      {managedStudent
+        ? <p className="mb-5 rounded-xl border border-purple-200/15 bg-purple-500/10! p-3 text-sm text-purple-100">
+            {copy.educationSettingsManagedByTeacher}
+          </p>
+        : null}
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.72fr)]">
         <section
@@ -1398,15 +1423,13 @@ export default function AccountProfileSection({ copy }) {
                 <p className="text-sm leading-6 text-rose-100" role="alert">
                   {profileError}
                 </p>
-                {!unauthorized
-                  ? <button
-                      className="shrink-0 rounded-xl border border-rose-200/20 bg-rose-500/15! px-3 py-2 text-sm font-bold text-rose-100 transition hover:bg-rose-500/25!"
-                      onClick={loadProfile}
-                      type="button"
-                    >
-                      {copy.retry}
-                    </button>
-                  : null}
+                <button
+                  className="shrink-0 rounded-xl border border-rose-200/20 bg-rose-500/15! px-3 py-2 text-sm font-bold text-rose-100 transition hover:bg-rose-500/25!"
+                  onClick={loadProfile}
+                  type="button"
+                >
+                  {copy.retry}
+                </button>
               </div>
             : null}
 
@@ -1415,7 +1438,7 @@ export default function AccountProfileSection({ copy }) {
               <button
                 aria-label={copy.accountProfileChangePicture}
                 className="group relative w-fit shrink-0 rounded-full disabled:cursor-not-allowed"
-                disabled={formDisabled}
+                disabled={managedFieldDisabled}
                 onClick={openPictureEditor}
                 type="button"
               >
@@ -1442,7 +1465,7 @@ export default function AccountProfileSection({ copy }) {
               </div>
               <button
                 className="rounded-xl border border-purple-200/25 bg-purple-500/20! px-3 py-2 text-sm font-bold text-purple-50 transition hover:border-purple-200/40 hover:bg-purple-500/30! disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={formDisabled}
+                disabled={managedFieldDisabled}
                 onClick={openPictureEditor}
                 type="button"
               >
@@ -1456,7 +1479,7 @@ export default function AccountProfileSection({ copy }) {
                 <input
                   autoComplete="name"
                   className={fieldClassName}
-                  disabled={formDisabled || profile.parentSupervision}
+                  disabled={managedFieldDisabled || profile.parentSupervision}
                   maxLength={80}
                   onChange={(event) => updateField("name", event.target.value)}
                   placeholder={copy.accountProfileNamePlaceholder}
@@ -1471,7 +1494,7 @@ export default function AccountProfileSection({ copy }) {
                 <input
                   autoComplete="email"
                   className={fieldClassName}
-                  disabled={formDisabled || emailLocked}
+                  disabled={managedFieldDisabled || emailLocked}
                   maxLength={254}
                   onChange={(event) => updateField("email", event.target.value)}
                   placeholder={copy.accountProfileNotProvided}
@@ -1493,7 +1516,7 @@ export default function AccountProfileSection({ copy }) {
                 <p>{copy.accountProfileBirthday}</p>
                 <BirthdayDatePicker
                   copy={copy}
-                  disabled={formDisabled || profile.parentSupervision}
+                  disabled={managedFieldDisabled || profile.parentSupervision}
                   onChange={updateBirthday}
                   required
                   value={profile.birthday}
@@ -1512,7 +1535,7 @@ export default function AccountProfileSection({ copy }) {
                 <CustomDropdown
                   className="mt-2"
                   copy={copy}
-                  disabled={formDisabled}
+                  disabled={managedFieldDisabled}
                   label={copy.accountProfileGender}
                   onChange={(nextGender) => {
                     setProfile((currentProfile) => ({
@@ -1556,7 +1579,7 @@ export default function AccountProfileSection({ copy }) {
                   ? <input
                       aria-label={copy.accountProfileGenderCustom}
                       className={fieldClassName}
-                      disabled={formDisabled}
+                      disabled={managedFieldDisabled}
                       maxLength={60}
                       onChange={(event) =>
                         updateField("customGender", event.target.value)

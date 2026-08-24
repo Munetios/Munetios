@@ -2,6 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  applyDeveloperCss,
+  developerSettingsChangeEvent,
+  loadDeveloperSettings,
+  saveDeveloperSettings,
+} from "../lib/developerSettings";
+import {
   appearanceDefaults,
   appearanceStorageKey,
   appearanceThemes,
@@ -11,6 +17,7 @@ import {
 } from "./appearanceRuntime";
 import CustomToggle from "./customToggle";
 import DropdownWrapper from "./dropdownwrapper";
+import { showModal } from "./modal";
 
 const presetColors = [
   "#a855f7",
@@ -94,7 +101,9 @@ function SettingToggle({ checked, description, label, onChange }) {
   return (
     <div className="flex items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/5! p-4">
       <span className="min-w-0">
-        <span className="block text-sm font-semibold text-white">{label}</span>
+        <span className="flex items-center gap-2 text-sm font-semibold text-white">
+          {label}
+        </span>
         {description
           ? <span className="mt-1 block text-xs leading-5 text-white/60">
               {description}
@@ -111,7 +120,110 @@ function SettingToggle({ checked, description, label, onChange }) {
   );
 }
 
-function ColorControl({
+function ThemeChangeConfirmation({ close, copy, onConfirm }) {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm leading-6 text-white/70">
+        {copy.accountAppearanceThemeChangeDescription}
+      </p>
+      <div className="flex flex-wrap justify-end gap-2">
+        <button
+          className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10!"
+          onClick={close}
+          type="button"
+        >
+          {copy.cancel}
+        </button>
+        <button
+          className="liquid-glass rounded-xl border border-purple-200/20 bg-purple-700/60! px-4 py-2 text-sm font-bold text-white transition hover:bg-purple-600/75!"
+          onClick={() => {
+            close();
+            onConfirm();
+          }}
+          type="button"
+        >
+          {copy.accountAppearanceThemeChangeAction}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RangeSetting({
+  badge,
+  description,
+  label,
+  max,
+  min,
+  onChange,
+  step = 1,
+  suffix,
+  value,
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5! p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold text-white">
+            {label}
+          </span>
+          {description
+            ? <span className="mt-1 block text-xs leading-5 text-white/60">
+                {description}
+              </span>
+            : null}
+        </span>
+        <span className="flex items-center gap-2">
+          {badge
+            ? <span className="rounded-full border border-purple-200/15 bg-purple-400/10! px-2.5 py-1 text-xs font-semibold text-purple-100">
+                {badge}
+              </span>
+            : null}
+          <output className="min-w-14 text-right text-sm font-bold text-white">
+            {value}
+            {suffix}
+          </output>
+        </span>
+      </div>
+      <input
+        aria-label={label}
+        className="munetios-custom-slider mt-4 h-2 w-full cursor-pointer"
+        max={max}
+        min={min}
+        onChange={(event) => onChange(Number(event.target.value))}
+        step={step}
+        type="range"
+        value={value}
+        style={{
+          "--slider-progress": `${((value - min) / (max - min)) * 100}%`,
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="mt-1 flex justify-between text-[0.68rem] font-semibold text-white/45"
+      >
+        <span>
+          {min}
+          {suffix}
+        </span>
+        <span>
+          {max}
+          {suffix}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function getGlassLevelKey(value) {
+  if (value <= 1) return "accountAppearanceBlurLevelLessGlass";
+  if (value <= 5) return "accountAppearanceBlurLevelLiquidGlass";
+  if (value <= 12) return "accountAppearanceBlurLevelGlassmorph";
+  if (value <= 24) return "accountAppearanceBlurLevelHeavyGlass";
+  return "accountAppearanceBlurLevelFrostedGlass";
+}
+
+export function ColorControl({
   colors = presetColors,
   copy,
   label,
@@ -429,12 +541,15 @@ export function ColorPickerWrapper({
                 <span>{gradientAngle}°</span>
               </span>
               <input
-                className="mt-3 w-full accent-[var(--accent)]"
+                className="munetios-custom-slider mt-3 w-full"
                 max="360"
                 min="0"
                 onChange={(event) =>
                   onGradientAngleChange(Number(event.target.value))
                 }
+                style={{
+                  "--slider-progress": `${(gradientAngle / 360) * 100}%`,
+                }}
                 type="range"
                 value={gradientAngle}
               />
@@ -583,9 +698,22 @@ export default function AccountAppearanceSection({ copy }) {
   const [fontApiAvailable, setFontApiAvailable] = useState(false);
   const [, setSystemThemeRevision] = useState(0);
   const fontDetectionRequestRef = useRef(0);
+  const [developerSettings, setDeveloperSettings] = useState(null);
 
   useEffect(() => {
     setSettings(loadAppearanceSettings());
+    setDeveloperSettings(loadDeveloperSettings());
+    const refreshDeveloperSettings = (event) =>
+      setDeveloperSettings(event.detail || loadDeveloperSettings());
+    window.addEventListener(
+      developerSettingsChangeEvent,
+      refreshDeveloperSettings,
+    );
+    return () =>
+      window.removeEventListener(
+        developerSettingsChangeEvent,
+        refreshDeveloperSettings,
+      );
   }, []);
 
   const saveSettings = (patch) => {
@@ -696,27 +824,49 @@ export default function AccountAppearanceSection({ copy }) {
       ),
     }));
   };
+  const confirmCustomBackgroundReplacement = (onConfirm) => {
+    if (settings.themeMode !== "custom") {
+      onConfirm();
+      return;
+    }
+
+    showModal({
+      ariaLabel: copy.accountAppearanceThemeChangeTitle,
+      content: ({ close }) => (
+        <ThemeChangeConfirmation
+          close={close}
+          copy={copy}
+          onConfirm={onConfirm}
+        />
+      ),
+      title: copy.accountAppearanceThemeChangeTitle,
+    });
+  };
   const selectThemeMode = (themeMode) => {
     if (themeMode === "custom") return;
-    const palette = getThemePalette(currentTheme, themeMode);
-    saveSettings({
-      backgroundColor: palette.background,
-      backgroundColorSecondary: palette.backgroundSecondary,
-      gradientColors: [],
-      themeMode,
+    confirmCustomBackgroundReplacement(() => {
+      const palette = getThemePalette(currentTheme, themeMode);
+      saveSettings({
+        backgroundColor: palette.background,
+        backgroundColorSecondary: palette.backgroundSecondary,
+        gradientColors: [],
+        themeMode,
+      });
     });
   };
   const selectTheme = (theme) => {
-    const themeMode =
-      settings.themeMode === "custom" ? "system" : settings.themeMode;
-    const palette = getThemePalette(theme, themeMode);
-    saveSettings({
-      accentColor: theme.accent,
-      backgroundColor: palette.background,
-      backgroundColorSecondary: palette.backgroundSecondary,
-      gradientColors: [],
-      theme: theme.id,
-      themeMode,
+    confirmCustomBackgroundReplacement(() => {
+      const themeMode =
+        settings.themeMode === "custom" ? "system" : settings.themeMode;
+      const palette = getThemePalette(theme, themeMode);
+      saveSettings({
+        accentColor: theme.accent,
+        backgroundColor: palette.background,
+        backgroundColorSecondary: palette.backgroundSecondary,
+        gradientColors: [],
+        theme: theme.id,
+        themeMode,
+      });
     });
   };
   const displayedBackground =
@@ -776,7 +926,7 @@ export default function AccountAppearanceSection({ copy }) {
                   />
                 </span>
                 <span className="flex items-center justify-between gap-3 text-sm font-bold">
-                  {copy[theme.labelKey]}
+                  {theme.name || copy[theme.labelKey]}
                   {settings.theme === theme.id
                     ? <icon>check_circle</icon>
                     : null}
@@ -838,6 +988,108 @@ export default function AccountAppearanceSection({ copy }) {
               onChange={(ss08) => saveSettings({ ss08 })}
             />
           </div>
+        </div>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="mb-1 text-base font-bold text-white">
+          {copy.accountAppearanceLiquidGlassCustomizations}
+        </h2>
+        <p className="mb-3 text-sm leading-6 text-white/60">
+          {copy.accountAppearanceLiquidGlassCustomizationsDescription}
+        </p>
+        <RangeSetting
+          badge={copy[getGlassLevelKey(settings.glassBlur)]}
+          description={copy.accountAppearanceBlurDescription}
+          label={copy.accountAppearanceBlur}
+          max={100}
+          min={1}
+          onChange={(glassBlur) => saveSettings({ glassBlur })}
+          suffix="px"
+          value={settings.glassBlur}
+        />
+      </section>
+
+      {developerSettings?.developerMode
+        ? <section className="liquid-glass mt-8 rounded-2xl border border-amber-300/20 bg-amber-500/8! p-4">
+            <h2 className="text-base font-bold text-white">
+              {copy.developerCssInjectTitle}
+            </h2>
+            <p className="mt-1 text-xs leading-5 text-amber-100/80">
+              {copy.developerCssInjectWarning}
+            </p>
+            <textarea
+              className="mt-3 min-h-40 w-full resize-y rounded-xl border border-white/10 bg-black/30! p-3 font-mono text-xs text-white"
+              onChange={(event) => {
+                const next = saveDeveloperSettings({
+                  ...developerSettings,
+                  customCss: event.target.value,
+                });
+                setDeveloperSettings(next);
+                applyDeveloperCss(next);
+              }}
+              placeholder={copy.developerCssInjectPlaceholder}
+              spellCheck={false}
+              value={developerSettings.customCss}
+            />
+          </section>
+        : null}
+
+      <section className="mt-8">
+        <h2 className="mb-1 text-base font-bold text-white">
+          {copy.accountAppearanceCustomizeLayout}
+        </h2>
+        <p className="mb-3 text-sm leading-6 text-white/60">
+          {copy.accountAppearanceCustomizeLayoutDescription}
+        </p>
+        <div className="grid gap-3 lg:grid-cols-2">
+          <RangeSetting
+            description={copy.accountAppearanceTextSizeDescription}
+            label={copy.accountAppearanceTextSize}
+            max={1000}
+            min={25}
+            onChange={(textSize) => saveSettings({ textSize })}
+            step={5}
+            suffix="%"
+            value={settings.textSize}
+          />
+          <RangeSetting
+            description={
+              copy.accountAppearanceAccountSettingsPaddingDescription
+            }
+            label={copy.accountAppearanceAccountSettingsPadding}
+            max={32}
+            min={8}
+            onChange={(accountSettingsPadding) =>
+              saveSettings({ accountSettingsPadding })
+            }
+            suffix="px"
+            value={settings.accountSettingsPadding}
+          />
+          <SettingToggle
+            checked={settings.compactMode}
+            description={copy.accountAppearanceCompactModeDescription}
+            label={copy.accountAppearanceCompactMode}
+            onChange={(compactMode) => saveSettings({ compactMode })}
+          />
+          <SettingToggle
+            checked={settings.customBorderRadius}
+            description={copy.accountAppearanceCustomizeBorderRadiusDescription}
+            label={copy.accountAppearanceCustomizeBorderRadius}
+            onChange={(customBorderRadius) =>
+              saveSettings({ customBorderRadius })
+            }
+          />
+          {settings.customBorderRadius
+            ? <RangeSetting
+                label={copy.accountAppearanceBorderRadius}
+                max={50}
+                min={0}
+                onChange={(borderRadius) => saveSettings({ borderRadius })}
+                suffix="px"
+                value={settings.borderRadius}
+              />
+            : null}
         </div>
       </section>
 

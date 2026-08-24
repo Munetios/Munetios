@@ -2,11 +2,12 @@ import { createHash } from "node:crypto";
 import nodemailer from "nodemailer";
 
 const emailPattern = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
-const connectionTimeoutMs = 60_000;
-const dnsTimeoutMs = 30_000;
-const greetingTimeoutMs = 30_000;
-const socketTimeoutMs = 120_000;
-const transportVersion = "nodemailer-v4";
+const connectionTimeoutMs = 6_000;
+const dnsTimeoutMs = 4_000;
+const greetingTimeoutMs = 6_000;
+const socketTimeoutMs = 10_000;
+const deliveryTimeoutMs = 10_000;
+const transportVersion = "nodemailer-v5";
 const transporterStore = globalThis.__munetiosNodemailerTransporter || {
   signature: "",
   transporter: null,
@@ -157,6 +158,25 @@ function resetTransporter() {
   transporterStore.transporter = null;
 }
 
+async function sendMailWithTimeout(transporter, message) {
+  let timeoutId;
+  try {
+    return await Promise.race([
+      transporter.sendMail(message),
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          resetTransporter();
+          const error = new Error("Email delivery timed out.");
+          error.code = "ETIMEDOUT";
+          reject(error);
+        }, deliveryTimeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 function getFailureReason(error) {
   const message = String(error?.message || "").toUpperCase();
   if (
@@ -218,14 +238,11 @@ function getFailureReason(error) {
 
 function canRetryBeforeDelivery(error) {
   const connectionErrorCodes = new Set([
-    "ECONNECTION",
     "ECONNREFUSED",
     "ECONNRESET",
     "EDNS",
     "EAI_AGAIN",
     "ENOTFOUND",
-    "ESOCKET",
-    "ETIMEDOUT",
   ]);
   return (
     connectionErrorCodes.has(error?.code) &&
@@ -235,6 +252,37 @@ function canRetryBeforeDelivery(error) {
 
 export function isVerificationEmailConfigured() {
   return getConfiguration() !== null;
+}
+
+export async function sendUserEmail({
+  fromName,
+  html,
+  replyTo,
+  subject,
+  text,
+  to,
+}) {
+  const configuration = getConfiguration();
+  if (!configuration)
+    return { delivered: false, reason: "email_not_configured" };
+  if (!emailPattern.test(to || "")) {
+    return { delivered: false, reason: "email_invalid_message" };
+  }
+  try {
+    const result = await sendMailWithTimeout(getTransporter(configuration), {
+      from: { address: configuration.from, name: fromName || "Munetios Mail" },
+      html,
+      replyTo: emailPattern.test(replyTo || "") ? replyTo : undefined,
+      subject: String(subject || "(No subject)").slice(0, 300),
+      text,
+      to,
+    });
+    const delivered =
+      Array.isArray(result.accepted) && result.accepted.length > 0;
+    return { delivered, reason: delivered ? null : "email_recipient_rejected" };
+  } catch (error) {
+    return { delivered: false, reason: getFailureReason(error) };
+  }
 }
 
 export async function sendVerificationEmail(recipient, code) {
@@ -250,7 +298,7 @@ export async function sendVerificationEmail(recipient, code) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const transporter = getTransporter(configuration);
-      const result = await transporter.sendMail({
+      const result = await sendMailWithTimeout(transporter, {
         from: { address: configuration.from, name: "Munetios" },
         headers: { "Auto-Submitted": "auto-generated" },
         subject: "Your Munetios verification code",

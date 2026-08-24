@@ -5,6 +5,10 @@ import AccountAvatar from "../../../components/accountAvatar";
 import DropdownWrapper from "../../../components/dropdownwrapper";
 import { showToast } from "../../../components/toast";
 import { formatUserTime } from "../../../lib/dateTimePreferences";
+import {
+  createResponsiveMediaQuery,
+  getResponsiveViewportWidth,
+} from "../../../lib/responsiveMediaQuery";
 import { meetEmojiCategories, meetEmojis } from "../lib/meetEmojis";
 import { meetSoundEffects, prepareMeetAudio } from "./meetSounds";
 
@@ -75,7 +79,7 @@ export default function MeetChatPanel({
   );
 
   useEffect(() => {
-    const mobileQuery = window.matchMedia("(max-width: 767px)");
+    const mobileQuery = createResponsiveMediaQuery("(max-width: 767px)");
     const updateMobileLayout = () =>
       setIsMobileBottomSheet(mobileQuery.matches);
     updateMobileLayout();
@@ -86,13 +90,18 @@ export default function MeetChatPanel({
   useEffect(() => {
     if (!open) return;
     const fitPanel = () => {
-      if (window.innerWidth < 768) return;
-      const maximum = Math.min(900, window.innerWidth - 280);
+      const responsiveWidth = getResponsiveViewportWidth();
+      if (responsiveWidth < 768) return;
+      const maximum = Math.min(900, responsiveWidth - 280);
       setPanelWidth((current) => Math.max(360, Math.min(maximum, current)));
     };
     fitPanel();
     window.addEventListener("resize", fitPanel);
-    return () => window.removeEventListener("resize", fitPanel);
+    window.addEventListener("munetios:responsivechange", fitPanel);
+    return () => {
+      window.removeEventListener("resize", fitPanel);
+      window.removeEventListener("munetios:responsivechange", fitPanel);
+    };
   }, [open, setPanelWidth]);
 
   if (!open) return null;
@@ -199,7 +208,7 @@ export default function MeetChatPanel({
     const startX = event.clientX;
     const startWidth = panelWidth;
     const move = (moveEvent) => {
-      const maximum = Math.min(900, window.innerWidth - 280);
+      const maximum = Math.min(900, getResponsiveViewportWidth() - 280);
       setPanelWidth(
         Math.max(
           360,

@@ -6,7 +6,7 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const githubOrigin = "https://localhost:3000";
+const githubOrigin = "http://localhost:3000";
 const githubCallbackUrl = `${githubOrigin}/api/callback/github`;
 
 function getSafeReturnTo(value) {

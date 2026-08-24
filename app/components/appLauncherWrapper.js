@@ -127,7 +127,7 @@ export default function AppLauncherWrapper({
     };
   }, [onClose, open, triggerRef, updatePanelPosition]);
 
-  if (!mounted || !open) {
+  if (!mounted) {
     return null;
   }
 
@@ -135,6 +135,7 @@ export default function AppLauncherWrapper({
     <div
       className="fixed z-[1100]"
       data-munetios-app-launcher-wrapper="true"
+      hidden={!open}
       id={panelId}
       ref={panelRef}
       style={{

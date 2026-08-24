@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getCurrentLocale, t, translations } from "../i18n";
+import {
+  getCurrentLocale,
+  getUrlLocaleOverride,
+  t,
+  translations,
+} from "../i18n";
+import { britishEnglishLocaleCountries } from "../languages/index";
 import { loadDateTimePreferences } from "../lib/dateTimePreferences";
 import {
   getSuggestedLocales,
@@ -56,10 +62,17 @@ function getDetectedLocale() {
   return getCurrentLocale(navigator.language || navigator.userLanguage || "en");
 }
 
+function getLocaleDisplayName(locale) {
+  const britishEnglishCountry = britishEnglishLocaleCountries[locale];
+  if (britishEnglishCountry) {
+    return `British English (${britishEnglishCountry})`;
+  }
+  return translations[locale]?.languageName || locale;
+}
+
 function getAutoLanguageLabel() {
   const detectedLocale = getDetectedLocale();
-  const detectedLanguageName =
-    translations[detectedLocale]?.languageName || detectedLocale;
+  const detectedLanguageName = getLocaleDisplayName(detectedLocale);
 
   return `Auto (${detectedLanguageName})`;
 }
@@ -111,30 +124,142 @@ function getAutoLanguageDestination() {
   return destination;
 }
 
+function getDestinationWithoutLocaleOverride() {
+  const destination = new URL(window.location.href);
+  destination.searchParams.delete("hl");
+  destination.hash = removeHashLocaleOverride(destination.hash);
+  return destination;
+}
+
+function getDisplayedLanguage() {
+  return getUrlLocaleOverride() || getSavedLanguage();
+}
+
 function getLanguageOptions(preferences) {
   const suggestedLocales = getSuggestedLocales(
     resolvePreferenceCountry(preferences),
   );
-  const localeEntries = Object.entries(translations).map(
-    ([locale, localeCopy]) => ({
+  const localeEntries = Object.entries(translations)
+    .map(([locale, localeCopy]) => ({
       locale,
       name: localeCopy.languageName || locale,
       suggested: suggestedLocales.includes(locale),
+    }))
+    .filter(({ locale }) => !britishEnglishLocaleCountries[locale]);
+  const britishEnglishOptions = Object.entries(britishEnglishLocaleCountries)
+    .map(([locale, country]) => ({
+      country,
+      locale,
+      name: `British English (${country})`,
+      suggested: suggestedLocales.includes(locale),
+    }))
+    .sort((firstLanguage, secondLanguage) =>
+      firstLanguage.country.localeCompare(secondLanguage.country, "en", {
+        sensitivity: "base",
+      }),
+    );
+
+  const orderedOptions = [
+    ...localeEntries,
+    {
+      group: "british-english",
+      name: "British English",
+    },
+  ].sort((firstLanguage, secondLanguage) =>
+    firstLanguage.name.localeCompare(secondLanguage.name, "en", {
+      sensitivity: "base",
     }),
   );
-  return [
-    {
+
+  return {
+    autoOption: {
       locale: "auto",
       name: getAutoLanguageLabel(),
     },
-    ...localeEntries.sort(
-      (firstLanguage, secondLanguage) =>
-        Number(secondLanguage.suggested) - Number(firstLanguage.suggested) ||
-        firstLanguage.name.localeCompare(secondLanguage.name, "en", {
-          sensitivity: "base",
-        }),
-    ),
-  ];
+    britishEnglishOptions,
+    orderedOptions,
+  };
+}
+
+function BritishEnglishGroup({
+  copy,
+  disabled,
+  onSelect,
+  options,
+  selectedLanguage,
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedBritishEnglish = Boolean(
+    britishEnglishLocaleCountries[selectedLanguage],
+  );
+
+  return (
+    <fieldset
+      aria-label={copy.languageBritishEnglishCountries}
+      className="m-0 min-w-0 rounded-lg border border-transparent p-0"
+      data-dropdown-keep-open="true"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
+      onFocus={() => setOpen(true)}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="flex w-full items-center justify-between gap-3 rounded-lg bg-transparent px-3 py-2 text-left text-sm text-white transition hover:bg-white/10!"
+        disabled={disabled}
+        onClick={() => setOpen((current) => !current)}
+        role="menuitem"
+        type="button"
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <icon>language</icon>
+          <span className="truncate">British English</span>
+        </span>
+        <span className="flex items-center gap-2">
+          {selectedBritishEnglish ? <icon>check</icon> : null}
+          <icon>{open ? "expand_less" : "expand_more"}</icon>
+        </span>
+      </button>
+      {open
+        ? <div className="mt-1 grid gap-1 border-t border-white/10 pt-1 sm:grid-cols-2">
+            {options.map((option) => (
+              <button
+                aria-checked={option.locale === selectedLanguage}
+                className="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-transparent px-3 py-2 text-left text-xs text-white transition hover:bg-white/10!"
+                disabled={disabled}
+                key={option.locale}
+                onClick={() => onSelect(option.locale)}
+                role="menuitemradio"
+                type="button"
+              >
+                <span className="flex min-w-0 items-center gap-2 truncate">
+                  {option.suggested
+                    ? <icon
+                        className="text-purple-200"
+                        title={copy.accountLanguageCountry}
+                      >
+                        location_on
+                      </icon>
+                    : null}
+                  <span className="truncate">{option.country}</span>
+                </span>
+                {option.locale === selectedLanguage ? <icon>check</icon> : null}
+              </button>
+            ))}
+          </div>
+        : null}
+    </fieldset>
+  );
+}
+
+function saveLocalLanguage(language) {
+  window.localStorage.setItem("munetiosLanguage", language);
+  window.localStorage.setItem("munetios.locale", language);
+  // biome-ignore lint/suspicious/noDocumentCookie: The locale is a non-sensitive preference cookie.
+  window.document.cookie = `munetios_locale=${encodeURIComponent(language)}; Path=/; Max-Age=31536000; SameSite=Lax`;
 }
 
 async function saveLanguagePreference(language) {
@@ -189,14 +314,12 @@ async function saveLanguagePreference(language) {
 
     if (typeof payload?.language === "string") {
       const savedLanguage = getCurrentLocale(payload.language);
-      window.localStorage.setItem("munetiosLanguage", savedLanguage);
-      window.localStorage.setItem("munetios.locale", savedLanguage);
+      saveLocalLanguage(savedLanguage);
       return savedLanguage;
     }
   } catch {
     if (typeof window !== "undefined") {
-      window.localStorage.setItem("munetiosLanguage", resolvedLanguage);
-      window.localStorage.setItem("munetios.locale", resolvedLanguage);
+      saveLocalLanguage(resolvedLanguage);
     }
   }
 
@@ -228,9 +351,7 @@ export default function LanguageSelector({
   persistent = false,
   placement = "bottom",
 }) {
-  const [selectedLanguage, setSelectedLanguage] = useState(() =>
-    getSavedLanguage(),
-  );
+  const [selectedLanguage, setSelectedLanguage] = useState("auto");
   const [savingLanguage, setSavingLanguage] = useState(false);
   const [regionalPreferences, setRegionalPreferences] = useState(
     loadDateTimePreferences,
@@ -245,38 +366,33 @@ export default function LanguageSelector({
   const selectedLanguageName =
     selectedLanguage === "auto"
       ? getAutoLanguageLabel()
-      : translations[selectedLanguage]?.languageName || selectedLanguage;
+      : getLocaleDisplayName(selectedLanguage);
 
   useEffect(() => {
     let isMounted = true;
 
     const refreshLanguage = () => {
-      setSelectedLanguage(getSavedLanguage());
+      setSelectedLanguage(getDisplayedLanguage());
     };
 
     refreshLanguage();
-    loadLanguagePreference()
-      .then((language) => {
-        if (!isMounted) {
-          return;
-        }
+    if (!getUrlLocaleOverride()) {
+      loadLanguagePreference()
+        .then((language) => {
+          if (!isMounted) {
+            return;
+          }
 
-        if (!language) {
-          setSelectedLanguage("auto");
-          return;
-        }
+          if (!language) {
+            setSelectedLanguage("auto");
+            return;
+          }
 
-        const savedLanguage = getCurrentLocale(language);
-        if (
-          savedLanguage !==
-          getCurrentLocale(window.document.documentElement.lang)
-        ) {
-          window.location.reload();
-          return;
-        }
-        setSelectedLanguage(savedLanguage);
-      })
-      .catch(() => undefined);
+          const savedLanguage = getCurrentLocale(language);
+          setSelectedLanguage(savedLanguage);
+        })
+        .catch(() => undefined);
+    }
     window.addEventListener("languagechange", refreshLanguage);
     window.addEventListener("munetios:languagechange", refreshLanguage);
     window.addEventListener("munetios:localechange", refreshLanguage);
@@ -297,30 +413,36 @@ export default function LanguageSelector({
   }, []);
 
   const saveLanguage = async (language) => {
-    if (savingLanguage || language === selectedLanguage) {
+    if (
+      savingLanguage ||
+      (language === selectedLanguage && !getUrlLocaleOverride())
+    ) {
       return;
     }
 
     setSavingLanguage(true);
-    await saveLanguagePreference(language);
+    try {
+      await saveLanguagePreference(language);
 
-    if (language === "auto") {
-      const detectedLocale = getDetectedLocale();
-      window.document.documentElement.lang = detectedLocale;
-      window.document.documentElement.dir = ["ar-SA", "he-IL"].includes(
-        detectedLocale,
-      )
-        ? "rtl"
-        : "ltr";
+      if (language === "auto") {
+        const destination = getAutoLanguageDestination();
+        if (destination.href !== window.location.href) {
+          window.location.replace(destination.href);
+          return;
+        }
+        window.location.reload();
+        return;
+      }
 
-      const destination = getAutoLanguageDestination();
-      if (destination.href !== window.location.href) {
+      if (getUrlLocaleOverride()) {
+        const destination = getDestinationWithoutLocaleOverride();
         window.location.replace(destination.href);
         return;
       }
+      window.location.reload();
+    } finally {
+      setSavingLanguage(false);
     }
-
-    window.location.reload();
   };
 
   return (
@@ -348,31 +470,54 @@ export default function LanguageSelector({
       }
     >
       <div className="space-y-1">
-        {languageOptions.map((languageOption) => (
-          <button
-            className="flex w-full items-center justify-between gap-3 rounded-lg border border-transparent bg-transparent px-3 py-2 text-left text-sm text-white transition hover:border-white/10 hover:bg-white/10!"
-            key={languageOption.locale}
-            disabled={savingLanguage}
-            onClick={() => saveLanguage(languageOption.locale)}
-            role="menuitem"
-            type="button"
-          >
-            <span className="flex min-w-0 items-center gap-2 truncate">
-              {languageOption.suggested
-                ? <icon
-                    className="text-purple-200"
-                    title={copy.accountLanguageCountry}
-                  >
-                    location_on
-                  </icon>
-                : null}
-              <span className="truncate">{languageOption.name}</span>
-            </span>
-            {languageOption.locale === selectedLanguage
-              ? <icon>check</icon>
-              : null}
-          </button>
-        ))}
+        <button
+          className="flex w-full items-center justify-between gap-3 rounded-lg border border-transparent bg-transparent px-3 py-2 text-left text-sm text-white transition hover:border-white/10 hover:bg-white/10!"
+          disabled={savingLanguage}
+          onClick={() => saveLanguage(languageOptions.autoOption.locale)}
+          role="menuitem"
+          type="button"
+        >
+          <span className="flex min-w-0 items-center gap-2 truncate">
+            <span className="truncate">{languageOptions.autoOption.name}</span>
+          </span>
+          {languageOptions.autoOption.locale === selectedLanguage
+            ? <icon>check</icon>
+            : null}
+        </button>
+        {languageOptions.orderedOptions.map((languageOption) =>
+          languageOption.group === "british-english"
+            ? <BritishEnglishGroup
+                copy={copy}
+                disabled={savingLanguage}
+                key={languageOption.group}
+                onSelect={saveLanguage}
+                options={languageOptions.britishEnglishOptions}
+                selectedLanguage={selectedLanguage}
+              />
+            : <button
+                className="flex w-full items-center justify-between gap-3 rounded-lg border border-transparent bg-transparent px-3 py-2 text-left text-sm text-white transition hover:border-white/10 hover:bg-white/10!"
+                disabled={savingLanguage}
+                key={languageOption.locale}
+                onClick={() => saveLanguage(languageOption.locale)}
+                role="menuitem"
+                type="button"
+              >
+                <span className="flex min-w-0 items-center gap-2 truncate">
+                  {languageOption.suggested
+                    ? <icon
+                        className="text-purple-200"
+                        title={copy.accountLanguageCountry}
+                      >
+                        location_on
+                      </icon>
+                    : null}
+                  <span className="truncate">{languageOption.name}</span>
+                </span>
+                {languageOption.locale === selectedLanguage
+                  ? <icon>check</icon>
+                  : null}
+              </button>,
+        )}
       </div>
     </DropdownWrapper>
   );

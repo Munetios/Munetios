@@ -12,17 +12,36 @@ export const dynamic = "force-dynamic";
 const settingsKey = "meet-settings-v1";
 const historyKey = "meet-history-v1";
 const defaultSettings = {
+  activityCheatsEnabled: false,
   activitiesSound: true,
+  aiPlaysWordHunt: false,
+  allowAnyAnagramWord: false,
   allowOthersJoinActivity: true,
+  alwaysShowAllActivityWords: false,
   blockedEmails: [],
   blockedPeople: [],
   contactsOnly: false,
+  customChessRules: false,
   desktopNotifications: true,
   leaveWhenAlone: false,
+  ignoreActivityDictionary: false,
+  ignoreChessMoveRules: false,
   noiseCancellation: true,
+  recordingEncodingChunks: "default",
+  recordingQuality: "medium",
+  shareFoundActivityWords: false,
   ttsVoice: "",
   useActivities: true,
+  wordHuntCustomWords: "",
 };
+
+function normalizeWordHuntCustomWords(value) {
+  const words = String(value || "")
+    .split(/[\s,;]+/u)
+    .map((word) => word.trim().toLowerCase())
+    .filter((word) => /^[a-z]{2,49}$/u.test(word));
+  return [...new Set(words)].join("\n");
+}
 
 function response(payload, init = {}) {
   return Response.json(payload, {
@@ -33,8 +52,12 @@ function response(payload, init = {}) {
 
 function normalizeSettings(value = {}) {
   return {
+    activityCheatsEnabled: Boolean(value.activityCheatsEnabled),
     activitiesSound: value.activitiesSound !== false,
+    aiPlaysWordHunt: Boolean(value.aiPlaysWordHunt),
+    allowAnyAnagramWord: Boolean(value.allowAnyAnagramWord),
     allowOthersJoinActivity: value.allowOthersJoinActivity !== false,
+    alwaysShowAllActivityWords: Boolean(value.alwaysShowAllActivityWords),
     blockedEmails: Array.isArray(value.blockedEmails)
       ? [
           ...new Set(
@@ -67,12 +90,33 @@ function normalizeSettings(value = {}) {
           .slice(0, 100)
       : [],
     contactsOnly: Boolean(value.contactsOnly),
+    customChessRules: Boolean(value.customChessRules),
     desktopNotifications: value.desktopNotifications !== false,
     leaveWhenAlone: Boolean(value.leaveWhenAlone),
+    ignoreActivityDictionary: Boolean(value.ignoreActivityDictionary),
+    ignoreChessMoveRules: Boolean(value.ignoreChessMoveRules),
     noiseCancellation: value.noiseCancellation !== false,
+    recordingEncodingChunks: ["default", "high", "medium", "low"].includes(
+      value.recordingEncodingChunks,
+    )
+      ? value.recordingEncodingChunks
+      : "default",
+    recordingQuality: [
+      "lowest",
+      "lower",
+      "medium",
+      "higher",
+      "highest",
+    ].includes(value.recordingQuality)
+      ? value.recordingQuality
+      : "medium",
+    shareFoundActivityWords: Boolean(value.shareFoundActivityWords),
     ttsVoice:
       typeof value.ttsVoice === "string" ? value.ttsVoice.slice(0, 300) : "",
     useActivities: value.useActivities !== false,
+    wordHuntCustomWords: normalizeWordHuntCustomWords(
+      value.wordHuntCustomWords,
+    ),
   };
 }
 

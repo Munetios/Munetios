@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { t } from "../i18n";
+import { hasSignedInCookie } from "../lib/signedInCookie";
 import DropdownWrapper from "./dropdownwrapper";
 import { showModal } from "./modal";
 
@@ -150,19 +151,18 @@ export function FeedbackModalContent({
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    if (initialEmail) return undefined;
+    if (initialEmail || !hasSignedInCookie()) return undefined;
 
     const controller = new AbortController();
     const prefillAccountEmail = async () => {
       try {
-        const response = await fetch("/api/signedin", {
+        const response = await fetch("/api/account", {
           cache: "no-store",
           credentials: "include",
           signal: controller.signal,
         });
         const payload = await response.json();
-        const accountEmail =
-          response.ok && payload.signedIn ? payload.user?.email?.trim() : "";
+        const accountEmail = response.ok ? payload.email?.trim() : "";
 
         if (accountEmail) {
           setEmail((currentEmail) => currentEmail || accountEmail);

@@ -13,6 +13,7 @@ export const runtime = "nodejs";
 
 const vaultKey = "tasks_encrypted_vault_v1";
 const legacyCategoriesKey = "tasks_categories";
+const importManifestKey = "tasks-import-manifest-v1";
 const demoVaults = globalThis.__munetiosTasksEncryptedVaults || new Map();
 globalThis.__munetiosTasksEncryptedVaults = demoVaults;
 
@@ -79,6 +80,9 @@ export async function GET(request) {
     : getAccountData(session.user.id, legacyCategoriesKey, []);
   return respond({
     document: stored?.document || null,
+    importManifest: session.demo
+      ? null
+      : getAccountData(session.user.id, importManifestKey, null),
     legacyCategories: Array.isArray(legacyCategories) ? legacyCategories : [],
     vault: stored?.vault || null,
   });
@@ -132,6 +136,7 @@ export async function PUT(request) {
   else {
     setAccountData(session.user.id, vaultKey, stored);
     setAccountData(session.user.id, legacyCategoriesKey, []);
+    setAccountData(session.user.id, importManifestKey, null);
   }
   return respond({ saved: true });
 }

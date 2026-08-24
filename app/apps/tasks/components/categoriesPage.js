@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { showModal } from "../../../components/modal";
 import { showToast } from "../../../components/toast";
 import { t } from "../../../i18n";
+import { hasSignedInCookie } from "../../../lib/signedInCookie";
 import {
   ensureAccountVaultUnlocked,
   getActiveTasksWorkspaceId,
@@ -171,14 +172,7 @@ export default function TasksCategoriesPage() {
   const loadCategories = useCallback(async () => {
     setLoading(true);
     try {
-      const sessionResponse = await fetch("/api/signedin", {
-        cache: "no-store",
-        credentials: "include",
-      });
-      const session = await sessionResponse.json();
-      const signedIn = Boolean(
-        sessionResponse.ok && session.authenticated && session.signedIn,
-      );
+      const signedIn = hasSignedInCookie();
 
       if (!signedIn) {
         setStorageMode("local");

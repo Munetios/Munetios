@@ -3,17 +3,28 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { t } from "../i18n";
+import {
+  developerSettingsChangeEvent,
+  loadDeveloperSettings,
+  saveDeveloperSettings,
+} from "../lib/developerSettings";
 import { hasSignedInCookie } from "../lib/signedInCookie";
+import AccountAdvancedSection from "./accountAdvancedSection";
 import AccountAppearanceSection from "./accountAppearanceSection";
 import AccountAvatar from "./accountAvatar";
-import AccountBillingSection from "./accountBillingSection";
 import AccountBusinessAdminSection from "./accountBusinessAdminSection";
 import AccountConnectorsSection from "./accountConnectorsSection";
+import AccountDataControlsSection from "./accountDataControlsSection";
+import AccountFamiliesSection from "./accountFamiliesSection";
 import AccountLanguageTimeSection from "./accountLanguageTimeSection";
+import AccountPrivacySection from "./accountPrivacySection";
 import AccountProfileSection from "./accountProfileSection";
 import AccountSecuritySection from "./accountSecuritySection";
+import AccountStorageSection from "./accountStorageSection";
+import AccountStudentsSection from "./accountStudentsSection";
 import AccountWrapper from "./accountwraper";
 import AppLauncherWrapper from "./appLauncherWrapper";
+import CommerceComingSoon from "./commerceComingSoon";
 import { showToast } from "./toast";
 
 const showOrder1 = 1;
@@ -28,18 +39,134 @@ const guestSidebarItemNames = new Set([
 const settingsPathPrefix = "/account/settings";
 const settingsPageSlugs = {
   Admin: "admin",
+  "Admin Controls": "admin-controls",
   Advanced: "advanced",
   Appearance: "appearance",
   Billing: "billing",
   Connectors: "connectors",
   "Data Controls": "data-controls",
   Families: "families",
+  "Fake/Unused": "fake-unused",
   "Language & Time": "language-time",
+  "Age Verification": "age-verification",
   Privacy: "privacy",
   Profile: "profile",
   Security: "security",
+  Storage: "storage",
+  Students: "students",
   "Trusted People": "trusted-people",
 };
+const deletedAccountPageNames = new Set([
+  "Profile",
+  "Appearance",
+  "Language & Time",
+  "Security",
+  "Storage",
+  "Connectors",
+  "Data Controls",
+  "Privacy",
+  "Advanced",
+]);
+const hiddenDeveloperItems = [
+  {
+    icon: "verified_user",
+    labelKey: "developerAgeVerification",
+    name: "Age Verification",
+  },
+];
+
+function addHiddenDeveloperItems(items) {
+  const visibleItems = items.filter(
+    (item) => !hiddenDeveloperItems.some((hidden) => hidden.name === item.name),
+  );
+  const privacyIndex = visibleItems.findIndex(
+    (item) => item.name === "Privacy",
+  );
+  const insertionIndex =
+    privacyIndex >= 0 ? privacyIndex + 1 : visibleItems.length;
+  return [
+    ...visibleItems.slice(0, insertionIndex),
+    ...hiddenDeveloperItems,
+    ...visibleItems.slice(insertionIndex),
+  ];
+}
+
+function UnavailableDeveloperPanel({ actionLabel, copy, description, title }) {
+  return (
+    <div className="mx-auto max-w-2xl space-y-4">
+      <h1 className="text-2xl font-bold">{title}</h1>
+      <p className="text-sm leading-6 text-white/65">{description}</p>
+      <button
+        className="rounded-xl border border-purple-200/20 bg-purple-600/45! px-4 py-2 text-sm font-bold"
+        onClick={() =>
+          showToast({
+            message: copy.developerHiddenActionFailed,
+            type: "error",
+          })
+        }
+        type="button"
+      >
+        {actionLabel || copy.developerVerifyAge}
+      </button>
+    </div>
+  );
+}
+
+function DeletedAccountProfile({ copy }) {
+  const storageKey = "munetios.deleted-account.local-workspaces";
+  const [workspaces, setWorkspaces] = useState(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(window.localStorage.getItem(storageKey) || "[]");
+    } catch {
+      return [];
+    }
+  });
+  const createWorkspace = () => {
+    const next = [
+      ...workspaces,
+      {
+        id: crypto.randomUUID(),
+        name: `${copy.workspaceFallback} ${workspaces.length + 1}`,
+      },
+    ];
+    window.localStorage.setItem(storageKey, JSON.stringify(next));
+    setWorkspaces(next);
+  };
+  return (
+    <div className="mx-auto max-w-3xl space-y-4">
+      <h1 className="text-2xl font-bold">{copy.accountSettingsProfile}</h1>
+      <p className="rounded-xl border border-rose-200/20 bg-rose-500/10! p-4 text-sm text-rose-50">
+        {copy.accountNotFoundMessage}
+      </p>
+      <section className="rounded-2xl border border-white/10 bg-white/5! p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-bold">{copy.accountProfileWorkspaces}</h2>
+          <button
+            className="rounded-xl bg-purple-600/55! px-3 py-2 text-sm font-bold"
+            onClick={createWorkspace}
+            type="button"
+          >
+            {copy.developerCreateWorkspace}
+          </button>
+        </div>
+        {workspaces.length
+          ? <div className="mt-3 space-y-2">
+              {workspaces.map((workspace) => (
+                <div
+                  className="rounded-xl border border-white/10 bg-black/10! p-3 text-sm"
+                  key={workspace.id}
+                >
+                  {workspace.name}
+                </div>
+              ))}
+            </div>
+          : <p className="mt-3 text-sm text-white/60">{copy.noWorkspaces}</p>}
+        <p className="mt-2 text-xs text-white/45">{copy.developerLocalOnly}</p>
+      </section>
+    </div>
+  );
+}
 const settingsPageNames = new Map(
   Object.entries(settingsPageSlugs).map(([name, slug]) => [slug, name]),
 );
@@ -83,6 +210,11 @@ const accountItems = [
     name: "Billing",
   },
   {
+    icon: "cloud",
+    labelKey: "accountSettingsStorage",
+    name: "Storage",
+  },
+  {
     ifElligbeItem: showOrder2,
   },
   {
@@ -93,7 +225,6 @@ const accountItems = [
   {
     ifElligbeItem: showOrder1,
   },
-
   {
     icon: "database",
     labelKey: "accountSettingsDataControls",
@@ -114,7 +245,8 @@ const accountItems = [
 const sidebarItems = accountItems.map((item) => ({ ...item }));
 
 const loadingSidebarItems = sidebarItems.filter(
-  (item) => !item.ifElligbeItem && item.name !== "Billing",
+  (item) =>
+    !item.ifElligbeItem && !new Set(["Billing", "Storage"]).has(item.name),
 );
 
 const fetchItemsThatElligbe = [
@@ -133,6 +265,18 @@ const fetchItemsThatElligbe = [
 ];
 const ElligbeErrorToast = { toast: "ElligbeError" };
 const UnauthorizedErrorToast = { toast: "401UnauthorizedError" };
+
+function getArchivedAccountPreview() {
+  if (typeof window === "undefined") return null;
+  try {
+    const account = JSON.parse(
+      window.localStorage.getItem("munetios.archivedAccount") || "null",
+    );
+    return account?.id ? { ...account, archived: true } : null;
+  } catch {
+    return null;
+  }
+}
 
 export {
   accountItems,
@@ -187,6 +331,10 @@ function getSidebarItemLabel(item, copy) {
 }
 
 function showElligbeErrorToast(status, copy) {
+  if (status === 401 && hasSignedInCookie()) {
+    return;
+  }
+
   const translatedMessage =
     copy[ElligbeErrorToast.toast] || ElligbeErrorToast.toast;
 
@@ -197,14 +345,19 @@ function showElligbeErrorToast(status, copy) {
   });
 }
 
-export function AccountManagerTopbar({ copy = t() }) {
-  const accountPanelRef = useRef(null);
+export function AccountManagerTopbar({
+  copy = t(),
+  hidden = false,
+  initialLoggedIn = false,
+}) {
   const accountTriggerRef = useRef(null);
   const appLauncherTriggerRef = useRef(null);
-  const [accountWrapperOpen, setAccountWrapperOpen] = useState(false);
+  const [accountPanelOpen, setAccountPanelOpen] = useState(false);
   const [appLauncherOpen, setAppLauncherOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [topbarAccount, setTopbarAccount] = useState(null);
+  const [topbarAccount, setTopbarAccount] = useState(() =>
+    initialLoggedIn ? { avatarLetter: "M" } : null,
+  );
   const [panelTop, setPanelTop] = useState(72);
 
   const updateAccountPanelPosition = useCallback(() => {
@@ -222,12 +375,23 @@ export function AccountManagerTopbar({ copy = t() }) {
   }, []);
 
   useEffect(() => {
-    fetch("/api/account", { credentials: "include" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((account) => {
-        if (account) setTopbarAccount(account);
-      })
-      .catch(() => {});
+    const refreshAccount = () => {
+      if (!hasSignedInCookie()) {
+        setTopbarAccount(null);
+        setAccountPanelOpen(false);
+        return;
+      }
+
+      setTopbarAccount((current) => current || { avatarLetter: "M" });
+      fetch("/api/account", { credentials: "include" })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((account) => {
+          if (account) setTopbarAccount(account);
+        })
+        .catch(() => {});
+    };
+
+    refreshAccount();
     const syncProfile = (event) => {
       if (!event.detail) return;
       setTopbarAccount((current) => ({
@@ -238,13 +402,16 @@ export function AccountManagerTopbar({ copy = t() }) {
         profilePictureUrl: event.detail.profilePictureUrl || null,
       }));
     };
+    window.addEventListener("munetios:authchange", refreshAccount);
     window.addEventListener("munetios:profilechange", syncProfile);
-    return () =>
+    return () => {
+      window.removeEventListener("munetios:authchange", refreshAccount);
       window.removeEventListener("munetios:profilechange", syncProfile);
+    };
   }, []);
 
   useEffect(() => {
-    if (!accountWrapperOpen) {
+    if (!accountPanelOpen) {
       return undefined;
     }
 
@@ -252,19 +419,19 @@ export function AccountManagerTopbar({ copy = t() }) {
 
     const onPointerDown = (event) => {
       if (
-        accountPanelRef.current?.contains(event.target) ||
+        event.target.closest?.("[data-munetios-account-wrapper='true']") ||
         accountTriggerRef.current?.contains(event.target) ||
         event.target.closest?.("[data-munetios-dropdown-portal='true']")
       ) {
         return;
       }
 
-      setAccountWrapperOpen(false);
+      setAccountPanelOpen(false);
     };
 
     const onKeyDown = (event) => {
       if (event.key === "Escape") {
-        setAccountWrapperOpen(false);
+        setAccountPanelOpen(false);
         accountTriggerRef.current?.focus();
       }
     };
@@ -288,12 +455,17 @@ export function AccountManagerTopbar({ copy = t() }) {
         updateAccountPanelPosition,
       );
     };
-  }, [accountWrapperOpen, updateAccountPanelPosition]);
+  }, [accountPanelOpen, updateAccountPanelPosition]);
 
   return (
-    <header className="account-manager-topbar fixed top-0 z-[1000] left-0 w-full flex items-start justify-between p-2 md:items-center md:p-4">
+    <header
+      aria-hidden={hidden}
+      className="account-manager-topbar fixed top-0 z-[1000] left-0 w-full flex items-start justify-between p-2 md:items-center"
+      data-munetios-reusable-account-controls="true"
+      hidden={hidden}
+    >
       <div className="flex items-center gap-2">
-        <div className="h-14 p-4 liquid-glass flex items-center gap-2">
+        <div className="h-12 px-3 liquid-glass flex items-center gap-2">
           <a href="/" className="flex items-center gap-2">
             <icon>settings</icon>
             <div
@@ -305,17 +477,16 @@ export function AccountManagerTopbar({ copy = t() }) {
           </a>
         </div>
       </div>
-      <div className="liquid-glass flex h-14 items-center gap-2 rounded-2xl px-3">
+      <div className="liquid-glass flex h-12 items-center gap-1.5 rounded-2xl px-2">
         <button
           aria-label={copy.openAppLauncher}
-          aria-controls="appsWrapper"
+          aria-controls={appLauncherOpen ? "appsWrapper" : undefined}
           aria-expanded={appLauncherOpen}
           data-translate-aria-label="openAppLauncher"
           id="appsBtn"
-          className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl text-white transition-all hover:bg-purple-700/50!"
+          className="flex h-9 min-h-9 w-9 min-w-9 cursor-pointer items-center justify-center rounded-xl text-white transition-all hover:bg-[color-mix(in_srgb,var(--accent)_50%,transparent)]!"
           onClick={() => {
-            setAccountWrapperOpen(false);
-            setAppLauncherOpen(true);
+            setAppLauncherOpen((open) => !open);
           }}
           ref={appLauncherTriggerRef}
           type="button"
@@ -325,14 +496,15 @@ export function AccountManagerTopbar({ copy = t() }) {
         {topbarAccount
           ? <button
               aria-label={copy.openAccountMenu}
-              aria-controls="accountWrapperPanel"
-              aria-expanded={accountWrapperOpen}
+              aria-controls={
+                accountPanelOpen ? "accountWrapperPanel" : undefined
+              }
+              aria-expanded={accountPanelOpen}
               id="accountProfilePicture"
-              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl text-white transition-all hover:bg-purple-700/50!"
+              className="flex h-9 min-h-9 w-9 min-w-9 cursor-pointer items-center justify-center rounded-xl text-white transition-all hover:bg-[color-mix(in_srgb,var(--accent)_50%,transparent)]!"
               onClick={() => {
                 updateAccountPanelPosition();
-                setAppLauncherOpen(false);
-                setAccountWrapperOpen(true);
+                setAccountPanelOpen((open) => !open);
               }}
               ref={accountTriggerRef}
               type="button"
@@ -340,12 +512,12 @@ export function AccountManagerTopbar({ copy = t() }) {
               <AccountAvatar
                 account={topbarAccount || { avatarLetter: "M" }}
                 alt={copy.accountProfileAlt}
-                className="h-10 w-10 rounded-xl"
+                className="h-9 w-9 rounded-xl"
               />
             </button>
           : <button
               id="sign-in-button"
-              className="liquid-glass hover:bg-purple-600! transition-all cursor-pointer text-white py-2 px-4 rounded-br-xl bg-purple-800/90!"
+              className="liquid-glass hover:bg-[var(--accent)]! transition-all cursor-pointer text-white py-2 px-4 rounded-br-xl bg-[var(--accent)]/80!"
               data-translate="signIn"
               onClick={() => {
                 window.location.assign("/signin");
@@ -355,36 +527,45 @@ export function AccountManagerTopbar({ copy = t() }) {
               {copy.signIn}
             </button>}
       </div>
-      {mounted && accountWrapperOpen && typeof document !== "undefined"
+      {mounted && accountPanelOpen && typeof document !== "undefined"
         ? createPortal(
             <div
               className="fixed z-[1100]"
+              data-munetios-account-wrapper="true"
               id="accountWrapperPanel"
-              ref={accountPanelRef}
               style={{
                 right: "10px",
                 top: `${panelTop}px`,
+                zIndex: 1100,
               }}
             >
               <AccountWrapper />
             </div>,
             document.body,
+            "accountWrapperPanel",
           )
         : null}
-      <AppLauncherWrapper
-        copy={copy}
-        onClose={() => setAppLauncherOpen(false)}
-        open={appLauncherOpen}
-        triggerRef={appLauncherTriggerRef}
-      />
+      {appLauncherOpen
+        ? <AppLauncherWrapper
+            copy={copy}
+            onClose={() => setAppLauncherOpen(false)}
+            open
+            panelId="appsWrapper"
+            triggerRef={appLauncherTriggerRef}
+          />
+        : null}
     </header>
   );
 }
 
 export const accountManagerTopbar = AccountManagerTopbar;
 
-export default function AccountSettings({ initialPage = "profile" }) {
-  const [copy, setCopy] = useState(() => t());
+export default function AccountSettings({
+  initialLoggedIn = false,
+  initialLocale = "en",
+  initialPage = "profile",
+}) {
+  const [copy, setCopy] = useState(() => t(initialLocale));
   const [activeSidebarItem, setActiveSidebarItem] = useState(
     () => getSettingsPageName(initialPage) || "Profile",
   );
@@ -395,32 +576,90 @@ export default function AccountSettings({ initialPage = "profile" }) {
   const [accountLoading, setAccountLoading] = useState(true);
   const [eligibilityRefresh, setEligibilityRefresh] = useState(0);
   const [isGuest, setIsGuest] = useState(() =>
-    hasSignedInCookie() ? false : null,
+    initialLoggedIn ? false : null,
   );
-  const refreshAccount = useCallback(() => {
+  const [selfParentalControls, setSelfParentalControls] = useState(null);
+  const [developerSettings, setDeveloperSettings] = useState(null);
+  const refreshAccount = useCallback(async () => {
     setAccountLoading(true);
-    fetch("/api/account", { credentials: "include" })
-      .then(async (response) => ({
-        invalidSession:
-          response.headers.get("X-Munetios-Auth-State") === "invalid-session",
-        payload: response.ok ? await response.json() : null,
-      }))
-      .then(({ invalidSession, payload }) => {
-        if (payload) {
-          setAccount(payload);
-        }
-        setIsGuest(!hasSignedInCookie() && !payload && !invalidSession);
-        setAccountLoading(false);
-      })
-      .catch(() => {
-        if (!hasSignedInCookie()) {
-          setAccount(null);
-          setIsGuest(true);
-        } else {
-          setIsGuest(false);
-        }
-        setAccountLoading(false);
+    try {
+      const response = await fetch("/api/account", {
+        credentials: "include",
       });
+      const authState = response.headers.get("X-Munetios-Auth-State");
+      const responsePayload = await response.json().catch(() => null);
+      const payload = response.ok ? responsePayload : null;
+
+      if (payload) {
+        setAccount(payload);
+        setIsGuest(false);
+        return;
+      }
+
+      if (response.status === 404 && responsePayload?.deletedAccount) {
+        setAccount({
+          accountNotFound: true,
+          deleted: true,
+          email: "",
+          name: "",
+        });
+        setIsGuest(false);
+        return;
+      }
+
+      const archivedPreview = getArchivedAccountPreview();
+      if (archivedPreview) {
+        setAccount(archivedPreview);
+        setIsGuest(false);
+        return;
+      }
+
+      const invalidSession = authState === "invalid-session";
+      const shouldShowRequestFailure =
+        invalidSession || response.status === 429 || response.status >= 500;
+
+      setAccount(null);
+      setIsGuest(!hasSignedInCookie());
+
+      if (shouldShowRequestFailure) {
+        showToast({
+          messageKey: "accountDataRequestFailed",
+          toastId: "account-settings-request-failed",
+          type: "error",
+        });
+      }
+    } catch {
+      const archivedPreview = getArchivedAccountPreview();
+      if (archivedPreview) {
+        setAccount(archivedPreview);
+        setIsGuest(false);
+      } else {
+        setAccount(null);
+        setIsGuest(!hasSignedInCookie());
+        showToast({
+          messageKey: "accountDataRequestFailed",
+          toastId: "account-settings-request-failed",
+          type: "error",
+        });
+      }
+    } finally {
+      setAccountLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const refreshDeveloperSettings = (event) =>
+      setDeveloperSettings(event?.detail || loadDeveloperSettings());
+    refreshDeveloperSettings();
+    window.addEventListener(
+      developerSettingsChangeEvent,
+      refreshDeveloperSettings,
+    );
+    return () =>
+      window.removeEventListener(
+        developerSettingsChangeEvent,
+        refreshDeveloperSettings,
+      );
   }, []);
 
   const sidebarItemsToRender = useMemo(() => {
@@ -436,18 +675,69 @@ export default function AccountSettings({ initialPage = "profile" }) {
       resolvedSidebarItems.length > 0
         ? resolvedSidebarItems
         : buildSidebarItems([]);
-    return account?.accountType === "business" &&
+    if (account?.deleted) {
+      const visible = items.filter((item) =>
+        deletedAccountPageNames.has(item.name),
+      );
+      return developerSettings?.developerMode &&
+        developerSettings?.showHiddenItems
+        ? addHiddenDeveloperItems(visible)
+        : visible;
+    }
+    if (account?.archived) {
+      return items.filter((item) =>
+        ["Profile", "Appearance", "Language & Time"].includes(item.name),
+      );
+    }
+    const adminAware =
+      account?.accountType === "business" &&
       account?.businessRole === "administrator"
-      ? [
-          ...items.filter((item) => item.name !== "Admin"),
-          {
-            icon: "admin_panel_settings",
-            labelKey: "accountSettingsAdmin",
-            name: "Admin",
-          },
-        ]
-      : items.filter((item) => item.name !== "Admin");
-  }, [account, accountLoading, isGuest, resolvedSidebarItems]);
+        ? [
+            ...items.filter((item) => item.name !== "Admin"),
+            {
+              icon: "admin_panel_settings",
+              labelKey: "accountSettingsAdmin",
+              name: "Admin",
+            },
+          ]
+        : items.filter((item) => item.name !== "Admin");
+
+    const educationAware =
+      account?.education?.role === "teacher"
+        ? [
+            ...adminAware,
+            {
+              icon: "groups",
+              labelKey: "accountSettingsStudents",
+              name: "Students",
+            },
+          ]
+        : adminAware;
+    const educationRestricted = account?.education
+      ? educationAware.filter(
+          (item) =>
+            item.name !== "Advanced" &&
+            (account.education.role !== "student" || item.name !== "Billing"),
+        )
+      : educationAware;
+
+    const filtered =
+      selfParentalControls?.allowConnectors === false
+        ? educationRestricted.filter((item) => item.name !== "Connectors")
+        : educationRestricted;
+    return !account?.education &&
+      developerSettings?.developerMode &&
+      developerSettings?.showHiddenItems
+      ? addHiddenDeveloperItems(filtered)
+      : filtered;
+  }, [
+    account,
+    accountLoading,
+    isGuest,
+    resolvedSidebarItems,
+    selfParentalControls,
+    developerSettings,
+  ]);
 
   const setSettingsPage = useCallback((name, { replace = false } = {}) => {
     setActiveSidebarItem(name);
@@ -498,6 +788,30 @@ export default function AccountSettings({ initialPage = "profile" }) {
   }, [refreshAccount]);
 
   useEffect(() => {
+    if (!account?.education) return;
+    const current = loadDeveloperSettings();
+    if (!current.developerMode && !current.showHiddenItems) return;
+    saveDeveloperSettings({
+      ...current,
+      developerMode: false,
+      showHiddenItems: false,
+    });
+  }, [account?.education]);
+
+  useEffect(() => {
+    if (isGuest !== false || account?.deleted) {
+      setSelfParentalControls(null);
+      return;
+    }
+    fetch("/api/account/family", { credentials: "include" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        setSelfParentalControls(payload?.self?.parentalControls || null);
+      })
+      .catch(() => {});
+  }, [account?.deleted, isGuest]);
+
+  useEffect(() => {
     const syncSettingsPageFromLocation = () => {
       const page = window.location.pathname
         .slice(settingsPathPrefix.length)
@@ -540,12 +854,50 @@ export default function AccountSettings({ initialPage = "profile" }) {
   }, [account, accountLoading, activeSidebarItem]);
 
   useEffect(() => {
+    if (
+      activeSidebarItem === "Connectors" &&
+      selfParentalControls?.allowConnectors === false
+    ) {
+      setSettingsPage("Appearance", { replace: true });
+    }
+  }, [activeSidebarItem, selfParentalControls, setSettingsPage]);
+
+  useEffect(() => {
+    if (
+      account?.education &&
+      (activeSidebarItem === "Advanced" ||
+        (account.education.role === "student" &&
+          activeSidebarItem === "Billing"))
+    ) {
+      setSettingsPage("Profile", { replace: true });
+    }
+  }, [account?.education, activeSidebarItem, setSettingsPage]);
+
+  useEffect(() => {
     if (accountLoading || isGuest === null) {
       return undefined;
     }
 
     if (isGuest) {
       setResolvedSidebarItems(buildSidebarItems([], true));
+      return undefined;
+    }
+
+    if (account?.deleted) {
+      setResolvedSidebarItems(
+        buildSidebarItems([]).filter((item) =>
+          deletedAccountPageNames.has(item.name),
+        ),
+      );
+      return undefined;
+    }
+
+    if (account?.archived) {
+      setResolvedSidebarItems(
+        buildSidebarItems([]).filter((item) =>
+          ["Profile", "Appearance", "Language & Time"].includes(item.name),
+        ),
+      );
       return undefined;
     }
 
@@ -605,15 +957,15 @@ export default function AccountSettings({ initialPage = "profile" }) {
   }, [account, accountLoading, copy, eligibilityRefresh, isGuest]);
 
   return (
-    <main className="min-h-dvh  px-3 pb-6 pt-24 text-white md:px-4">
-      <AccountManagerTopbar copy={copy} />
+    <main className="min-h-dvh px-3 pb-5 pt-20 text-white md:px-4">
+      <AccountManagerTopbar copy={copy} initialLoggedIn={initialLoggedIn} />
       <div
         className="flex w-full flex-col gap-3 md:flex-row md:gap-4"
         id="accountmanagercontentcontainer"
       >
         <aside
           aria-label={copy.accountSettings}
-          className="liquid-glass h-auto w-full shrink-0 rounded-2xl border border-white/10 bg-purple-950/20! p-2 shadow-2xl shadow-purple-950/20 md:h-[calc(100dvh-7rem)] md:w-[80px] lg:w-[300px]!"
+          className="account-settings-sidebar liquid-glass h-auto w-full shrink-0 rounded-2xl border border-white/10 bg-purple-950/20! p-1 shadow-2xl shadow-purple-950/20 md:w-[80px] lg:w-[300px]!"
           id="sidebar"
         >
           <nav
@@ -622,7 +974,7 @@ export default function AccountSettings({ initialPage = "profile" }) {
             id="accountSettingsNavigation"
           >
             <a
-              className="flex h-12 min-w-fit items-center justify-center gap-3 rounded-xl px-3 text-sm font-semibold text-white/72 transition hover:bg-purple-700/35! hover:text-white md:w-12 md:min-w-12 md:px-0 lg:w-full lg:justify-start lg:px-3"
+              className="flex h-10 min-w-fit items-center justify-center gap-2 rounded-xl px-2 text-sm text-white/72 transition hover:bg-[color-mix(in_srgb,var(--accent)_35%,transparent)]! hover:text-white md:w-10 md:min-w-10 md:px-0 lg:w-full lg:justify-start lg:px-2"
               href="/"
             >
               <icon>arrow_back</icon>
@@ -640,10 +992,10 @@ export default function AccountSettings({ initialPage = "profile" }) {
                   <button
                     aria-label={label}
                     aria-current={isActive ? "page" : undefined}
-                    className={`flex h-12 min-w-fit items-center justify-center gap-3 rounded-xl px-3 text-left text-sm font-semibold transition md:w-12 md:min-w-12 md:px-0 lg:w-full lg:justify-start lg:px-3 ${item.name === "Admin" ? "md:mt-auto" : ""} ${
+                    className={`flex h-10 min-w-fit items-center justify-center gap-2 rounded-xl px-2 text-left text-sm transition md:w-10 md:min-w-10 md:px-0 lg:w-full lg:justify-start lg:px-2 ${item.name === "Admin" ? "md:mt-auto" : ""} ${
                       isActive
-                        ? "border border-purple-200/30 bg-purple-500/35! text-white"
-                        : "text-white/72 hover:bg-purple-700/35! hover:text-white"
+                        ? "border border-[color-mix(in_srgb,var(--accent)_45%,transparent)] bg-[color-mix(in_srgb,var(--accent)_35%,transparent)]! text-white"
+                        : "text-white/72 hover:bg-[color-mix(in_srgb,var(--accent)_35%,transparent)]! hover:text-white"
                     }`}
                     key={`${item.name}-${item.order || item.icon}`}
                     onClick={() => {
@@ -666,11 +1018,17 @@ export default function AccountSettings({ initialPage = "profile" }) {
         </aside>
         <section
           aria-label={copy.accountSettings}
-          className="liquid-glass min-h-[calc(100dvh-13rem)] w-full flex-1 rounded-2xl border border-white/10 bg-purple-950/20! p-4 md:min-h-[calc(100dvh-7rem)]"
+          className="liquid-glass min-h-[calc(100dvh-13rem)] w-full flex-1 rounded-2xl border border-white/10 bg-purple-950/20! md:min-h-[calc(100dvh-7rem)]"
+          style={{ padding: "var(--account-settings-padding, 16px)" }}
         >
           {account?.archived
             ? <p className="mb-4 rounded-xl border border-amber-200/25 bg-amber-500/15! px-4 py-3 text-sm font-semibold text-amber-50">
                 {copy.demoArchivedBanner}
+              </p>
+            : null}
+          {account?.deleted
+            ? <p className="mb-4 rounded-xl border border-rose-200/25 bg-rose-500/15! px-4 py-3 text-sm font-semibold text-rose-50">
+                {copy.accountNotFoundMessage}
               </p>
             : null}
           {account?.accountType === "business" &&
@@ -692,7 +1050,35 @@ export default function AccountSettings({ initialPage = "profile" }) {
                 hidden={activeSidebarItem !== "Profile"}
                 inert={activeSidebarItem !== "Profile"}
               >
-                <AccountProfileSection copy={copy} />
+                {account?.deleted
+                  ? <DeletedAccountProfile copy={copy} />
+                  : account?.archived
+                    ? <div className="mx-auto max-w-3xl space-y-4">
+                        <h1 className="text-2xl font-bold">
+                          {copy.accountSettingsProfile}
+                        </h1>
+                        <p className="rounded-xl border border-amber-200/25 bg-amber-500/15! px-4 py-3 text-sm font-semibold text-amber-50">
+                          {copy.archivedProfilePreview}
+                        </p>
+                        <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5! p-5">
+                          <AccountAvatar
+                            account={account}
+                            className="h-16 w-16 rounded-2xl"
+                          />
+                          <div className="min-w-0">
+                            <h2 className="truncate text-xl font-bold">
+                              {account.name}
+                            </h2>
+                            <p className="truncate text-sm text-white/55">
+                              {account.email}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    : <AccountProfileSection
+                        copy={copy}
+                        managedStudent={account?.education?.role === "student"}
+                      />}
               </div>
             : null}
           <div
@@ -711,6 +1097,27 @@ export default function AccountSettings({ initialPage = "profile" }) {
           >
             <AccountLanguageTimeSection copy={copy} />
           </div>
+          <div
+            aria-hidden={activeSidebarItem !== "Privacy"}
+            data-account-settings-panel="Privacy"
+            hidden={activeSidebarItem !== "Privacy"}
+            inert={activeSidebarItem !== "Privacy"}
+          >
+            <AccountPrivacySection
+              copy={copy}
+              managedStudent={account?.education?.role === "student"}
+            />
+          </div>
+          {!account?.education
+            ? <div
+                aria-hidden={activeSidebarItem !== "Advanced"}
+                data-account-settings-panel="Advanced"
+                hidden={activeSidebarItem !== "Advanced"}
+                inert={activeSidebarItem !== "Advanced"}
+              >
+                <AccountAdvancedSection copy={copy} />
+              </div>
+            : null}
           {isGuest === false
             ? <>
                 <div
@@ -719,15 +1126,35 @@ export default function AccountSettings({ initialPage = "profile" }) {
                   hidden={activeSidebarItem !== "Security"}
                   inert={activeSidebarItem !== "Security"}
                 >
-                  <AccountSecuritySection copy={copy} />
+                  <AccountSecuritySection
+                    copy={copy}
+                    managedStudent={account?.education?.role === "student"}
+                  />
                 </div>
+                {account?.education?.role !== "student"
+                  ? <div
+                      aria-hidden={activeSidebarItem !== "Billing"}
+                      data-account-settings-panel="Billing"
+                      hidden={activeSidebarItem !== "Billing"}
+                      inert={activeSidebarItem !== "Billing"}
+                    >
+                      <CommerceComingSoon
+                        copy={copy}
+                        title={copy.accountSettingsBilling}
+                      />
+                    </div>
+                  : null}
                 <div
-                  aria-hidden={activeSidebarItem !== "Billing"}
-                  data-account-settings-panel="Billing"
-                  hidden={activeSidebarItem !== "Billing"}
-                  inert={activeSidebarItem !== "Billing"}
+                  aria-hidden={activeSidebarItem !== "Storage"}
+                  data-account-settings-panel="Storage"
+                  hidden={activeSidebarItem !== "Storage"}
+                  inert={activeSidebarItem !== "Storage"}
                 >
-                  <AccountBillingSection copy={copy} />
+                  <AccountStorageSection
+                    copy={copy}
+                    deletedAccount={account?.deleted}
+                    managedStudent={account?.education?.role === "student"}
+                  />
                 </div>
                 <div
                   aria-hidden={activeSidebarItem !== "Connectors"}
@@ -735,8 +1162,31 @@ export default function AccountSettings({ initialPage = "profile" }) {
                   hidden={activeSidebarItem !== "Connectors"}
                   inert={activeSidebarItem !== "Connectors"}
                 >
-                  <AccountConnectorsSection copy={copy} />
+                  <AccountConnectorsSection
+                    copy={copy}
+                    deletedAccount={account?.deleted}
+                  />
                 </div>
+                {!account?.deleted
+                  ? <div
+                      aria-hidden={activeSidebarItem !== "Families"}
+                      data-account-settings-panel="Families"
+                      hidden={activeSidebarItem !== "Families"}
+                      inert={activeSidebarItem !== "Families"}
+                    >
+                      <AccountFamiliesSection copy={copy} />
+                    </div>
+                  : null}
+                {account?.education?.role === "teacher"
+                  ? <div
+                      aria-hidden={activeSidebarItem !== "Students"}
+                      data-account-settings-panel="Students"
+                      hidden={activeSidebarItem !== "Students"}
+                      inert={activeSidebarItem !== "Students"}
+                    >
+                      <AccountStudentsSection copy={copy} />
+                    </div>
+                  : null}
                 {account?.accountType === "business" &&
                 account?.businessRole === "administrator"
                   ? <div
@@ -753,6 +1203,69 @@ export default function AccountSettings({ initialPage = "profile" }) {
                   : null}
               </>
             : null}
+          <div
+            aria-hidden={activeSidebarItem !== "Data Controls"}
+            data-account-settings-panel="Data Controls"
+            hidden={activeSidebarItem !== "Data Controls"}
+            inert={activeSidebarItem !== "Data Controls"}
+          >
+            {isGuest === null
+              ? <p className="p-4 text-sm text-white/60">
+                  {copy.accountProcessing}
+                </p>
+              : <AccountDataControlsSection
+                  account={account}
+                  copy={copy}
+                  isGuest={isGuest}
+                  managedStudent={account?.education?.role === "student"}
+                />}
+          </div>
+          <div
+            aria-hidden={activeSidebarItem !== "Age Verification"}
+            hidden={activeSidebarItem !== "Age Verification"}
+            inert={activeSidebarItem !== "Age Verification"}
+          >
+            <UnavailableDeveloperPanel
+              actionLabel={copy.accountSettingsAdmin}
+              copy={copy}
+              description={copy.developerAgeVerificationDescription}
+              title={copy.developerAgeVerification}
+            />
+          </div>
+          <div
+            aria-hidden={activeSidebarItem !== "Admin Controls"}
+            hidden={activeSidebarItem !== "Admin Controls"}
+            inert={activeSidebarItem !== "Admin Controls"}
+          >
+            <UnavailableDeveloperPanel
+              copy={copy}
+              description={copy.developerAdminControlsDescription}
+              title={copy.developerAdminControls}
+            />
+          </div>
+          <div
+            aria-hidden={activeSidebarItem !== "Fake/Unused"}
+            hidden={activeSidebarItem !== "Fake/Unused"}
+            inert={activeSidebarItem !== "Fake/Unused"}
+          >
+            <div className="mx-auto max-w-2xl space-y-4">
+              <h1 className="text-2xl font-bold">{copy.developerFakeUnused}</h1>
+              <p className="text-sm text-white/65">
+                {copy.developerFakeUnusedDescription}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full bg-rose-500/20! px-3 py-1 text-xs">
+                  {copy.storageFullWarning}
+                </span>
+                <span className="rounded-full bg-purple-500/20! px-3 py-1 text-xs">
+                  {copy.developerHiddenBadge}
+                </span>
+                <span className="rounded-full bg-amber-500/20! px-3 py-1 text-xs">
+                  {copy.developerUnusedBadge}
+                </span>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </main>

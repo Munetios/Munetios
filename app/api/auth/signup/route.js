@@ -60,6 +60,14 @@ export async function POST(request) {
     return response({ error: "invalid_request" }, { status: 400 });
   }
 
+  const requestedContactType =
+    payload?.contactType === "phone" ? "phone" : "email";
+  const requestedEmail =
+    requestedContactType === "email" ? normalizeEmail(payload?.contact) : "";
+  if (requestedEmail && !requestedEmail.endsWith("@munetios.com")) {
+    return response({ error: "external_signup_coming_soon" }, { status: 503 });
+  }
+
   if (
     !verifyCaptcha({
       answer: payload?.captchaAnswer,
@@ -79,7 +87,7 @@ export async function POST(request) {
   }
 
   let username = normalizeUsername(payload?.username);
-  const contactType = payload?.contactType === "phone" ? "phone" : "email";
+  const contactType = requestedContactType;
   const contact =
     contactType === "phone"
       ? normalizePhone(payload?.contact)

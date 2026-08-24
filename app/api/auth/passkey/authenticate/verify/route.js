@@ -14,6 +14,10 @@ import {
 } from "../../../../../lib/authSecurity.js";
 import { getPasskeyRequestContext } from "../../../../../lib/passkeys.js";
 import { getSignedInCookie } from "../../../../../lib/signedInCookie.js";
+import {
+  createSignInChallenge,
+  getTwoFactorState,
+} from "../../../../../lib/twoFactorSecurity.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -60,6 +64,17 @@ export async function POST(request) {
     );
     const account = getAccountById(passkey.accountId);
     if (!account) throw new Error("account_not_found");
+    const twoFactor = getTwoFactorState(account.id);
+    if (twoFactor.enabled) {
+      return Response.json(
+        {
+          challengeId: createSignInChallenge(account.id),
+          error: "two_factor_required",
+          recoveryCodeAllowed: twoFactor.recoveryCodesRemaining > 0,
+        },
+        { headers: { "Cache-Control": "no-store" }, status: 202 },
+      );
+    }
     const session = createAccountSession(
       account,
       getRequestCookie(request, accountCollectionCookieName),

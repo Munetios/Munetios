@@ -5,6 +5,8 @@ import {
   listAccountConnectors,
   listPublicConnectors,
 } from "../../lib/connectorDatabase.js";
+import { isStudentAccount } from "../../lib/education.js";
+import { enforceParentalConnectorAccess } from "../../lib/family.js";
 import { enforceOrganizationConnectorAccess } from "../../lib/organizationPolicies.js";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +21,10 @@ export async function GET(request) {
       {
         authenticated: Boolean(session),
         connectors: session
-          ? listAccountConnectors(session.user.id)
+          ? listAccountConnectors(session.user.id).filter(
+              (connector) =>
+                !isStudentAccount(session.user.id) || connector.id !== "github",
+            )
           : listPublicConnectors(),
       },
       { headers: { "Cache-Control": "no-store" } },
@@ -30,11 +35,16 @@ export async function GET(request) {
   if (response) return response;
   const policyResponse = enforceOrganizationConnectorAccess(session);
   if (policyResponse) return policyResponse;
+  const parentalResponse = enforceParentalConnectorAccess(session);
+  if (parentalResponse) return parentalResponse;
 
   return Response.json(
     {
       authenticated: true,
-      connectors: listAccountConnectors(session.user.id),
+      connectors: listAccountConnectors(session.user.id).filter(
+        (connector) =>
+          !isStudentAccount(session.user.id) || connector.id !== "github",
+      ),
     },
     { headers: { "Cache-Control": "no-store" } },
   );

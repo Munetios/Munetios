@@ -27,9 +27,11 @@ body {
   flex-direction: column;
   width: var(--omniwrite-sidebar-width);
   min-width: var(--omniwrite-sidebar-width);
-  height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
+  height: var(--app-responsive-viewport-height, 100dvh);
+  max-height: var(--app-responsive-viewport-height, 100dvh);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   opacity: 0;
   pointer-events: none;
   transform: translateX(calc(-100% - 0.75rem));

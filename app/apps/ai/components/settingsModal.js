@@ -2,29 +2,57 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ColorPickerWrapper } from "../../../components/accountAppearanceSection";
 import CustomToggle from "../../../components/customToggle";
 import DropdownWrapper from "../../../components/dropdownwrapper";
 import LanguageSelector from "../../../components/languageSelector";
+import {
+  LOCATION_DENIED_STACKING_LAYER,
+  MODAL_STACKING_LAYER,
+} from "../../../components/layering";
 import LoadingSpinner from "../../../components/loadingSpinner";
-import { showModal } from "../../../components/modal";
+import { dismissModal, showModal } from "../../../components/modal";
 import { showToast } from "../../../components/toast";
 import { t } from "../../../i18n";
 import { formatUserDateTime } from "../../../lib/dateTimePreferences";
+import { fetchSelfParentalControls } from "../../../lib/parentalControlsClient";
+import { hasSignedInCookie } from "../../../lib/signedInCookie";
+import {
+  archiveAllGuestConversations,
+  deleteAllGuestConversations,
+  listGuestConversations,
+  updateGuestConversation,
+} from "../lib/guestConversations";
 
 const settingsUrl = "/api/ai/settings";
+let lastSubscriptionCheckFailureToast = 0;
+let openSettingsModalCount = 0;
+
+export function showSubscriptionCheckFailure(message) {
+  const now = Date.now();
+  if (now - lastSubscriptionCheckFailureToast < 2000) return;
+  lastSubscriptionCheckFailureToast = now;
+  showToast({ message, type: "error" });
+}
+
 const unsafeInstructionPattern =
   /\b(bypass|jailbreak|ignore (all|any|previous|prior) (rules|instructions)|disable safety|unsafe tools?|evade safeguards?|override system)\b/i;
 export const aiSettingsDefaults = {
   accentColor: "#a855f7",
   additionalInstructions: "",
+  agentApprovalMode: "always-ask",
+  automaticImageGeneration: true,
+  autoDeleteChatHistory: "never",
   automaticThinking: true,
+  automaticWebSearch: true,
   bubbleRoundness: 24,
   chatFont: "account-default",
   chatFontSize: 16,
   customization: true,
   customIntroductions: "",
+  developerMode: false,
   extendedRequests: false,
+  fastAnswers: false,
+  hiddenForYouCards: [],
   lineHeight: 1.55,
   location: false,
   memory: true,
@@ -32,25 +60,29 @@ export const aiSettingsDefaults = {
   moreAboutYou: "",
   nickname: "",
   pinnedTools: [],
+  privacyPersonalization: true,
   rememberChatHistory: true,
   selectedModel: "munet-1-instant",
   textColor: "#f7f2ff",
-  theme: "account-default",
+  theme: "system",
   tone: "balanced",
   traits: "",
   voiceInputComposer: true,
+  voiceModePitch: 1,
+  voiceModeSpeed: 1,
+  voiceModeType: "prompt",
+  voiceModeVersion: "new",
+  voiceModeVoice: "auto",
 };
 const panels = [
   ["general", "settings", "aiSettingsGeneral", true],
   ["appearance", "palette", "accountSettingsAppearance", true],
   ["personalization", "person", "aiSettingsPersonalization", true],
   ["usage", "monitoring", "aiSettingsUsage", true],
-  ["plugins", "extension", "aiSettingsPlugins", false],
-  ["voice", "graphic_eq", "aiVoiceMode", false],
-  ["agent", "smart_toy", "aiSettingsAgent", false],
-  ["privacy", "shield", "accountSettingsPrivacy", false],
-  ["account", "account_circle", "account", false],
-  ["advanced", "build", "accountSettingsAdvanced", false],
+  ["agent", "smart_toy", "aiSettingsAgent", true],
+  ["privacy", "shield", "accountSettingsPrivacy", true],
+  ["voice", "graphic_eq", "aiVoiceMode", true],
+  ["advanced", "build", "accountSettingsAdvanced", true],
 ];
 const guestPanelIds = new Set([
   "advanced",
@@ -70,17 +102,6 @@ const fontOptions = [
   ["Open Sans", "Open Sans"],
   ["system-ui", "accountAppearanceSystem"],
 ];
-const composerToolSettings = [
-  ["attach-files", "attach_file", "aiToolAttachFiles"],
-  ["image-generation", "image", "aiToolImageGeneration"],
-  ["web-search", "travel_explore", "aiToolWebSearch"],
-  ["deep-research", "science", "aiToolDeepResearch"],
-  ["canvas", "draw", "aiToolCanvas"],
-  ["agent", "smart_toy", "aiToolAgent"],
-  ["study-quizzes", "school", "aiToolStudyQuizzes"],
-  ["plugins", "extension", "aiToolPlugins"],
-];
-
 function Toggle({ checked, description, label, onChange }) {
   return (
     <div className="ai-settings-toggle">
@@ -138,9 +159,13 @@ function Slider({ label, max, min, onChange, step = 1, value, valueLabel }) {
         <output>{valueLabel || value}</output>
       </span>
       <input
+        className="munetios-custom-slider"
         max={max}
         min={min}
         onChange={(event) => onChange(Number(event.target.value))}
+        style={{
+          "--slider-progress": `${((value - min) / (max - min)) * 100}%`,
+        }}
         step={step}
         type="range"
         value={value}
@@ -149,13 +174,21 @@ function Slider({ label, max, min, onChange, step = 1, value, valueLabel }) {
   );
 }
 
-function TextField({ label, multiline = false, onChange, placeholder, value }) {
+function TextField({
+  label,
+  maxLength,
+  multiline = false,
+  onChange,
+  placeholder,
+  value,
+}) {
   const Field = multiline ? "textarea" : "input";
   return (
     <div className="ai-settings-text-field">
       <span>{label}</span>
       <Field
         aria-label={label}
+        maxLength={maxLength}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         rows={multiline ? 4 : undefined}
@@ -175,46 +208,33 @@ function showLocationGuidance(copy) {
         src="/ai-location-permission.png"
         width={1680}
       />
-      <p>{copy.aiSettingsLocationDeniedText}</p>
+      <ol>
+        <li>{copy.aiLocationStepOne}</li>
+        <li>{copy.aiLocationStepTwo}</li>
+        <li>{copy.aiLocationStepThree}</li>
+      </ol>
     </div>,
     {
       ariaLabel: copy.aiSettingsLocationDeniedTitle,
       title: copy.aiSettingsLocationDeniedTitle,
       width: "44rem",
-      zIndex: 5000,
+      zIndex: LOCATION_DENIED_STACKING_LAYER,
     },
   );
 }
 
 function ConfirmMemoryDelete({ close, copy, memory, onDelete }) {
-  const [confirmation, setConfirmation] = useState("");
   return (
     <form
       className="ai-memory-confirm"
       onSubmit={(event) => {
         event.preventDefault();
-        if (confirmation !== copy.aiSettingsDeleteMemoryWord) return;
         onDelete(memory.id);
         close();
       }}
     >
       <p>{copy.aiSettingsDeleteMemoryDescription}</p>
-      <label>
-        {copy.aiSettingsDeleteMemoryType.replace(
-          "{word}",
-          copy.aiSettingsDeleteMemoryWord,
-        )}
-        <input
-          onChange={(event) => setConfirmation(event.target.value)}
-          value={confirmation}
-        />
-      </label>
-      <button
-        disabled={confirmation !== copy.aiSettingsDeleteMemoryWord}
-        type="submit"
-      >
-        {copy.aiSettingsDeleteMemory}
-      </button>
+      <button type="submit">{copy.aiSettingsDeleteMemory}</button>
     </form>
   );
 }
@@ -283,7 +303,6 @@ function MemoryManager({ copy, initialMemories, onChange }) {
                       {
                         ariaLabel: copy.aiSettingsDeleteMemory,
                         title: copy.aiSettingsDeleteMemory,
-                        zIndex: 5200,
                       },
                     )
                   }
@@ -299,32 +318,78 @@ function MemoryManager({ copy, initialMemories, onChange }) {
   );
 }
 
-function UsagePanel({ copy, signedIn }) {
+function UsagePanel({
+  appLoading = false,
+  billingDisabled = false,
+  copy,
+  signedIn,
+}) {
   const [usage, setUsage] = useState(null);
   const [loadState, setLoadState] = useState("loading");
   const [display, setDisplay] = useState("percentage");
   const [quantity, setQuantity] = useState(1);
+  const fallbackTimerRef = useRef(0);
+  const loadControllerRef = useRef(null);
+  const subscriptionFailureMessageRef = useRef(copy.aiSubscriptionCheckFailed);
+
+  useEffect(() => {
+    subscriptionFailureMessageRef.current = copy.aiSubscriptionCheckFailed;
+  }, [copy.aiSubscriptionCheckFailed]);
+
   const loadUsage = useCallback(async () => {
     if (!signedIn) return;
+    loadControllerRef.current?.abort();
+    const controller = new AbortController();
+    loadControllerRef.current = controller;
+    window.clearTimeout(fallbackTimerRef.current);
     setLoadState("loading");
     try {
       const response = await fetch("/api/ai/usage", {
         cache: "no-store",
         credentials: "include",
+        signal: controller.signal,
       });
       if (!response.ok) throw new Error("usage_load_failed");
       setUsage(await response.json());
       setLoadState("ready");
-    } catch {
+    } catch (error) {
+      if (error?.name === "AbortError") return;
       setUsage(null);
       setLoadState("error");
+      showSubscriptionCheckFailure(subscriptionFailureMessageRef.current);
+      fallbackTimerRef.current = window.setTimeout(() => {
+        setUsage({
+          dailyUsed: 0,
+          extendedRequests: false,
+          extendedUsed: 0,
+          hourlyUsed: 0,
+          isFallback: true,
+          limits: {
+            daily: 0,
+            extended: 0,
+            hourly: 0,
+            monthly: 0,
+            premium: 0,
+            weekly: 0,
+          },
+          monthlyUsed: 0,
+          plan: "free",
+          premiumUsed: 0,
+          usageResets: 3,
+          weeklyUsed: 0,
+        });
+        setLoadState("ready");
+      }, 3000);
     }
   }, [signedIn]);
   useEffect(() => {
     void loadUsage();
     window.addEventListener("munetios:aiusagechange", loadUsage);
-    return () =>
+    return () => {
+      loadControllerRef.current?.abort();
+      window.clearTimeout(fallbackTimerRef.current);
       window.removeEventListener("munetios:aiusagechange", loadUsage);
+    };
   }, [loadUsage]);
 
   if (!signedIn)
@@ -348,10 +413,43 @@ function UsagePanel({ copy, signedIn }) {
       </div>
     );
   }
-  if (loadState === "loading" || !usage) {
+  if (appLoading || loadState === "loading" || !usage) {
+    const loadingLabel = `${copy.loading}...`;
     return (
-      <div className="ai-settings-loading">
-        <LoadingSpinner label={copy.accountProcessing} />
+      <div className="ai-usage-panel" data-ai-usage-loading="true">
+        <style>{`
+          [data-ai-usage-loading="true"] .ai-usage-meter > span {
+            animation: ai-usage-loading 1.2s ease-in-out infinite alternate;
+          }
+          @keyframes ai-usage-loading {
+            from { width: 18%; opacity: .55; }
+            to { width: 72%; opacity: 1; }
+          }
+        `}</style>
+        {[copy.aiSettingsHourlyUsage, copy.aiSettingsDailyUsage].map(
+          (label) => (
+            <section className="ai-usage-card" key={label}>
+              <div>
+                <strong>{label}</strong>
+                <output>{loadingLabel}</output>
+              </div>
+              <span
+                aria-label={`${label}: ${loadingLabel}`}
+                aria-valuetext={loadingLabel}
+                className="ai-usage-meter"
+                role="progressbar"
+              >
+                <span />
+              </span>
+            </section>
+          ),
+        )}
+        <section className="ai-usage-actions">
+          <div>
+            <strong>{copy.aiSettingsUsageResets}</strong>
+            <span>{loadingLabel}</span>
+          </div>
+        </section>
       </div>
     );
   }
@@ -359,13 +457,15 @@ function UsagePanel({ copy, signedIn }) {
   const locale = document.documentElement.lang || navigator.language;
   const formatReset = (value) => formatUserDateTime(value, { locale });
   const usageValue = (used, limit) =>
-    display === "count"
-      ? limit === null
-        ? `${used} / ∞`
-        : `${used} / ${limit}`
-      : limit === null
-        ? "100%"
-        : `${Math.max(0, Math.round((1 - used / limit) * 100))}%`;
+    limit === 0
+      ? "0 / 0"
+      : display === "count"
+        ? limit === null
+          ? `${used} / ∞`
+          : `${used} / ${limit}`
+        : limit === null
+          ? "100%"
+          : `${Math.max(0, Math.round((1 - used / limit) * 100))}%`;
   const buy = async () => {
     const response = await fetch("/api/ai/usage/purchase", {
       body: JSON.stringify({ quantity }),
@@ -380,6 +480,11 @@ function UsagePanel({ copy, signedIn }) {
       showToast({ message: copy.aiSettingsPurchaseFailed, type: "error" });
     }
   };
+  const resetUnitPrice = quantity >= 10 ? 3.99 : quantity >= 5 ? 4.49 : 4.99;
+  const atLimit =
+    usage.isFallback ||
+    (usage.limits.hourly !== null && usage.hourlyUsed >= usage.limits.hourly) ||
+    (usage.limits.daily !== null && usage.dailyUsed >= usage.limits.daily);
   const buyExtended = async () => {
     const response = await fetch("/api/ai/usage/purchase", {
       body: JSON.stringify({ kind: "extended" }),
@@ -429,6 +534,12 @@ function UsagePanel({ copy, signedIn }) {
           </button>
         </div>
       </div>
+      {usage.isFallback
+        ? <section className="ai-usage-fallback-warning" role="alert">
+            <icon>warning</icon>
+            <span>{copy.aiUsageFallbackWarning}</span>
+          </section>
+        : null}
       {[
         [
           "hourly",
@@ -444,9 +555,45 @@ function UsagePanel({ copy, signedIn }) {
           usage.limits.daily,
           usage.dayResetAt,
         ],
+        ...(usage.isFallback
+          ? [
+              [
+                "weekly",
+                copy.aiSettingsWeeklyUsage,
+                usage.weeklyUsed,
+                usage.limits.weekly,
+                null,
+              ],
+              [
+                "monthly",
+                copy.aiSettingsMonthlyUsage,
+                usage.monthlyUsed,
+                usage.limits.monthly,
+                null,
+              ],
+              [
+                "premium",
+                copy.aiSettingsPremiumRequests,
+                usage.premiumUsed,
+                usage.limits.premium,
+                null,
+              ],
+              [
+                "extended",
+                copy.aiSettingsExtendedRequests,
+                usage.extendedUsed,
+                usage.limits.extended,
+                null,
+              ],
+            ]
+          : []),
       ].map(([id, label, used, limit, resetAt]) => {
         const remaining =
-          limit === null ? 100 : Math.max(0, (1 - used / limit) * 100);
+          limit === 0
+            ? 0
+            : limit === null
+              ? 100
+              : Math.max(0, (1 - used / limit) * 100);
         return (
           <section className="ai-usage-card" key={id}>
             <div>
@@ -456,12 +603,30 @@ function UsagePanel({ copy, signedIn }) {
             <span className="ai-usage-meter">
               <span style={{ width: `${remaining}%` }} />
             </span>
-            <small>
-              {copy.aiSettingsResetsAt}: {formatReset(resetAt)}
-            </small>
+            {resetAt
+              ? <small>
+                  {copy.aiSettingsResetsAt}: {formatReset(resetAt)}
+                </small>
+              : null}
           </section>
         );
       })}
+      <section
+        className="ai-usage-feature-limits"
+        data-limit-reached={atLimit || undefined}
+      >
+        {[
+          ["smart_toy", copy.aiSettingsAgent],
+          ["code", copy.aiSidebarCode],
+          ["psychology", copy.aiPricingProLiteFeatureAdvancedModels],
+        ].map(([icon, label]) => (
+          <span key={label}>
+            <icon>{icon}</icon>
+            {label}
+            {atLimit ? <icon>lock</icon> : null}
+          </span>
+        ))}
+      </section>
       <section className="ai-usage-actions">
         <div>
           <strong>{copy.aiSettingsUsageResets}</strong>
@@ -474,13 +639,19 @@ function UsagePanel({ copy, signedIn }) {
         <button
           disabled={usage.usageResets < 1}
           onClick={async () => {
-            const response = await fetch("/api/ai/usage", {
-              body: JSON.stringify({ action: "reset" }),
-              credentials: "include",
-              headers: { "Content-Type": "application/json" },
-              method: "POST",
-            });
-            if (response.ok) setUsage(await response.json());
+            try {
+              if (usage.isFallback) throw new Error("usage_reset_failed");
+              const response = await fetch("/api/ai/usage", {
+                body: JSON.stringify({ action: "reset" }),
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                method: "POST",
+              });
+              if (!response.ok) throw new Error("usage_reset_failed");
+              setUsage(await response.json());
+            } catch {
+              showToast({ message: copy.accountRequestFailed, type: "error" });
+            }
           }}
           type="button"
         >
@@ -488,7 +659,7 @@ function UsagePanel({ copy, signedIn }) {
           {copy.aiSettingsUseReset}
         </button>
       </section>
-      {usage.plan !== "pro"
+      {!billingDisabled && usage.plan !== "pro"
         ? <section className="ai-usage-purchase">
             <div>
               <strong>{copy.aiSettingsBuyResets}</strong>
@@ -501,27 +672,25 @@ function UsagePanel({ copy, signedIn }) {
               type="number"
               value={quantity}
             />
-            <output>${(quantity * 4.99).toFixed(2)}</output>
+            <output>${(quantity * resetUnitPrice).toFixed(2)}</output>
             <button onClick={buy} type="button">
               {copy.aiSettingsContinueCheckout}
             </button>
           </section>
         : null}
-      {usage.plan !== "pro"
+      {!billingDisabled && usage.plan !== "pro"
         ? <section className="ai-usage-extended">
             <div>
               <strong>{copy.aiSettingsExtendedRequests}</strong>
-              <small>$3.99</small>
+              <small>$4.99</small>
             </div>
-            <button
+            <CustomToggle
+              checked={usage.extendedRequests}
+              className="ai-usage-extended-toggle"
               disabled={usage.extendedRequests}
-              onClick={buyExtended}
-              type="button"
-            >
-              {usage.extendedRequests
-                ? copy.aiSettingsEnabled
-                : copy.aiSettingsChoose}
-            </button>
+              label={copy.aiSettingsExtendedRequests}
+              onChange={(enabled) => enabled && void buyExtended()}
+            />
           </section>
         : null}
     </div>
@@ -581,57 +750,316 @@ function InviteFriendForm({ close, copy }) {
   );
 }
 
-function SettingsContent({ initialCopy, signedIn }) {
+function SharedLinksManager({ copy }) {
+  const [links, setLinks] = useState([]);
+  const [state, setState] = useState("loading");
+  const load = useCallback(async () => {
+    setState("loading");
+    try {
+      const response = await fetch("/api/ai/shared-links", {
+        cache: "no-store",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("load_failed");
+      const payload = await response.json();
+      setLinks(Array.isArray(payload.links) ? payload.links : []);
+      setState("ready");
+    } catch {
+      setLinks([]);
+      setState("error");
+    }
+  }, []);
+  useEffect(() => void load(), [load]);
+  const remove = async (id) => {
+    try {
+      const response = await fetch("/api/ai/shared-links", {
+        body: JSON.stringify({ id }),
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("delete_failed");
+      setLinks((current) => current.filter((link) => link.id !== id));
+    } catch {
+      showToast({
+        message: copy.aiSettingsSharedLinksDeleteFailed,
+        type: "error",
+      });
+    }
+  };
+  if (state === "loading")
+    return (
+      <LoadingSpinner
+        className="ai-compact-loading-spinner"
+        label={copy.accountProcessing}
+        strokeWidth={3}
+      />
+    );
+  if (state === "error") {
+    return (
+      <div className="ai-settings-error-state">
+        <p>{copy.aiSettingsSharedLinksLoadFailed}</p>
+        <button onClick={() => void load()} type="button">
+          {copy.retry}
+        </button>
+      </div>
+    );
+  }
+  return links.length
+    ? <ul className="ai-settings-list">
+        {links.map((link) => (
+          <li key={link.id}>
+            <span>
+              <strong>{link.title || copy.aiChatShared}</strong>
+              <small>{link.url}</small>
+            </span>
+            <button
+              aria-label={copy.delete}
+              onClick={() => void remove(link.id)}
+              type="button"
+            >
+              <icon>delete</icon>
+            </button>
+          </li>
+        ))}
+      </ul>
+    : <p className="ai-settings-empty">{copy.aiSettingsNoSharedLinks}</p>;
+}
+
+function ArchivedChatsManager({ copy, signedIn }) {
+  const [chats, setChats] = useState([]);
+  const [state, setState] = useState("loading");
+  const load = useCallback(async () => {
+    setState("loading");
+    try {
+      if (!signedIn) {
+        setChats(
+          listGuestConversations({ includeArchived: true }).filter(
+            (chat) => chat.archived,
+          ),
+        );
+        setState("ready");
+        return;
+      }
+      const response = await fetch("/api/ai/conversations?archived=1", {
+        cache: "no-store",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("load_failed");
+      const payload = await response.json();
+      setChats(
+        (Array.isArray(payload.conversations)
+          ? payload.conversations
+          : []
+        ).filter((chat) => chat.archived),
+      );
+      setState("ready");
+    } catch {
+      setChats([]);
+      setState("error");
+    }
+  }, [signedIn]);
+  useEffect(() => void load(), [load]);
+  const unarchive = async (id) => {
+    if (!signedIn) {
+      updateGuestConversation(id, "unarchive");
+      setChats((current) => current.filter((chat) => chat.id !== id));
+      return;
+    }
+    const response = await fetch("/api/ai/conversations", {
+      body: JSON.stringify({ action: "unarchive", id }),
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      method: "PATCH",
+    });
+    if (response.ok)
+      setChats((current) => current.filter((chat) => chat.id !== id));
+  };
+  if (state === "loading")
+    return (
+      <LoadingSpinner
+        className="ai-compact-loading-spinner"
+        label={copy.accountProcessing}
+        strokeWidth={3}
+      />
+    );
+  if (state === "error") {
+    return (
+      <div className="ai-settings-error-state">
+        <p>{copy.aiSettingsArchivedChatsLoadFailed}</p>
+        <button onClick={() => void load()} type="button">
+          {copy.retry}
+        </button>
+      </div>
+    );
+  }
+  return chats.length
+    ? <ul className="ai-settings-list">
+        {chats.map((chat) => (
+          <li key={chat.id}>
+            <span>{chat.title}</span>
+            <button onClick={() => void unarchive(chat.id)} type="button">
+              {copy.aiSettingsUnarchiveChat}
+            </button>
+          </li>
+        ))}
+      </ul>
+    : <p className="ai-settings-empty">{copy.aiSettingsNoArchivedChats}</p>;
+}
+
+export function SettingsContent({
+  appLoading: initialAppLoading = false,
+  initialCopy,
+  initialPanel = "general",
+  signedIn,
+}) {
   const [copy, setCopy] = useState(initialCopy);
-  const [activePanel, setActivePanel] = useState("general");
+  const [appLoading, setAppLoading] = useState(initialAppLoading);
+  const [accountRevision, setAccountRevision] = useState(0);
+  const [accountSignedIn, setAccountSignedIn] = useState(signedIn);
+  const [activePanel, setActivePanel] = useState(initialPanel);
   const [settings, setSettings] = useState(aiSettingsDefaults);
+  const [savedSettings, setSavedSettings] = useState(aiSettingsDefaults);
   const [loading, setLoading] = useState(signedIn);
+  const [clipboardFailureMessage, setClipboardFailureMessage] = useState("");
   const [instructionError, setInstructionError] = useState("");
+  const [plan, setPlan] = useState(signedIn ? null : "free");
+  const [voices, setVoices] = useState([]);
+  const [selfParentalControls, setSelfParentalControls] = useState(null);
+  const [educationRole, setEducationRole] = useState("");
   const loadedRef = useRef(false);
   const saveTimerRef = useRef(null);
+  const clipboardFailureCooldownRef = useRef(false);
+  const clipboardFailureTimerRef = useRef(null);
 
   useEffect(() => {
-    const refreshCopy = () => setCopy(t());
-    const syncExternalSettings = (event) =>
-      setSettings((current) => ({
-        ...current,
-        ...(event.detail || {}),
-      }));
-    window.addEventListener("munetios:localechange", refreshCopy);
-    window.addEventListener("munetios:languagechange", refreshCopy);
-    window.addEventListener("munetios:aisettingschange", syncExternalSettings);
+    const shell = document.querySelector("munetios-ai-shell");
+    const syncAppLoading = () =>
+      setAppLoading(shell?.dataset.aiAppLoading === "true");
+    const observer = shell ? new MutationObserver(syncAppLoading) : null;
+    observer?.observe(shell, {
+      attributeFilter: ["data-ai-app-loading"],
+      attributes: true,
+    });
+    syncAppLoading();
+    const markAppReady = () => setAppLoading(false);
+    window.addEventListener("munetios:aiappready", markAppReady);
     return () => {
-      window.removeEventListener("munetios:localechange", refreshCopy);
-      window.removeEventListener("munetios:languagechange", refreshCopy);
-      window.removeEventListener(
-        "munetios:aisettingschange",
-        syncExternalSettings,
-      );
+      observer?.disconnect();
+      window.removeEventListener("munetios:aiappready", markAppReady);
     };
   }, []);
 
   useEffect(() => {
-    if (!signedIn) {
+    const refreshCopy = () => setCopy(t());
+    window.addEventListener("munetios:localechange", refreshCopy);
+    window.addEventListener("munetios:languagechange", refreshCopy);
+    return () => {
+      window.removeEventListener("munetios:localechange", refreshCopy);
+      window.removeEventListener("munetios:languagechange", refreshCopy);
+    };
+  }, []);
+
+  useEffect(
+    () => () => window.clearTimeout(clipboardFailureTimerRef.current),
+    [],
+  );
+
+  useEffect(() => {
+    const syncAccount = () => {
+      window.clearTimeout(saveTimerRef.current);
+      loadedRef.current = false;
+      const nextSignedIn = hasSignedInCookie();
+      setAccountSignedIn(nextSignedIn);
+      setPlan(nextSignedIn ? null : "free");
+      setAccountRevision((current) => current + 1);
+    };
+    window.addEventListener("munetios:authchange", syncAccount);
+    return () => window.removeEventListener("munetios:authchange", syncAccount);
+  }, []);
+
+  useEffect(() => {
+    const loadVoices = () =>
+      setVoices(window.speechSynthesis?.getVoices() || []);
+    loadVoices();
+    window.speechSynthesis?.addEventListener?.("voiceschanged", loadVoices);
+    return () =>
+      window.speechSynthesis?.removeEventListener?.(
+        "voiceschanged",
+        loadVoices,
+      );
+  }, []);
+
+  useEffect(() => {
+    if (!accountSignedIn) {
+      setSelfParentalControls(null);
+      setEducationRole("");
+      return;
+    }
+    let cancelled = false;
+    fetchSelfParentalControls().then((controls) => {
+      if (!cancelled) setSelfParentalControls(controls);
+    });
+    fetch("/api/account", { cache: "no-store", credentials: "include" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((account) => {
+        if (!cancelled) setEducationRole(account?.education?.role || "");
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [accountSignedIn]);
+
+  useEffect(() => {
+    if (!accountSignedIn) {
+      setSettings(aiSettingsDefaults);
+      setSavedSettings(aiSettingsDefaults);
       loadedRef.current = true;
       setLoading(false);
       return;
     }
+    loadedRef.current = false;
+    setLoading(true);
     const controller = new AbortController();
-    fetch(settingsUrl, {
-      cache: "no-store",
-      credentials: "include",
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("load failed");
-        return response.json();
-      })
-      .then((payload) =>
-        setSettings({ ...aiSettingsDefaults, ...payload.settings }),
-      )
-      .catch((error) => {
-        if (error?.name !== "AbortError") {
+    const settingsRequest = (async () => {
+      const response = await fetch(
+        `${settingsUrl}?accountRevision=${accountRevision}`,
+        {
+          cache: "no-store",
+          credentials: "include",
+          signal: controller.signal,
+        },
+      );
+      if (!response.ok) throw new Error("settings_load_failed");
+      const payload = await response.json();
+      const next = { ...aiSettingsDefaults, ...payload.settings };
+      setSettings(next);
+      setSavedSettings(next);
+    })();
+    const subscriptionRequest = (async () => {
+      const response = await fetch("/api/ai/usage", {
+        cache: "no-store",
+        credentials: "include",
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error("subscription_check_failed");
+      setPlan((await response.json()).plan || "free");
+    })();
+    Promise.allSettled([settingsRequest, subscriptionRequest])
+      .then(([settingsResult, subscriptionResult]) => {
+        if (
+          settingsResult.status === "rejected" &&
+          settingsResult.reason?.name !== "AbortError"
+        ) {
           showToast({ message: copy.aiSettingsLoadFailed, type: "error" });
+        }
+        if (
+          subscriptionResult.status === "rejected" &&
+          subscriptionResult.reason?.name !== "AbortError"
+        ) {
+          setPlan("free");
+          showSubscriptionCheckFailure(copy.aiSubscriptionCheckFailed);
         }
       })
       .finally(() => {
@@ -639,41 +1067,76 @@ function SettingsContent({ initialCopy, signedIn }) {
         setLoading(false);
       });
     return () => controller.abort();
-  }, [copy.aiSettingsLoadFailed, signedIn]);
+  }, [
+    accountRevision,
+    accountSignedIn,
+    copy.aiSettingsLoadFailed,
+    copy.aiSubscriptionCheckFailed,
+  ]);
 
-  const save = useCallback(
-    (nextSettings) => {
-      if (!signedIn || !loadedRef.current) return;
-      window.clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = window.setTimeout(async () => {
-        try {
-          const response = await fetch(settingsUrl, {
-            body: JSON.stringify({ settings: nextSettings }),
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            method: "PATCH",
+  useEffect(() => {
+    if (plan === "pro" && activePanel === "usage") {
+      setActivePanel("general");
+    }
+    if (
+      activePanel === "agent" &&
+      selfParentalControls?.allowAgentAi === false
+    ) {
+      setActivePanel("general");
+    }
+    if (
+      educationRole === "student" &&
+      ["agent", "usage"].includes(activePanel)
+    ) {
+      setActivePanel("general");
+    }
+  }, [activePanel, educationRole, plan, selfParentalControls]);
+
+  const persist = useCallback(
+    async (nextSettings, showFailure = true) => {
+      if (!accountSignedIn || !loadedRef.current) return true;
+      try {
+        const response = await fetch(settingsUrl, {
+          body: JSON.stringify({ settings: nextSettings }),
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          method: "PATCH",
+        });
+        if (!response.ok) throw new Error("save_failed");
+        const payload = await response.json();
+        const saved = { ...nextSettings, ...(payload.settings || {}) };
+        setSavedSettings(saved);
+        setSettings(saved);
+        window.dispatchEvent(
+          new CustomEvent("munetios:aisettingschange", { detail: saved }),
+        );
+        return true;
+      } catch {
+        if (showFailure) {
+          showToast({
+            messageKey: "failedUpdatingAccountSettings",
+            type: "error",
           });
-          if (!response.ok) throw new Error("save failed");
-          window.dispatchEvent(
-            new CustomEvent("munetios:aisettingschange", {
-              detail: nextSettings,
-            }),
-          );
-        } catch {
-          showToast({ message: copy.aiSettingsSaveFailed, type: "error" });
         }
-      }, 350);
+        return false;
+      }
     },
-    [copy.aiSettingsSaveFailed, signedIn],
+    [accountSignedIn],
   );
 
-  const update = (patch) => {
+  const update = (
+    patch,
+    { defer = activePanel === "personalization" } = {},
+  ) => {
     setSettings((current) => {
       const next = { ...current, ...patch };
       window.dispatchEvent(
         new CustomEvent("munetios:aisettingschange", { detail: next }),
       );
-      save(next);
+      if (!defer) {
+        window.clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = window.setTimeout(() => void persist(next), 350);
+      }
       return next;
     });
   };
@@ -684,29 +1147,23 @@ function SettingsContent({ initialCopy, signedIn }) {
       return;
     }
     setInstructionError("");
-    update({ [key]: value });
+    update({ [key]: value }, { defer: true });
   };
 
   const updateLocation = async (enabled) => {
-    if (!enabled) {
-      update({ location: false });
-      return;
-    }
-    if (!navigator.geolocation) {
-      showLocationGuidance(copy);
-      return;
-    }
+    if (!enabled) return update({ location: false });
+    if (!navigator.geolocation) return showLocationGuidance(copy);
     try {
       const permission = await navigator.permissions?.query?.({
         name: "geolocation",
       });
       if (permission?.state === "denied") {
-        showLocationGuidance(copy);
         update({ location: false });
+        showLocationGuidance(copy);
         return;
       }
     } catch {
-      // The geolocation request below remains the source of truth.
+      // The location request below provides the final permission result.
     }
     navigator.geolocation.getCurrentPosition(
       () => update({ location: true }),
@@ -718,6 +1175,64 @@ function SettingsContent({ initialCopy, signedIn }) {
     );
   };
 
+  const showClipboardFailureMessage = (message) => {
+    if (clipboardFailureCooldownRef.current) return;
+    clipboardFailureCooldownRef.current = true;
+    setClipboardFailureMessage(message);
+    window.clearTimeout(clipboardFailureTimerRef.current);
+    clipboardFailureTimerRef.current = window.setTimeout(() => {
+      clipboardFailureCooldownRef.current = false;
+      setClipboardFailureMessage("");
+    }, 2000);
+  };
+
+  const copyVersion = async () => {
+    const version = process.env.NEXT_PUBLIC_APP_VERSION || "0.1.0";
+    if (!document.hasFocus()) {
+      showClipboardFailureMessage(copy.aiSettingsClipboardFocusFailed);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(version);
+      clipboardFailureCooldownRef.current = false;
+      window.clearTimeout(clipboardFailureTimerRef.current);
+      setClipboardFailureMessage("");
+      showToast({ message: copy.aiSettingsVersionCopied, type: "success" });
+    } catch {
+      showClipboardFailureMessage(
+        document.hasFocus()
+          ? copy.meetClipboardFailed
+          : copy.aiSettingsClipboardFocusFailed,
+      );
+    }
+  };
+
+  const confirmAction = (title, message, action, danger = false) => {
+    showModal(
+      ({ close }) => (
+        <div className="ai-settings-confirm">
+          <p>{message}</p>
+          <div>
+            <button onClick={close} type="button">
+              {copy.cancel}
+            </button>
+            <button
+              className={danger ? "is-danger" : ""}
+              onClick={() => {
+                close();
+                void action();
+              }}
+              type="button"
+            >
+              {copy.confirm}
+            </button>
+          </div>
+        </div>
+      ),
+      { ariaLabel: title, title },
+    );
+  };
+
   const renderGeneral = () => (
     <div className="ai-settings-stack">
       <CustomSelect
@@ -725,7 +1240,6 @@ function SettingsContent({ initialCopy, signedIn }) {
         label={copy.accountAppearanceTheme}
         onChange={(theme) => update({ theme })}
         options={[
-          ["account-default", "aiSettingsAccountDefault"],
           ["system", "accountAppearanceModeSystem"],
           ["light", "accountAppearanceModeLight"],
           ["dark", "accountAppearanceModeDark"],
@@ -743,14 +1257,14 @@ function SettingsContent({ initialCopy, signedIn }) {
         />
       </div>
       <Toggle
-        checked={settings.voiceInputComposer}
-        label={copy.aiSettingsVoiceInputComposer}
-        onChange={(voiceInputComposer) => update({ voiceInputComposer })}
-      />
-      <Toggle
         checked={settings.automaticThinking}
         label={copy.aiSettingsAutomaticThinking}
         onChange={(automaticThinking) => update({ automaticThinking })}
+      />
+      <Toggle
+        checked={settings.voiceInputComposer}
+        label={copy.aiSettingsVoiceInputComposer}
+        onChange={(voiceInputComposer) => update({ voiceInputComposer })}
       />
       <Toggle
         checked={settings.location}
@@ -758,35 +1272,26 @@ function SettingsContent({ initialCopy, signedIn }) {
         label={copy.accountPrivacyLocation}
         onChange={updateLocation}
       />
-      <section className="ai-settings-pinned-tools">
-        <div>
-          <strong>{copy.aiSettingsPinnedTools}</strong>
-          <small>{copy.aiSettingsPinnedToolsDescription}</small>
-        </div>
-        <div className="ai-settings-pinned-tools-grid">
-          {composerToolSettings.map(([id, icon, key]) => {
-            const selected = settings.pinnedTools.includes(id);
-            return (
-              <button
-                aria-pressed={selected}
-                key={id}
-                onClick={() =>
-                  update({
-                    pinnedTools: selected
-                      ? settings.pinnedTools.filter((tool) => tool !== id)
-                      : [...settings.pinnedTools, id],
-                  })
-                }
-                type="button"
-              >
-                <icon>{icon}</icon>
-                <span>{copy[key]}</span>
-                <icon>{selected ? "keep" : "keep_off"}</icon>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      <button
+        className="ai-settings-version"
+        onClick={() => void copyVersion()}
+        type="button"
+      >
+        <span>
+          <strong>{copy.aiSettingsAppVersion}</strong>
+          <small>
+            {appLoading
+              ? `${copy.loading}...`
+              : process.env.NEXT_PUBLIC_APP_VERSION || "0.1.0"}
+          </small>
+        </span>
+        <icon>content_copy</icon>
+      </button>
+      {clipboardFailureMessage
+        ? <p className="ai-settings-clipboard-error" role="alert">
+            {clipboardFailureMessage}
+          </p>
+        : null}
     </div>
   );
 
@@ -823,21 +1328,16 @@ function SettingsContent({ initialCopy, signedIn }) {
         value={settings.bubbleRoundness}
         valueLabel={`${settings.bubbleRoundness}px`}
       />
-      <ColorPickerWrapper
+      <CustomSelect
         copy={copy}
-        customColors={[]}
-        onAddColor={() => undefined}
-        onPrimaryChange={(textColor) => update({ textColor })}
-        primary={settings.textColor}
-        title={copy.aiSettingsTextColor}
-      />
-      <ColorPickerWrapper
-        copy={copy}
-        customColors={[]}
-        onAddColor={() => undefined}
-        onPrimaryChange={(accentColor) => update({ accentColor })}
-        primary={settings.accentColor}
-        title={copy.accountAppearanceAccentColor}
+        label={copy.aiVoiceModeType}
+        onChange={(voiceModeType) => update({ voiceModeType })}
+        options={[
+          ["prompt", "aiVoiceTypePrompt"],
+          ["wrapper", "aiVoiceTypeWrapper"],
+          ["fullscreen", "aiVoiceTypeFullscreen"],
+        ]}
+        value={settings.voiceModeType}
       />
     </div>
   );
@@ -846,18 +1346,14 @@ function SettingsContent({ initialCopy, signedIn }) {
     <div className="ai-settings-stack">
       <TextField
         label={copy.aiSettingsNickname}
-        onChange={(nickname) => update({ nickname })}
+        maxLength={80}
+        onChange={(nickname) => update({ nickname }, { defer: true })}
         value={settings.nickname}
-      />
-      <Toggle
-        checked={settings.customization}
-        label={copy.aiSettingsCustomization}
-        onChange={(customization) => update({ customization })}
       />
       <CustomSelect
         copy={copy}
         label={copy.aiSettingsTone}
-        onChange={(tone) => update({ tone })}
+        onChange={(tone) => update({ tone }, { defer: true })}
         options={[
           ["balanced", "aiSettingsToneBalanced"],
           ["concise", "aiSettingsToneConcise"],
@@ -867,13 +1363,22 @@ function SettingsContent({ initialCopy, signedIn }) {
         ]}
         value={settings.tone}
       />
+      <Toggle
+        checked={settings.fastAnswers}
+        label={copy.aiSettingsFastAnswers}
+        onChange={(fastAnswers) => update({ fastAnswers }, { defer: true })}
+      />
       <TextField
         label={copy.aiSettingsCustomIntroductions}
+        maxLength={10000}
         multiline
         onChange={(value) => updateInstructions("customIntroductions", value)}
         placeholder={copy.aiSettingsCustomIntroductionsPlaceholder}
         value={settings.customIntroductions}
       />
+      <div className="ai-settings-character-count">
+        {settings.customIntroductions.length.toLocaleString()} / 10,000
+      </div>
       {instructionError
         ? <p className="ai-settings-error">{instructionError}</p>
         : null}
@@ -888,7 +1393,7 @@ function SettingsContent({ initialCopy, signedIn }) {
               <MemoryManager
                 copy={copy}
                 initialMemories={settings.memories || []}
-                onChange={(memories) => update({ memories })}
+                onChange={(memories) => update({ memories }, { defer: true })}
               />,
               {
                 ariaLabel: copy.aiSettingsMemory,
@@ -903,103 +1408,395 @@ function SettingsContent({ initialCopy, signedIn }) {
         </button>
       </section>
       <Toggle
-        checked={settings.memory}
-        label={copy.aiSettingsMemoryToggle}
-        onChange={(memory) => update({ memory })}
-      />
-      <Toggle
         checked={settings.rememberChatHistory}
         label={copy.aiSettingsRememberHistory}
-        onChange={(rememberChatHistory) => update({ rememberChatHistory })}
-      />
-      <TextField
-        label={copy.aiSettingsAdditionalInstructions}
-        multiline
-        onChange={(value) =>
-          updateInstructions("additionalInstructions", value)
+        onChange={(rememberChatHistory) =>
+          update({ rememberChatHistory }, { defer: true })
         }
-        value={settings.additionalInstructions}
       />
-      <TextField
-        label={copy.aiSettingsMoreAboutYou}
-        multiline
-        onChange={(moreAboutYou) => update({ moreAboutYou })}
-        value={settings.moreAboutYou}
+      <Toggle
+        checked={settings.automaticWebSearch}
+        label={copy.aiSettingsAutomaticWebSearch}
+        onChange={(automaticWebSearch) =>
+          update({ automaticWebSearch }, { defer: true })
+        }
       />
-      <TextField
-        label={copy.aiSettingsTraits}
-        onChange={(traits) => update({ traits })}
-        value={settings.traits}
+      <Toggle
+        checked={settings.automaticImageGeneration}
+        label={copy.aiSettingsAutomaticImageGeneration}
+        onChange={(automaticImageGeneration) =>
+          update({ automaticImageGeneration }, { defer: true })
+        }
+      />
+      <div className="ai-settings-actions">
+        <button
+          onClick={() =>
+            confirmAction(
+              copy.aiSettingsDiscardTitle,
+              copy.aiSettingsDiscardDescription,
+              () => setSettings(savedSettings),
+            )
+          }
+          type="button"
+        >
+          {copy.cancel}
+        </button>
+        <button
+          className="is-primary"
+          onClick={() => void persist(settings)}
+          type="button"
+        >
+          {copy.aiChatSave}
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderAgent = () => (
+    <div className="ai-settings-stack">
+      <CustomSelect
+        copy={copy}
+        label={copy.aiSettingsApprovalPrompts}
+        onChange={(agentApprovalMode) => {
+          if (agentApprovalMode === "everything") {
+            confirmAction(
+              copy.aiSettingsApproveEverything,
+              copy.aiSettingsApproveEverythingWarning,
+              () => update({ agentApprovalMode: "everything" }),
+              true,
+            );
+          } else update({ agentApprovalMode });
+        }}
+        options={[
+          ["always-ask", "aiSettingsAlwaysAsk"],
+          ["low-risk", "aiSettingsApproveLowRisk"],
+          ["everything", "aiSettingsApproveEverything"],
+        ]}
+        value={settings.agentApprovalMode}
       />
     </div>
   );
-  const visiblePanels = signedIn
-    ? panels
-    : panels.filter(([id]) => guestPanelIds.has(id));
+
+  const renderPrivacy = () => (
+    <div className="ai-settings-stack">
+      <CustomSelect
+        copy={copy}
+        label={copy.aiSettingsAutoDelete}
+        onChange={(autoDeleteChatHistory) => update({ autoDeleteChatHistory })}
+        options={[
+          ["never", "aiSettingsNever"],
+          ["7-days", "aiSettingsAfter7Days"],
+          ["30-days", "aiSettingsAfter30Days"],
+          ["90-days", "aiSettingsAfter90Days"],
+          ["1-year", "aiSettingsAfter1Year"],
+        ]}
+        value={settings.autoDeleteChatHistory}
+      />
+      <Toggle
+        checked={settings.privacyPersonalization}
+        label={copy.aiSettingsPersonalizedAi}
+        onChange={(privacyPersonalization) =>
+          update({ privacyPersonalization })
+        }
+      />
+      {educationRole !== "student"
+        ? <section className="ai-settings-memory-card">
+            <div>
+              <strong>{copy.aiSettingsSharedLinks}</strong>
+              <small>{copy.aiSettingsSharedLinksDescription}</small>
+            </div>
+            <button
+              onClick={() =>
+                showModal(<SharedLinksManager copy={copy} />, {
+                  ariaLabel: copy.aiSettingsSharedLinks,
+                  title: copy.aiSettingsSharedLinks,
+                  width: "46rem",
+                })
+              }
+              type="button"
+            >
+              {copy.aiSettingsView}
+            </button>
+          </section>
+        : null}
+    </div>
+  );
+
+  const renderVoice = () => {
+    const voiceOptions = [
+      ["auto", "aiVoiceAutomatic"],
+      ...voices
+        .filter((voice) => voice.localService)
+        .map((voice) => [
+          `speech:${encodeURIComponent(voice.voiceURI)}`,
+          voice.name,
+        ]),
+    ];
+    return (
+      <div className="ai-settings-stack">
+        <CustomSelect
+          copy={copy}
+          label={copy.aiVoiceVersion}
+          onChange={(voiceModeVersion) => update({ voiceModeVersion })}
+          options={[
+            ["new", "aiVoiceVersionNew"],
+            ["classic", "aiVoiceVersionClassic"],
+          ]}
+          value={settings.voiceModeVersion}
+        />
+        {appLoading
+          ? <div className="ai-settings-field">
+              <span>{copy.aiVoiceChooseVoice}</span>
+              <button
+                className="ai-settings-select-trigger"
+                disabled
+                type="button"
+              >
+                <span>{copy.loading}...</span>
+                <icon>expand_more</icon>
+              </button>
+            </div>
+          : <CustomSelect
+              copy={copy}
+              label={copy.aiVoiceChooseVoice}
+              onChange={(voiceModeVoice) => update({ voiceModeVoice })}
+              options={voiceOptions}
+              value={settings.voiceModeVoice}
+            />}
+        <Slider
+          label={copy.aiVoiceSpeed}
+          max={2}
+          min={0.5}
+          onChange={(voiceModeSpeed) => update({ voiceModeSpeed })}
+          step={0.05}
+          value={settings.voiceModeSpeed}
+          valueLabel={`${settings.voiceModeSpeed}×`}
+        />
+        <Slider
+          label={copy.aiVoicePitch}
+          max={2}
+          min={0.5}
+          onChange={(voiceModePitch) => update({ voiceModePitch })}
+          step={0.05}
+          value={settings.voiceModePitch}
+          valueLabel={`${settings.voiceModePitch}×`}
+        />
+      </div>
+    );
+  };
+
+  const runConversationAction = async (method, action) => {
+    try {
+      if (!accountSignedIn) {
+        if (action === "archive-all") archiveAllGuestConversations();
+        if (action === "delete-all") deleteAllGuestConversations();
+        return;
+      }
+      const response = await fetch("/api/ai/conversations", {
+        body: JSON.stringify({ action }),
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        method,
+      });
+      if (!response.ok) throw new Error("action_failed");
+      window.dispatchEvent(new Event("munetios:aiconversationschange"));
+    } catch {
+      showToast({ message: copy.accountRequestFailed, type: "error" });
+    }
+  };
+
+  const renderAdvanced = () => (
+    <div className="ai-settings-stack">
+      <section className="ai-settings-memory-card">
+        <div>
+          <strong>{copy.aiSettingsArchivedChats}</strong>
+          <small>{copy.aiSettingsArchivedChatsDescription}</small>
+        </div>
+        <button
+          onClick={() =>
+            showModal(
+              <ArchivedChatsManager copy={copy} signedIn={accountSignedIn} />,
+              {
+                ariaLabel: copy.aiSettingsArchivedChats,
+                title: copy.aiSettingsArchivedChats,
+                width: "46rem",
+              },
+            )
+          }
+          type="button"
+        >
+          {copy.aiSettingsView}
+        </button>
+      </section>
+      {educationRole || selfParentalControls?.allowDeveloperMode === false
+        ? null
+        : <Toggle
+            checked={settings.developerMode}
+            label={copy.accountAdvancedDeveloperMode}
+            onChange={async (developerMode) => {
+              const next = { ...settings, developerMode };
+              setSettings(next);
+              if (!(await persist(next, false))) {
+                setSettings(settings);
+                showToast({
+                  messageKey: "failedUpdatingAccountSettings",
+                  type: "error",
+                });
+              }
+            }}
+          />}
+      <button
+        className="ai-settings-danger-action"
+        onClick={() =>
+          confirmAction(
+            copy.aiSettingsArchiveAllChats,
+            copy.aiSettingsArchiveAllConfirm,
+            () => runConversationAction("PATCH", "archive-all"),
+          )
+        }
+        type="button"
+      >
+        {copy.aiSettingsArchiveAllChats}
+      </button>
+      <button
+        className="ai-settings-danger-action"
+        onClick={() =>
+          confirmAction(
+            copy.aiSettingsDeleteAllChats,
+            copy.aiSettingsDeleteAllConfirm,
+            () => runConversationAction("DELETE", "delete-all"),
+            true,
+          )
+        }
+        type="button"
+      >
+        {copy.aiSettingsDeleteAllChats}
+      </button>
+    </div>
+  );
+
+  const visiblePanels = (
+    accountSignedIn ? panels : panels.filter(([id]) => guestPanelIds.has(id))
+  )
+    .filter(
+      ([id]) => educationRole !== "student" || !["agent", "usage"].includes(id),
+    )
+    .filter(([id]) => id !== "usage" || appLoading || (plan && plan !== "pro"))
+    .filter(
+      ([id]) => id !== "agent" || selfParentalControls?.allowAgentAi !== false,
+    );
+  const renderers = {
+    advanced: renderAdvanced,
+    agent: renderAgent,
+    appearance: renderAppearance,
+    general: renderGeneral,
+    personalization: renderPersonalization,
+    privacy: renderPrivacy,
+    voice: renderVoice,
+  };
 
   return (
     <div className="ai-settings-layout">
       <aside aria-label={copy.aiSettingsNavigation}>
-        {visiblePanels.map(([id, icon, key, enabled]) => {
-          const panelEnabled = signedIn ? enabled : true;
-          return (
-            <button
-              aria-current={activePanel === id ? "page" : undefined}
-              className={activePanel === id ? "is-active" : ""}
-              disabled={!panelEnabled}
-              key={id}
-              onClick={() => panelEnabled && setActivePanel(id)}
-              type="button"
-            >
-              <icon>{icon}</icon>
-              <span>{copy[key]}</span>
-            </button>
-          );
-        })}
+        {visiblePanels.map(([id, icon, key]) => (
+          <button
+            aria-current={activePanel === id ? "page" : undefined}
+            className={activePanel === id ? "is-active" : ""}
+            key={id}
+            onClick={() => setActivePanel(id)}
+            type="button"
+          >
+            <icon>{icon}</icon>
+            <span>{copy[key]}</span>
+          </button>
+        ))}
       </aside>
       <section
         className="ai-settings-content"
         style={{
-          "--ai-chat-accent": settings.accentColor,
           "--ai-chat-font-size": `${settings.chatFontSize}px`,
           "--ai-chat-line-height": settings.lineHeight,
           "--ai-chat-radius": `${settings.bubbleRoundness}px`,
-          "--ai-chat-text": settings.textColor,
         }}
       >
         <h2>{copy[visiblePanels.find(([id]) => id === activePanel)?.[2]]}</h2>
-        {!signedIn
+        {!accountSignedIn
           ? <p className="ai-settings-signed-out">
               {copy.aiSettingsSignInToSync}
             </p>
           : null}
-        {loading
+        {loading && !appLoading
           ? <div className="ai-settings-loading">
-              <LoadingSpinner label={copy.accountProcessing} />
+              <LoadingSpinner
+                className="ai-compact-loading-spinner"
+                label={copy.accountProcessing}
+                strokeWidth={3}
+              />
             </div>
-          : activePanel === "general"
-            ? renderGeneral()
-            : activePanel === "appearance"
-              ? renderAppearance()
-              : activePanel === "personalization"
-                ? renderPersonalization()
-                : activePanel === "usage"
-                  ? <UsagePanel copy={copy} signedIn={signedIn} />
-                  : <p className="ai-settings-coming-soon">
-                      {copy.aiSettingsComingSoon}
-                    </p>}
+          : activePanel === "usage"
+            ? <UsagePanel
+                appLoading={appLoading}
+                billingDisabled={educationRole === "student"}
+                copy={copy}
+                signedIn={accountSignedIn}
+              />
+            : renderers[activePanel]?.()}
       </section>
     </div>
   );
 }
 
-export function openAiSettingsModal({ signedIn = false } = {}) {
+export function openAiSettingsModal({
+  initialPanel = "general",
+  signedIn = false,
+} = {}) {
   const copy = t();
-  showModal(<SettingsContent initialCopy={copy} signedIn={signedIn} />, {
-    ariaLabel: copy.settings,
-    contentClassName: "overflow-hidden",
-    height: "min(48rem, calc(100dvh - 1.5rem))",
-    title: copy.settings,
-    width: "min(68rem, calc(100vw - 1.5rem))",
-  });
+  const modalId = "munetios-ai-settings";
+  if (typeof window !== "undefined" && window.location.hash !== "#settings") {
+    const url = new URL(window.location.href);
+    url.hash = "settings";
+    window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+  openSettingsModalCount += 1;
+  showModal(
+    <SettingsContent
+      appLoading={
+        document.querySelector("munetios-ai-shell")?.dataset.aiAppLoading ===
+        "true"
+      }
+      initialCopy={copy}
+      initialPanel={initialPanel}
+      signedIn={signedIn}
+    />,
+    {
+      ariaLabel: copy.settings,
+      aiStyled: true,
+      className: "ai-settings-modal",
+      clickThrough: true,
+      closeOnBackdrop: false,
+      contentClassName: "overflow-hidden",
+      height: "min(48rem, calc(100dvh - 1.5rem))",
+      maxWidth: "1201px",
+      modalId,
+      onClose: () => {
+        openSettingsModalCount = Math.max(0, openSettingsModalCount - 1);
+        if (
+          openSettingsModalCount > 0 ||
+          window.location.hash !== "#settings"
+        ) {
+          return;
+        }
+        const url = new URL(window.location.href);
+        url.hash = "";
+        window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+      },
+      title: copy.settings,
+      width: "calc(100vw - 1.5rem)",
+      zIndex: MODAL_STACKING_LAYER,
+    },
+  );
+}
+
+export function closeAiSettingsModal() {
+  dismissModal("munetios-ai-settings");
 }

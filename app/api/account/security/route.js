@@ -11,10 +11,18 @@ import {
   listAccountSessions,
   normalizeEmail,
   setAccountData,
+  setAccountSessionLocation,
   signOutAccountSession,
-  signOutAllAccountSessions,
   verifyAccountPassword,
 } from "../../../lib/authSecurity.js";
+import { enforceStudentRestriction } from "../../../lib/education.js";
+import { lookupIpLocation } from "../../../lib/ipGeolocation.js";
+import {
+  createSensitiveGrantCookie,
+  getTwoFactorState,
+  hasSensitiveGrant,
+  verifyAccountSecondFactor,
+} from "../../../lib/twoFactorSecurity.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -49,7 +57,24 @@ function describeUserAgent(userAgent) {
           ? "Safari"
           : "Browser";
   const mobile = /Mobile|Android|iPhone|iPad/i.test(value);
-  return { browser, icon: mobile ? "smartphone" : "computer", os };
+  const androidModel = value.match(
+    /Android[^;)]*;\s*([^;)]+?)(?:\s+Build\/|;|\))/i,
+  )?.[1];
+  const device = /iPad/i.test(value)
+    ? "iPad"
+    : /iPhone/i.test(value)
+      ? "iPhone"
+      : androidModel
+        ? androidModel.trim()
+        : /Android/i.test(value)
+          ? "Android device"
+          : `${os} ${mobile ? "device" : "desktop"}`;
+  return {
+    browser,
+    deviceName: `${device} · ${browser}`,
+    icon: mobile ? "smartphone" : "computer",
+    os,
+  };
 }
 
 export async function GET(request) {
@@ -59,13 +84,30 @@ export async function GET(request) {
     return response({ error: "signin_required" }, { status: 401 });
   }
   const security = getAccountData(session.user.id, "security", {});
-  const sessions = listAccountSessions(session.user.id).map(
-    (deviceSession) => ({
-      ...deviceSession,
-      ...describeUserAgent(deviceSession.userAgent),
-      current: deviceSession.id === session.sessionId,
-      ipAddress: undefined,
-      userAgent: undefined,
+  const twoFactor = getTwoFactorState(session.user.id);
+  const sessions = await Promise.all(
+    listAccountSessions(session.user.id).map(async (deviceSession) => {
+      const resolvedLocation = await lookupIpLocation(deviceSession.ipAddress);
+      const storedLocation = /^(?:IP\s|Unknown location$)/i.test(
+        String(deviceSession.location || ""),
+      )
+        ? ""
+        : deviceSession.location;
+      if (resolvedLocation && resolvedLocation !== deviceSession.location) {
+        setAccountSessionLocation(
+          session.user.id,
+          deviceSession.id,
+          resolvedLocation,
+        );
+      }
+      return {
+        ...deviceSession,
+        ...describeUserAgent(deviceSession.userAgent),
+        current: deviceSession.id === session.sessionId,
+        ipAddress: undefined,
+        location: resolvedLocation || storedLocation || "Local device",
+        userAgent: undefined,
+      };
     }),
   );
   return response({
@@ -73,6 +115,17 @@ export async function GET(request) {
     passkeyCount: listAccountPasskeys(session.user.id).length,
     recoveryEmail: security.recoveryEmail || "",
     sessions,
+    trustedDevices: twoFactor.trustedDevices.map((device) => {
+      const described = describeUserAgent(device.userAgent || device.label);
+      return {
+        createdAt: device.createdAt,
+        deviceName: `${described.browser} · ${described.os}`,
+        expiresAt: device.expiresAt,
+        id: device.id,
+      };
+    }),
+    twoFactorEnabled: twoFactor.enabled,
+    recoveryCodesRemaining: twoFactor.recoveryCodesRemaining,
   });
 }
 
@@ -105,6 +158,11 @@ export async function POST(request) {
   }
   const action = String(payload?.action || "");
 
+  if (["change_password", "recovery_email", "lockdown_mode"].includes(action)) {
+    const educationResponse = enforceStudentRestriction(session, "security");
+    if (educationResponse) return educationResponse;
+  }
+
   if (action === "verify_password") {
     const verified = await verifyAccountPassword(
       getAccountById(session.user.id),
@@ -113,6 +171,43 @@ export async function POST(request) {
     return verified
       ? response({ verified: true })
       : response({ error: "password_verification_failed" }, { status: 400 });
+  }
+
+  if (action === "verify_sensitive") {
+    const twoFactor = getTwoFactorState(session.user.id);
+    const verified = twoFactor.enabled
+      ? verifyAccountSecondFactor(session.user.id, payload.code)
+      : await verifyAccountPassword(
+          getAccountById(session.user.id),
+          payload.password,
+        );
+    return verified
+      ? response(
+          {
+            method: twoFactor.enabled ? "two_factor" : "password",
+            verified: true,
+          },
+          {
+            headers: {
+              "Set-Cookie": createSensitiveGrantCookie(
+                request,
+                session.user.id,
+              ),
+            },
+          },
+        )
+      : response({ error: "sensitive_verification_failed" }, { status: 401 });
+  }
+
+  const currentSecurity = getAccountData(session.user.id, "security", {});
+  if (
+    currentSecurity.lockdownMode &&
+    !hasSensitiveGrant(request, session.user.id)
+  ) {
+    return response(
+      { error: "sensitive_verification_required" },
+      { status: 403 },
+    );
   }
 
   if (action === "change_password") {
@@ -141,6 +236,12 @@ export async function POST(request) {
   }
 
   if (action === "lockdown_mode") {
+    if (!hasSensitiveGrant(request, session.user.id)) {
+      return response(
+        { error: "sensitive_verification_required" },
+        { status: 403 },
+      );
+    }
     const security = getAccountData(session.user.id, "security", {});
     const lockdownMode = payload.enabled === true;
     setAccountData(session.user.id, "security", {
@@ -169,18 +270,6 @@ export async function POST(request) {
             },
           }
         : {},
-    );
-  }
-
-  if (action === "sign_out_all") {
-    signOutAllAccountSessions(session.user.id);
-    return response(
-      { signedOut: true },
-      {
-        headers: {
-          "Set-Cookie": getSessionCookie(request, "", 0),
-        },
-      },
     );
   }
 

@@ -6,26 +6,10 @@ import { hasSignedInCookie } from "../lib/signedInCookie";
 import { showModal } from "./modal";
 import { showToast } from "./toast";
 
-const authStorageKeys = [
-  "munetiosSignedIn",
-  "munetios:signedIn",
-  "munetios.session",
-  "munetiosSession",
-  "munetiosAuth",
-  "munetiosUser",
-  "munetiosAccount",
-  "session",
-  "authToken",
-  "accessToken",
-  "token",
-  "user",
-  "account",
-];
 const testApiFailureKey = "munetios:test-api-failure";
 
 let signedOutModalShown = false;
-let fetchErrorToastTimeout = null;
-const activeApiFailureToasts = new Set();
+let invalidSessionHandled = false;
 
 function getApiFailureToast(pathname) {
   let messageKey = "";
@@ -46,48 +30,28 @@ function getApiFailureToast(pathname) {
 
 function showApiCheckFailure(pathname) {
   const toast = getApiFailureToast(pathname);
-  if (!toast || activeApiFailureToasts.has(toast.toastId)) return;
-  activeApiFailureToasts.add(toast.toastId);
+  if (!toast) return;
   const { messageKey, toastId } = toast;
   showToast({ messageKey, toastId, type: "error" });
 }
 
-function clearApiCheckFailure(pathname) {
-  const toast = getApiFailureToast(pathname);
-  if (toast) activeApiFailureToasts.delete(toast.toastId);
-}
-
 function shouldReportResponseFailure(response) {
   if (response.headers.get("X-Munetios-Test-Mode") === "true") {
-    return true;
+    return false;
   }
 
   if (response.status === 401) {
-    return (
-      response.headers.get("X-Munetios-Auth-State") === "invalid-session"
-    );
+    return response.headers.get("X-Munetios-Auth-State") === "invalid-session";
   }
 
   return hasSignedInCookie();
 }
 
-function showFetchErrorToast() {
-  if (fetchErrorToastTimeout) {
-    return;
-  }
-
-  showToast({
-    messageKey: "fetchError",
-    type: "error",
-  });
-
-  fetchErrorToastTimeout = window.setTimeout(() => {
-    fetchErrorToastTimeout = null;
-  }, 1000);
-}
-
 function createFetchFailureResponse() {
-  const message = t().fetchError || "Failed to fetch.";
+  const copy = t();
+  const message = getTestApiFailure()
+    ? "Test API failure response."
+    : copy.fetchError || "Failed to fetch.";
 
   return Response.json(
     {
@@ -100,6 +64,26 @@ function createFetchFailureResponse() {
       },
       status: 503,
     },
+  );
+}
+
+function showInvalidSessionToast() {
+  showToast({
+    messageKey: "invalidSessionToken",
+    toastId: "invalid-session-token",
+    type: "error",
+  });
+}
+
+function handleInvalidSession() {
+  if (invalidSessionHandled) return;
+  invalidSessionHandled = true;
+  showInvalidSessionToast();
+  showSignedOutModal(t(), { invalidSession: true });
+  window.dispatchEvent(
+    new CustomEvent("munetios:authchange", {
+      detail: { invalidSession: true, sessionInvalid: true, signedIn: true },
+    }),
   );
 }
 
@@ -126,24 +110,6 @@ function getTestApiFailure() {
   return status;
 }
 
-function clearClientAuthState() {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  for (const storage of [window.localStorage, window.sessionStorage]) {
-    for (const key of authStorageKeys) {
-      storage.removeItem(key);
-    }
-  }
-
-  // This is only a non-sensitive UI marker. The actual session cookie remains HttpOnly.
-  // biome-ignore lint/suspicious/noDocumentCookie: Clear the non-sensitive signed-in UI marker.
-  document.cookie =
-    "munetios_signed_in=; Path=/; Max-Age=0; SameSite=Lax";
-  window.dispatchEvent(new Event("munetios:authchange"));
-}
-
 export function showSignedOutModal(
   copy = t(),
   { invalidSession = false } = {},
@@ -152,24 +118,26 @@ export function showSignedOutModal(
     typeof window === "undefined" ||
     signedOutModalShown ||
     !invalidSession ||
+    getTestApiFailure() ||
     !isProtectedSignedInAttempt()
   ) {
     return;
   }
 
   signedOutModalShown = true;
-  clearClientAuthState();
 
   showModal(
     ({ close }) => (
-      <div className="space-y-4">
-        <p className="text-sm leading-6 text-white/75">
-          {copy.signedOutModalMessage}
-        </p>
-        <p className="text-sm leading-6 text-white/65">
-          {copy.signedOutModalBody}
-        </p>
-        <div className="flex flex-wrap justify-end gap-2">
+      <div className="flex min-h-0 flex-col gap-4">
+        <div className="min-h-0 space-y-4 overflow-y-auto">
+          <p className="text-sm leading-6 text-white/75">
+            {copy.signedOutModalMessage}
+          </p>
+          <p className="text-sm leading-6 text-white/65">
+            {copy.signedOutModalBody}
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap justify-end gap-2">
           <button
             className="rounded-xl border border-white/10 bg-white/5! px-3 py-2 text-sm font-semibold text-white/75 transition hover:border-white/20 hover:bg-white/10! hover:text-white"
             onClick={close}
@@ -178,7 +146,7 @@ export function showSignedOutModal(
             {copy.signedOutModalDismiss}
           </button>
           <a
-            className="rounded-xl border border-purple-200/25 bg-purple-500/80! px-3 py-2 text-sm font-semibold text-white transition hover:border-purple-100/40 hover:bg-purple-400/90!"
+            className="liquid-glass rounded-xl border border-purple-300/25 bg-purple-600/75! px-4 py-2 text-sm font-bold text-white transition hover:bg-purple-500/80!"
             href="/signin"
           >
             {copy.signedOutModalSignIn}
@@ -188,6 +156,7 @@ export function showSignedOutModal(
     ),
     {
       ariaLabel: copy.signedOutModalTitle,
+      contentClassName: "overflow-hidden",
       modalId: "munetios-signed-out-modal",
       title: copy.signedOutModalTitle,
     },
@@ -224,6 +193,9 @@ function patchFetchForUnauthorized() {
     let parsedRequestUrl = null;
     try {
       const request = args[0];
+      const requestMethod = String(
+        request instanceof Request ? request.method : args[1]?.method || "GET",
+      ).toUpperCase();
       const requestUrl =
         request instanceof Request ? request.url : String(request || "");
       parsedRequestUrl = new URL(requestUrl, window.location.href);
@@ -231,12 +203,9 @@ function patchFetchForUnauthorized() {
         parsedRequestUrl.origin === window.location.origin &&
         (parsedRequestUrl.pathname.startsWith("/api/") ||
           parsedRequestUrl.pathname === "/realtime");
-      const testStatus = isLocalApiRequest
-        ? getTestApiFailure()
-        : 0;
+      const testStatus = isLocalApiRequest ? getTestApiFailure() : 0;
 
       if (testStatus === 429 || testStatus === 503) {
-        showApiCheckFailure(parsedRequestUrl.pathname);
         return Response.json(
           {
             error: "test_api_failure",
@@ -254,31 +223,44 @@ function patchFetchForUnauthorized() {
       }
 
       const response = await originalFetch(...args);
+      const isSignOutAllDevicesRequest =
+        parsedRequestUrl.pathname === "/api/account/signoutalldevices";
+      const isAuthenticationRequest =
+        parsedRequestUrl.pathname.startsWith("/api/auth/");
+      const invalidSession =
+        response.status === 401 &&
+        !isAuthenticationRequest &&
+        response.headers.get("X-Munetios-Auth-State") === "invalid-session";
 
-      if ([401, 429, 503].includes(response.status)) {
-        if (shouldReportResponseFailure(response)) {
+      if (invalidSession) {
+        if (!getTestApiFailure()) handleInvalidSession();
+      } else if ([401, 429, 503].includes(response.status)) {
+        if (
+          requestMethod !== "GET" &&
+          !isSignOutAllDevicesRequest &&
+          shouldReportResponseFailure(response)
+        ) {
           showApiCheckFailure(parsedRequestUrl.pathname);
-        } else {
-          clearApiCheckFailure(parsedRequestUrl.pathname);
         }
-      } else if (response.ok) {
-        clearApiCheckFailure(parsedRequestUrl.pathname);
       }
-      if (response.status === 401) {
-        showSignedOutModal(t(), {
-          invalidSession:
-            response.headers.get("X-Munetios-Auth-State") === "invalid-session",
-        });
-      }
-
       return response;
     } catch (error) {
       if (error?.name === "AbortError") {
         throw error;
       }
 
-      if (hasSignedInCookie() || getTestApiFailure()) {
-        showFetchErrorToast();
+      const isSignOutAllDevicesRequest =
+        parsedRequestUrl?.pathname === "/api/account/signoutalldevices";
+      const isConnectorConnectRequest =
+        /^\/api\/connectors\/[^/]+\/connect$/.test(
+          parsedRequestUrl?.pathname || "",
+        );
+      if (
+        !isSignOutAllDevicesRequest &&
+        !isConnectorConnectRequest &&
+        !getTestApiFailure() &&
+        hasSignedInCookie()
+      ) {
         if (parsedRequestUrl?.origin === window.location.origin) {
           showApiCheckFailure(parsedRequestUrl.pathname);
         }
@@ -293,9 +275,7 @@ export default function AuthSessionWatcher() {
     patchFetchForUnauthorized();
 
     const onUnauthorized = (event) => {
-      showSignedOutModal(t(), {
-        invalidSession: event.detail?.invalidSession === true,
-      });
+      if (event.detail?.invalidSession === true) handleInvalidSession();
     };
 
     window.addEventListener("munetios:unauthorized", onUnauthorized);

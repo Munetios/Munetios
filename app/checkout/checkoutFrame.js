@@ -1,19 +1,16 @@
 "use client";
 
-import { loadStripe } from "@stripe/stripe-js";
 import { useEffect, useRef, useState } from "react";
-import {
-  formatPlanPrice,
-  getPlan,
-  normalizeCurrency,
-} from "../apps/ai/lib/pricing";
+import LoadingSpinner from "../components/loadingSpinner";
 import { BusinessDropdown } from "../components/signUpForBusiness";
 import { showToast } from "../components/toast";
-import { t } from "../i18n";
+import { getCurrentLocale, t } from "../i18n";
 import {
   getUserCurrency,
   loadDateTimePreferences,
 } from "../lib/dateTimePreferences";
+import { isParentalErrorPayload } from "../lib/parentalControlsClient";
+import { formatPlanPrice, getPlan, normalizeCurrency } from "../lib/pricing";
 import {
   getAvailablePaymentMethods,
   resolvePreferenceCountry,
@@ -25,6 +22,72 @@ const paymentOptions = [
   { key: "businessPaymentPaypal", value: "paypal" },
   { key: "businessPaymentCashApp", value: "cashapp" },
 ];
+const paypalCurrencies = new Set([
+  "AUD",
+  "CAD",
+  "CHF",
+  "CZK",
+  "DKK",
+  "EUR",
+  "GBP",
+  "HKD",
+  "NOK",
+  "NZD",
+  "PLN",
+  "SEK",
+  "SGD",
+  "USD",
+]);
+const stripeScriptUrl = "https://js.stripe.com/clover/stripe.js";
+let stripeConstructorPromise;
+
+function loadCheckoutStripe(publishableKey, options) {
+  if (!stripeConstructorPromise) {
+    stripeConstructorPromise = new Promise((resolve, reject) => {
+      const resolveStripe = () => {
+        if (window.Stripe) {
+          resolve(window.Stripe);
+        } else {
+          reject(new Error("stripe_checkout_unavailable"));
+        }
+      };
+      const existingScript = document.querySelector(
+        `script[src="${stripeScriptUrl}"]`,
+      );
+      if (existingScript) {
+        if (window.Stripe) {
+          resolveStripe();
+          return;
+        }
+        existingScript.addEventListener("load", resolveStripe, { once: true });
+        existingScript.addEventListener(
+          "error",
+          () => reject(new Error("stripe_checkout_unavailable")),
+          { once: true },
+        );
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = stripeScriptUrl;
+      script.async = true;
+      script.addEventListener("load", resolveStripe, { once: true });
+      script.addEventListener(
+        "error",
+        () => reject(new Error("stripe_checkout_unavailable")),
+        { once: true },
+      );
+      document.head.append(script);
+    }).catch((error) => {
+      stripeConstructorPromise = undefined;
+      throw error;
+    });
+  }
+
+  return stripeConstructorPromise.then((Stripe) =>
+    Stripe(publishableKey, options),
+  );
+}
 
 function CheckoutSummary({ copy, currency, plan }) {
   return (
@@ -64,15 +127,14 @@ export default function CheckoutFrame({
   sessionId,
 }) {
   const [copy, setCopy] = useState(providedCopy || t("en"));
+  const [accountLocale, setAccountLocale] = useState(getCurrentLocale);
+  const [paypalAvailable, setPaypalAvailable] = useState(false);
   const [checkoutState, setCheckoutState] = useState("loading");
   const [retryCount, setRetryCount] = useState(0);
   const checkoutContainerRef = useRef(null);
   const checkoutActionsRef = useRef(null);
   const checkoutElementRef = useRef(null);
-  const expressCheckoutElementRef = useRef(null);
   const checkoutSessionIdRef = useRef("");
-  const expressCheckoutContainerRef = useRef(null);
-  const confirmPaymentRef = useRef(null);
   const plan = getPlan(planId);
   const [regionalPreferences, setRegionalPreferences] = useState(
     loadDateTimePreferences,
@@ -105,8 +167,27 @@ export default function CheckoutFrame({
       !(
         option.value === "cashapp" &&
         (normalizedCurrency !== "USD" || plan.category === "business")
+      ) &&
+      !(
+        option.value === "paypal" &&
+        (!paypalAvailable || !paypalCurrencies.has(normalizedCurrency))
       ),
   );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/checkout?capabilities=1", {
+      cache: "no-store",
+      credentials: "include",
+      signal: controller.signal,
+    })
+      .then((result) => (result.ok ? result.json() : {}))
+      .then((capabilities) => setPaypalAvailable(capabilities.paypal === true))
+      .catch((error) => {
+        if (error?.name !== "AbortError") setPaypalAvailable(false);
+      });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     if (
@@ -117,7 +198,10 @@ export default function CheckoutFrame({
   }, [availablePaymentOptions, paymentMethod]);
 
   useEffect(() => {
-    const refreshCopy = () => setCopy(t());
+    const refreshCopy = () => {
+      setCopy(t());
+      setAccountLocale(getCurrentLocale());
+    };
     const refreshRegion = () =>
       setRegionalPreferences(loadDateTimePreferences());
 
@@ -143,10 +227,9 @@ export default function CheckoutFrame({
     let active = true;
 
     const mountCheckout = async () => {
+      if (!accountLocale) return;
       checkoutElementRef.current?.destroy();
-      expressCheckoutElementRef.current?.destroy();
       checkoutElementRef.current = null;
-      expressCheckoutElementRef.current = null;
       checkoutActionsRef.current = null;
       checkoutSessionIdRef.current = "";
       setCheckoutState("loading");
@@ -193,18 +276,25 @@ export default function CheckoutFrame({
           return;
         }
         if (!response.ok || !payload.clientSecret || !payload.publishableKey) {
-          throw new Error(payload.error || "stripe_checkout_failed");
+          const checkoutError = new Error(
+            payload.error || "stripe_checkout_failed",
+          );
+          checkoutError.parentalMessage = isParentalErrorPayload(payload)
+            ? payload.message
+            : null;
+          throw checkoutError;
         }
 
-        const stripe = await loadStripe(payload.publishableKey, {
+        const stripe = await loadCheckoutStripe(payload.publishableKey, {
           developerTools: { assistant: { enabled: false } },
+          locale: payload.locale || "en",
         });
         if (!stripe || !active || !checkoutContainerRef.current) return;
 
-        if (!stripe.initCheckoutElementsSdk) {
+        if (!stripe.initCheckout) {
           throw new Error("stripe_elements_checkout_unavailable");
         }
-        const checkout = stripe.initCheckoutElementsSdk({
+        const checkout = stripe.initCheckout({
           clientSecret: payload.clientSecret,
           elementsOptions: {
             appearance: {
@@ -222,7 +312,7 @@ export default function CheckoutFrame({
               theme: "night",
               variables: {
                 borderRadius: "12px",
-                colorBackground: "#24083f",
+                colorBackground: "rgba(36, 8, 63, 0.46)",
                 colorDanger: "#fda4af",
                 colorPrimary: "#a855f7",
                 colorText: "#ffffff",
@@ -230,6 +320,10 @@ export default function CheckoutFrame({
                 fontFamily: "Google Sans Flex, Arial, sans-serif",
                 spacingUnit: "4px",
               },
+            },
+            savedPaymentMethod: {
+              enableRedisplay: "never",
+              enableSave: "never",
             },
           },
         });
@@ -251,44 +345,15 @@ export default function CheckoutFrame({
         checkoutElementRef.current = paymentElement;
         checkoutSessionIdRef.current = payload.sessionId;
         paymentElement.mount(checkoutContainerRef.current);
-        if (
-          ["apple_pay", "card", "paypal"].includes(paymentMethod) &&
-          expressCheckoutContainerRef.current
-        ) {
-          const expressCheckoutElement = checkout.createExpressCheckoutElement({
-            buttonHeight: 48,
-            buttonTheme: {
-              applePay: "black",
-              googlePay: "black",
-              paypal: "gold",
-            },
-            buttonType: {
-              applePay: "subscribe",
-              googlePay: "subscribe",
-              paypal: "paypal",
-            },
-            layout: { maxColumns: 2, maxRows: 1, overflow: "auto" },
-            paymentMethodOrder:
-              paymentMethod === "paypal"
-                ? ["paypal"]
-                : ["apple_pay", "google_pay"],
-            paymentMethods: {
-              applePay: paymentMethod === "paypal" ? "never" : "auto",
-              googlePay: paymentMethod === "card" ? "auto" : "never",
-              paypal: paymentMethod === "paypal" ? "auto" : "never",
-            },
-          });
-          expressCheckoutElement.on("confirm", (event) => {
-            void confirmPaymentRef.current?.(event);
-          });
-          expressCheckoutElementRef.current = expressCheckoutElement;
-          expressCheckoutElement.mount(expressCheckoutContainerRef.current);
-        }
         setCheckoutState("ready");
       } catch (error) {
         if (!active || error?.name === "AbortError") return;
         setCheckoutState("failed");
-        showToast({ messageKey: "aiCheckoutPaymentFailed", type: "error" });
+        if (error?.parentalMessage) {
+          showToast({ message: error.parentalMessage, type: "info" });
+        } else {
+          showToast({ messageKey: "aiCheckoutPaymentFailed", type: "error" });
+        }
       }
     };
 
@@ -297,16 +362,21 @@ export default function CheckoutFrame({
       active = false;
       controller.abort();
       checkoutElementRef.current?.destroy();
-      expressCheckoutElementRef.current?.destroy();
       checkoutElementRef.current = null;
-      expressCheckoutElementRef.current = null;
       checkoutActionsRef.current = null;
       checkoutSessionIdRef.current = "";
     };
-  }, [normalizedCurrency, paymentMethod, plan.id, retryCount, sessionId]);
+  }, [
+    accountLocale,
+    normalizedCurrency,
+    paymentMethod,
+    plan.id,
+    retryCount,
+    sessionId,
+  ]);
 
   const selectPaymentMethod = (method) => setPaymentMethod(method);
-  const confirmPayment = async (expressCheckoutConfirmEvent) => {
+  const confirmPayment = async () => {
     const actions = checkoutActionsRef.current;
     const checkoutSessionId = checkoutSessionIdRef.current;
     if (!actions || !checkoutSessionId || checkoutState !== "ready") return;
@@ -320,12 +390,28 @@ export default function CheckoutFrame({
     returnUrl.searchParams.set("session_id", checkoutSessionId);
 
     try {
+      const validationResult = await actions.validateElements();
+      if (validationResult.type === "error") {
+        setCheckoutState("ready");
+        showToast({
+          messageKey: "businessSignupFillDetails",
+          type: "warning",
+        });
+        return;
+      }
       const result = await actions.confirm({
         redirect: "if_required",
         returnUrl: returnUrl.toString(),
-        ...(expressCheckoutConfirmEvent ? { expressCheckoutConfirmEvent } : {}),
       });
       if (result.type === "error") {
+        if (result.error?.code === "validation_error") {
+          setCheckoutState("ready");
+          showToast({
+            messageKey: "businessSignupFillDetails",
+            type: "warning",
+          });
+          return;
+        }
         throw new Error(result.error.message);
       }
       if (result.session.status.type === "complete") {
@@ -342,12 +428,18 @@ export default function CheckoutFrame({
       showToast({ messageKey: "aiCheckoutPaymentFailed", type: "error" });
     }
   };
-  confirmPaymentRef.current = confirmPayment;
-
   return (
-    <main className="min-h-dvh bg-transparent p-3 text-white sm:p-5">
-      <div className="grid min-h-[calc(100dvh-1.5rem)] gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,0.72fr)]">
-        <section className="min-h-0 rounded-2xl border border-white/10 bg-purple-950/24! p-4 md:p-5">
+    <main className="relative min-h-dvh overflow-y-auto bg-transparent p-3 text-white sm:p-4">
+      {checkoutState === "loading"
+        ? <div className="ai-checkout-status-overlay absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 text-white">
+            <LoadingSpinner label={copy.aiCheckoutLoading} />
+            <span className="text-sm font-semibold">
+              {copy.aiCheckoutLoading}
+            </span>
+          </div>
+        : null}
+      <div className="grid min-h-full gap-3 lg:grid-cols-[minmax(0,1fr)_17rem]">
+        <section className="min-h-0 rounded-2xl border border-white/10 p-3 md:p-4">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-purple-200">
             {copy[plan.nameKey]}
           </p>
@@ -366,17 +458,9 @@ export default function CheckoutFrame({
               zIndex={1700}
             />
           </div>
-          <div className="relative mt-5 min-h-72 overflow-hidden rounded-2xl border border-white/10 bg-purple-950/35! p-4 sm:p-5">
-            {checkoutState === "loading"
-              ? <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-purple-950/95! text-white">
-                  <span className="h-7 w-7 animate-spin rounded-full border-2 border-white/25 border-t-purple-300" />
-                  <span className="text-sm font-semibold">
-                    {copy.aiCheckoutLoading}
-                  </span>
-                </div>
-              : null}
+          <div className="relative mt-4 min-h-64 overflow-hidden rounded-2xl border border-white/10 p-3">
             {checkoutState === "failed"
-              ? <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-purple-950/95! p-6 text-center text-white">
+              ? <div className="ai-checkout-status-overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-6 text-center text-white">
                   <p className="max-w-md text-sm text-white/75">
                     {copy.aiCheckoutFrameFailed}
                   </p>
@@ -390,12 +474,9 @@ export default function CheckoutFrame({
                 </div>
               : null}
             {checkoutState === "complete"
-              ? <div className="absolute inset-0 z-10 flex items-center justify-center bg-purple-950/95! p-6 text-center text-lg font-semibold text-white">
+              ? <div className="ai-checkout-status-overlay absolute inset-0 z-10 flex items-center justify-center p-6 text-center text-lg font-semibold text-white">
                   {copy.demoPaymentThankYou}
                 </div>
-              : null}
-            {["apple_pay", "card", "paypal"].includes(paymentMethod)
-              ? <div className="mb-4" ref={expressCheckoutContainerRef} />
               : null}
             <div
               className="liquid-glass rounded-xl"

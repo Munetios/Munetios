@@ -3,8 +3,10 @@ import {
   assertSameOrigin,
   consumeRateLimit,
   createAccountSession,
+  findDeletedAccountByIdentifier,
   getAccountByIdentifier,
   getAccountCollectionCookie,
+  getAccountLifecycle,
   getRequestCookie,
   getRequestFingerprint,
   getSessionCookie,
@@ -12,6 +14,10 @@ import {
   verifyAccountPassword,
 } from "../../../lib/authSecurity.js";
 import { getSignedInCookie } from "../../../lib/signedInCookie.js";
+import {
+  createSignInChallenge,
+  getTwoFactorState,
+} from "../../../lib/twoFactorSecurity.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -59,11 +65,48 @@ export async function POST(request) {
 
   const account = getAccountByIdentifier(identifier);
   if (!account) {
+    const deleted = findDeletedAccountByIdentifier(identifier);
+    if (deleted?.account) {
+      const validDeletedPassword = await verifyAccountPassword(
+        deleted.account,
+        payload?.password,
+      );
+      if (!validDeletedPassword) {
+        return response({ error: "invalid_credentials" }, { status: 401 });
+      }
+      return response(
+        {
+          accountId: deleted.account.id,
+          error: "account_deleted",
+          purgeAt: deleted.lifecycle.purgeAt,
+        },
+        { status: 410 },
+      );
+    }
     return response({ error: "account_not_found" }, { status: 404 });
   }
   const validPassword = await verifyAccountPassword(account, payload?.password);
   if (!validPassword) {
     return response({ error: "invalid_credentials" }, { status: 401 });
+  }
+  const lifecycle = getAccountLifecycle(account.id);
+  if (lifecycle.archived) {
+    return response(
+      { accountId: account.id, error: "account_archived" },
+      { status: 423 },
+    );
+  }
+
+  const twoFactor = getTwoFactorState(account.id);
+  if (twoFactor.enabled) {
+    return response(
+      {
+        challengeId: createSignInChallenge(account.id),
+        error: "two_factor_required",
+        recoveryCodeAllowed: twoFactor.recoveryCodesRemaining > 0,
+      },
+      { status: 202 },
+    );
   }
 
   const session = createAccountSession(

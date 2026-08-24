@@ -1,5 +1,5 @@
-import MunetiosErrorView from "./components/munetiosErrorView";
+import MunetiosNotFoundView from "./components/munetiosNotFoundView";
 
 export default function NotFound() {
-  return <MunetiosErrorView mode="not-found" />;
+  return <MunetiosNotFoundView />;
 }

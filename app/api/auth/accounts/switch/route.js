@@ -3,11 +3,16 @@ import {
   accountCollectionCookieName,
   assertSameOrigin,
   createSessionForCollectionAccount,
+  getAccountById,
   getRequestCookie,
   getSessionCookie,
   getSessionMetadata,
 } from "../../../../lib/authSecurity.js";
 import { getSignedInCookie } from "../../../../lib/signedInCookie.js";
+import {
+  createSignInChallenge,
+  getTwoFactorState,
+} from "../../../../lib/twoFactorSecurity.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -29,9 +34,22 @@ export async function POST(request) {
     request,
     accountCollectionCookieName,
   );
+  const accountId = String(payload?.accountId || "");
+  const account = getAccountById(accountId);
+  const twoFactor = account ? getTwoFactorState(account.id) : null;
+  if (twoFactor?.enabled) {
+    return Response.json(
+      {
+        challengeId: createSignInChallenge(account.id),
+        error: "two_factor_required",
+        recoveryCodeAllowed: twoFactor.recoveryCodesRemaining > 0,
+      },
+      { headers: { "Cache-Control": "no-store" }, status: 202 },
+    );
+  }
   const session = createSessionForCollectionAccount(
     collectionToken,
-    String(payload?.accountId || ""),
+    accountId,
     getSessionMetadata(request),
   );
   if (!session) {

@@ -1,10 +1,8 @@
 "use client";
 
-import DataTranslateRuntime from "./components/dataTranslateRuntime";
-import ErrorOverlaySuppressor from "./components/errorOverlaySuppressor";
-import MunetiosErrorView from "./components/munetiosErrorView";
+import ErrorToast from "./components/errorToast";
 
-export default function GlobalError({ reset, unstable_retry }) {
+export default function GlobalError({ error }) {
   return (
     <html dir="ltr" lang="en">
       <head>
@@ -26,9 +24,7 @@ export default function GlobalError({ reset, unstable_retry }) {
         `}</style>
       </head>
       <body>
-        <MunetiosErrorView mode="error" onRetry={unstable_retry ?? reset} />
-        <DataTranslateRuntime />
-        <ErrorOverlaySuppressor />
+        <ErrorToast error={error} />
       </body>
     </html>
   );
