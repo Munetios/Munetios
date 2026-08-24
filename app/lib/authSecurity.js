@@ -1121,6 +1121,40 @@ export async function createAccount({
   }
 }
 
+export function importDurableAccount(account) {
+  if (!account?.id || !account?.passwordHash) return null;
+  const existing = mapAccount(findAccountByIdStatement.get(account.id));
+  if (existing) return existing;
+  try {
+    insertAccountStatement.run(
+      account.id,
+      account.username,
+      account.email,
+      account.contact,
+      account.contactType,
+      account.name,
+      account.firstName,
+      account.lastName,
+      account.gender,
+      account.birthDate,
+      account.passwordHash,
+      account.plan || "Free",
+      account.createdAt || new Date().toISOString(),
+    );
+  } catch {
+    return mapAccount(findAccountByIdStatement.get(account.id));
+  }
+  for (const [key, value] of Object.entries(account.durableData || {})) {
+    setAccountDataStatement.run(
+      account.id,
+      String(key).slice(0, 160),
+      JSON.stringify(value),
+      new Date().toISOString(),
+    );
+  }
+  return mapAccount(findAccountByIdStatement.get(account.id));
+}
+
 export function getAccountByIdentifier(identifier) {
   const normalized =
     normalizeEmail(identifier) ||

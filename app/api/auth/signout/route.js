@@ -7,6 +7,7 @@ import {
   signOutAccountCollection,
   signOutSession,
 } from "../../../lib/authSecurity.js";
+import { deleteDurableSession } from "../../../lib/durableAuthStore.js";
 import { getSignedInCookie } from "../../../lib/signedInCookie.js";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,9 @@ export async function POST(request) {
     accountCollectionCookieName,
   );
   if (collectionToken) signOutAccountCollection(collectionToken);
-  signOutSession(getRequestCookie(request, "munetios_session"));
+  const sessionToken = getRequestCookie(request, "munetios_session");
+  signOutSession(sessionToken);
+  await deleteDurableSession(sessionToken);
   const headers = new Headers({ "Cache-Control": "no-store" });
   headers.append("Set-Cookie", getSessionCookie(request, "", 0));
   headers.append("Set-Cookie", getSignedInCookie(request, "", 0));

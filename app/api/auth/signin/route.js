@@ -11,8 +11,14 @@ import {
   getRequestFingerprint,
   getSessionCookie,
   getSessionMetadata,
+  importDurableAccount,
   verifyAccountPassword,
 } from "../../../lib/authSecurity.js";
+import {
+  getDurableAccount,
+  saveDurableAccount,
+  saveDurableSession,
+} from "../../../lib/durableAuthStore.js";
 import { getSignedInCookie } from "../../../lib/signedInCookie.js";
 import {
   createSignInChallenge,
@@ -63,7 +69,11 @@ export async function POST(request) {
     .trim()
     .toLowerCase();
 
-  const account = getAccountByIdentifier(identifier);
+  let account = getAccountByIdentifier(identifier);
+  if (!account) {
+    const durableAccount = await getDurableAccount(identifier);
+    account = durableAccount ? importDurableAccount(durableAccount) : null;
+  }
   if (!account) {
     const deleted = findDeletedAccountByIdentifier(identifier);
     if (deleted?.account) {
@@ -109,11 +119,14 @@ export async function POST(request) {
     );
   }
 
+  await saveDurableAccount(account);
+  const metadata = getSessionMetadata(request);
   const session = createAccountSession(
     account,
     getRequestCookie(request, accountCollectionCookieName),
-    getSessionMetadata(request),
+    metadata,
   );
+  await saveDurableSession({ account, metadata, session });
   const headers = new Headers();
   headers.append("Set-Cookie", getSessionCookie(request, session.token));
   headers.append("Set-Cookie", getSignedInCookie(request));

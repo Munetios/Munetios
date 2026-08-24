@@ -21,6 +21,13 @@ import {
   verifyCaptcha,
   verifyContact,
 } from "../../../lib/authSecurity.js";
+import {
+  durableAuthRequired,
+  durableIdentifierUsed,
+  hasDurableAuthStore,
+  saveDurableAccount,
+  saveDurableSession,
+} from "../../../lib/durableAuthStore.js";
 import { getSignedInCookie } from "../../../lib/signedInCookie.js";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +45,10 @@ function response(payload, init = {}) {
 export async function POST(request) {
   if (!assertSameOrigin(request)) {
     return response({ error: "invalid_origin" }, { status: 403 });
+  }
+
+  if (durableAuthRequired() && !hasDurableAuthStore()) {
+    return response({ error: "account_storage_unavailable" }, { status: 503 });
   }
 
   const fingerprint = getRequestFingerprint(request);
@@ -121,13 +132,16 @@ export async function POST(request) {
   ) {
     return response({ error: "invalid_account_details" }, { status: 400 });
   }
-  if (isContactUsed(contact)) {
+  if (isContactUsed(contact) || (await durableIdentifierUsed(contact))) {
     return response(
       { error: contactType === "phone" ? "phone_taken" : "email_taken" },
       { status: 409 },
     );
   }
-  if (!usesExistingEmail && isUsernameUsed(username)) {
+  if (
+    !usesExistingEmail &&
+    (isUsernameUsed(username) || (await durableIdentifierUsed(username)))
+  ) {
     return response({ error: "email_taken" }, { status: 409 });
   }
 
@@ -170,11 +184,14 @@ export async function POST(request) {
     // A stale referral must never prevent a valid account from being created.
   }
 
+  await saveDurableAccount(account);
+  const metadata = getSessionMetadata(request);
   const session = createAccountSession(
     account,
     getRequestCookie(request, accountCollectionCookieName),
-    getSessionMetadata(request),
+    metadata,
   );
+  await saveDurableSession({ account, metadata, session });
   const headers = new Headers();
   headers.append("Set-Cookie", getSessionCookie(request, session.token));
   headers.append("Set-Cookie", getSignedInCookie(request));
