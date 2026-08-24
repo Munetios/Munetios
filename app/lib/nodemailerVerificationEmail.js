@@ -28,6 +28,7 @@ function isAllowedMailHost(host) {
     .trim()
     .toLowerCase();
   return (
+    hostname === "smtp.resend.com" ||
     hostname === "munetios.com" ||
     hostname.endsWith(".munetios.com") ||
     hostname === "localhost" ||
@@ -104,7 +105,10 @@ function getConfiguration() {
 
   if (
     !isAllowedMailHost(host) ||
-    !emailPattern.test(user || "") ||
+    !(
+      emailPattern.test(user || "") ||
+      (host === "smtp.resend.com" && user === "resend")
+    ) ||
     !emailPattern.test(from || "") ||
     !password ||
     (!secure && !startTls && host !== "localhost" && host !== "127.0.0.1")
