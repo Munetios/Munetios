@@ -1,15 +1,13 @@
 import { createReadStream } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { Readable } from "node:stream";
+import { dataDirectory } from "../../../../lib/dataDirectory.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const iconDirectory = resolve(
-  process.env.MUNETIOS_DATA_DIR || join(process.cwd(), "data"),
-  "connector-icons",
-);
+const iconDirectory = resolve(dataDirectory, "connector-icons");
 
 export async function GET(_request, { params }) {
   const { iconId } = await params;

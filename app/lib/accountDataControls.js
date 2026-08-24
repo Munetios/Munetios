@@ -19,9 +19,8 @@ import {
   listAllAccountData,
   setAccountData,
 } from "./authSecurity.js";
+import { dataDirectory } from "./dataDirectory.js";
 
-const dataDirectory =
-  process.env.MUNETIOS_DATA_DIR || join(process.cwd(), "data");
 const exportDirectory = join(dataDirectory, "account-exports");
 const exportsKey = "account-exports-v1";
 const settingsKey = "account-data-controls-v1";

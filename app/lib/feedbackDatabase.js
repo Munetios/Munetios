@@ -1,9 +1,9 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { dataDirectory as resolvedDataDirectory } from "./dataDirectory.js";
 
-const databaseDirectory =
-  process.env.MUNETIOS_DATA_DIR || join(process.cwd(), "data");
+const databaseDirectory = resolvedDataDirectory;
 const databasePath = join(databaseDirectory, "munetios.sqlite");
 const feedbackReportExportPath = join(
   databaseDirectory,

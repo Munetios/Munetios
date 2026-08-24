@@ -1,21 +1,19 @@
 import { randomUUID } from "node:crypto";
 import { createWriteStream, mkdirSync } from "node:fs";
 import { unlink, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { auth, unauthorizedResponse } from "../../../../auth.js";
 import { assertSameOrigin } from "../../../lib/authSecurity.js";
+import { dataDirectory } from "../../../lib/dataDirectory.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const maximumBytes = 500 * 1024 * 1024;
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
-const iconDirectory = resolve(
-  process.env.MUNETIOS_DATA_DIR || join(process.cwd(), "data"),
-  "connector-icons",
-);
+const iconDirectory = resolve(dataDirectory, "connector-icons");
 
 export async function POST(request) {
   if (!assertSameOrigin(request)) {

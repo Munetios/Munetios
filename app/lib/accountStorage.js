@@ -13,11 +13,10 @@ import { join } from "node:path";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { getAccountData, setAccountData } from "./authSecurity.js";
+import { dataDirectory } from "./dataDirectory.js";
 
 const storageMetadataKey = "account-storage-files-v1";
 const legacyMeetMetadataKey = "meet-recordings-v1";
-const dataDirectory =
-  process.env.MUNETIOS_DATA_DIR || join(process.cwd(), "data");
 const accountStorageDirectory = join(dataDirectory, "account-storage");
 const legacyMeetDirectory = join(dataDirectory, "meet-recordings");
 

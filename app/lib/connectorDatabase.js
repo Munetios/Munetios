@@ -2,8 +2,9 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { dataDirectory } from "./dataDirectory.js";
 
-const directory = process.env.MUNETIOS_DATA_DIR || join(process.cwd(), "data");
+const directory = dataDirectory;
 mkdirSync(directory, { recursive: true });
 const database =
   globalThis.__munetiosConnectorDatabase ||

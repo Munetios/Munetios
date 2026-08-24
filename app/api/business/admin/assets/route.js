@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { createWriteStream, mkdirSync } from "node:fs";
 import { unlink, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { auth } from "../../../../../auth.js";
@@ -10,6 +10,7 @@ import {
   getAccountData,
 } from "../../../../lib/authSecurity.js";
 import { normalizeBusinessAccount } from "../../../../lib/businessAccounts.js";
+import { dataDirectory } from "../../../../lib/dataDirectory.js";
 import { getBusinessPlanCapabilities } from "../../../../lib/organizationPolicies.js";
 
 export const dynamic = "force-dynamic";
@@ -22,10 +23,7 @@ const allowedTypes = new Set([
   "image/png",
   "image/webp",
 ]);
-const assetDirectory = resolve(
-  process.env.MUNETIOS_DATA_DIR || join(process.cwd(), "data"),
-  "business-signin-assets",
-);
+const assetDirectory = resolve(dataDirectory, "business-signin-assets");
 
 export async function POST(request) {
   if (!assertSameOrigin(request)) {

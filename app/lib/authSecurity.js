@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { join, sep } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import bcrypt from "bcryptjs";
+import { dataDirectory as resolvedDataDirectory } from "./dataDirectory.js";
 import { formatLocation } from "./ipGeolocation.js";
 import { getSecureCookieAttribute } from "./requestSecurity.js";
 
@@ -17,8 +18,7 @@ const verificationLifetimeMs = 10 * 60 * 1000;
 const sessionLifetimeMs = 30 * 24 * 60 * 60 * 1000;
 const accountCollectionCookieName = "munetios_accounts";
 const captchaAlphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
-const databaseDirectory =
-  process.env.MUNETIOS_DATA_DIR || join(process.cwd(), "data");
+const databaseDirectory = resolvedDataDirectory;
 const databasePath = join(databaseDirectory, "munetios.sqlite");
 export const accountDataDirectory = databaseDirectory;
 

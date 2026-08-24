@@ -1,15 +1,13 @@
 import { createReadStream } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { Readable } from "node:stream";
+import { dataDirectory } from "../../../../../lib/dataDirectory.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const assetDirectory = resolve(
-  process.env.MUNETIOS_DATA_DIR || join(process.cwd(), "data"),
-  "business-signin-assets",
-);
+const assetDirectory = resolve(dataDirectory, "business-signin-assets");
 
 export async function GET(_request, { params }) {
   const { assetId } = await params;

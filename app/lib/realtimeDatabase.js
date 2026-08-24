@@ -9,6 +9,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { getAccountData } from "./authSecurity.js";
+import { dataDirectory as resolvedDataDirectory } from "./dataDirectory.js";
 import {
   advanceMeetActivityState,
   activityForPeer,
@@ -20,8 +21,7 @@ import {
   updateMeetActivityState,
 } from "./meetActivities.js";
 
-const databaseDirectory =
-  process.env.MUNETIOS_DATA_DIR || join(process.cwd(), "data");
+const databaseDirectory = resolvedDataDirectory;
 const databasePath = join(databaseDirectory, "munetios.sqlite");
 const realtimeRoomLifetimeMs = 24 * 60 * 60 * 1000;
 const realtimeUserKeySecret =
