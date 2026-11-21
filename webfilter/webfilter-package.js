@@ -4,7 +4,7 @@
  * - ZIP writer (deflate-raw via CompressionStream, stored when that isn't smaller)
  * - CRX3 signer for the self-hosted update URL
  * - Icons: icon.svg is rasterized to 16/32/48/128 px PNGs on a canvas
- * - Bundles fonts/googlesansflex.ttf (the ss01 build of Google Sans Flex) as a
+ * - Bundles fonts/munetios-sans.ttf (Munetios Sans) as a
  *   web_accessible_resource so Chromebooks render it locally under any CSP.
  * No third-party libraries, no network requests except same-origin file reads.
  */
@@ -225,7 +225,7 @@
       readText(BASE + "extension/editor.html"),
       readText(BASE + "extension/editor.js"),
       readText(BASE + "extension/editor.css"),
-      readBytes(ROOT + "fonts/google-sans-flex/googlesansflex-ss01.ttf"),
+      readBytes(ROOT + "fonts/google-sans-flex/munetios-sans.ttf"),
       readText(ROOT + "fonts/google-sans-flex/OFL.txt"),
       icons(),
       locales(),
@@ -253,7 +253,7 @@
           js: ["policy-engine.js", "youtube-policy.js"], run_at: "document_start", all_frames: true,
         },
       ],
-      web_accessible_resources: [{ resources: ["fonts/googlesansflex.ttf", "icons/icon-48.png"], matches: ["<all_urls>"] }],
+      web_accessible_resources: [{ resources: ["fonts/munetios-sans.ttf", "icons/icon-48.png"], matches: ["<all_urls>"] }],
       storage: { managed_schema: "schema.json" },
     };
     if (options.key && options.key.spki) manifest.key = options.key.spki;
@@ -275,7 +275,7 @@
       { name: "editor.html", data: editorHtml },
       { name: "editor.js", data: editorJs },
       { name: "editor.css", data: editorCss },
-      { name: "fonts/googlesansflex.ttf", data: font },
+      { name: "fonts/munetios-sans.ttf", data: font },
       { name: "fonts/OFL.txt", data: license },
     ].concat(iconList.map(icon => ({ name: "icons/icon-" + icon.size + ".png", data: icon.data })), localeFiles);
   }

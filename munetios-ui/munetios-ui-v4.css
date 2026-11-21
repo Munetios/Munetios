@@ -18,7 +18,7 @@
 @font-face {
     font-family: 'Google Sans Flex';
     /* Single-story "a" (ss01) is baked into this file, so it holds even without font-feature-settings */
-    src: url('/fonts/google-sans-flex/googlesansflex-ss01.ttf') format('truetype');
+    src: url('/fonts/google-sans-flex/munetios-sans.ttf') format('truetype');
     font-weight: 1 1000;
     font-style: normal;
     font-display: swap;

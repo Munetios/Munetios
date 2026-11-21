@@ -23,7 +23,7 @@
   "use strict";
 
   const VERSION = "1.0.0";
-  const FONT_PATH = "fonts/googlesansflex.ttf";
+  const FONT_PATH = "fonts/munetios-sans.ttf";
   const MODE_RANK = { allowed: 0, partial: 1, blocked: 2, restricted: 3 };
 
   // Partially Blocked URLs keep only these 8 properties (background-color is part of #2).

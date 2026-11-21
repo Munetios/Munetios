@@ -135,7 +135,7 @@ test('external resources need the Allowed Website List; the bundled font is whit
     '.a { background: url(https://evil.example/t.png); }',
     '.b { background-image: url("https://cdn.allowed.example/bg.png"); }',
     '.c { background: url(//evil.example/p.png); }',
-    "@font-face { font-family: 'Google Sans Flex'; src: url('chrome-extension://abcdefghijklmnopabcdefghijklmnop/fonts/googlesansflex.ttf'); }",
+    "@font-face { font-family: 'Google Sans Flex'; src: url('chrome-extension://abcdefghijklmnopabcdefghijklmnop/fonts/munetios-sans.ttf'); }",
     "@font-face { font-family: 'X'; src: url('chrome-extension://abcdefghijklmnopabcdefghijklmnop/secret.js'); }",
     '.d { background: url(images/local.png); }',
   ].join('\n');
@@ -143,7 +143,7 @@ test('external resources need the Allowed Website List; the bundled font is whit
   assert.doesNotMatch(result.css, /evil\.example/);
   assert.match(result.css, /cdn\.allowed\.example\/ok\.css/);
   assert.match(result.css, /cdn\.allowed\.example\/bg\.png/);
-  assert.match(result.css, /googlesansflex\.ttf/);
+  assert.match(result.css, /munetios-sans\.ttf/);
   assert.doesNotMatch(result.css, /secret\.js/);
   assert.match(result.css, /images\/local\.png/);
   assert.deepEqual(result.blockedDomains, ['evil.example']);
@@ -227,7 +227,7 @@ test('the /blocked page is never filtered (no redirect loops) and never styled',
 });
 
 test('the injected @font-face never sets font-feature-settings on page elements', () => {
-  const css = E.fontFaceCss('chrome-extension://abcdefghijklmnopabcdefghijklmnop/fonts/googlesansflex.ttf');
+  const css = E.fontFaceCss('chrome-extension://abcdefghijklmnopabcdefghijklmnop/fonts/munetios-sans.ttf');
   assert.match(css, /^@font-face \{[\s\S]*\}\n$/);
   assert.equal((css.match(/\{/g) || []).length, 1);
 });

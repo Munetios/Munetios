@@ -5,7 +5,7 @@
  * - The bundled font is the ss01 build of Google Sans Flex: no font-feature-settings
  *   is ever added to the page.
  * - Local font fallback: if the page CSP stops the injected @font-face, the bundled
- *   googlesansflex.ttf is loaded as an ArrayBuffer through the FontFace API, which
+ *   munetios-sans.ttf is loaded as an ArrayBuffer through the FontFace API, which
  *   never touches the network or the page's font-src.
  * - Blocked text: removes blocked words or phrases as students type or paste them,
  *   and stops forms that still contain them. Password fields are never read, and
@@ -31,7 +31,7 @@
         // Fall through to the ArrayBuffer path.
       }
       try {
-        const response = await fetch(chrome.runtime.getURL("fonts/googlesansflex.ttf"));
+        const response = await fetch(chrome.runtime.getURL("fonts/munetios-sans.ttf"));
         const face = new FontFace(FAMILY, await response.arrayBuffer(), {
           weight: "1 1000",
           stretch: "25% 151%",
