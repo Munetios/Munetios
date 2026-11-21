@@ -2,6 +2,10 @@
 
 The `munetios` Worker serves the beta frontend on `beta.munetios.com`. Account and API requests go through a service binding to the D1 backend Worker. WebFilter workspaces and extension packages use Durable Object storage. The asset build contains browser files only.
 
+## Deploy from GitHub
+
+Pushing to `main` in `Munetios/Munetios` triggers Cloudflare Workers Builds for the `munetios` frontend Worker at [beta.munetios.com](https://beta.munetios.com). The build pulls the music asset through Git LFS and stages the browser assets with `developer-beta/build.cjs`. The D1 backend and Mail Worker use their own deployment steps.
+
 ## Build
 
 ```powershell
