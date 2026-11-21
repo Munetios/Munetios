@@ -1,0 +1,197 @@
+#mobileEditorToolbar { display: none; }
+@media (max-width: 760px) {
+    body:has(#editorContent.active) .app {
+        height: var(--omni-mobile-height, 100dvh);
+    }
+    body:has(#editorContent.active) .main-container {
+        height: calc(var(--omni-mobile-height, 100dvh) - 5px);
+        min-height: 0;
+        margin-inline: 0;
+    }
+    #editorContent .navbar-container,
+    #editorContent .editor-content-editor,
+    #editorContent .editor-content-area-container,
+    #editorContent .editor-paper-canvas {
+        overflow: visible !important;
+    }
+    #editorContent .editor-pages-column,
+    #editorContent .document-page-shell,
+    #editorContent .document-page-editor {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+    #editorContent .document-page-editor {
+        overflow-wrap: anywhere;
+        border-radius: 0 !important;
+        font-size: 20px !important;
+    }
+    #editorContent .editor-paper-canvas { padding-inline: 0; }
+    #editorContent .omni-toolbar-shell {
+        position: sticky;
+        top: 80px;
+        z-index: 1000;
+        isolation: isolate;
+    }
+    #editorContent .toolbar {
+        display: grid !important;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        overflow: visible !important;
+    }
+    #editorContent .toolbar > vl { display: none !important; }
+    #editorContent .toolbar :is(#fontStylesBtn, #fontFamilyBtn) {
+        grid-column: span 3;
+        width: 100%;
+        min-width: 0 !important;
+        max-width: none;
+    }
+    #editorContent .toolbar #fontSizeBtn { grid-column: span 2; }
+    #editorContent .toolbar .toolbar-item {
+        min-width: 0 !important;
+        width: 100% !important;
+        height: 44px;
+    }
+    #editorContent .toolbar :is(#fontStyleText, #fontFamilyText) {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    #editorContent .omni-toolbar-scroll-btn { display: none !important; }
+    body:has(#editorContent.active) #mobileEditorToolbar {
+        position: fixed;
+        inset-inline: 10px;
+        bottom: calc(var(--omni-mobile-bottom, 0px) + env(safe-area-inset-bottom) + 10px);
+        display: grid;
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        grid-template-rows: 44px;
+        align-items: center;
+        gap: 2px;
+        padding: 8px 10px;
+        box-sizing: border-box;
+        z-index: 1000;
+        border-radius: var(--ow-radius-lg) !important;
+        background: var(--ow-glass);
+        border: 1px solid var(--ow-border);
+        box-shadow: var(--ow-shadow);
+        backdrop-filter: var(--ow-blur);
+        -webkit-backdrop-filter: var(--ow-blur);
+        color: var(--ow-text);
+    }
+    #mobileEditorToolbar :is(.toolbar-item, .omni-fab-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+        width: 100%;
+        height: 44px;
+        padding: 0 !important;
+        box-sizing: border-box;
+        border-radius: var(--ow-radius-pill) !important;
+        color: var(--ow-icon);
+    }
+    #mobileEditorToolbar :is(.toolbar-item, .omni-fab-icon) icon {
+        font-size: 22px;
+    }
+    #mobileEditorToolbar #voiceTypingBtn { grid-column: -2 / -1; }
+    #mobileEditorToolbar #mobileEditorToolsBtn {
+        flex-direction: column;
+        gap: 2px;
+        overflow: hidden;
+        text-transform: none;
+    }
+    #mobileEditorToolbar #mobileEditorToolsBtn icon {
+        flex: 0 0 20px;
+        font-size: 20px;
+        line-height: 20px;
+    }
+    #mobileEditorToolsBtn span {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 0 0 14px;
+        font-family: 'Google Sans Flex', sans-serif;
+        font-feature-settings: 'ss01' 1, 'liga' 0;
+        font-size: 11px;
+        line-height: 14px;
+        text-transform: none;
+    }
+    #mobileEditorToolsBtn > * { pointer-events: none; }
+    #mobileEditorToolsSheet {
+        position: fixed;
+        inset: auto 0 calc(var(--omni-mobile-bottom, 0px) + env(safe-area-inset-bottom)) 0;
+        margin: 0 auto;
+        width: min(100%, 760px);
+        max-width: 100%;
+        max-height: min(72dvh, calc(var(--omni-mobile-height, 100dvh) - 24px));
+        padding: 16px;
+        box-sizing: border-box;
+        border: 1px solid var(--ow-border);
+        border-radius: var(--ow-radius-lg) var(--ow-radius-lg) 0 0 !important;
+        background: var(--ow-glass);
+        color: var(--ow-text);
+        box-shadow: var(--ow-shadow);
+        backdrop-filter: var(--ow-blur);
+        -webkit-backdrop-filter: var(--ow-blur);
+        overflow: hidden;
+    }
+    #mobileEditorToolsSheet[open] {
+        display: flex;
+        flex-direction: column;
+    }
+    #mobileEditorToolsSheet::backdrop {
+        background: rgba(17, 7, 54, 0.35);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+    }
+    #mobileEditorToolsSheet header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex: 0 0 auto;
+    }
+    #mobileEditorToolsSheet h2 { margin: 0; font-size: 22px; }
+    #mobileEditorToolsSheet .mobile-editor-tools-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 4px;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+    #mobileEditorToolsSheet .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        min-height: 52px;
+        width: 100%;
+        padding: 10px;
+        border: 0;
+        color: inherit;
+        background: transparent;
+        text-align: start;
+        font: inherit;
+        cursor: pointer;
+    }
+    #mobileEditorToolsSheet .dropdown-item icon { flex: 0 0 auto; }
+    #mobileEditorToolsSheet .dropdown-item span { overflow-wrap: anywhere; }
+    body:has(#editorContent.active) .main-content::after {
+        content: '';
+        display: block;
+        height: calc(var(--omni-mobile-tools-height, 62px) + 20px + env(safe-area-inset-bottom));
+    }
+    #editorContent .editor-content-area-container:has(.split-editor) {
+        flex-direction: column;
+    }
+    #editorContent .editor-content-area-container:has(.split-editor) > .editor-paper-canvas,
+    #editorContent .right-editor-content {
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 0;
+        width: 100% !important;
+        overflow: visible !important;
+    }
+}

@@ -1,0 +1,30 @@
+# Accounts
+
+Configure the MySQL connection environment variables and run `npm start`. Create the named database first. The application creates the tables in `schema.sql` on the first account request. Give the database user permission to create those tables, or apply the schema first, set AUTH_AUTO_MIGRATE=false, and grant SELECT, INSERT, UPDATE, DELETE on the account tables. Do not use a MySQL root account for the application.
+
+Profile pictures can be uploaded, replaced, or removed in Account settings. The browser crops supported images to a centered 256×256 PNG and sends them to the authenticated `/api/auth/profile-picture` endpoint. Pictures are stored as account profile metadata in `munetios_profile_pictures`, alongside display-name metadata rather than encrypted document sync. The endpoint accepts bounded PNG images only; it does not fetch external picture URLs. Restart Express after updating, and apply the new table from `schema.sql` manually if AUTH_AUTO_MIGRATE=false.
+
+The UI is at `/signin`. Express exposes `/api/auth/signup`, `/api/auth/signin`, `/api/auth/session`, and `/api/auth/signout`. Mutating requests require JSON and a same-origin Origin header. Set PUBLIC_ORIGIN to the exact public origin behind a reverse proxy, TRUST_PROXY to only that proxy's address or CIDR (for example, loopback for a local proxy), and use NODE_ENV=production for Secure cookies. Without TRUST_PROXY, rate limits see the proxy's IP rather than individual visitors. Deploy the account page over HTTPS. MYSQL_SSL=true enables verified TLS to MySQL; a private certificate authority can be supplied through MYSQL_SSL_CA_FILE.
+
+Passwords use salted scrypt hashes. Only SHA-256 hashes of random session tokens are stored in MySQL. Sessions expire after seven days. Authentication attempts are limited in memory per IP and email; deployments across multiple server processes should enforce a shared rate limit at the reverse proxy as well.
+
+New external sign-ups require an email verification code. Internal Munetios addresses use an organization invite. See the [Mail Worker setup](../mail-worker/README.md) for delivery and enrollment. Accounts are shared by Ganetios and OmniWrite on the same origin.
+
+References: [MySQL2](https://sidorares.github.io/node-mysql2/docs), [Express security guidance](https://expressjs.com/en/advanced/best-practice-security/).
+
+
+### Storage and account security
+
+Each account has 50 GB (50,000,000,000 bytes) of encrypted sync storage, measured as the stored ASCII ciphertext. `/sync/storage` reports total usage and categories without decrypting content. Batch writes lock the account key row and enforce the quota transactionally. Items that do not fit return `quotaExceeded`; local copies remain unchanged, other fitting items can upload, and later attempts retry. Local saving depends on available browser/device storage. Turning sync off is a per-account, per-device setting; it preserves cloud copies.
+
+Apply `auth/schema.sql` for the new `munetios_account_security` table when automatic migration is disabled, and restart Express after updating. Authenticator 2FA uses six-digit TOTP codes (SHA-1, 30-second periods), a one-step clock tolerance, and atomic replay prevention. Setup expires after ten minutes and requires password reauthentication and a valid code before activation. Enabling 2FA signs out other devices. Keep a secure backup of the authenticator setup key: no email recovery or administrator bypass is provided.
+
+Set `AUTH_SECURITY_KEY` to a stable, randomly generated 32-byte hexadecimal value in production. Generate one with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`. It encrypts authenticator secrets with AES-256-GCM, bound to the account ID. Back it up securely alongside the database; losing it prevents verifying existing authenticators. Local development creates `auth/.security-key` exclusively on first setup; it is ignored by Git and blocked by the server's private `/auth` path. Multiple server instances must use the same environment key. Never commit the actual key.
+
+Recovery addresses can be saved or removed after password confirmation. They remain **unverified** and cannot recover accounts until an email delivery and verification service is implemented. No email is sent. Deleting an account requires both its password and the exact confirmation string `DELETE` on the client and server.
+
+
+OmniWrite media sync uploads images, videos, and audio from its local library as encrypted 2 MiB chunks. Snapshots contain lightweight descriptors; only outgoing chunks are read into memory. Media downloads use version-ordered pages, persist partial files in a separate IndexedDB database, and assemble complete blobs into the existing media stores. Document and version references use stable media IDs in the encrypted cloud copy and are mapped to native local record IDs when downloaded, preventing collisions. Captions remain part of the document. Referenced media must finish uploading before its document can upload; quota failures leave both on the device while other fitting documents can sync. Existing remote media is retained until synced data is deleted, so incomplete downloads never cause accidental cloud deletions. Linked external media stays linked; the sync engine never fetches external URLs to copy their contents.
+
+
+Large ciphertext is stored in `munetios_sync_item_chunks` as database parts of at most 256 KiB, so media and large documents work with the 1 MiB `max_allowed_packet` default in XAMPP. This is separate from browser-side media chunks: existing media IDs, encrypted bytes, and client formats are unchanged. Writes replace all database parts in the same transaction as the item version. Reads join and reconstruct them in one consistent statement; pagination counts sync items rather than their database parts. Storage usage includes all parts. Small existing rows remain readable without conversion, and item/account deletion cascades to the parts table. Apply the new table from `auth/schema.sql` if automatic migration is disabled, and restart Express after updating.

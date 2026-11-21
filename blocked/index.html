@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://api.munetios.com; font-src 'self' https://api.munetios.com; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Munetios WebFilter</title>
+  <link rel="icon" href="/webfilter/icons/icon-32.png" type="image/png">
+  <link rel="stylesheet" href="https://api.munetios.com/beautiful-css/beautiful.css">
+  <link rel="stylesheet" href="/munetios-ui/munetios-ui-v4.css">
+  <link rel="stylesheet" href="/blocked/blocked.css">
+</head>
+<!-- WebFilter restricted page: the Munetios WebFilter extension never applies UserCSS here. -->
+<body class="mu-root mwf-blocked" data-munetios-webfilter="block-page">
+  <header class="mu-topbar mwf-blocked-topbar">
+    <div class="mu-capsule liquid-glass"><span class="mu-icon" aria-hidden="true">domain</span><span class="mu-topbar-title" id="mwfWorkspace" dir="auto">Munetios WebFilter</span></div>
+  </header>
+  <main class="mwf-blocked-main">
+    <section class="mu-glass mu-panel mwf-blocked-card" aria-labelledby="mwfTitle">
+      <span class="mu-icon-circle mwf-blocked-lock" aria-hidden="true"><span class="mu-icon">lock</span></span>
+      <div class="mwf-blocked-text">
+        <h1 class="mu-h-display" id="mwfTitle">This website has been blocked by your administrator</h1>
+        <p class="mu-muted" id="mwfBody">Your school's Munetios WebFilter blocked this page.</p>
+      </div>
+
+      <p class="mwf-blocked-message" id="mwfMessage" hidden></p>
+
+      <div class="mwf-blocked-facts" id="mwfFacts" hidden>
+        <div class="mwf-fact"><span class="mu-icon" aria-hidden="true">link</span><div><span class="mu-muted" id="mwfUrlLabel">Address</span><span class="mwf-fact-value" id="mwfUrl" dir="ltr"></span></div></div>
+        <div class="mwf-fact"><span class="mu-icon" aria-hidden="true">info</span><div><span class="mu-muted" id="mwfReasonLabel">Reason</span><span class="mwf-fact-value" id="mwfReason"></span></div></div>
+        <div class="mwf-fact" id="mwfRuleRow"><span class="mu-icon" aria-hidden="true">rule</span><div><span class="mu-muted" id="mwfRuleLabel">Blocked website ID</span><span class="mwf-fact-value" id="mwfRule" dir="ltr"></span></div></div>
+      </div>
+
+      <div class="mwf-blocked-actions" id="mwfActions">
+        <button type="button" class="mu-btn" id="mwfBack"><span class="mu-icon" aria-hidden="true">arrow_back</span><span id="mwfBackLabel">Go back</span></button>
+        <button type="button" class="mu-btn mu-btn-primary" id="mwfRequestBtn" hidden aria-expanded="false" aria-controls="mwfRequestPanel"><span class="mu-icon" aria-hidden="true">mark_email_unread</span><span id="mwfRequestLabel">Request access</span></button>
+        <button type="button" class="mu-btn mu-btn-ghost" id="mwfBypassBtn" hidden aria-expanded="false" aria-controls="mwfBypassPanel"><span class="mu-icon" aria-hidden="true">key</span><span id="mwfBypassLabel">Bypass</span></button>
+      </div>
+
+      <form class="mwf-blocked-panel" id="mwfRequestPanel" hidden>
+        <h2 class="mu-h-title" id="mwfRequestTitle">Ask for access</h2>
+        <label class="mu-field"><span class="mu-field-label" id="mwfRequestReasonLabel">Why do you need this site? (optional)</span><textarea class="mu-textarea" id="mwfRequestReason" rows="3"></textarea></label>
+        <div class="mwf-blocked-actions">
+          <button type="button" class="mu-btn" data-close="mwfRequestPanel" id="mwfRequestCancel">Cancel</button>
+          <button type="submit" class="mu-btn mu-btn-primary" id="mwfRequestSend"><span class="mu-icon" aria-hidden="true">send</span><span id="mwfRequestSendLabel">Send request</span></button>
+        </div>
+      </form>
+
+      <form class="mwf-blocked-panel" id="mwfBypassPanel" hidden>
+        <h2 class="mu-h-title" id="mwfBypassTitle">Teacher or admin bypass</h2>
+        <p class="mu-muted" id="mwfBypassDesc">Type the bypass password to open this site on this device for a while.</p>
+        <label class="mu-field"><span class="mu-field-label" id="mwfPasswordLabel">Bypass password</span><input class="mu-input" type="password" id="mwfPassword" autocomplete="off" required></label>
+        <div class="mwf-blocked-actions">
+          <button type="button" class="mu-btn" data-close="mwfBypassPanel" id="mwfBypassCancel">Cancel</button>
+          <button type="submit" class="mu-btn mu-btn-primary" id="mwfUnlock"><span class="mu-icon" aria-hidden="true">lock_open</span><span id="mwfUnlockLabel">Unlock</span></button>
+        </div>
+      </form>
+
+      <p class="mwf-blocked-status" id="mwfStatus" role="status" aria-live="polite" hidden></p>
+      <p class="mu-muted mwf-blocked-note" id="mwfNeedsExtension" hidden></p>
+    </section>
+  </main>
+  <script src="/webfilter/webfilter-i18n.js"></script>
+  <script src="/webfilter/webfilter-engine.js"></script>
+  <script src="/blocked/blocked.js"></script>
+</body>
+</html>

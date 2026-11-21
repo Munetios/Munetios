@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Munetios WebFilter">
+  <defs>
+    <linearGradient id="mwfBg" x1="16" y1="8" x2="112" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#b48cff"/>
+      <stop offset="0.55" stop-color="#8f5cff"/>
+      <stop offset="1" stop-color="#3a1590"/>
+    </linearGradient>
+    <linearGradient id="mwfShine" x1="64" y1="8" x2="64" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="mwfShield" x1="64" y1="26" x2="64" y2="106" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.50"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.18"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="40" fill="url(#mwfBg)"/>
+  <rect x="4" y="4" width="120" height="120" rx="40" fill="url(#mwfShine)"/>
+  <rect x="4.75" y="4.75" width="118.5" height="118.5" rx="39.25" fill="none" stroke="#ffffff" stroke-opacity="0.32" stroke-width="1.5"/>
+  <path d="M64 24 L96 36 V62 C96 82 82 97 64 104 C46 97 32 82 32 62 V36 Z" fill="url(#mwfShield)" stroke="#ffffff" stroke-opacity="0.85" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M46 48 H82 L68 64 V80 L60 85 V64 Z" fill="#ffffff" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
+</svg>

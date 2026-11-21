@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <meta name="description" content="Munetios WebFilter: web filter rules, UserCSS policies, remote devices and extension deployment for schools.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://api.munetios.com; font-src 'self' https://api.munetios.com; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self' about:; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <title>Munetios WebFilter</title>
+  <link rel="icon" href="icons/icon-32.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-128.png">
+  <link rel="stylesheet" href="https://api.munetios.com/beautiful-css/beautiful.css">
+  <link rel="stylesheet" href="../munetios-ui/munetios-ui-v4.css">
+  <link rel="stylesheet" href="../account/account-menu.css">
+  <link rel="stylesheet" href="webfilter.css">
+</head>
+<body class="mu-root wf-app">
+  <a class="mu-skip-link" href="#wfMain" data-wf-i18n="skip_to_content">Skip to content</a>
+  <main class="wf-content" id="wfSessionError" hidden>
+    <section class="mu-glass mu-panel wf-card" aria-labelledby="wfSessionErrorTitle">
+      <h1 class="mu-h-title" id="wfSessionErrorTitle"></h1>
+      <button type="button" class="mu-btn mu-btn-primary" id="wfSessionRetry"></button>
+    </section>
+  </main>
+  <div class="wf-shell" hidden>
+    <!-- Sidebar: same workspace + navigation architecture as OmniWrite, customizable -->
+    <aside class="wf-sidebar mu-glass" id="wfSidebar" aria-label="WebFilter" data-mu-resizable="webfilter-sidebar">
+      <div class="wf-sidebar-head">
+        <img src="icons/icon-48.png" width="40" height="40" alt="">
+        <span class="wf-brand" translate="no">WebFilter</span>
+        <button type="button" class="mu-icon-btn mu-icon-btn-soft wf-sidebar-close" data-wf-action="sidebar-close" data-wf-i18n-label="close"><span class="mu-icon" aria-hidden="true">close</span></button>
+      </div>
+      <div class="wf-workspace" id="wfWorkspace"></div>
+      <nav class="mu-nav wf-nav" id="wfNav"></nav>
+      <div class="wf-sidebar-foot mu-nav" id="wfSidebarFoot"></div>
+    </aside>
+    <div class="wf-scrim" data-wf-action="sidebar-close" hidden></div>
+
+    <div class="main-content wf-main" id="wfMain" tabindex="-1">
+      <header class="mu-topbar wf-topbar">
+        <button type="button" class="mu-capsule-btn wf-menu-btn" data-wf-action="sidebar-open" data-wf-i18n-label="open_menu"><span class="mu-icon" aria-hidden="true">menu</span></button>
+        <div class="mu-capsule wf-title-capsule"><span class="mu-topbar-title" id="wfPageTitle"></span></div>
+        <div class="mu-capsule wf-topbar-actions">
+          <div class="wf-topbar-dynamic" id="wfTopbarActions"></div>
+          <span class="mu-divider-v" aria-hidden="true"></span>
+          <div class="munetios-account-slot" data-munetios-account></div>
+        </div>
+      </header>
+      <div class="wf-content" id="wfContent" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <!-- Reusable dialogs (content is built when they open) -->
+  <div class="mu-modal" id="wfFormModal" hidden>
+    <form class="mu-dialog" role="dialog" aria-labelledby="wfFormTitle" id="wfForm" novalidate></form>
+  </div>
+  <div class="mu-modal" id="wfExtensionModal" hidden>
+    <div class="mu-dialog mu-dialog-lg" role="dialog" aria-labelledby="wfExtensionTitle" id="wfExtensionDialog"></div>
+  </div>
+
+  <script src="../munetios-ui/munetios-ui-v4.js"></script>
+  <script src="webfilter-i18n.js"></script>
+  <script src="webfilter-categories.js"></script>
+  <script src="webfilter-engine.js"></script>
+  <script src="webfilter-package.js"></script>
+  <script src="../account/account-i18n.js"></script>
+  <script src="../account/account-core.js"></script>
+  <script src="webfilter.js"></script>
+  <script src="../account/account-menu.js"></script>
+</body>
+</html>

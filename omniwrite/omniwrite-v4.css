@@ -1,0 +1,637 @@
+/*!
+ * OmniWrite on Munetios UI v4: generic modals, muted text, and dates.
+ * Loaded last. Uses the v4 tokens (--mu-*), which follow OmniWrite's
+ * light/dark mode through data-mu-theme (account-link.js).
+ * Text 18px+, headings 300, everything else 400. Blur 2px, glass alpha <= 0.50.
+ */
+
+.omni-document-print-area {
+    position: fixed;
+    inset: 0 auto auto -10000px;
+    width: 7.2in;
+    color: #1d2433;
+    background: #fff;
+    font: 18px/1.9 'Google Sans Flex', sans-serif;
+    pointer-events: none;
+}
+.omni-document-print-area img,
+.omni-document-print-area svg,
+.omni-document-print-area table { max-width: 100%; }
+
+@page omniwrite-document { margin: 0.65in; }
+@media print {
+    body.omni-document-printing {
+        position: static !important;
+        height: auto !important;
+        overflow: visible !important;
+        margin: 0 !important;
+        background: #fff !important;
+    }
+    body.omni-document-printing > :not(.omni-document-print-area) { display: none !important; }
+    body.omni-document-printing > .omni-document-print-area {
+        display: block !important;
+        position: static;
+        width: auto;
+        page: omniwrite-document;
+    }
+    .omni-document-print-area > .omniwrite-page { min-height: 1px; }
+    .omni-document-print-area > .omniwrite-page + .omniwrite-page { break-before: page; }
+    .omni-document-print-area .page-break-block {
+        break-before: page;
+        height: 0;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        border: 0;
+    }
+}
+
+/* ---------------------------------------------------------- Dialog surface */
+.modal > .modal-content.omni-v4-dialog {
+    padding: 24px !important;
+    border-radius: var(--mu-radius-lg) !important;
+    border: 1px solid var(--mu-border) !important;
+    background: linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass) !important;
+    box-shadow: var(--mu-shadow), 0 30px 80px rgba(0, 0, 0, 0.24) !important;
+    backdrop-filter: var(--mu-blur) !important;
+    -webkit-backdrop-filter: var(--mu-blur) !important;
+    color: var(--mu-text) !important;
+}
+
+/* ---------------------------------------------------------- Header row */
+.omni-v4-dialog > .omni-v4-header {
+    display: flex; align-items: center; gap: 12px; min-width: 0; margin: 0 0 18px;
+}
+.omni-v4-dialog > .omni-v4-header > :is(h1, h2) {
+    display: block !important; flex: 1 1 auto; min-width: 0; margin: 0 !important;
+    font-size: 24px !important; font-weight: 300 !important; line-height: 1.25; color: var(--mu-text) !important;
+    overflow-wrap: anywhere;
+}
+.omni-v4-dialog > .omni-v4-header > :is(h1, h2) > icon { display: none; } /* moved into the icon circle */
+/* Titles often wrap their text in a span; it must use the title size, not the 18px body rule */
+.modal .modal-content.omni-v4-dialog > .omni-v4-header > :is(h1, h2) :is(span, b, strong) { font-size: inherit !important; font-weight: 300 !important; color: inherit !important; }
+.omni-v4-dialog .omni-v4-icon {
+    width: 44px; height: 44px; flex: 0 0 auto;
+    background: var(--mu-current-bg); color: var(--mu-current-text);
+}
+.omni-v4-dialog .omni-v4-icon icon { font-size: 22px !important; color: inherit !important; font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+.modal .modal-content.omni-v4-dialog > .omni-v4-header > .modal-content-close {
+    position: static !important; flex: 0 0 auto; width: 48px; height: 48px;
+    background: var(--mu-hover) !important; color: var(--mu-icon) !important;
+}
+.modal .modal-content.omni-v4-dialog .modal-content-close:hover { background: var(--mu-field-hover) !important; color: var(--mu-text) !important; }
+.modal .modal-content.omni-v4-dialog .modal-content-close:focus-visible { outline: 3px solid var(--mu-accent); outline-offset: 2px; }
+[dir="rtl"] .omni-v4-dialog > .omni-v4-header { flex-direction: row; }
+
+/* ---------------------------------------------------------- Text colors */
+.omni-v4-dialog p { color: var(--mu-text-muted) !important; opacity: 1 !important; }
+.omni-v4-dialog :is(small, [style*="opacity"]):not(button, icon, .mu-icon, img, [role="button"]) { opacity: 1 !important; }
+.omni-v4-dialog :is(small, [style*="font-size:12px"], [style*="font-size: 12px"], [style*="font-size:13px"], [style*="font-size:14px"]) {
+    color: var(--mu-text-muted) !important; font-size: var(--mu-fs-body) !important;
+}
+.omni-v4-dialog .omni-v4-label { color: var(--mu-text-muted) !important; font-weight: 400 !important; }
+.omni-v4-dialog :is(h3, h4) { color: var(--mu-text) !important; }
+
+/* ---------------------------------------------------------- Fields (v4 pill) */
+.omni-v4-dialog :is(input:not([type]), input[type="text"], input[type="search"], input[type="url"], input[type="email"], input[type="number"], input[type="password"], input[type="date"], input[type="time"]) {
+    background: var(--mu-field) !important; border-color: var(--mu-border) !important; color: var(--mu-text) !important;
+}
+.omni-v4-dialog :is(input, textarea):focus { border-color: var(--mu-accent) !important; background: var(--mu-field-hover) !important; }
+
+/* ---------------------------------------------------------- Buttons */
+.omni-v4-dialog button.omni-v4-btn {
+    min-height: var(--mu-control); padding: 0 22px !important; border-radius: var(--mu-radius-pill) !important;
+    border: 1px solid var(--mu-border) !important; background: var(--mu-field) !important; color: var(--mu-text) !important;
+    font-size: var(--mu-fs-body) !important; font-weight: 400 !important; box-shadow: none !important;
+}
+.omni-v4-dialog button.omni-v4-btn:hover { background: var(--mu-field-hover) !important; border-color: color-mix(in srgb, var(--mu-accent) 45%, var(--mu-border)) !important; filter: none; }
+.omni-v4-dialog button.omni-v4-btn:active { transform: scale(0.97); }
+.omni-v4-dialog button.omni-v4-btn.omni-v4-primary {
+    background: var(--mu-accent) !important; border-color: transparent !important; color: #ffffff !important;
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--mu-accent) 32%, transparent) !important;
+}
+.omni-v4-dialog button.omni-v4-btn.omni-v4-primary:hover { background: var(--mu-accent) !important; filter: brightness(1.08); }
+.omni-v4-dialog button.omni-v4-btn.omni-v4-danger {
+    background: transparent !important; border-color: color-mix(in srgb, var(--mu-danger) 50%, transparent) !important; color: var(--mu-danger) !important;
+}
+.omni-v4-dialog button.omni-v4-btn.omni-v4-danger:hover { background: color-mix(in srgb, var(--mu-danger) 12%, transparent) !important; }
+.omni-v4-dialog button.omni-v4-btn :is(icon, .mu-icon) { color: inherit !important; font-size: 22px !important; }
+.omni-v4-dialog button.omni-v4-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.omni-v4-dialog .omni-v4-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+
+/* ---------------------------------------------------------- Dates and muted metadata in lists */
+:is(.sidebar, #selectArea, .omni-home, .page, .omni-dashboard) small[style*="opacity"] {
+    opacity: 1 !important; color: var(--mu-text-muted) !important; font-size: var(--mu-fs-body) !important;
+}
+.omni-image-card-meta { color: var(--mu-text-muted) !important; font-size: var(--mu-fs-body) !important; opacity: 1 !important; }
+
+@media (max-width: 600px) {
+    .modal > .modal-content.omni-v4-dialog { padding: 18px !important; border-radius: var(--mu-radius-md) !important; }
+    .omni-v4-dialog .omni-v4-icon { display: none; }
+    .omni-v4-dialog .omni-v4-actions > button { flex: 1 1 auto; }
+}
+
+/* ===================================================================
+   Customize sidebar / toolbar / top bar: v4 rows
+   icon + label on the left, controls on the right
+   =================================================================== */
+.omni-v4-dialog .toolbar-customizer-list { display: grid; gap: 8px; }
+.omni-v4-dialog .toolbar-customizer-row {
+    display: flex !important; align-items: center; justify-content: flex-start !important; gap: 12px;
+    min-height: 68px; padding: 10px 10px 10px 18px !important;
+    border: 1px solid var(--mu-border) !important; border-radius: var(--mu-radius-lg) !important;
+    background: var(--mu-glass-flat) !important; box-shadow: none !important;
+}
+.omni-v4-dialog .toolbar-customizer-row:hover { background: var(--mu-hover) !important; }
+.omni-v4-dialog .toolbar-customizer-row > icon:first-child { flex: 0 0 auto; font-size: 24px !important; color: var(--mu-icon) !important; }
+.omni-v4-dialog .toolbar-customizer-title {
+    flex: 1 1 auto; min-width: 0; text-align: start !important; font-size: var(--mu-fs-body) !important;
+    font-weight: 400 !important; color: var(--mu-text) !important; overflow-wrap: anywhere;
+}
+.omni-v4-dialog .toolbar-customizer-row .omni-select-button { flex: 0 0 auto; min-width: 128px; }
+/* Up / down arrows: round soft icon buttons, never the primary style */
+.omni-v4-dialog button.omni-v4-btn.omni-v4-icon-only {
+    width: 48px; min-width: 48px; height: 48px; padding: 0 !important; border-radius: 50% !important;
+    border-color: transparent !important; background: var(--mu-hover) !important; color: var(--mu-icon) !important; box-shadow: none !important;
+}
+.omni-v4-dialog button.omni-v4-btn.omni-v4-icon-only:hover { background: var(--mu-field-hover) !important; color: var(--mu-text) !important; }
+.omni-v4-dialog .toolbar-customizer-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin: 4px 0 14px; }
+.omni-v4-dialog > .settings-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 16px 16px 20px;
+    border: 1px solid var(--mu-border); border-radius: var(--mu-radius-lg); background: var(--mu-glass-flat); margin-bottom: 14px;
+}
+.omni-v4-dialog .settings-row-title { color: var(--mu-text) !important; font-size: var(--mu-fs-label) !important; font-weight: 400 !important; }
+.omni-v4-dialog .settings-row-subtitle { color: var(--mu-text-muted) !important; }
+
+/* ===================================================================
+   Split view: two equal panes, v4 header on the right pane
+   =================================================================== */
+#rightEditorContent { padding: 0; }
+/* Both panes are sized as (100% - 8px) / 2: padding must stay inside that width */
+.editor-content-area-container:has(#splitResizeDivider) :is(#editorPaperCanvas, #rightEditorContent) { box-sizing: border-box !important; }
+.omni-split-header {
+    display: flex; align-items: center; gap: 12px; min-width: 0; margin: 0 0 12px; padding: 8px 8px 8px 10px;
+    border: 1px solid var(--mu-border); border-radius: var(--mu-radius-pill);
+    background: linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass);
+    backdrop-filter: var(--mu-blur); -webkit-backdrop-filter: var(--mu-blur); box-shadow: var(--mu-shadow);
+}
+.omni-split-icon { width: 44px; height: 44px; flex: 0 0 auto; background: var(--mu-current-bg); color: var(--mu-current-text); }
+.omni-split-icon icon { font-size: 22px; color: inherit; }
+.omni-split-title {
+    flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    color: var(--mu-text); font-size: var(--mu-fs-label) !important; font-weight: 400 !important;
+}
+#closeSplitBtn.split-close-btn {
+    display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; min-height: var(--mu-control); padding: 0 20px;
+    border: 1px solid color-mix(in srgb, var(--mu-danger) 50%, transparent) !important; border-radius: var(--mu-radius-pill) !important;
+    background: transparent !important; color: var(--mu-danger) !important; font-size: var(--mu-fs-body) !important; font-weight: 400 !important; cursor: pointer;
+}
+#closeSplitBtn.split-close-btn:hover { background: color-mix(in srgb, var(--mu-danger) 12%, transparent) !important; }
+#closeSplitBtn.split-close-btn icon { font-size: 22px; color: inherit; }
+#rightEditorContent .split-editor {
+    box-sizing: border-box; width: 100%;
+    min-height: calc(100vh - 300px); padding: 40px 48px !important; border-radius: 28px !important;
+    background: var(--mu-paper) !important; color: var(--mu-paper-text) !important;
+    box-shadow: 0 1px 2px rgba(20, 12, 50, 0.06), 0 18px 44px rgba(8, 3, 26, 0.18);
+}
+/* The divider: a slim pill handle instead of a grey bar */
+/* Stays 8px wide: the split code sizes both panes as (100% - 8px) / 2 */
+#splitResizeDivider { width: 8px !important; flex: 0 0 8px; background: transparent !important; }
+#splitResizeDivider > div { width: 6px !important; height: 56px !important; border-radius: 999px !important; background: var(--mu-border) !important; transition: background-color 0.14s ease; }
+#splitResizeDivider:hover > div { background: var(--mu-accent) !important; }
+@media (max-width: 760px) { .omni-split-header .omni-split-icon, #closeSplitBtn.split-close-btn span { display: none; } }
+
+/* ===================================================================
+   Version history
+   =================================================================== */
+.omni-v4-version { background: linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass) !important; }
+.omni-v4-version > div:first-of-type { padding-inline-end: 64px; } /* room for the close button */
+.omni-v4-version-title { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.omni-v4-version-title h2 { margin: 0 !important; font-size: 24px !important; font-weight: 300 !important; }
+.omni-v4-version .omni-v4-icon { width: 44px; height: 44px; background: var(--mu-current-bg); color: var(--mu-current-text); }
+.omni-v4-version .omni-v4-icon icon { font-size: 22px !important; color: inherit !important; }
+.omni-v4-version p { color: var(--mu-text-muted) !important; opacity: 1 !important; }
+/* "Current document" tag */
+.omni-v4-version :has(> #versionHistoryDocTitle) {
+    display: grid; gap: 2px; padding: 10px 18px !important; border-radius: var(--mu-radius-md) !important;
+    background: var(--mu-current-bg) !important; border: 1px solid var(--mu-current-border) !important; box-shadow: none !important;
+}
+.omni-v4-version :has(> #versionHistoryDocTitle) { text-align: start !important; max-width: 280px; }
+.omni-v4-version :has(> #versionHistoryDocTitle) > div { color: var(--mu-text-muted) !important; text-align: start !important; white-space: nowrap; }
+#versionHistoryDocTitle { color: var(--mu-current-text) !important; font-weight: 400 !important; }
+#versionList > * { border-radius: var(--mu-radius-pill) !important; }
+#versionPreviewContent { border-radius: var(--mu-radius-md) !important; }
+.omni-v4-version button.omni-v4-btn { min-height: var(--mu-control); padding: 0 22px !important; border-radius: var(--mu-radius-pill) !important; border: 1px solid var(--mu-border) !important; background: var(--mu-field) !important; color: var(--mu-text) !important; }
+.omni-v4-version button.omni-v4-btn.omni-v4-primary { background: var(--mu-accent) !important; border-color: transparent !important; color: #ffffff !important; box-shadow: 0 8px 22px color-mix(in srgb, var(--mu-accent) 32%, transparent) !important; }
+
+/* ===================================================================
+   Pages: v4 hero (icon circle + light title), top bar title, empty states
+   =================================================================== */
+.page .navbar__left > div.liquid-glass:not(.menu-btn) { font-weight: 400 !important; font-size: var(--mu-fs-body) !important; color: var(--mu-text) !important; }
+.omni-v4-hero { display: flex !important; align-items: center; gap: 20px; }
+.omni-v4-hero-icon { width: 64px; height: 64px; flex: 0 0 auto; background: var(--mu-current-bg); color: var(--mu-current-text); }
+.omni-v4-hero-icon icon { font-size: 30px !important; color: inherit !important; font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+.omni-v4-hero-text { display: grid; gap: 6px; flex: 1 1 auto; min-width: 0; }
+.omni-v4-hero-text :is(h1, h2) { margin: 0 !important; font-size: clamp(32px, 4vw, 44px) !important; font-weight: 300 !important; line-height: 1.15; color: var(--mu-text) !important; }
+.omni-v4-hero-text p { margin: 0 !important; color: var(--mu-text-muted) !important; opacity: 1 !important; font-size: var(--mu-fs-body) !important; }
+.omni-images-hero.omni-v4-hero { flex-wrap: wrap; }
+/* The Images hero nests its title one level deeper: lay that level out as icon + text */
+.omni-images-hero :has(> .omni-v4-hero-icon) { display: flex !important; align-items: center; gap: 20px; flex: 1 1 320px; min-width: 0; }
+.omni-images-hero.omni-v4-hero > :not(.omni-v4-hero-icon):not(.omni-v4-hero-text) { margin-inline-start: auto; }
+
+.omni-v4-empty-list { display: block !important; }
+.omni-v4-empty {
+    display: grid !important; justify-items: center; gap: 12px; padding: 40px 20px !important; text-align: center;
+    border: 1px dashed var(--mu-border) !important; border-radius: var(--mu-radius-lg) !important;
+    background: var(--mu-glass-flat) !important; box-shadow: none !important; color: var(--mu-text-muted) !important;
+    font-size: var(--mu-fs-body) !important; opacity: 1 !important;
+}
+.omni-v4-empty :is(strong, b, p, span) { font-weight: 400 !important; color: var(--mu-text-muted) !important; font-size: var(--mu-fs-body) !important; opacity: 1 !important; margin: 0 !important; padding: 0 !important; }
+.omni-v4-empty-icon { width: 64px; height: 64px; background: var(--mu-current-bg); color: var(--mu-current-text); }
+.omni-v4-empty-icon icon { font-size: 30px !important; color: inherit !important; }
+
+/* Projects page */
+:is(.omni-folder-list-panel, .omni-folder-docs-panel) h3 { font-size: var(--mu-fs-title) !important; font-weight: 300 !important; color: var(--mu-text) !important; }
+:is(.omni-folder-list-panel, .omni-folder-docs-panel) p { font-size: var(--mu-fs-body) !important; color: var(--mu-text-muted) !important; opacity: 1 !important; }
+
+/* Charts page */
+.omni-chart-editor-panel :is(label, b, strong, .chart-field-label) { font-weight: 400 !important; color: var(--mu-text-muted) !important; font-size: var(--mu-fs-body) !important; }
+.omni-chart-editor-panel :is(input, textarea, select) { font-size: var(--mu-fs-body) !important; }
+.omni-chart-editor-panel textarea { line-height: 1.5; }
+.omni-chart-editor-panel button { justify-content: center; }
+.omni-chart-preview-panel :is(h2, h3, h4, #chartsPagePreviewTitle) { font-size: var(--mu-fs-title) !important; font-weight: 300 !important; color: var(--mu-text) !important; }
+
+/* Tasks page: the embedded Munetios Tasks app sits in a v4 frame */
+#tasksApp .omni-v4-hero { margin-bottom: 16px; }
+#tasksApp iframe { border: 1px solid var(--mu-border) !important; border-radius: var(--mu-radius-xl) !important; background: var(--mu-glass); box-shadow: var(--mu-shadow); }
+
+/* Sidebar "More" menu: solid v4 menu surface so the sidebar doesn't show through */
+#sidebarMoreMenu {
+    /* three layers (each alpha <= 0.50): it sits right on top of the sidebar text */
+    background: linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass) !important;
+    border: 1px solid var(--mu-border) !important; border-radius: var(--mu-radius-lg) !important;
+    box-shadow: var(--mu-shadow), 0 18px 48px rgba(0, 0, 0, 0.28) !important; padding: 10px !important;
+}
+#sidebarMoreMenu .sidebar-more-title { padding: 8px 16px 4px; color: var(--mu-text-muted) !important; font-size: var(--mu-fs-body) !important; font-weight: 300 !important; }
+#sidebarMoreMenu .sidebarnav__item { min-height: 52px; border-radius: var(--mu-radius-pill) !important; }
+
+@media (max-width: 600px) {
+    .omni-v4-hero-icon { width: 52px; height: 52px; }
+    .omni-v4-hero { gap: 14px; }
+}
+
+/* Page action buttons (Upload image, New note, New project, Insert to document...): 18px, weight 400 */
+.page:not(#editorContent) :is(.navbar__right, .content-area) :is(button, .menu-btn, [role="button"]) :is(span, .create-text) { font-size: var(--mu-fs-body) !important; font-weight: 400 !important; }
+.page:not(#editorContent) :is(.navbar__right, .content-area) :is(button, .menu-btn) { font-weight: 400 !important; }
+
+#editorContent .navbar-container,
+#editorContent .editor-content-editor {
+    overflow: visible !important;
+}
+
+#editorContent .navbar {
+    position: relative;
+    top: auto;
+    width: 100%;
+}
+
+#editorContent .editor-content-editor {
+    margin-top: 12px;
+}
+
+#editorContent .editor-content-editor > .omni-toolbar-shell {
+    position: sticky;
+    top: 8px;
+    z-index: 1000;
+    isolation: isolate;
+}
+
+/* Notes, Trash, and Folders */
+.omni-workspace-page .omni-workspace-topbar { background: transparent; box-shadow: none; gap: 8px; }
+.omni-workspace-page { color: var(--mu-text); }
+.omni-workspace-page :is(.mu-glass, .mu-capsule, .mu-capsule-btn),
+.omni-workspace-modal .mu-dialog {
+    background: var(--mu-glass) !important;
+    border-color: var(--mu-border);
+    box-shadow: var(--mu-shadow) !important;
+    backdrop-filter: var(--mu-blur) !important;
+    -webkit-backdrop-filter: var(--mu-blur) !important;
+}
+.omni-workspace-page .omni-workspace-hero { border-color: var(--mu-current-border); }
+.omni-workspace-page .mu-capsule-btn,
+:is(.omni-workspace-page, .omni-workspace-modal) .mu-icon-btn {
+    border-radius: 50% !important;
+}
+:is(.omni-workspace-page, .omni-workspace-modal) .mu-btn {
+    border-radius: var(--mu-radius-pill) !important;
+}
+:is(.omni-workspace-page, .omni-workspace-modal) :is(.mu-btn-primary, .mu-btn-danger) { color: #fff; }
+.omni-workspace-topbar .mu-capsule-btn::before { content: none; }
+.omni-workspace-topbar .navbar__left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.omni-workspace-topbar .navbar__right.mu-capsule { display: flex; margin-inline-start: auto; width: auto; gap: 2px; flex: 0 0 auto; padding: 0 4px; }
+.omni-workspace-topbar .account-sign-in {
+    background: var(--mu-current-bg) !important;
+    color: var(--mu-current-text) !important;
+}
+.omni-workspace-topbar :is(.mu-capsule, .mu-capsule-btn) { height: var(--mu-control-lg); box-sizing: border-box; }
+.omni-workspace-topbar .mu-capsule-btn { width: var(--mu-control-lg); flex-basis: var(--mu-control-lg); padding: 0 !important; }
+.omni-workspace-topbar .omni-workspace-title { min-width: 0; }
+.omni-workspace-topbar .mu-topbar-title { padding-inline: 12px; }
+.omni-workspace-topbar .mu-icon-btn { flex-shrink: 0; }
+.omni-workspace-topbar [data-mu-danger], .omni-workspace-note .omni-trash-danger { color: var(--mu-danger); }
+.omni-workspace-topbar button:focus-visible,
+.omni-workspace-content :is(button, textarea):focus-visible, .omni-workspace-modal :is(button, input):focus-visible {
+    outline: 2px solid var(--mu-accent); outline-offset: 2px;
+}
+
+.omni-workspace-page .omni-workspace-content { box-sizing: border-box; margin-inline: auto; width: 100%; max-width: 1200px; padding-inline: clamp(12px, 3vw, 32px); }
+.omni-workspace-hero {
+    display: flex; align-items: center; gap: clamp(12px, 2vw, 22px);
+    margin-block-end: 18px; padding: clamp(18px, 3vw, 34px);
+    border-color: var(--mu-current-border); color: var(--mu-text);
+}
+.omni-workspace-hero > .mu-icon-circle { width: 56px; height: 56px; flex-shrink: 0; }
+.omni-workspace-hero h1 { margin: 0; font-size: clamp(28px, 4vw, 44px); font-weight: 300; line-height: 1.2; overflow-wrap: anywhere; }
+.omni-workspace-hero p { margin: 6px 0 0; font-size: var(--mu-fs-body); }
+.omni-workspace-list, .omni-workspace-grid { display: grid; gap: 12px; }
+.omni-workspace-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr)); }
+.omni-workspace-empty { grid-column: 1 / -1; padding: 28px 14px; border: 1px dashed var(--mu-border); border-radius: var(--mu-radius-md); background: var(--mu-glass-flat); }
+
+.omni-workspace-note { display: grid; gap: 12px; padding: clamp(14px, 2vw, 20px); min-width: 0; }
+.omni-workspace-note .mu-textarea { box-sizing: border-box; min-height: 136px; resize: vertical; font-size: var(--mu-fs-body); }
+.omni-workspace-note footer, .omni-workspace-entry, .omni-workspace-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.omni-workspace-note footer, .omni-workspace-entry { justify-content: space-between; }
+.omni-workspace-entry { padding: 12px; min-width: 0; border-radius: var(--mu-radius-md); }
+.omni-workspace-item { display: flex; align-items: center; gap: 12px; flex: 1 1 200px; min-width: 0; }
+.omni-workspace-item > .mu-icon-circle { flex-shrink: 0; }
+.omni-workspace-item :is(h2, h3) { margin: 0; font-weight: 300; overflow-wrap: anywhere; }
+.omni-workspace-actions .mu-btn { line-height: 1.2; padding: 6px 16px; }
+.omni-workspace-note footer .mu-muted, .omni-workspace-item .mu-muted { font-size: var(--mu-fs-body); }
+.omni-folder-pane { min-width: 0; padding: clamp(12px, 2vw, 24px); }
+.omni-folder-pane > h2 { margin: 0 0 12px; font-weight: 300; overflow-wrap: anywhere; }
+.omni-workspace-option { box-sizing: border-box; width: 100%; min-width: 0; text-align: start; }
+.omni-workspace-option[aria-pressed="true"] { background: var(--mu-current-bg); color: var(--mu-current-text); border-color: var(--mu-current-border); }
+.omni-workspace-option .mu-icon-circle { flex-shrink: 0; }
+.omni-workspace-option :is(.mu-row-title, .mu-row-subtitle) { overflow-wrap: anywhere; }
+.omni-workspace-option:disabled { opacity: .5; cursor: not-allowed; }
+
+.omni-workspace-modal { z-index: 10002; }
+.omni-workspace-modal .mu-dialog {
+    box-sizing: border-box; max-height: calc(100dvh - 32px);
+    border-radius: var(--mu-radius-lg) !important;
+    background: linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass) !important;
+}
+.omni-workspace-modal .mu-dialog-heading h2 { margin: 0; overflow-wrap: anywhere; }
+.omni-workspace-modal .mu-dialog-header .mu-icon-btn, .omni-workspace-modal .mu-icon-circle { flex-shrink: 0; }
+.omni-workspace-modal .mu-dialog > p { margin: 0; }
+.omni-workspace-modal .mu-dialog-actions .mu-btn { white-space: normal; line-height: 1.2; }
+.omni-workspace-form { display: grid; gap: 16px; }
+.omni-workspace-form .mu-input { box-sizing: border-box; }
+.omni-workspace-picker { max-height: min(42dvh, 360px); overflow-y: auto; }
+.omni-workspace-picker .mu-row-title { overflow-wrap: anywhere; }
+
+@media (max-width: 650px) {
+    .omni-workspace-topbar .omni-workspace-action-label { display: none; }
+    .omni-workspace-topbar .mu-btn-primary { width: var(--mu-control); padding: 0; }
+    .omni-workspace-entry > .omni-workspace-actions { width: 100%; }
+    .omni-workspace-entry > .omni-workspace-actions .mu-btn { flex: 1 1 auto; }
+}
+@media (max-width: 400px) {
+    .omni-workspace-topbar .omni-workspace-title { display: none; }
+    .omni-workspace-hero { align-items: flex-start; }
+    .omni-workspace-hero > .mu-icon-circle { width: 44px; height: 44px; }
+}
+
+/* ===================================================================== Real-time collaboration (collab.js) */
+/* Share is a text button (Munetios UI v4 .mu-btn-primary) instead of an icon. */
+#editorContent .navbar__right > #shareDocumentBtn.omni-share-btn {
+    width: auto;
+    height: var(--mu-control);
+    min-height: var(--mu-control);
+    padding: 0 20px;
+    gap: 8px;
+    border-radius: var(--mu-radius-pill);
+    font-size: 18px;
+    font-weight: 400;
+    color: #ffffff !important;
+    white-space: nowrap;
+}
+#editorContent .navbar__right > #shareDocumentBtn.omni-share-btn icon { font-size: 22px; color: inherit; }
+/* Who is here and your role, next to Share */
+#editorContent .navbar__right > .omni-collab-chrome { display: inline-flex; align-items: center; gap: 10px; }
+#editorContent .omni-collab-chrome .mu-badge { gap: 6px; }
+#editorContent .omni-collab-chrome .mu-badge icon { font-size: 20px; }
+#editorContent .omni-collab-chrome .mu-badge[hidden],
+#editorContent .omni-collab-chrome .mu-avatar-group[hidden] { display: none; }
+#editorContent .omni-collab-presence { max-width: 40vw; overflow-x: auto; scrollbar-width: none; padding: 3px 3px 3px 12px; }
+#editorContent .omni-collab-presence .mu-avatar { flex: 0 0 auto; }
+/* View only: the toolbar is unavailable */
+#editorContent.omni-collab-readonly .toolbar { opacity: 0.35; pointer-events: none; }
+#reportMoreOptionsBtn[hidden] { display: none !important; }
+
+/* Share dialog */
+.omni-collab-modal .mu-section-label { margin: 6px 0 0; padding: 0 4px; }
+.omni-collab-invite { display: grid; grid-template-columns: minmax(0, 1fr) minmax(170px, 220px) auto; align-items: end; gap: 12px; }
+.omni-collab-invite .mu-input { box-sizing: border-box; }
+.omni-collab-row-controls { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.omni-collab-row-controls .omni-select-button { width: auto; min-width: 0; }
+.omni-collab-row-controls.omni-collab-member-controls { flex-wrap: nowrap; }
+.omni-collab-member-controls .omni-select-button { flex: 1 1 auto; }
+.omni-collab-member-controls .mu-icon-btn { flex: 0 0 auto; }
+.omni-collab-modal .omni-select-label, .omni-collab-select-menu .omni-select-option-label { font-weight: 400 !important; }
+.omni-select-menu.omni-collab-select-menu { scrollbar-width: none; }
+.omni-collab-modal .mu-row { gap: 16px; }
+.omni-collab-modal .mu-row-title, .omni-collab-modal .mu-row-subtitle { overflow-wrap: anywhere; }
+.omni-collab-here { display: flex; flex-wrap: wrap; gap: 10px 18px; padding: 4px; }
+.omni-collab-here-person { display: inline-flex; align-items: center; gap: 10px; }
+.omni-collab-changes { display: grid; gap: 8px; padding: 14px 24px 18px; border-bottom: 1px solid var(--mu-divider); }
+.omni-collab-changes[hidden] { display: none; }
+.omni-collab-change { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; overflow-wrap: anywhere; }
+.omni-collab-change del { color: var(--mu-danger); }
+.omni-collab-change ins { color: var(--mu-success); text-decoration: none; }
+.omni-collab-report { display: grid; gap: 16px; }
+.omni-collab-report .mu-textarea { box-sizing: border-box; padding: 14px 18px; border-radius: var(--mu-radius-md); resize: vertical; }
+
+@media (max-width: 650px) {
+    .omni-collab-invite { grid-template-columns: 1fr; }
+    .omni-collab-modal .mu-row { flex-wrap: wrap; }
+    .omni-collab-row-controls { width: 100%; justify-content: flex-start; }
+}
+
+/* ===================================================================== Comments and live cursors (collab.js) */
+/* Comments button in the topbar (an <icon> like its neighbors), with a count badge */
+.omni-comments-btn[hidden] { display: none !important; }
+.omni-comments-btn[data-count]::after {
+    content: attr(data-count);
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 7px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    background: var(--ow-accent, #8f5cff);
+    color: #ffffff;
+    font: 400 18px/26px 'Google Sans Flex', system-ui, sans-serif;
+    font-feature-settings: 'ss01' 1;
+    font-variation-settings: normal;
+    text-align: center;
+    pointer-events: none;
+}
+#editorContent .navbar__right > .omni-comments-btn.active { background: var(--ow-hover); color: var(--ow-text); }
+
+.omni-shared-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.omni-shared-file { align-items: flex-start; cursor: default; }
+.omni-shared-file .mu-file-info { width: 100%; }
+.omni-shared-file h2 { margin: 0; font: inherit; }
+.omni-shared-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+:is(#editorContent, #sheetEditorApp) .navbar__right > .omni-collab-chrome[hidden] { display: none; }
+@media (max-width: 760px) {
+    :is(#editorContent, #sheetEditorApp) .navbar__right > .omni-collab-chrome:not(:has(.omni-collab-presence:not([hidden]))) { display: none; }
+    .omni-collab-chrome .omni-collab-role { display: none; }
+    .omni-collab-presence .mu-avatar { width: 30px; height: 30px; }
+    .omni-collab-presence .mu-avatar:nth-child(n + 3) { display: none; }
+    .omni-comments-btn[data-count]::after { display: none; }
+}
+@media (max-width: 440px) {
+    .omni-collab-presence .mu-avatar:nth-child(n + 2) { display: none; }
+    :is(#editorContent, #sheetEditorApp) .navbar__right .account-sign-in {
+        min-height: 40px;
+        padding-inline: 10px;
+    }
+}
+.omni-folder-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.omni-folder-heading h2 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+#foldersPageEditFolderBtn[hidden] { display: none; }
+
+.omni-comments-panel { box-sizing: border-box; z-index: 1001; }
+@media (width > 760px) {
+    body.omni-comments-open { --omni-comments-width: min(420px, 34vw); }
+    body.omni-comments-open .omni-comments-panel {
+        position: absolute;
+        inset: 0 auto auto calc(100% + 24px);
+        width: var(--omni-comments-width);
+        max-height: calc(100dvh - 112px);
+    }
+    body.omni-comments-open :is(#editorContent, #sheetEditorApp) .editor-content-editor {
+        position: relative;
+        margin-right: calc(var(--omni-comments-width) + 40px);
+    }
+    body.omni-comments-open :is(#editorContent, #sheetEditorApp) .omni-toolbar-shell > .toolbar {
+        box-sizing: border-box;
+        max-width: 100%;
+        margin-inline: 0;
+    }
+}
+@media (width <= 760px) {
+    .editor-content-editor > .omni-comments-panel {
+        position: relative;
+        inset: auto;
+        margin-bottom: 12px;
+        border-radius: var(--mu-radius-lg);
+        border-bottom: 1px solid var(--mu-border);
+        animation: none;
+    }
+    .editor-content-editor > .omni-comments-panel > .mu-sheet-grip { display: none; }
+}
+.omni-comments-panel .mu-side-panel-header .mu-badge[hidden] { display: none; }
+.omni-comment-composer { display: grid; gap: 12px; }
+.omni-comment-composer[hidden], .omni-comments-note[hidden], .omni-comment-anchor[hidden] { display: none; }
+.omni-comment-composer .mu-input { box-sizing: border-box; }
+.omni-comment-composer .mu-textarea { box-sizing: border-box; padding: 14px 18px; border-radius: var(--mu-radius-md); resize: vertical; }
+.omni-comment-anchor { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; border-radius: var(--mu-radius-md); background: var(--mu-current-bg); color: var(--mu-current-text); }
+.omni-comment-anchor-text { flex: 1 1 auto; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+.omni-comments-list { padding-bottom: 8px; }
+.omni-comments-empty { text-align: center; padding: 18px 8px; }
+.omni-comment .mu-comment-meta { flex-wrap: wrap; align-items: center; }
+.omni-comment .mu-comment-meta .omni-comment-delete { margin-left: auto; }
+.omni-comment-name { overflow-wrap: anywhere; }
+.omni-comment-text { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.omni-comment-quote {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    width: 100%;
+    margin: 6px 0 2px;
+    padding: 2px 0 2px 12px;
+    border: 0;
+    border-left: 3px solid #ffbf00;
+    background: transparent;
+    color: var(--mu-text-muted);
+    font: inherit;
+    font-size: 18px;
+    text-align: left;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+}
+.omni-comment-quote:hover { color: var(--mu-text); }
+.omni-comment-orphan { margin: 4px 0 0; }
+.omni-comment.is-active .mu-comment-bubble { border-color: #ffbf00; box-shadow: 0 0 0 1px #ffbf00; }
+.omni-comment-float { position: fixed; z-index: 1001; }
+.omni-comment-float[hidden] { display: none; }
+
+/* Commented text and other people's selections (CSS Custom Highlight API) */
+::highlight(omni-comment-active) { background-color: rgba(255, 191, 0, 0.55); }
+::highlight(omni-cursor-0) { background-color: rgba(143, 92, 255, 0.25); }
+::highlight(omni-cursor-1) { background-color: rgba(233, 97, 138, 0.25); }
+::highlight(omni-cursor-2) { background-color: rgba(47, 158, 143, 0.25); }
+::highlight(omni-cursor-3) { background-color: rgba(224, 129, 43, 0.25); }
+::highlight(omni-cursor-4) { background-color: rgba(63, 123, 224, 0.25); }
+::highlight(omni-cursor-5) { background-color: rgba(176, 79, 209, 0.25); }
+::highlight(omni-cursor-6) { background-color: rgba(90, 158, 47, 0.25); }
+::highlight(omni-cursor-7) { background-color: rgba(212, 72, 60, 0.25); }
+
+/* Live cursors: a named caret in documents */
+.omni-cursor-layer { position: fixed; inset: 0; z-index: 900; overflow: hidden; pointer-events: none; }
+.omni-cursor { position: absolute; left: 0; top: 0; width: 2px; border-radius: 2px; background: var(--omni-cursor-color); transition: transform 0.08s linear; }
+.omni-cursor[hidden] { display: none; }
+.omni-cursor-label {
+    position: absolute;
+    left: -1px;
+    bottom: 100%;
+    padding: 1px 10px;
+    border-radius: 999px 999px 999px 4px;
+    background: var(--omni-cursor-color);
+    color: #ffffff;
+    font: 400 18px/1.4 'Google Sans Flex', system-ui, sans-serif;
+    font-feature-settings: 'ss01' 1;
+    white-space: nowrap;
+}
+/* ...and a named outline around the selected cells in spreadsheets */
+.omni-sheet-cursor { position: absolute; z-index: 3; box-sizing: border-box; border: 2px solid var(--omni-cursor-color); border-radius: 2px; pointer-events: none; }
+.omni-sheet-cursor .omni-cursor-label { bottom: calc(100% + 2px); left: -2px; }
+/* Comment marker in a commented cell's corner */
+.omni-sheet-comment-mark {
+    position: absolute;
+    z-index: 4;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: 0;
+    background: linear-gradient(225deg, #ffbf00 50%, transparent 50%);
+    cursor: pointer;
+    pointer-events: auto;
+}
+.omni-sheet-comment-mark:focus-visible { outline: 3px solid var(--ow-accent, #8f5cff); outline-offset: 1px; }
+@media (prefers-reduced-motion: reduce) { .omni-cursor { transition: none; } }
+
+/* Comment threads: replies, Reply / Resolve, and the Open / Resolved filter */
+.omni-comments-filter { align-self: stretch; }
+.omni-comments-filter[hidden] { display: none; }
+.omni-comments-filter button { flex: 1 1 0; }
+.omni-thread { display: grid; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid var(--mu-divider); }
+.omni-thread:last-child { border-bottom: 0; }
+.omni-thread.is-resolved .mu-comment-bubble { opacity: 0.85; }
+.omni-thread-replies { display: grid; gap: 10px; margin-left: 28px; padding-left: 14px; border-left: 2px solid var(--mu-divider); }
+.omni-thread-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-left: 56px; }
+.omni-thread-actions .mu-btn { min-height: 44px; padding: 0 16px; }
+.omni-reply-form { display: grid; gap: 10px; margin-left: 56px; }
+.omni-reply-form .mu-input { box-sizing: border-box; }
+.omni-reply-form .mu-textarea { box-sizing: border-box; padding: 12px 16px; border-radius: var(--mu-radius-md); resize: vertical; }
+.omni-comment .mu-badge-success .mu-icon { font-size: 20px; }
+@media (max-width: 760px) {
+    .omni-thread-replies { margin-left: 12px; }
+    .omni-thread-actions, .omni-reply-form { margin-left: 0; }
+}

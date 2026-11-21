@@ -1,0 +1,2571 @@
+/* OmniWrite late overrides (load after mobile-layout.css). */
+        .account-sign-in {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            min-height: 44px;
+            padding: 10px 16px;
+            box-sizing: border-box;
+            border: 1px solid var(--ow-current-border);
+            border-radius: var(--ow-radius-pill) !important;
+            background: var(--ow-current-bg);
+            color: var(--ow-current-text);
+            text-decoration: none;
+            white-space: nowrap;
+            font: 16px/1.25 'Google Sans Flex', sans-serif;
+            font-feature-settings: 'ss01' 1;
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+        }
+        .account-sign-in:focus-visible { outline: 2px solid var(--ow-accent); outline-offset: 3px; }
+        .navbar__right > .account-sign-in { order: 1000; margin-left: auto; }
+
+        /* ==========================================================
+           Document modals: preview, download, split view, project
+           (shared look with the redesigned editor)
+           ========================================================== */
+        body:has(.omni-preview-modal, .omni-download-modal, .omni-split-modal, .omni-folder-modal) #omniPageFab {
+            display: none !important;
+        }
+        .modal-content.omni-doc-modal {
+            position: relative;
+            width: min(640px, 100%) !important;
+            max-width: 640px !important;
+            max-height: calc(100vh - 48px) !important;
+            padding: 32px !important;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            overflow: hidden !important;
+            background: var(--ow-glass) !important;
+            border: 1px solid var(--ow-border) !important;
+            border-radius: 44px !important;
+            box-shadow: var(--ow-shadow), 0 30px 80px rgba(0, 0, 0, 0.2) !important;
+            backdrop-filter: var(--ow-blur) !important;
+            -webkit-backdrop-filter: var(--ow-blur) !important;
+            color: var(--ow-text) !important;
+        }
+        .omni-doc-modal :is(div, span, p, label, button, input, select, option) {
+            font-size: var(--ow-fs-body);
+            font-weight: 400;
+        }
+        .omni-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .omni-modal-heading {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 0;
+        }
+        .omni-doc-modal .omni-modal-icon {
+            flex: 0 0 auto;
+            width: 56px;
+            height: 56px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            font-size: 28px;
+            cursor: default;
+            background: var(--ow-current-bg);
+            color: var(--ow-current-text);
+            font-variation-settings: 'FILL' 1;
+        }
+        .omni-doc-modal .omni-modal-header h2 {
+            margin: 0;
+            font-size: var(--ow-fs-section) !important;
+            font-weight: 300 !important;
+            line-height: 1.2;
+            color: var(--ow-text);
+        }
+        .omni-doc-modal .omni-modal-subtitle {
+            margin: 4px 0 0;
+            color: var(--ow-text-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .omni-doc-modal .omni-modal-close {
+            flex: 0 0 auto;
+            width: 52px;
+            height: 52px;
+            padding: 0 !important;
+            display: grid;
+            place-items: center;
+            border-radius: 50% !important;
+            border: 0 !important;
+            background: var(--ow-hover) !important;
+            color: var(--ow-text-muted) !important;
+            box-shadow: none !important;
+            cursor: pointer;
+        }
+        .omni-doc-modal .omni-modal-close icon {
+            font-size: 26px;
+            color: inherit;
+        }
+        .omni-doc-modal .omni-modal-close:hover {
+            color: var(--ow-text) !important;
+            background: var(--ow-field-hover) !important;
+            transform: none;
+        }
+        body.omni-light-mode .omni-doc-modal .omni-modal-close:hover {
+            background: rgba(29, 36, 51, 0.10) !important;
+        }
+        .omni-doc-modal .omni-modal-close:focus-visible,
+        .omni-doc-modal button:focus-visible {
+            outline: 3px solid var(--ow-accent);
+            outline-offset: 2px;
+        }
+        .omni-doc-modal .omni-modal-desc {
+            margin: -6px 0 0;
+            color: var(--ow-text-muted);
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+        .omni-field {
+            display: grid;
+            gap: 10px;
+            min-height: 0;
+        }
+        .omni-doc-modal .omni-field-label {
+            color: var(--ow-text-muted);
+        }
+        .omni-doc-modal :is(.omni-input, .omni-select) {
+            width: 100%;
+            min-height: 58px;
+            padding: 0 22px !important;
+            box-sizing: border-box;
+            border-radius: var(--ow-radius-pill) !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-field) !important;
+            color: var(--ow-text) !important;
+            font-size: var(--ow-fs-body) !important;
+            outline: none;
+            box-shadow: none !important;
+        }
+        .omni-doc-modal .omni-select {
+            appearance: none;
+            -webkit-appearance: none;
+            padding-right: 56px !important;
+            background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%) !important;
+            background-position: calc(100% - 30px) 50%, calc(100% - 23px) 50% !important;
+            background-size: 7px 7px, 7px 7px !important;
+            background-repeat: no-repeat !important;
+            cursor: pointer;
+        }
+        .omni-doc-modal .omni-select option {
+            color: #1d2433;
+            background: #ffffff;
+        }
+        .omni-doc-modal :is(.omni-input, .omni-select):focus {
+            border-color: var(--ow-accent) !important;
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--ow-accent) 25%, transparent) !important;
+        }
+        .omni-doc-modal .omni-input::placeholder {
+            color: var(--ow-text-muted);
+        }
+        .omni-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .omni-doc-modal .omni-btn {
+            min-height: 56px;
+            padding: 0 28px !important;
+            border-radius: var(--ow-radius-pill) !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-field) !important;
+            color: var(--ow-text) !important;
+            box-shadow: none !important;
+            cursor: pointer;
+        }
+        .omni-doc-modal .omni-btn:hover {
+            background: var(--ow-field-hover) !important;
+            transform: none;
+        }
+        .omni-doc-modal .omni-btn.is-primary {
+            background: var(--ow-accent) !important;
+            border-color: transparent !important;
+            color: #ffffff !important;
+            box-shadow: 0 8px 22px color-mix(in srgb, var(--ow-accent) 32%, transparent) !important;
+        }
+        .omni-doc-modal .omni-btn.is-primary:hover {
+            filter: brightness(1.08);
+        }
+
+        /* Pick lists (split view documents, project documents) */
+        .omni-pick-list {
+            display: grid;
+            gap: 8px;
+            min-height: 0;
+            max-height: min(46vh, 460px);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 6px;
+            border-radius: var(--ow-radius-lg);
+            border: 1px solid var(--ow-border);
+            background: var(--ow-glass-flat);
+            scrollbar-width: thin;
+            scrollbar-color: var(--ow-scrollbar) transparent;
+        }
+        .omni-pick-list > p {
+            margin: 12px 16px;
+            color: var(--ow-text-muted);
+        }
+        .omni-pick-list .sidebarnav__item,
+        .omni-pick-list .folder-doc-checkbox {
+            display: flex !important;
+            align-items: center;
+            gap: 14px !important;
+            min-height: 56px;
+            margin: 0 !important;
+            padding: 8px 18px 8px 10px !important;
+            border-radius: var(--ow-radius-pill) !important;
+            border: 1px solid transparent !important;
+            background: var(--ow-tile-glass, transparent) !important;
+            color: var(--ow-text) !important;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+        .omni-pick-list .sidebarnav__item:hover,
+        .omni-pick-list .folder-doc-checkbox:hover {
+            background: var(--ow-hover) !important;
+            transform: none;
+        }
+        .omni-pick-list :is(.sidebarnav__item, .folder-doc-checkbox) > icon {
+            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            font-size: 22px !important;
+            background: var(--ow-hover);
+            color: var(--ow-icon);
+        }
+        .omni-pick-list .folder-doc-checkbox:has(input:checked) {
+            background: var(--ow-current-bg) !important;
+            border-color: var(--ow-current-border) !important;
+        }
+        .omni-pick-list .folder-doc-checkbox:has(input:checked) > icon {
+            background: var(--ow-accent);
+            color: #ffffff;
+        }
+        .omni-pick-list .folder-doc-checkbox input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            flex: 0 0 auto;
+            width: 26px;
+            height: 26px;
+            margin: 0 0 0 4px;
+            border-radius: 50%;
+            border: 2px solid var(--ow-border);
+            background: var(--ow-field);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+        }
+        .omni-pick-list .folder-doc-checkbox input[type="checkbox"]:checked {
+            border-color: var(--ow-accent);
+            background: var(--ow-accent);
+        }
+        .omni-pick-list .folder-doc-checkbox input[type="checkbox"]:checked::after {
+            content: '';
+            width: 7px;
+            height: 12px;
+            border: solid #ffffff;
+            border-width: 0 2.5px 2.5px 0;
+            transform: translateY(-1px) rotate(45deg);
+        }
+        .omni-pick-list .menu-text,
+        .omni-pick-list .folder-doc-checkbox span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .omni-pick-list #splitPickerShowMoreBtn,
+        .omni-pick-list #folderPickerShowMoreBtn {
+            justify-content: center;
+            background: transparent !important;
+            border: 1px dashed var(--ow-border) !important;
+            color: var(--ow-text-muted) !important;
+        }
+
+        /* Download formats */
+        .omni-download-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .omni-doc-modal .omni-download-option {
+            display: grid;
+            justify-items: center;
+            align-content: center;
+            gap: 8px;
+            min-height: 148px;
+            padding: 18px 14px !important;
+            text-align: center;
+            border-radius: var(--ow-radius-lg) !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-tile-glass, var(--ow-glass-flat)) !important;
+            color: var(--ow-text) !important;
+            box-shadow: none !important;
+            cursor: pointer;
+            transition: background-color 0.14s ease, border-color 0.14s ease;
+        }
+        .omni-doc-modal .omni-download-option:hover {
+            background: var(--ow-current-bg) !important;
+            border-color: var(--ow-current-border) !important;
+            transform: none;
+        }
+        .omni-doc-modal .omni-download-option > icon {
+            width: 56px;
+            height: 56px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            font-size: 28px;
+            background: var(--ow-current-bg);
+            color: var(--ow-current-text);
+        }
+        .omni-doc-modal .omni-download-ext {
+            color: var(--ow-text-muted);
+            font-family: 'Google Sans Code', monospace;
+        }
+
+        /* Preview: a full document page */
+        .modal-content.omni-doc-modal.omni-preview-dialog {
+            width: min(1080px, 100%) !important;
+            max-width: 1080px !important;
+            height: calc(100vh - 48px);
+            padding: 28px !important;
+            gap: 18px;
+        }
+        .omni-preview-dialog:fullscreen {
+            width: 100% !important;
+            max-width: none !important;
+            height: 100%;
+            max-height: none !important;
+            border-radius: 0 !important;
+            border: 0 !important;
+            background: var(--ow-glass), linear-gradient(135deg, #f3f5fb, #e8edf8) !important;
+        }
+        body:not(.omni-light-mode) .omni-preview-dialog:fullscreen {
+            background: var(--ow-glass), #0e0626 !important;
+        }
+        .omni-preview-scroll {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 6px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--ow-scrollbar) transparent;
+        }
+        .omni-doc-modal .omni-preview-page {
+            max-width: 860px;
+            min-height: 100%;
+            margin: 0 auto;
+            padding: 56px 64px;
+            box-sizing: border-box;
+            border-radius: 36px;
+            border: 1px solid rgba(29, 36, 51, 0.08);
+            background: #ffffff;
+            color: #1d2433;
+            box-shadow: 0 18px 48px rgba(8, 3, 26, 0.3);
+            line-height: 1.8;
+            overflow-wrap: anywhere;
+        }
+        body.omni-light-mode .omni-doc-modal .omni-preview-page {
+            background: #ffffff;
+            color: #1d2433;
+            box-shadow: 0 18px 44px rgba(86, 104, 150, 0.16);
+        }
+        .omni-doc-modal .omni-preview-page :is(div, span, p, li) {
+            font-size: inherit;
+        }
+
+        @media (max-width: 760px) {
+            .modal:is(.omni-preview-modal, .omni-download-modal, .omni-split-modal, .omni-folder-modal) {
+                padding: 0;
+                align-items: stretch;
+            }
+            .modal-content.omni-doc-modal {
+                width: 100% !important;
+                max-height: 100% !important;
+                height: 100%;
+                border-radius: 0 !important;
+                border-width: 0 !important;
+                padding: 22px 18px !important;
+            }
+            .omni-doc-modal .omni-preview-page {
+                padding: 28px 22px;
+                border-radius: 28px;
+            }
+            .omni-download-grid {
+                grid-template-columns: 1fr;
+            }
+            .omni-doc-modal .omni-download-option {
+                grid-template-columns: 56px minmax(0, 1fr) auto;
+                justify-items: start;
+                text-align: left;
+                min-height: 84px;
+                padding: 12px 20px 12px 14px !important;
+            }
+            .omni-doc-modal .omni-modal-icon {
+                width: 48px;
+                height: 48px;
+                font-size: 24px;
+            }
+            .omni-pick-list {
+                max-height: none;
+                flex: 1 1 auto;
+            }
+        }
+
+        /* ==========================================================
+           Read aloud panel
+           ========================================================== */
+        .reading__mode-panel {
+            width: min(460px, calc(100vw - 32px));
+            padding: 24px !important;
+            box-sizing: border-box;
+            background: var(--ow-glass) !important;
+            border: 1px solid var(--ow-border) !important;
+            border-radius: 40px !important;
+            box-shadow: var(--ow-shadow), 0 24px 70px rgba(0, 0, 0, 0.24) !important;
+            backdrop-filter: var(--ow-blur) !important;
+            -webkit-backdrop-filter: var(--ow-blur) !important;
+            color: var(--ow-text) !important;
+        }
+        .reading__mode-panel :is(div, span, p, button) {
+            font-size: var(--ow-fs-body);
+            font-weight: 400;
+        }
+        .reading__mode-panel .reading-mode-header {
+            margin-bottom: 18px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--ow-divider);
+            gap: 12px;
+        }
+        .reading__mode-panel .reading-mode-title {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: var(--ow-fs-section) !important;
+            font-weight: 300 !important;
+            color: var(--ow-text) !important;
+        }
+        .reading__mode-panel .reading-mode-title::before {
+            content: 'record_voice_over';
+            width: 52px;
+            height: 52px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            font-family: 'Material Symbols Rounded';
+            font-size: 26px;
+            font-variation-settings: 'FILL' 1;
+            background: var(--ow-current-bg);
+            color: var(--ow-current-text);
+        }
+        .reading__mode-panel .reading-mode-close-btn {
+            width: 52px;
+            height: 52px;
+            padding: 0;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--ow-hover);
+        }
+        .reading__mode-panel .reading-mode-close-btn:hover {
+            background: var(--ow-field-hover);
+            transform: none;
+        }
+        .reading__mode-panel .reading-mode-close-btn icon,
+        body.omni-light-mode .reading__mode-panel .reading-mode-close-btn icon {
+            font-size: 26px;
+            color: var(--ow-text-muted) !important;
+        }
+        .reading__mode-panel .reading__mode-content {
+            gap: 16px;
+        }
+        .reading__mode-panel .text-reading {
+            padding: 22px 24px;
+            font-size: var(--ow-fs-body) !important;
+            line-height: 1.8;
+            border-radius: 28px;
+            border: 1px solid var(--ow-border);
+            background: var(--ow-glass-flat);
+            color: var(--ow-text) !important;
+        }
+        .reading__mode-panel .text-reading :is(div, span, p, li) {
+            font-size: inherit;
+        }
+        .reading__mode-panel .reading-mode-current-word {
+            background: color-mix(in srgb, var(--ow-accent) 30%, transparent) !important;
+            border-radius: 6px;
+        }
+        .reading__mode-panel .controller-actions {
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px !important;
+        }
+        .reading__mode-panel .controler-action {
+            display: flex !important;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 96px;
+            padding: 12px 8px !important;
+            border-radius: var(--ow-radius-lg) !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-tile-glass, var(--ow-glass-flat)) !important;
+            color: var(--ow-text) !important;
+            box-shadow: none !important;
+            cursor: pointer;
+            transition: background-color 0.14s ease;
+        }
+        .reading__mode-panel .controler-action:hover {
+            background: var(--ow-hover) !important;
+            transform: none !important;
+        }
+        .reading__mode-panel .controler-action icon {
+            width: 48px;
+            height: 48px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            font-size: 28px !important;
+            background: var(--ow-hover);
+            color: var(--ow-icon) !important;
+        }
+        .reading__mode-panel #playBtn {
+            background: color-mix(in srgb, var(--ow-accent) 14%, transparent) !important;
+            border-color: color-mix(in srgb, var(--ow-accent) 40%, transparent) !important;
+        }
+        .reading__mode-panel #playBtn icon {
+            background: var(--ow-accent);
+            color: #ffffff !important;
+            font-variation-settings: 'FILL' 1;
+        }
+        .reading__mode-panel .label-controler-action {
+            font-size: var(--ow-fs-body) !important;
+            color: var(--ow-text);
+        }
+        .reading__mode-panel .settings-reading-mode {
+            display: grid !important;
+            gap: 0 !important;
+            border-radius: var(--ow-radius-lg);
+            border: 1px solid var(--ow-border);
+            background: var(--ow-glass-flat);
+            overflow: hidden;
+            padding: 0 !important;
+        }
+        .reading__mode-panel .setting-item {
+            display: flex !important;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            min-height: 72px;
+            padding: 10px 12px 10px 22px !important;
+            margin: 0 !important;
+            border-bottom: 1px solid var(--ow-divider);
+            background: transparent !important;
+            color: var(--ow-text) !important;
+        }
+        .reading__mode-panel .setting-item:last-child {
+            border-bottom: 0;
+        }
+        .reading__mode-panel .setting-label {
+            color: var(--ow-text-muted);
+            font-size: var(--ow-fs-body) !important;
+        }
+        .reading__mode-panel .setting-item button {
+            min-height: 50px;
+            max-width: 62%;
+            padding: 0 22px !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            border-radius: var(--ow-radius-pill) !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-field) !important;
+            color: var(--ow-text) !important;
+            box-shadow: none !important;
+        }
+        .reading__mode-panel .setting-item button:hover {
+            background: var(--ow-field-hover) !important;
+            transform: none;
+        }
+        @media (max-width: 760px) {
+            .reading__mode-panel {
+                left: 12px !important;
+                right: 12px !important;
+                width: auto !important;
+                border-radius: 32px !important;
+                padding: 18px !important;
+            }
+        }
+
+        /* ==========================================================
+           Medium sizing for document modals and the read aloud panel
+           (text stays 18px+, controls and spacing are tighter)
+           ========================================================== */
+        .modal-content.omni-doc-modal {
+            width: min(520px, 100%) !important;
+            max-width: 520px !important;
+            padding: 24px !important;
+            gap: 16px;
+            border-radius: 36px !important;
+        }
+        .modal-content.omni-doc-modal.omni-preview-dialog {
+            width: min(900px, 100%) !important;
+            max-width: 900px !important;
+            height: min(820px, calc(100vh - 48px));
+            padding: 22px !important;
+            gap: 14px;
+        }
+        .omni-modal-heading { gap: 12px; }
+        .omni-doc-modal .omni-modal-icon {
+            width: 44px;
+            height: 44px;
+            font-size: 22px;
+        }
+        .omni-doc-modal .omni-modal-header h2 {
+            font-size: 24px !important;
+        }
+        .omni-doc-modal .omni-modal-close {
+            width: 44px;
+            height: 44px;
+        }
+        .omni-doc-modal .omni-modal-close icon { font-size: 22px; }
+        .omni-doc-modal .omni-modal-desc { margin-top: -4px; }
+        .omni-field { gap: 8px; }
+        .omni-doc-modal :is(.omni-input, .omni-select) {
+            min-height: 50px;
+            padding: 0 18px !important;
+        }
+        .omni-doc-modal .omni-select {
+            padding-right: 48px !important;
+            background-position: calc(100% - 26px) 50%, calc(100% - 19px) 50% !important;
+        }
+        .omni-modal-actions { gap: 10px; }
+        .omni-doc-modal .omni-btn {
+            min-height: 48px;
+            padding: 0 22px !important;
+        }
+        .omni-pick-list {
+            gap: 6px;
+            max-height: min(40vh, 380px);
+            padding: 5px;
+            border-radius: 26px;
+        }
+        .omni-pick-list .sidebarnav__item,
+        .omni-pick-list .folder-doc-checkbox {
+            min-height: 48px;
+            gap: 12px !important;
+            padding: 6px 16px 6px 8px !important;
+        }
+        .omni-pick-list :is(.sidebarnav__item, .folder-doc-checkbox) > icon {
+            width: 34px;
+            height: 34px;
+            font-size: 20px !important;
+        }
+        .omni-pick-list .folder-doc-checkbox input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+        }
+        .omni-pick-list .folder-doc-checkbox input[type="checkbox"]:checked::after {
+            width: 6px;
+            height: 10px;
+        }
+        .omni-download-grid { gap: 10px; }
+        .omni-doc-modal .omni-download-option {
+            min-height: 112px;
+            gap: 4px;
+            padding: 14px 10px !important;
+            border-radius: 26px !important;
+        }
+        .omni-doc-modal .omni-download-option > icon {
+            width: 44px;
+            height: 44px;
+            font-size: 22px;
+            margin-bottom: 2px;
+        }
+        .omni-doc-modal .omni-preview-page {
+            max-width: 760px;
+            padding: 40px 48px;
+            border-radius: 28px;
+        }
+        @media (max-width: 760px) {
+            .modal-content.omni-doc-modal {
+                padding: 18px 16px !important;
+            }
+            .omni-doc-modal .omni-download-option {
+                grid-template-columns: 44px minmax(0, 1fr) auto;
+                min-height: 68px;
+                padding: 10px 18px 10px 12px !important;
+            }
+            .omni-doc-modal .omni-preview-page { padding: 24px 18px; }
+        }
+
+        /* Read aloud panel: medium size, everything reachable */
+        .reading__mode-panel {
+            width: min(400px, calc(100vw - 32px));
+            min-width: 0;
+            padding: 18px !important;
+            border-radius: 32px !important;
+        }
+        .reading__mode-panel .reading-mode-header {
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+        }
+        .reading__mode-panel .reading-mode-title {
+            gap: 12px;
+            font-size: 24px !important;
+        }
+        .reading__mode-panel .reading-mode-title::before {
+            width: 42px;
+            height: 42px;
+            font-size: 22px;
+        }
+        .reading__mode-panel .reading-mode-close-btn {
+            width: 42px;
+            height: 42px;
+        }
+        .reading__mode-panel .reading-mode-close-btn icon,
+        body.omni-light-mode .reading__mode-panel .reading-mode-close-btn icon {
+            font-size: 22px;
+        }
+        .reading__mode-panel .reading__mode-content {
+            gap: 12px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
+            scrollbar-color: var(--ow-scrollbar) transparent;
+        }
+        .reading__mode-panel .text-reading {
+            flex: 1 1 auto;
+            min-height: 120px;
+            padding: 16px 18px;
+            border-radius: 22px;
+        }
+        /* The copied document page brings its own background; show the text on the panel instead */
+        .reading__mode-panel #documentText > :is(div, section),
+        .reading__mode-panel #documentText :is(.omniwrite-page, .document-page-editor, .editor-surface) {
+            background: transparent !important;
+            box-shadow: none !important;
+            border: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            color: inherit !important;
+        }
+        .reading__mode-panel .controller-actions {
+            flex: 0 0 auto;
+            gap: 8px !important;
+        }
+        .reading__mode-panel .controler-action {
+            min-height: 76px;
+            gap: 4px;
+            padding: 8px 6px !important;
+            border-radius: 24px !important;
+        }
+        .reading__mode-panel .controler-action icon {
+            width: 38px;
+            height: 38px;
+            font-size: 22px !important;
+        }
+        .reading__mode-panel .settings-reading-mode {
+            flex: 0 0 auto;
+            border-radius: 24px;
+        }
+        .reading__mode-panel .setting-item {
+            min-height: 58px;
+            padding: 6px 8px 6px 18px !important;
+        }
+        .reading__mode-panel .setting-item button {
+            min-height: 42px;
+            padding: 0 18px !important;
+        }
+
+        /* ==========================================================
+           Custom select (omni-select.js)
+           ========================================================== */
+        select.omni-select-native {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0 0 0 0) !important;
+            clip-path: inset(50%) !important;
+            border: 0 !important;
+            white-space: nowrap !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        .omni-select-button {
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            width: 100%;
+            min-height: 50px;
+            padding: 0 14px 0 18px !important;
+            box-sizing: border-box;
+            border-radius: var(--ow-radius-pill) !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-field) !important;
+            color: var(--ow-text) !important;
+            font-size: var(--ow-fs-body) !important;
+            font-weight: 400 !important;
+            text-align: left;
+            box-shadow: none !important;
+            cursor: pointer;
+            transition: background-color 0.14s ease, border-color 0.14s ease;
+        }
+        body.omni-light-mode .omni-select-button {
+            box-shadow: 0 1px 3px rgba(29, 36, 51, 0.07) !important;
+        }
+        .omni-select-button:hover {
+            background: var(--ow-field-hover) !important;
+            border-color: color-mix(in srgb, var(--ow-accent) 45%, var(--ow-border)) !important;
+            transform: none !important;
+        }
+        .omni-select-button.is-open,
+        .omni-select-button:focus-visible {
+            border-color: var(--ow-accent) !important;
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--ow-accent) 25%, transparent) !important;
+            outline: none;
+        }
+        .omni-select-button.is-disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+        .omni-select-label {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: var(--ow-fs-body) !important;
+        }
+        .omni-select-chevron {
+            flex: 0 0 auto;
+            font-size: 24px !important;
+            color: var(--ow-icon);
+            transition: transform 0.16s ease;
+        }
+        .omni-select-button.is-open .omni-select-chevron {
+            transform: rotate(180deg);
+        }
+        .omni-select-menu {
+            position: fixed;
+            z-index: 100000010;
+            max-width: min(420px, calc(100vw - 24px));
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 6px;
+            box-sizing: border-box;
+            border-radius: 24px;
+            border: 1px solid var(--ow-border);
+            background: var(--ow-glass);
+            box-shadow: var(--ow-shadow), 0 18px 48px rgba(0, 0, 0, 0.18);
+            backdrop-filter: var(--ow-blur);
+            -webkit-backdrop-filter: var(--ow-blur);
+            color: var(--ow-text);
+            scrollbar-width: thin;
+            scrollbar-color: var(--ow-scrollbar) transparent;
+            animation: omniSoftIn 0.16s ease both;
+        }
+        .omni-select-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            min-height: 46px;
+            padding: 0 14px 0 18px;
+            border-radius: var(--ow-radius-pill);
+            background: var(--ow-tile-glass, transparent);
+            margin: 2px 0;
+            font-size: var(--ow-fs-body);
+            cursor: pointer;
+        }
+        .omni-select-option.is-active {
+            background: var(--ow-hover);
+        }
+        .omni-select-option.is-selected {
+            background: var(--ow-current-bg);
+            color: var(--ow-current-text);
+        }
+        .omni-select-option[aria-disabled="true"] {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .omni-select-option-label {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .omni-select-check {
+            font-size: 22px !important;
+            visibility: hidden;
+            color: var(--ow-current-text);
+        }
+        .omni-select-option.is-selected .omni-select-check {
+            visibility: visible;
+        }
+        .omni-select-group {
+            padding: 10px 18px 4px;
+            font-size: var(--ow-fs-body);
+            font-weight: 300;
+            color: var(--ow-text-muted);
+        }
+
+        /* ==========================================================
+           Every other modal: same glass, type, and controls
+           ========================================================== */
+        /* :where() keeps these shared defaults at zero specificity so each modal's own
+           layout (handwriting, media insert, version history...) still wins. */
+        :where(.modal:not(.omni-settings-modal):not(.omni-recovery-modal):not(.omni-icon-modal) > .modal-content:not(.omni-doc-modal)) {
+            position: relative;
+            width: 100%;
+            max-width: 560px;
+            max-height: calc(100vh - 48px);
+            overflow-y: auto;
+            padding: 26px !important;
+            box-sizing: border-box;
+            background: var(--ow-glass) !important;
+            border: 1px solid var(--ow-border) !important;
+            border-radius: 36px !important;
+            box-shadow: var(--ow-shadow), 0 30px 80px rgba(0, 0, 0, 0.2) !important;
+            backdrop-filter: var(--ow-blur) !important;
+            -webkit-backdrop-filter: var(--ow-blur) !important;
+            color: var(--ow-text) !important;
+            scrollbar-width: thin;
+            scrollbar-color: var(--ow-scrollbar) transparent;
+        }
+        body:has(.modal) #omniPageFab {
+            display: none !important;
+        }
+        /* Type: 18px minimum, no bold; headings weight 300 */
+        .modal .modal-content :is(p, span, div, label, small, strong, b, em, li, td, th, a, button, input, textarea, select, option, summary) {
+            font-size: var(--ow-fs-body) !important;
+        }
+        .modal .modal-content :is(strong, b, th, label, button, summary, .settings-row-title),
+        .modal .modal-content [style*="font-weight"]:not(h1, h2, h3, h4, h5, h6) {
+            font-weight: 400 !important;
+        }
+        .modal .modal-content :is(h1, h2) {
+            margin: 0 64px 14px 0;
+            font-size: 26px !important;
+            font-weight: 300 !important;
+            line-height: 1.25;
+            color: var(--ow-text) !important;
+        }
+        .modal .modal-content :is(h3, h4, h5, h6) {
+            font-size: 21px !important;
+            font-weight: 300 !important;
+            line-height: 1.3;
+            color: var(--ow-text) !important;
+        }
+        .modal .modal-content p {
+            line-height: 1.55;
+        }
+        .modal .modal-content icon {
+            font-size: 24px;
+        }
+        /* Header row used by some modals */
+        .modal .modal-content .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .modal .modal-content .modal-header :is(h1, h2) {
+            margin: 0;
+        }
+        .modal .modal-content .modal-body {
+            padding: 0 !important;
+        }
+        /* Close buttons: one round 44px control in the top-right corner */
+        .modal .modal-content .modal-content-close,
+        .modal .modal-content .modal-header > icon[id^="close"] {
+            position: absolute !important;
+            top: 20px !important;
+            right: 20px !important;
+            z-index: 3;
+            width: 44px;
+            height: 44px;
+            padding: 0 !important;
+            display: grid !important;
+            place-items: center;
+            border-radius: 50% !important;
+            background: var(--ow-hover) !important;
+            color: var(--ow-text-muted) !important;
+            font-size: 28px !important;
+            line-height: 1 !important;
+            cursor: pointer;
+            transform: none !important;
+            transition: background-color 0.14s ease, color 0.14s ease;
+        }
+        .modal .modal-content .modal-content-close icon,
+        .modal .modal-content .modal-header > icon[id^="close"] {
+            font-size: 22px !important;
+            color: inherit !important;
+        }
+        .modal .modal-content .modal-content-close:hover,
+        .modal .modal-content .modal-header > icon[id^="close"]:hover {
+            background: var(--ow-field-hover) !important;
+            color: var(--ow-text) !important;
+            text-shadow: none;
+        }
+        body.omni-light-mode .modal .modal-content .modal-content-close:hover {
+            background: rgba(29, 36, 51, 0.10) !important;
+        }
+        /* Text fields */
+        .modal .modal-content :is(input:not([type]), input[type="text"], input[type="search"], input[type="url"], input[type="email"], input[type="number"], input[type="password"], input[type="date"], input[type="time"], .custom-font-input, .link-insert-input) {
+            min-height: 50px;
+            padding: 0 18px !important;
+            box-sizing: border-box;
+            border-radius: var(--ow-radius-pill) !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-field) !important;
+            color: var(--ow-text) !important;
+            box-shadow: none !important;
+            outline: none;
+        }
+        .modal .modal-content textarea {
+            padding: 14px 18px !important;
+            box-sizing: border-box;
+            border-radius: 22px !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-field) !important;
+            color: var(--ow-text) !important;
+            line-height: 1.5;
+            outline: none;
+        }
+        .modal .modal-content :is(input, textarea):focus {
+            border-color: var(--ow-accent) !important;
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--ow-accent) 25%, transparent) !important;
+        }
+        .modal .modal-content :is(input, textarea)::placeholder {
+            color: var(--ow-text-muted);
+        }
+        .modal .modal-content :is(input[type="checkbox"], input[type="radio"], input[type="range"], progress) {
+            accent-color: var(--ow-accent);
+        }
+        .modal .modal-content input[type="color"] {
+            width: 56px;
+            height: 44px;
+            padding: 4px !important;
+            border-radius: 16px !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-field) !important;
+            cursor: pointer;
+        }
+        /* Buttons: pill shape and size; colors the modal sets stay as they are */
+        :where(.modal .modal-content button:not(.omni-select-button):not(.setting-toggle):not(.omni-icon-tile):not(.omni-format-tile)) {
+            min-height: 46px;
+            padding: 0 20px;
+            border-radius: var(--ow-radius-pill) !important;
+            border: 1px solid var(--ow-border);
+            background: var(--ow-field);
+            color: var(--ow-text);
+            box-shadow: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background-color 0.14s ease, border-color 0.14s ease, filter 0.14s ease;
+        }
+        :where(.modal .modal-content button:not(.omni-select-button)):hover {
+            transform: none;
+            filter: brightness(1.05);
+        }
+        .modal .modal-content button:focus-visible {
+            outline: 3px solid var(--ow-accent);
+            outline-offset: 2px;
+        }
+        /* Lists of choices inside modals */
+        .modal .modal-content .sidebarnav__item {
+            min-height: 48px;
+            border-radius: var(--ow-radius-pill) !important;
+        }
+        .modal .modal-content .folder-doc-checkbox {
+            border-radius: var(--ow-radius-pill) !important;
+            min-height: 48px;
+        }
+        .modal .modal-content .folder-doc-checkbox:has(input:checked) {
+            background: var(--ow-current-bg) !important;
+        }
+        .modal .modal-content hr {
+            border: 0;
+            border-top: 1px solid var(--ow-divider);
+        }
+        .modal .modal-content :is(.liquid-glass, .dashboard-card):not(button) {
+            border-radius: 24px !important;
+            border-color: var(--ow-border) !important;
+        }
+        @media (max-width: 760px) {
+            .modal:not(.omni-settings-modal):not(.omni-recovery-modal):not(.omni-icon-modal) {
+                padding: 12px;
+            }
+            .modal:not(.omni-settings-modal):not(.omni-recovery-modal):not(.omni-icon-modal) > .modal-content:not(.omni-doc-modal) {
+                padding: 20px !important;
+                border-radius: 30px !important;
+                max-height: calc(100vh - 24px);
+            }
+        }
+
+        /* ==========================================================
+           Pickers and menus: context menu, color picker, palettes,
+           workspace menu, handwriting menu, toolbar groups
+           ========================================================== */
+        :is(.omni-ctx-menu:not(.omni-document-context), .color-picker-wrapper, .workspace-menu, .omni-custom-palette, .omni-handwriting-select-menu, .dropdown-item-groups) {
+            background: var(--ow-glass) !important;
+            border: 1px solid var(--ow-border) !important;
+            border-radius: 28px !important;
+            box-shadow: var(--ow-shadow), 0 18px 48px rgba(0, 0, 0, 0.18) !important;
+            backdrop-filter: var(--ow-blur) !important;
+            -webkit-backdrop-filter: var(--ow-blur) !important;
+            color: var(--ow-text) !important;
+        }
+        :is(.omni-ctx-menu:not(.omni-document-context), .color-picker-wrapper, .workspace-menu, .omni-custom-palette, .omni-handwriting-select-menu) :is(div, span, p, label, button, input, a) {
+            font-size: var(--ow-fs-body);
+            font-weight: 400;
+        }
+        .omni-ctx-menu:not(.omni-document-context) {
+            padding: 6px !important;
+        }
+        .omni-ctx-menu:not(.omni-document-context) :is(.dropdown-item, .omni-ctx-item, [role="menuitem"], button) {
+            min-height: 46px;
+            border-radius: var(--ow-radius-pill) !important;
+            color: var(--ow-text) !important;
+        }
+        .omni-ctx-menu:not(.omni-document-context) :is(.dropdown-item, .omni-ctx-item, [role="menuitem"], button):hover {
+            background: var(--ow-hover) !important;
+            transform: none !important;
+        }
+        .dropdown-item-groups {
+            padding: 8px !important;
+            gap: 4px !important;
+        }
+        .dropdown-item-groups .toolbar-item {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            padding: 0 !important;
+            border-radius: 50% !important;
+            color: var(--ow-icon);
+        }
+        .dropdown-item-groups .toolbar-item:hover {
+            background: var(--ow-hover) !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        .dropdown-item-groups .toolbar-item icon {
+            font-size: 24px !important;
+        }
+        .color-picker-wrapper {
+            padding: 18px !important;
+        }
+        .color-picker-wrapper :is(input, button) {
+            border-radius: var(--ow-radius-pill) !important;
+        }
+        .workspace-menu .workspace-menu-item {
+            min-height: 48px;
+            border-radius: var(--ow-radius-pill) !important;
+        }
+        .workspace-menu .workspace-menu-item.active {
+            background: var(--ow-current-bg) !important;
+            color: var(--ow-current-text) !important;
+        }
+        .omni-menu-section-title {
+            font-size: var(--ow-fs-body) !important;
+            font-weight: 300 !important;
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+            color: var(--ow-text-muted) !important;
+        }
+
+        /* Menus that open over content get a second glass layer for readable labels */
+        .omni-select-menu {
+            background: linear-gradient(var(--ow-tile-glass), var(--ow-tile-glass)), var(--ow-glass) !important;
+        }
+        .omni-select-option {
+            background: transparent;
+        }
+        /* Toggles in every modal match the settings toggles */
+        .modal .modal-content .setting-toggle-track {
+            width: 60px;
+            height: 36px;
+            border-radius: 999px;
+            background: var(--ow-field-hover) !important;
+            border: 1px solid var(--ow-border) !important;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+        }
+        body.omni-light-mode .modal .modal-content .setting-toggle-track {
+            background: rgba(29, 36, 51, 0.14) !important;
+        }
+        .modal .modal-content .setting-toggle-track::before {
+            top: 4px;
+            left: 4px;
+            width: 26px;
+            height: 26px;
+            background: #ffffff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
+        }
+        .modal .modal-content .setting-toggle input:checked + .setting-toggle-track {
+            background: var(--ow-accent) !important;
+            border-color: transparent !important;
+        }
+        .modal .modal-content .setting-toggle input:checked + .setting-toggle-track::before {
+            transform: translateX(24px);
+        }
+
+        /* ==========================================================
+           Document paper: light by default, soft shadow, rounded
+           ========================================================== */
+        #editorArea.editor-surface,
+        .document-page-editor.editor-surface,
+        .split-editor.editor-surface {
+            border-radius: 28px !important;
+            border: 1px solid rgba(29, 36, 51, 0.08) !important;
+            box-shadow: 0 1px 2px rgba(20, 12, 50, 0.06), 0 18px 44px rgba(8, 3, 26, 0.18);
+        }
+        body.omni-light-mode :is(#editorArea, .document-page-editor, .split-editor).editor-surface {
+            box-shadow: 0 1px 2px rgba(29, 36, 51, 0.05), 0 16px 36px rgba(86, 104, 150, 0.14);
+        }
+        /* Dark paper the user chose keeps a matching edge */
+        :is(#editorArea, .document-page-editor, .split-editor).editor-surface[data-bg-tone="dark"] {
+            border-color: rgba(255, 255, 255, 0.10) !important;
+        }
+
+        /* Read aloud panel resize grip */
+        .reading__mode-panel {
+            max-width: calc(100vw - 24px);
+        }
+        .omni-panel-resize-handle {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            z-index: 4;
+            width: 32px;
+            height: 32px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            color: var(--ow-text-muted);
+            background: var(--ow-hover);
+            cursor: nwse-resize;
+            touch-action: none;
+            transition: background-color 0.14s ease, color 0.14s ease;
+        }
+        .omni-panel-resize-handle icon {
+            font-size: 20px !important;
+            transform: rotate(-45deg);
+            cursor: inherit;
+            pointer-events: none;
+        }
+        .omni-panel-resize-handle:hover,
+        .reading__mode-panel.is-resizing .omni-panel-resize-handle {
+            background: var(--ow-current-bg);
+            color: var(--ow-current-text);
+        }
+        .omni-panel-resize-handle:focus-visible {
+            outline: 3px solid var(--ow-accent);
+            outline-offset: 2px;
+        }
+        .reading__mode-panel.is-resizing {
+            user-select: none;
+            transition: none !important;
+        }
+        @media (max-width: 760px) {
+            .omni-panel-resize-handle { display: none; }
+        }
+
+        /* ==========================================================
+           Media miniplayer
+           ========================================================== */
+        .omni-mini-player {
+            width: clamp(300px, 26vw, 420px);
+            min-width: 260px;
+            padding: 8px;
+            box-sizing: border-box;
+            border-radius: 30px !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-glass) !important;
+            box-shadow: var(--ow-shadow), 0 22px 60px rgba(0, 0, 0, 0.3) !important;
+            backdrop-filter: var(--ow-blur) !important;
+            -webkit-backdrop-filter: var(--ow-blur) !important;
+            color: var(--ow-text);
+        }
+        .omni-mini-player.is-hold-ready {
+            box-shadow: 0 0 0 3px var(--ow-accent), 0 22px 60px rgba(0, 0, 0, 0.3) !important;
+        }
+        .omni-mini-player-media {
+            border-radius: 22px;
+            overflow: hidden;
+            background: #05040c;
+        }
+        .omni-mini-player-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 56px;
+            padding: 6px 4px 2px 8px;
+        }
+        .omni-mini-player-kind {
+            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            font-size: 22px !important;
+            cursor: default;
+            background: var(--ow-current-bg);
+            color: var(--ow-current-text);
+            font-variation-settings: 'FILL' 1;
+        }
+        .omni-mini-player .omni-mini-player-title {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: var(--ow-fs-body) !important;
+            font-weight: 400;
+            opacity: 1;
+            color: var(--ow-text);
+        }
+        .omni-mini-player .omni-mini-player-close {
+            flex: 0 0 auto;
+            width: 44px !important;
+            height: 44px !important;
+            min-height: 0;
+            padding: 0 !important;
+            display: grid;
+            place-items: center;
+            border-radius: 50% !important;
+            border: 0 !important;
+            background: var(--ow-hover) !important;
+            color: var(--ow-text-muted) !important;
+            box-shadow: none !important;
+            cursor: pointer;
+        }
+        .omni-mini-player .omni-mini-player-close icon {
+            font-size: 22px !important;
+            color: inherit;
+        }
+        .omni-mini-player .omni-mini-player-close:hover {
+            background: var(--ow-field-hover) !important;
+            color: var(--ow-text) !important;
+            transform: none;
+        }
+        @media (max-width: 600px) {
+            .omni-mini-player { width: min(86vw, 360px); }
+        }
+
+        /* Floating surfaces over the (now light) paper get a second glass layer,
+           so dark mode stays dark and labels keep their contrast. */
+        .reading__mode-panel,
+        .omni-mini-player,
+        .dropdown-wrapper,
+        .omni-ctx-menu:not(.omni-document-context),
+        .color-picker-wrapper,
+        .dropdown-item-groups,
+        .omni-custom-palette,
+        .omni-handwriting-select-menu {
+            background: linear-gradient(var(--ow-tile-glass), var(--ow-tile-glass)), var(--ow-glass) !important;
+        }
+        /* Room for the resize grip below the last row */
+        .reading__mode-panel {
+            padding-bottom: 50px !important;
+        }
+        .omni-panel-resize-handle {
+            right: 12px;
+            bottom: 10px;
+        }
+
+        /* ==========================================================
+           Per-text font settings (font-settings.js). More specific than
+           the document-wide feature rule and the global overrides.
+           ========================================================== */
+        #editorArea [data-omni-ff],
+        #editorArea [data-omni-ff] *:not(.omni-doc-icon),
+        .document-page-editor [data-omni-ff],
+        .document-page-editor [data-omni-ff] *:not(.omni-doc-icon),
+        .split-editor [data-omni-ff],
+        .split-editor [data-omni-ff] *:not(.omni-doc-icon),
+        .omni-fs-preview {
+            font-feature-settings: var(--omni-ff) !important;
+        }
+        #editorArea [data-omni-fv],
+        #editorArea [data-omni-fv] *:not(.omni-doc-icon),
+        .document-page-editor [data-omni-fv],
+        .document-page-editor [data-omni-fv] *:not(.omni-doc-icon),
+        .split-editor [data-omni-fv],
+        .split-editor [data-omni-fv] *:not(.omni-doc-icon),
+        .omni-fs-preview {
+            font-variation-settings: var(--omni-fv) !important;
+        }
+
+        /* ==========================================================
+           Font family picker
+           ========================================================== */
+        .omni-font-picker-panel {
+            width: min(820px, calc(100vw - 24px));
+            max-width: calc(100vw - 24px);
+            max-height: min(640px, calc(100vh - 140px));
+            padding: 0 !important;
+            overflow: hidden !important;
+            white-space: normal;
+            box-sizing: border-box;
+        }
+        .omni-font-picker {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+            height: min(640px, calc(100vh - 140px));
+            max-height: inherit;
+        }
+        .omni-font-col {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            padding: 12px;
+            gap: 10px;
+            border-right: 1px solid var(--ow-divider);
+        }
+        .omni-font-search {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 50px;
+            padding: 0 16px;
+            border-radius: var(--ow-radius-pill);
+            border: 1px solid var(--ow-border);
+            background: var(--ow-field);
+            box-sizing: border-box;
+        }
+        .omni-font-search:focus-within {
+            border-color: var(--ow-accent);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--ow-accent) 25%, transparent);
+        }
+        .omni-font-search icon { font-size: 22px !important; color: var(--ow-icon); cursor: default; }
+        .omni-font-search input {
+            flex: 1 1 auto;
+            min-width: 0;
+            height: 46px;
+            padding: 0 !important;
+            border: 0 !important;
+            outline: none;
+            background: transparent !important;
+            color: var(--ow-text) !important;
+            font-size: var(--ow-fs-body) !important;
+            box-shadow: none !important;
+        }
+        .omni-font-scroll {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
+            scrollbar-color: var(--ow-scrollbar) transparent;
+            padding-right: 2px;
+        }
+        .omni-font-section-title {
+            padding: 10px 12px 6px;
+            font-size: var(--ow-fs-body) !important;
+            font-weight: 300 !important;
+            color: var(--ow-text-muted);
+        }
+        .omni-font-picker-panel .omni-font-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 52px;
+            margin: 2px 0;
+            padding: 4px 6px 4px 8px !important;
+            border-radius: var(--ow-radius-pill) !important;
+            border: 1px solid transparent;
+        }
+        .omni-font-picker-panel .omni-font-option.is-current {
+            background: var(--ow-current-bg) !important;
+            border-color: var(--ow-current-border);
+        }
+        .omni-font-sample {
+            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--ow-hover);
+            font-size: var(--ow-fs-body) !important;
+            color: var(--ow-text);
+        }
+        .omni-font-picker-panel .omni-font-option .menu-text {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: var(--ow-fs-body) !important;
+        }
+        .omni-font-badge {
+            flex: 0 0 auto;
+            padding: 2px 10px;
+            border-radius: var(--ow-radius-pill);
+            font-size: var(--ow-fs-body) !important;
+            color: var(--ow-current-text);
+            background: var(--ow-current-bg);
+        }
+        .omni-font-picker-panel .omni-font-tune {
+            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            min-height: 0;
+            padding: 0 !important;
+            display: grid;
+            place-items: center;
+            border-radius: 50% !important;
+            border: 0 !important;
+            background: transparent !important;
+            color: var(--ow-icon) !important;
+            box-shadow: none !important;
+            cursor: pointer;
+        }
+        .omni-font-picker-panel .omni-font-tune:hover {
+            background: var(--ow-hover) !important;
+            transform: none;
+        }
+        .omni-font-picker-panel .omni-font-tune icon { font-size: 22px !important; color: inherit; }
+        .omni-font-empty {
+            padding: 16px;
+            color: var(--ow-text-muted);
+            font-size: var(--ow-fs-body);
+        }
+        .omni-font-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .omni-font-actions button {
+            flex: 1 1 0;
+            min-width: max-content;
+            min-height: 46px;
+            padding: 0 14px !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border-radius: var(--ow-radius-pill) !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-field) !important;
+            color: var(--ow-text) !important;
+            font-size: var(--ow-fs-body) !important;
+            box-shadow: none !important;
+        }
+        .omni-font-actions button:hover { background: var(--ow-field-hover) !important; transform: none; }
+        .omni-font-actions button icon { font-size: 22px !important; color: var(--ow-icon); }
+
+        /* Settings pane */
+        .omni-font-settings {
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 16px 18px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--ow-scrollbar) transparent;
+        }
+        .omni-font-settings :is(div, span, p, label, button) {
+            font-size: var(--ow-fs-body);
+            font-weight: 400;
+        }
+        .omni-fs-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .omni-fs-heading { min-width: 0; }
+        .omni-font-settings .omni-fs-title {
+            font-size: 22px !important;
+            font-weight: 300 !important;
+            color: var(--ow-text);
+        }
+        .omni-fs-font {
+            color: var(--ow-text-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .omni-font-settings .omni-fs-reset {
+            flex: 0 0 auto;
+            min-height: 44px;
+            padding: 0 16px !important;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: var(--ow-radius-pill) !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-field) !important;
+            color: var(--ow-text) !important;
+            box-shadow: none !important;
+        }
+        .omni-font-settings .omni-fs-reset:hover { background: var(--ow-field-hover) !important; transform: none; }
+        .omni-font-settings .omni-fs-reset icon { font-size: 20px !important; }
+        .omni-font-settings .omni-fs-preview {
+            padding: 16px 18px;
+            border-radius: 22px;
+            border: 1px solid rgba(29, 36, 51, 0.08);
+            background: #ffffff;
+            color: #1d2433;
+            font-size: 26px !important;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+        }
+        .omni-fs-hint, .omni-fs-empty {
+            margin: 0;
+            color: var(--ow-text-muted);
+            line-height: 1.45;
+        }
+        .omni-font-settings .omni-fs-section {
+            margin-top: 4px;
+            font-size: var(--ow-fs-body) !important;
+            font-weight: 300 !important;
+            color: var(--ow-text-muted);
+        }
+        .omni-fs-ss-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 6px;
+        }
+        .omni-font-settings .omni-fs-ss {
+            min-height: 42px;
+            padding: 0 !important;
+            border-radius: var(--ow-radius-pill) !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-field) !important;
+            color: var(--ow-text-muted) !important;
+            font-family: 'Google Sans Code', monospace;
+            font-size: var(--ow-fs-body) !important;
+            box-shadow: none !important;
+            cursor: pointer;
+        }
+        .omni-font-settings .omni-fs-ss:hover { background: var(--ow-field-hover) !important; transform: none; }
+        .omni-font-settings .omni-fs-ss.is-on {
+            background: var(--ow-accent) !important;
+            border-color: transparent !important;
+            color: #ffffff !important;
+        }
+        .omni-fs-axes { display: grid; gap: 12px; }
+        .omni-fs-axis label {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .omni-fs-axis-name { color: var(--ow-text); }
+        .omni-fs-axis-tag {
+            color: var(--ow-text-muted);
+            font-family: 'Google Sans Code', monospace;
+        }
+        .omni-fs-axis-value {
+            margin-left: auto;
+            min-width: 3.5ch;
+            text-align: right;
+            color: var(--ow-text);
+            font-variant-numeric: tabular-nums;
+        }
+        .omni-fs-axis input[type="range"] {
+            width: 100%;
+            height: 28px;
+            margin: 0;
+            accent-color: var(--ow-accent);
+            cursor: pointer;
+        }
+        .omni-fs-ss:focus-visible, .omni-fs-reset:focus-visible, .omni-font-tune:focus-visible, .omni-fs-axis input:focus-visible {
+            outline: 3px solid var(--ow-accent);
+            outline-offset: 2px;
+        }
+        @media (max-width: 760px) {
+            .omni-font-picker-panel { max-height: calc(100vh - 120px); }
+            .omni-font-picker {
+                grid-template-columns: 1fr;
+                grid-template-rows: minmax(220px, 1fr) auto;
+                height: calc(100vh - 120px);
+            }
+            .omni-font-col { border-right: 0; border-bottom: 1px solid var(--ow-divider); }
+            .omni-font-settings { max-height: 46vh; }
+            .omni-fs-ss-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+
+        /* ==========================================================
+           Matching Munetios UI v4: ripple, toasts, sliders, spinner,
+           home dashboard
+           ========================================================== */
+        .omni-ripple-layer { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; z-index: 0; }
+        .omni-ripple {
+            position: absolute; border-radius: 50%; pointer-events: none;
+            background: currentColor; opacity: 0.18; transform: scale(0);
+            animation: omni-ripple-in 0.45s cubic-bezier(0.2, 0, 0, 1) forwards;
+        }
+        .omni-ripple.is-out { animation: omni-ripple-in 0.45s cubic-bezier(0.2, 0, 0, 1) forwards, omni-ripple-out 0.3s ease 0.15s forwards; }
+        @keyframes omni-ripple-in { to { transform: scale(1); } }
+        @keyframes omni-ripple-out { to { opacity: 0; } }
+
+        /* Toasts: top center, v4 look */
+        .omniwrite-toast {
+            display: flex !important;
+            align-items: center;
+            gap: 12px;
+            width: max-content;
+            min-width: min(320px, calc(100vw - 32px));
+            max-width: min(560px, calc(100vw - 32px));
+            min-height: 60px;
+            padding: 8px 8px 8px 10px !important;
+            box-sizing: border-box;
+            border-radius: var(--ow-radius-pill) !important;
+            border: 1px solid var(--ow-border) !important;
+            background: linear-gradient(var(--ow-tile-glass), var(--ow-tile-glass)), var(--ow-glass) !important;
+            box-shadow: var(--ow-shadow), 0 18px 48px rgba(0, 0, 0, 0.2) !important;
+            backdrop-filter: var(--ow-blur) !important;
+            -webkit-backdrop-filter: var(--ow-blur) !important;
+            color: var(--ow-text) !important;
+            overflow: hidden;
+        }
+        .omniwrite-toast-icon {
+            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--ow-current-bg);
+            color: var(--ow-current-text);
+        }
+        .omniwrite-toast-icon icon { font-size: 22px !important; font-variation-settings: 'FILL' 1; cursor: default; }
+        .omniwrite-toast.is-success .omniwrite-toast-icon { background: color-mix(in srgb, var(--ow-success) 16%, transparent); color: var(--ow-success); }
+        .omniwrite-toast.is-error .omniwrite-toast-icon { background: color-mix(in srgb, var(--ow-danger) 14%, transparent); color: var(--ow-danger); }
+        .omniwrite-toast.is-warning .omniwrite-toast-icon { background: color-mix(in srgb, var(--ow-warning) 16%, transparent); color: var(--ow-warning); }
+        .omniwrite-toast-text {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: var(--ow-fs-body) !important;
+            line-height: 1.4;
+            overflow-wrap: anywhere;
+        }
+        .omniwrite-toast-text * { font-size: inherit !important; font-weight: 400 !important; }
+        .omniwrite-toast.is-short { padding-right: 20px !important; }
+        .omniwrite-toast .toast-close {
+            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            min-height: 0;
+            padding: 0 !important;
+            display: grid;
+            place-items: center;
+            border-radius: 50% !important;
+            border: 0 !important;
+            background: transparent !important;
+            color: var(--ow-text-muted) !important;
+            box-shadow: none !important;
+            cursor: pointer;
+        }
+        .omniwrite-toast .toast-close:hover { background: var(--ow-hover) !important; color: var(--ow-text) !important; }
+        .omniwrite-toast .toast-close icon { font-size: 22px !important; color: inherit; }
+        .omniwrite-toast .toast-progress-bar {
+            position: absolute;
+            left: 24px;
+            right: auto;
+            bottom: 4px;
+            width: calc(100% - 48px);
+            height: 3px;
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--ow-accent) 60%, transparent);
+        }
+
+        /* Custom sliders everywhere (omni-ui.js keeps --omni-fill in sync) */
+        input[type="range"]:not([data-native-range]) {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 32px;
+            margin: 0;
+            background: transparent;
+            cursor: pointer;
+            --omni-fill: 50%;
+        }
+        input[type="range"]:not([data-native-range])::-webkit-slider-runnable-track {
+            height: 10px;
+            border-radius: 999px;
+            border: 1px solid var(--ow-border);
+            background: linear-gradient(90deg, var(--ow-accent) 0 var(--omni-fill), var(--ow-field-hover) var(--omni-fill) 100%);
+        }
+        body.omni-light-mode input[type="range"]:not([data-native-range])::-webkit-slider-runnable-track {
+            background: linear-gradient(90deg, var(--ow-accent) 0 var(--omni-fill), rgba(29, 36, 51, 0.12) var(--omni-fill) 100%);
+        }
+        input[type="range"]:not([data-native-range])::-moz-range-track { height: 10px; border-radius: 999px; background: var(--ow-field-hover); border: 1px solid var(--ow-border); }
+        input[type="range"]:not([data-native-range])::-moz-range-progress { height: 10px; border-radius: 999px; background: var(--ow-accent); }
+        input[type="range"]:not([data-native-range])::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 26px;
+            height: 26px;
+            margin-top: -9px;
+            border: 0;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+            transition: box-shadow 0.15s ease, transform 0.15s ease;
+        }
+        input[type="range"]:not([data-native-range])::-moz-range-thumb { width: 26px; height: 26px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28); }
+        input[type="range"]:not([data-native-range]):hover::-webkit-slider-thumb { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28), 0 0 0 8px color-mix(in srgb, var(--ow-accent) 20%, transparent); }
+        input[type="range"]:not([data-native-range]):active::-webkit-slider-thumb { transform: scale(1.12); }
+        input[type="range"]:not([data-native-range]):focus-visible { outline: none; }
+        input[type="range"]:not([data-native-range]):focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--ow-accent), 0 2px 8px rgba(0, 0, 0, 0.28); }
+
+        /* Google spinner: use the accent cycle in both themes */
+        .spinner-container { width: 48px; height: 48px; }
+
+        /* Home dashboard */
+        .dashboard-hero.liquid-glass,
+        .dashboard-card {
+            border-radius: var(--ow-radius-xl) !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-glass) !important;
+            box-shadow: var(--ow-shadow) !important;
+            backdrop-filter: var(--ow-blur) !important;
+            -webkit-backdrop-filter: var(--ow-blur) !important;
+            color: var(--ow-text) !important;
+        }
+        .dashboard-hero h1, #dashboardWelcomeTitle {
+            font-size: var(--ow-fs-hero, 44px) !important;
+            font-weight: 300 !important;
+            line-height: 1.15;
+        }
+        .dashboard-hero p, .dashboard-card :is(p, small, div, span) { font-size: var(--ow-fs-body) !important; }
+        .dashboard-card h3 { font-size: 22px !important; font-weight: 300 !important; }
+        .dashboard-action-btn {
+            min-height: 52px;
+            padding: 0 22px !important;
+            gap: 8px;
+            border-radius: var(--ow-radius-pill) !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-field) !important;
+            color: var(--ow-text) !important;
+            font-size: var(--ow-fs-body) !important;
+            box-shadow: none !important;
+        }
+        .dashboard-action-btn:first-child {
+            background: var(--ow-accent) !important;
+            border-color: transparent !important;
+            color: #ffffff !important;
+            box-shadow: 0 8px 22px color-mix(in srgb, var(--ow-accent) 32%, transparent) !important;
+        }
+        .dashboard-action-btn:hover { filter: brightness(1.06); transform: none !important; }
+        .dashboard-action-btn icon { font-size: 22px !important; color: inherit; }
+        .dashboard-stat icon {
+            width: 52px;
+            height: 52px;
+            display: inline-grid;
+            place-items: center;
+            border-radius: 50%;
+            font-size: 26px !important;
+            background: var(--ow-current-bg);
+            color: var(--ow-current-text);
+            font-variation-settings: 'FILL' 1;
+            cursor: default;
+        }
+        .dashboard-stat-value { font-size: 36px !important; font-weight: 300 !important; line-height: 1; }
+        .dashboard-stat-label { font-size: var(--ow-fs-body) !important; color: var(--ow-text-muted); text-transform: none !important; letter-spacing: 0 !important; }
+        .dashboard-list-item {
+            min-height: 56px;
+            padding: 10px 18px !important;
+            border-radius: var(--ow-radius-md) !important;
+            border: 1px solid var(--ow-divider) !important;
+            background: var(--ow-tile-glass) !important;
+        }
+        .dashboard-accent { font-weight: 400 !important; color: var(--ow-current-text) !important; }
+
+        #dashboardStatsGrid .dashboard-stat-value { font-size: 36px !important; font-weight: 300 !important; line-height: 1.05; }
+        #dashboardStatsGrid .dashboard-stat-label { font-size: var(--ow-fs-body) !important; }
+        #dashboardStatsGrid .dashboard-stat { gap: 16px; align-items: center; }
+        .dashboard-card :is(strong, b), .dashboard-list-item :is(strong, b) { font-weight: 400 !important; }
+        /* Toasts read clearly over busy content */
+        .omniwrite-toast { backdrop-filter: blur(2px) saturate(150%) brightness(1.12) !important; -webkit-backdrop-filter: blur(2px) saturate(150%) brightness(1.12) !important; }
+        body:not(.omni-light-mode) .omniwrite-toast { backdrop-filter: blur(2px) saturate(150%) brightness(0.8) !important; -webkit-backdrop-filter: blur(2px) saturate(150%) brightness(0.8) !important; }
+
+        /* ==========================================================
+           Command palette (Ctrl+K)
+           ========================================================== */
+        .omni-palette-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100000020;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 12vh 16px 16px;
+            box-sizing: border-box;
+            background: color-mix(in srgb, var(--ow-backdrop) 60%, transparent);
+            backdrop-filter: var(--ow-backdrop-filter);
+            -webkit-backdrop-filter: var(--ow-backdrop-filter);
+            animation: omniSoftIn 0.14s ease both;
+        }
+        .omni-palette {
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 8px;
+            width: min(640px, 100%);
+            max-height: min(560px, 76vh);
+            padding: 10px;
+            box-sizing: border-box;
+            border-radius: 32px;
+            border: 1px solid var(--ow-border);
+            background: linear-gradient(var(--ow-tile-glass), var(--ow-tile-glass)), var(--ow-glass);
+            box-shadow: var(--ow-shadow), 0 30px 80px rgba(0, 0, 0, 0.28);
+            backdrop-filter: var(--ow-blur);
+            -webkit-backdrop-filter: var(--ow-blur);
+            color: var(--ow-text);
+        }
+        .omni-palette-search {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 52px;
+            padding: 0 12px 0 16px;
+            border-radius: var(--ow-radius-pill);
+            border: 1px solid var(--ow-border);
+            background: var(--ow-field);
+        }
+        .omni-palette-search:focus-within { border-color: var(--ow-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ow-accent) 25%, transparent); }
+        .omni-palette-search > icon { font-size: 24px !important; color: var(--ow-icon); cursor: default; }
+        .omni-palette .omni-palette-input {
+            flex: 1 1 auto;
+            min-width: 0;
+            height: 48px;
+            padding: 0 !important;
+            border: 0 !important;
+            outline: none;
+            background: transparent !important;
+            color: var(--ow-text) !important;
+            font-size: var(--ow-fs-label) !important;
+            box-shadow: none !important;
+        }
+        .omni-palette-list {
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 2px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--ow-scrollbar) transparent;
+        }
+        .omni-palette-group {
+            padding: 10px 14px 4px;
+            font-size: var(--ow-fs-body);
+            font-weight: 300;
+            color: var(--ow-text-muted);
+        }
+        .omni-palette-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-height: 52px;
+            padding: 4px 12px 4px 6px;
+            border-radius: var(--ow-radius-pill);
+            font-size: var(--ow-fs-body);
+            cursor: pointer;
+        }
+        .omni-palette-item.is-active { background: var(--ow-current-bg); color: var(--ow-current-text); }
+        .omni-palette-icon {
+            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--ow-hover);
+            color: var(--ow-icon);
+        }
+        .omni-palette-item.is-active .omni-palette-icon { background: var(--ow-accent); color: #ffffff; }
+        .omni-palette-icon icon { font-size: 22px !important; color: inherit; cursor: inherit; }
+        .omni-palette-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .omni-palette-keys { flex: 0 0 auto; display: inline-flex; gap: 4px; color: var(--ow-text-muted); font-size: var(--ow-fs-body); }
+        .omni-palette-empty { padding: 28px 16px; text-align: center; color: var(--ow-text-muted); font-size: var(--ow-fs-body); }
+        @media (max-width: 640px) {
+            .omni-palette-overlay { padding: 12px; }
+            .omni-palette { max-height: calc(100vh - 24px); border-radius: 28px; }
+            .omni-palette-search .omni-palette-keys { display: none; }
+        }
+
+        /* Search documents: left-aligned rows, title over a muted subtitle */
+        .modal .modal-content .document-search-results { display: grid; gap: 6px; }
+        .modal .modal-content button.document-search-result {
+            display: flex !important;
+            justify-content: flex-start !important;
+            align-items: center;
+            gap: 14px;
+            width: 100%;
+            min-height: 60px;
+            padding: 8px 18px 8px 8px !important;
+            text-align: left;
+            border-radius: var(--ow-radius-pill) !important;
+            border: 1px solid var(--ow-divider) !important;
+            background: var(--ow-tile-glass) !important;
+            color: var(--ow-text) !important;
+        }
+        .modal .modal-content button.document-search-result:hover,
+        .modal .modal-content button.document-search-result:focus-visible { background: var(--ow-current-bg) !important; border-color: var(--ow-current-border) !important; }
+        .document-search-result > icon {
+            flex: 0 0 auto;
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            font-size: 22px !important;
+            background: var(--ow-current-bg);
+            color: var(--ow-current-text);
+        }
+        .document-search-result > span { display: grid; gap: 2px; min-width: 0; }
+        .modal .modal-content .document-search-result strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ow-text); }
+        .modal .modal-content .document-search-result small { display: block; color: var(--ow-text-muted); }
+
+        .modal > .modal-content {
+            --mu-text: var(--ow-text);
+            --mu-field: var(--ow-field);
+            --mu-field-hover: var(--ow-field-hover);
+            --mu-border: var(--ow-border);
+            --mu-accent: var(--ow-accent);
+        }
+        .modal .modal-content :where(button:not(.mu-btn-primary):not(.mu-btn-danger)) { color: inherit; }
+        .modal .modal-content .media-option-card { display: grid; min-width: 0; white-space: normal; height: auto; }
+        .media-insert-header > h2, .media-insert-title > span { min-width: 0; overflow-wrap: anywhere; }
+        .media-option-grid { grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); }
+        .media-insert-content :is(input, textarea) { max-width: 100%; box-sizing: border-box; }
+        .omni-handwriting-toolbar > *, .omni-handwriting-actions > button { min-width: 0; }
+        .omni-handwriting-size strong { white-space: nowrap; }
+        .omni-handwriting-modal .mu-btn-primary { background: var(--ow-accent); color: #fff; }
+
+        /* Modals are non-blocking: clicks go through the backdrop to the page,
+           and because the backdrop never receives clicks, clicking outside
+           never closes a modal. Use the close button or Escape. */
+        .modal { pointer-events: none !important; }
+        .modal > .modal-content, .modal > * { pointer-events: auto; }
+        /* While a modal is open, destructive actions outside it can't be used. */
+        body:has(.modal) :is(#deleteMoreOptionsBtn, #deleteFolderBtn, #trashDeleteAllBtn, .document-item-actions [data-action="delete"], [data-omni-danger]):not(.modal *) {
+            pointer-events: none !important;
+            opacity: 0.45;
+        }
+
+        /* ── Templates gallery ─────────────────────────────────────────────── */
+        #templatesApp .content-area { height: auto; min-height: calc(100vh - 80px); padding-bottom: 40px; }
+        .omni-tpl-hero {
+            display: flex !important;
+            align-items: center;
+            gap: 20px;
+            padding: 24px 28px !important;
+            border-radius: var(--ow-radius-xl, 44px) !important;
+            margin-bottom: 4px;
+        }
+        .omni-tpl-hero-icon {
+            flex: 0 0 64px;
+            width: 64px;
+            height: 64px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--ow-current-bg);
+            color: var(--ow-current-text);
+        }
+        .omni-tpl-hero-icon icon { font-size: 32px; font-variation-settings: 'FILL' 1; cursor: default; }
+        .omni-tpl-hero-text { flex: 1 1 auto; min-width: 0; }
+        .omni-tpl-hero-text h2 { margin: 0 0 6px; font-size: var(--ow-fs-display, 36px) !important; font-weight: 300 !important; line-height: 1.1; }
+        .omni-tpl-hero-text p { margin: 0; font-size: var(--ow-fs-body, 18px) !important; color: var(--ow-text-muted); }
+        .omni-tpl-total {
+            flex: 0 0 auto;
+            padding: 10px 18px;
+            border-radius: var(--ow-radius-pill, 999px);
+            border: 1px solid var(--ow-border);
+            background: var(--ow-glass-flat);
+            font-size: var(--ow-fs-body, 18px);
+            color: var(--ow-text-muted);
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+        .omni-tpl-toolbar {
+            display: grid;
+            gap: 10px;
+            margin: 10px 0 0;
+            padding: 12px !important;
+            position: relative !important;
+            top: auto !important;
+            z-index: 2;
+            border-radius: var(--ow-radius-lg, 36px);
+            border: 1px solid var(--ow-border);
+            background: linear-gradient(var(--ow-tile-glass, rgba(26, 10, 62, 0.44)), var(--ow-tile-glass, rgba(26, 10, 62, 0.44))), var(--ow-glass) !important;
+            box-shadow: var(--ow-shadow);
+            backdrop-filter: var(--ow-blur) !important;
+            -webkit-backdrop-filter: var(--ow-blur) !important;
+        }
+        .omni-tpl-toolbar .omni-tpl-search { background: var(--ow-field); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+        .omni-tpl-search {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 56px;
+            padding: 0 22px;
+            border-radius: var(--ow-radius-pill, 999px);
+            border: 1px solid var(--ow-border);
+            background: var(--ow-glass);
+            box-shadow: var(--ow-shadow);
+            backdrop-filter: var(--ow-blur);
+            -webkit-backdrop-filter: var(--ow-blur);
+            cursor: text;
+        }
+        .omni-tpl-search:focus-within { border-color: var(--ow-current-border); box-shadow: var(--ow-shadow), 0 0 0 3px rgba(143, 92, 255, 0.24); }
+        .omni-tpl-search icon { font-size: 26px; color: var(--ow-icon); cursor: text; }
+        .omni-tpl-search icon:hover { text-shadow: none; }
+        .omni-tpl-search input,
+        .omni-tpl-search input:focus {
+            flex: 1 1 auto;
+            min-width: 0;
+            min-height: 0 !important;
+            height: 54px;
+            padding: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            outline: none !important;
+            color: var(--ow-text);
+            font-size: var(--ow-fs-body, 18px) !important;
+        }
+        .omni-tpl-chips {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 2px 2px 6px;
+            scrollbar-width: none;
+            scroll-snap-type: x proximity;
+        }
+        .omni-tpl-chips::-webkit-scrollbar { display: none; }
+        .omni-tpl-chip {
+            flex: 0 0 auto;
+            display: inline-flex !important;
+            align-items: center;
+            gap: 10px;
+            min-height: 48px;
+            padding: 0 8px 0 18px !important;
+            border-radius: var(--ow-radius-pill, 999px) !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-glass-flat) !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            color: var(--ow-text) !important;
+            font-size: var(--ow-fs-body, 18px) !important;
+            font-weight: 400 !important;
+            white-space: nowrap;
+            scroll-snap-align: start;
+            cursor: pointer;
+        }
+        .omni-tpl-chip::before { content: none !important; }
+        .omni-tpl-chip:hover { transform: none !important; background: var(--ow-hover) !important; }
+        .omni-tpl-chip[aria-pressed="true"] { background: var(--ow-current-bg) !important; border-color: var(--ow-current-border) !important; color: var(--ow-current-text) !important; }
+        .omni-tpl-chip icon { font-size: 22px; cursor: pointer; }
+        .omni-tpl-chip-count {
+            min-width: 32px;
+            padding: 2px 10px;
+            border-radius: var(--ow-radius-pill, 999px);
+            background: var(--ow-hover);
+            color: var(--ow-text-muted);
+            font-size: var(--ow-fs-body, 18px);
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+        .omni-tpl-chip[aria-pressed="true"] .omni-tpl-chip-count { background: rgba(143, 92, 255, 0.28); color: inherit; }
+        .omni-tpl-list { display: grid; gap: 30px; padding-top: 8px; }
+        .omni-tpl-section { display: grid; gap: 14px; }
+        .omni-tpl-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 0 6px; }
+        .omni-tpl-section-head h3 { margin: 0; font-size: var(--ow-fs-section, 28px) !important; font-weight: 300 !important; }
+        .omni-tpl-section-count { color: var(--ow-text-muted); font-size: var(--ow-fs-body, 18px); white-space: nowrap; }
+        .omni-tpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+        .omni-tpl-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 240px); gap: 16px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; scrollbar-width: thin; scrollbar-color: var(--ow-scrollbar) transparent; }
+        .omni-tpl-row > .omni-tpl-card { scroll-snap-align: start; }
+        .omni-tpl-card {
+            display: flex !important;
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 0 !important;
+            min-width: 0;
+            padding: 10px !important;
+            border-radius: var(--ow-radius-md, 28px) !important;
+            border: 1px solid var(--ow-border) !important;
+            background: var(--ow-glass-flat) !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            color: var(--ow-text) !important;
+            text-align: left;
+            cursor: pointer;
+            overflow: hidden;
+            transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease !important;
+        }
+        .omni-tpl-card::before { content: none !important; }
+        .omni-tpl-card:hover,
+        .omni-tpl-card:focus-visible {
+            transform: translateY(-3px) !important;
+            border-color: var(--ow-current-border) !important;
+            background: var(--ow-current-bg) !important;
+            box-shadow: 0 16px 36px rgba(8, 3, 26, 0.28) !important;
+        }
+        .omni-tpl-card:focus-visible { outline: 3px solid var(--ow-accent, #8f5cff) !important; outline-offset: 2px; }
+        .omni-tpl-paper {
+            position: relative;
+            display: block;
+            height: 170px;
+            border-radius: 18px;
+            background: #ffffff;
+            overflow: hidden;
+            box-shadow: inset 0 0 0 1px rgba(29, 36, 51, 0.08);
+            pointer-events: none;
+        }
+        .omni-tpl-paper::after {
+            content: '';
+            position: absolute;
+            inset: auto 0 0 0;
+            height: 44px;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #ffffff);
+        }
+        .omni-tpl-paper-inner {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 760px;
+            padding: 34px 40px;
+            transform: scale(0.3);
+            transform-origin: 0 0;
+            color: #1d2433;
+            font-family: 'Google Sans Flex', system-ui, sans-serif;
+            font-size: 18px;
+            line-height: 1.6;
+            box-sizing: border-box;
+        }
+        .omni-tpl-paper-inner h1 { font-size: 44px; font-weight: 300; margin: 0 0 14px; color: #1d2433; }
+        .omni-tpl-paper-inner h2 { font-size: 30px; font-weight: 300; margin: 18px 0 8px; color: #1d2433; }
+        .omni-tpl-paper-inner h3 { font-size: 24px; font-weight: 400; margin: 14px 0 6px; color: #1d2433; }
+        .omni-tpl-paper-inner p { margin: 0 0 8px; color: #1d2433; }
+        .omni-tpl-paper-inner ul,
+        .omni-tpl-paper-inner ol { margin: 0 0 8px; padding-left: 28px; }
+        .omni-tpl-paper-inner li { min-height: 1.6em; border-bottom: 2px solid #eceaf3; }
+        .omni-tpl-paper-inner table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+        .omni-tpl-paper-inner th,
+        .omni-tpl-paper-inner td { border: 2px solid #dcd7ea; padding: 6px 10px; height: 34px; text-align: left; color: #1d2433; }
+        .omni-tpl-paper-inner th { background: #f2eefc; font-weight: 400; }
+        .omni-tpl-paper-inner img,
+        .omni-tpl-paper-inner video,
+        .omni-tpl-paper-inner iframe { display: none; }
+        .omni-tpl-card.is-blank .omni-tpl-paper { display: grid; place-items: center; background: #ffffff; }
+        .omni-tpl-card.is-blank .omni-tpl-paper icon { font-size: 56px; color: #8f5cff; cursor: pointer; }
+        .omni-tpl-card.is-blank .omni-tpl-paper::after { content: none; }
+        .omni-tpl-meta { display: flex; align-items: center; gap: 12px; padding: 12px 6px 4px; min-width: 0; }
+        .omni-tpl-icon {
+            flex: 0 0 44px;
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--ow-current-bg);
+            color: var(--ow-current-text);
+        }
+        .omni-tpl-icon icon { font-size: 24px; cursor: pointer; }
+        .omni-tpl-text { display: grid; min-width: 0; }
+        .omni-tpl-name,
+        .omni-tpl-cat { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--ow-fs-body, 18px); }
+        .omni-tpl-name { font-weight: 400; }
+        .omni-tpl-cat { color: var(--ow-text-muted); }
+        .omni-tpl-empty {
+            display: grid;
+            justify-items: center;
+            gap: 10px;
+            padding: 48px 20px;
+            border-radius: var(--ow-radius-lg, 36px);
+            border: 1px dashed var(--ow-border);
+            color: var(--ow-text-muted);
+            text-align: center;
+        }
+        .omni-tpl-empty icon { font-size: 48px; cursor: default; }
+        .omni-tpl-empty p { margin: 0; font-size: var(--ow-fs-body, 18px); }
+        body.omni-light-mode .omni-tpl-card:hover,
+        body.omni-light-mode .omni-tpl-card:focus-visible { box-shadow: 0 16px 36px rgba(86, 104, 150, 0.2) !important; }
+        @media (max-width: 760px) {
+            .omni-tpl-hero { flex-wrap: wrap; padding: 20px !important; border-radius: var(--ow-radius-lg, 36px) !important; }
+            .omni-tpl-hero-icon { display: none; }
+            .omni-tpl-hero-text h2 { font-size: var(--ow-fs-section, 28px) !important; }
+            .omni-tpl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+            .omni-tpl-paper { height: 140px; }
+            .omni-tpl-paper-inner { transform: scale(0.24); }
+            .omni-tpl-icon { display: none; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .omni-tpl-card { transition: none !important; }
+            .omni-tpl-card:hover, .omni-tpl-card:focus-visible { transform: none !important; }
+        }
+        body.omni-light-mode .omni-tpl-search input,
+        body.omni-light-mode .omni-tpl-search input:focus { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+
+        /* Checklists in documents (Insert > Checkbox and templates) */
+        :is([contenteditable], .omni-tpl-paper-inner) li:has(> input[type="checkbox"]:first-child) {
+            list-style: none;
+            margin-left: -1.1em;
+        }
+        :is([contenteditable], .omni-tpl-paper-inner) li > input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 22px !important;
+            height: 22px !important;
+            margin: 0 10px 0 0 !important;
+            vertical-align: -4px;
+            border: 2px solid #8f5cff !important;
+            border-radius: 7px !important;
+            background: transparent center / 16px 16px no-repeat !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            min-height: 0 !important;
+            cursor: pointer;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+        :is([contenteditable], .omni-tpl-paper-inner) li > input[type="checkbox"]:checked {
+            background-color: #8f5cff !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6 11-11-1.4-1.4z' fill='%23ffffff'/%3E%3C/svg%3E") !important;
+        }
+        :is([contenteditable], .omni-tpl-paper-inner) li > input[type="checkbox"]:focus-visible {
+            outline: 3px solid rgba(143, 92, 255, 0.45);
+            outline-offset: 2px;
+        }
+        [contenteditable] li:has(> input[type="checkbox"]:first-child:checked) {
+            text-decoration: line-through;
+            opacity: 0.65;
+        }
+
+        /* ── Sidebar navigation rows ───────────────── */
+        body:not(.omni-sidebar-collapsed) :is(#sidebarPriorityNav, #sidebarMainNav) {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 2px;
+            padding: 4px 8px;
+        }
+        body:not(.omni-sidebar-collapsed) #sidebarMainNav:not(:has(> .sidebarnav__item:not([style*="display: none"]))) { display: none; }
+        body:not(.omni-sidebar-collapsed) :is(#sidebarPriorityNav, #sidebarMainNav) > .sidebarnav__item {
+            justify-content: flex-start;
+            min-width: 0;
+            margin: 0;
+            padding: 8px 14px;
+            gap: 12px;
+            min-height: 44px;
+            text-align: start;
+        }
+        :is(#sidebarPriorityNav, #sidebarMainNav) > .mu-btn-ghost::before { content: none; }
+        body:not(.omni-sidebar-collapsed) :is(#sidebarPriorityNav, #sidebarMainNav) .menu-text {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .omni-settings-dialog [data-settings-help] {
+            justify-content: flex-start;
+            align-items: center;
+            text-align: start;
+        }
+
+        /* ── Sidebar: "Files" header with new document, new spreadsheet, and sort ── */
+        .omni-files-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding-right: 8px;
+        }
+        .omni-files-head h4 { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .omni-files-actions { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+        button.omni-files-action {
+            display: grid !important;
+            place-items: center;
+            width: 40px;
+            height: 40px;
+            min-width: 40px !important;
+            min-height: 40px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: 1px solid transparent !important;
+            border-radius: 50% !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            color: var(--ow-icon, currentColor) !important;
+            cursor: pointer;
+        }
+        button.omni-files-action::before { content: none !important; }
+        button.omni-files-action icon { font-size: 22px; cursor: pointer; }
+        button.omni-files-action:hover { background: var(--ow-hover) !important; transform: none !important; }
+        button.omni-files-action:focus-visible { outline: 3px solid var(--ow-accent, #8f5cff) !important; outline-offset: 1px; }
+        button.omni-files-action.is-active { background: var(--ow-current-bg) !important; border-color: var(--ow-current-border) !important; color: var(--ow-current-text) !important; }
+        .omni-files-empty { padding: 8px 12px; margin: 0; opacity: 0.62; font-size: var(--ow-fs-body, 18px); }
+        .omni-files-sort-menu { position: fixed; z-index: 1000002; min-width: 240px; margin: 0; }
+        .omni-files-sort-menu .dropdown-item { font-size: var(--ow-fs-body, 18px); }
+        .omni-files-sort-menu .omni-files-sort-check { margin-left: auto; visibility: hidden; }
+        .omni-files-sort-menu .dropdown-item.is-checked { background: var(--ow-current-bg); }
+        .omni-files-sort-menu .dropdown-item.is-checked .omni-files-sort-check { visibility: visible; }
+        .sheets-file-item.is-current { background: var(--ow-current-bg); border-color: var(--ow-current-border); }
+
+        /* ── Dashboard: recent documents and spreadsheets ──────────────────── */
+        .dashboard-list-item.omni-recent-file { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+        .dashboard-list-item.omni-recent-file > div { flex: 1 1 auto; min-width: 0; }
+        .dashboard-list-item.omni-recent-file strong { font-weight: 400; overflow-wrap: anywhere; }
+        .omni-recent-file-icon { flex: 0 0 auto; color: var(--ow-icon); }
+
+        /* ── Templates: Documents / Spreadsheets switch and spreadsheet previews ── */
+        .omni-tpl-kind { justify-self: start; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+        .omni-tpl-kind::-webkit-scrollbar { display: none; }
+        .omni-tpl-kind button {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 10px;
+            min-height: 48px !important;
+            padding: 0 20px !important;
+            margin: 0 !important;
+            border-radius: var(--ow-radius-pill, 999px) !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            background: transparent !important;
+            color: var(--ow-text-muted) !important;
+            font-size: var(--ow-fs-body, 18px) !important;
+            font-weight: 400 !important;
+            white-space: nowrap;
+            border: 1px solid transparent !important;
+        }
+        .omni-tpl-kind button::before { content: none !important; }
+        .omni-tpl-kind button:hover { background: var(--ow-hover) !important; transform: none !important; }
+        .omni-tpl-kind button[aria-pressed="true"] { background: var(--ow-current-bg) !important; border-color: var(--ow-current-border) !important; color: var(--ow-current-text) !important; }
+        .omni-tpl-kind button icon { font-size: 22px; cursor: pointer; }
+        .omni-tpl-chips[hidden] { display: none !important; }
+        .omni-tpl-paper-inner.omni-tpl-sheet-inner { padding: 24px; }
+        .omni-tpl-paper-inner .sheets-tpl-preview { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; }
+        .omni-tpl-paper-inner .sheets-tpl-preview td {
+            height: 40px;
+            padding: 4px 10px;
+            border: 2px solid #e6e1f1;
+            color: #1d2433;
+            font-size: 20px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ── Sidebar: bottom actions in the same two-column grid; profile spans the row ── */
+        body:not(.omni-sidebar-collapsed) .sidebar__bottom-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px;
+            padding: 0 8px;
+        }
+        body:not(.omni-sidebar-collapsed) .sidebar__bottom-actions > .sidebarnav__item { min-width: 0; margin: 0; }
+        body:not(.omni-sidebar-collapsed) .sidebar__bottom-actions .sidebarnav__item .menu-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        body:not(.omni-sidebar-collapsed) .sidebar__bottom-actions > .workspace-profile-slot { grid-column: 1 / -1; }
+        body:not(.omni-sidebar-collapsed) .sidebar__bottom-actions > [style*="display: none"] { display: none !important; }
+
+.modal .media-insert-modal .media-option-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    margin-top: 16px;
+}
+.modal .media-insert-modal .omni-media-choice {
+    grid-template-columns: 44px minmax(0, 1fr);
+    justify-content: stretch;
+    justify-items: start;
+    text-align: start;
+    white-space: normal;
+    height: auto;
+    min-height: 80px;
+}
+.omni-media-choice .mu-icon-circle { width: 44px; height: 44px; }
+.omni-media-choice .mu-action-card-desc { overflow-wrap: anywhere; }
+#cropContainer {
+    position: relative;
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
+    user-select: none;
+}
+#cropSourceImg { display: block; width: auto; max-width: 100%; max-height: 56dvh; }
+#cropBox {
+    position: absolute;
+    border: 2px solid var(--mu-accent);
+    cursor: move;
+    touch-action: none;
+}
+.omni-crop-handle {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--mu-accent);
+    border-radius: 50%;
+    background: var(--mu-paper);
+    transform: translate(-50%, -50%);
+}
+.omni-crop-handle:is([data-edge="nw"], [data-edge="w"], [data-edge="sw"]) { left: 0; }
+.omni-crop-handle:is([data-edge="ne"], [data-edge="e"], [data-edge="se"]) { left: 100%; }
+.omni-crop-handle:is([data-edge="n"], [data-edge="s"]) { left: 50%; cursor: ns-resize; }
+.omni-crop-handle:is([data-edge="nw"], [data-edge="n"], [data-edge="ne"]) { top: 0; }
+.omni-crop-handle:is([data-edge="sw"], [data-edge="s"], [data-edge="se"]) { top: 100%; }
+.omni-crop-handle:is([data-edge="w"], [data-edge="e"]) { top: 50%; cursor: ew-resize; }
+.omni-crop-handle:is([data-edge="nw"], [data-edge="se"]) { cursor: nwse-resize; }
+.omni-crop-handle:is([data-edge="sw"], [data-edge="ne"]) { cursor: nesw-resize; }
+::highlight(omni-misspelled) { text-decoration: underline wavy #e45c72; }
+::highlight(omni-grammar) { text-decoration: underline wavy #4b94ed; }
+
+.omni-document-context.mu-menu-context { z-index: 1000001; }
+.omni-img-toolbar.mu-glass { background: rgba(28, 15, 67, 0.50) !important; }
+[data-mu-theme="light"] .omni-img-toolbar.mu-glass { background: rgba(255, 255, 255, 0.50) !important; }
+
+/* Apply v4 weights to legacy interface markup while preserving authored formatting. */
+:where(body, body *):not(:where(
+    :is(.editor-surface, .doc-header-bar, .doc-footer-bar, #documentText,
+        .omni-preview-page, #versionPreviewContent, .omni-tpl-paper-inner,
+        .sheets-cell, .sheets-preview, .sheets-print-area, .sheets-tpl-preview),
+    :is(.editor-surface, .doc-header-bar, .doc-footer-bar, #documentText,
+        .omni-preview-page, #versionPreviewContent, .omni-tpl-paper-inner,
+        .sheets-cell, .sheets-preview, .sheets-print-area, .sheets-tpl-preview) *
+)) {
+    font-weight: var(--omni-ui-font-weight, 400) !important;
+}
+:where(h1, h2, h3, h4, h5, h6, .mu-h-display, .mu-h-section, .mu-h-title) {
+    --omni-ui-font-weight: 300;
+}
+
+.omni-dictionary .mu-tabs { flex-wrap: wrap; margin-bottom: 12px; }
+.omni-dictionary form { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; }
+.omni-dictionary form .mu-field { flex: 1 1 180px; min-inline-size: 0; }
+.omni-dictionary .mu-group { margin-block: 12px; }
+.omni-dictionary .mu-row-info { overflow-wrap: anywhere; }
+.omni-dictionary .mu-pagination { display: flex; justify-content: space-between; }
+.omni-dictionary [hidden] { display: none !important; }

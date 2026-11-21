@@ -1,0 +1,133 @@
+﻿.signin-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh;
+    background: radial-gradient(ellipse at 15% 18%, rgba(136, 73, 247, 0.23), transparent 48%),
+        radial-gradient(ellipse at 94% 100%, rgba(116, 59, 226, 0.22), transparent 44%),
+        var(--mu-bg);
+    background-attachment: scroll;
+}
+.signin-page [hidden] { display: none !important; }
+
+.signin-topbar {
+    position: sticky;
+    inset-block-start: 12px;
+    z-index: 2;
+    width: min(1088px, 100% - 32px);
+    margin: 12px auto 0;
+    gap: 8px;
+}
+.signin-topbar .mu-capsule,
+.signin-topbar .mu-capsule-btn { height: var(--mu-control-lg); }
+.signin-topbar .mu-capsule-btn { width: var(--mu-control-lg); flex-basis: var(--mu-control-lg); }
+.signin-title-capsule { min-width: 0; padding-inline-start: 12px; }
+.signin-title-capsule .mu-topbar-title { padding-inline: 6px 14px; }
+.signin-brand-logo { flex: 0 0 auto; border-radius: 12px; }
+.signin-theme { margin-inline-start: auto; padding-inline: 3px; }
+
+.signin-main {
+    flex: 1 1 auto;
+    display: grid;
+    align-content: safe center;
+    width: min(1120px, 100%);
+    margin-inline: auto;
+    padding: clamp(20px, 5vw, 56px) 16px 32px;
+    gap: 18px;
+}
+.signin-card {
+    display: grid;
+    grid-template-areas: "actions" "context";
+    padding: 0;
+    border-radius: clamp(28px, 4vw, var(--mu-radius-xl));
+}
+.signin-actions,
+.signin-context {
+    min-width: 0;
+    padding: clamp(18px, 4vw, 56px);
+}
+.signin-actions {
+    grid-area: actions;
+    display: grid;
+    align-content: center;
+}
+.signin-context {
+    grid-area: context;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: clamp(24px, 5vw, 64px);
+    border-block-start: 1px solid var(--mu-border);
+    border-end-start-radius: inherit;
+    border-end-end-radius: inherit;
+    background: radial-gradient(ellipse at top left, rgba(143, 92, 255, 0.24), transparent 78%),
+        color-mix(in srgb, var(--mu-accent) 9%, transparent);
+}
+[dir="rtl"] .signin-context {
+    background: radial-gradient(ellipse at top right, rgba(143, 92, 255, 0.24), transparent 78%),
+        color-mix(in srgb, var(--mu-accent) 9%, transparent);
+}
+.signin-brand { display: grid; justify-items: start; gap: 12px; }
+.signin-brand-mark {
+    width: 64px;
+    height: 64px;
+    margin-block-end: 6px;
+    border: 1px solid var(--mu-current-border);
+}
+.signin-brand-mark .mu-icon { font-size: 36px; }
+.signin-brand h2 { font-size: clamp(32px, 4.3vw, var(--mu-fs-hero)); }
+.signin-brand p { margin: 0; }
+.signin-products { margin-block-start: 8px; }
+.signin-products img { border-radius: 6px; }
+.signin-context .mu-alert { overflow-wrap: anywhere; }
+
+.signin-body, .signin-form, .signin-session { display: grid; gap: 20px; min-width: 0; }
+.signin-actions h1 { overflow-wrap: anywhere; }
+.signin-actions .mu-btn-primary { --mu-accent: #7540e8; }
+.signin-mode { display: flex; }
+.signin-mode button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 6px clamp(8px, 1.6vw, 20px);
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+.signin-error { color: var(--mu-danger); }
+.signin-form[aria-busy="true"] .signin-arrow { display: none; }
+.signin-head { display: flex; align-items: center; gap: 16px; }
+.signin-head .mu-icon-circle { flex-shrink: 0; }
+.signin-session .mu-status { justify-self: start; max-width: 100%; overflow-wrap: anywhere; }
+
+.signin-settings {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px 12px;
+}
+.signin-row-control { flex: 0 1 240px; min-width: 0; max-width: 100%; }
+
+[dir="rtl"] #backLink > .mu-icon, [dir="rtl"] .signin-arrow { transform: scaleX(-1); }
+
+@media (min-width: 760px) {
+    .signin-card {
+        grid-template-areas: "context actions";
+        grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+        min-height: 500px;
+    }
+    .signin-context {
+        border-block-start: 0;
+        border-inline-end: 1px solid var(--mu-border);
+        border-start-start-radius: inherit;
+        border-end-end-radius: 0;
+    }
+}
+
+@media (max-width: 420px) {
+    .signin-topbar { gap: 6px; }
+    .signin-topbar .mu-capsule,
+    .signin-topbar .mu-capsule-btn { height: var(--mu-control); }
+    .signin-topbar .mu-capsule-btn { width: var(--mu-control); flex-basis: var(--mu-control); }
+    .signin-theme .mu-icon-btn { width: 40px; height: 40px; }
+    .signin-settings { justify-content: flex-start; }
+    .signin-row-control { flex: 1 1 160px; max-width: 240px; }
+}

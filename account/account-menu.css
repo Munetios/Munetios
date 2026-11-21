@@ -1,0 +1,86 @@
+/* Munetios account button + menu (Munetios UI v4 tokens). Text 18px+, weight 300/400. */
+[data-munetios-account] { display: inline-flex; align-items: center; flex: 0 0 auto; }
+/* Page styles give the sign-in link display:inline-flex; signed in, it must stay hidden. */
+[data-munetios-account] .account-sign-in[hidden] { display: none !important; }
+.mu-account-trigger {
+    position: relative; display: inline-grid; place-items: center; width: 48px; height: 48px; padding: 0;
+    border: 0; border-radius: 50%; background: transparent; cursor: pointer; color: inherit;
+}
+.mu-account-trigger:hover { background: var(--mu-hover); }
+.mu-account-trigger:focus-visible { outline: 3px solid var(--mu-accent); outline-offset: 2px; }
+.mu-account-avatar {
+    display: inline-grid; place-items: center; flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--mu-accent), color-mix(in srgb, var(--mu-accent) 45%, #4d8bff));
+    color: #ffffff; font-family: 'Google Sans Flex', system-ui, sans-serif; font-feature-settings: 'ss01' 1;
+    font-size: 18px; font-weight: 400; line-height: 1;
+}
+.mu-account-avatar.is-lg { width: 56px; height: 56px; font-size: 26px; }
+[data-munetios-account][hidden] { display: none !important; }
+.mu-account-avatar { overflow: hidden; }
+.mu-account-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+body.omni-account-signed-in #workspaceProfileSlot { display: none !important; }
+body.omni-account-signed-in .navbar [data-munetios-account] { display: none !important; }
+#omniAccountProfileSlot { grid-column: 1 / -1; width: 100%; min-width: 0; order: 1000; }
+#omniAccountProfileSlot .mu-account-trigger { display: flex; justify-content: flex-start; gap: 12px; width: 100%; min-width: 0; height: auto; min-height: 58px; padding: 8px 12px; border-radius: var(--mu-radius-pill); }
+#omniAccountProfileSlot .mu-account-trigger > .mu-icon { flex: 0 0 22px; width: 22px; overflow: hidden; }
+.mu-account-sidebar-name { flex: 1; min-width: 0; white-space: normal; overflow-wrap: anywhere; text-align: start; font: 400 18px/1.4 'Google Sans Flex',sans-serif; font-feature-settings: 'ss01' 1; }
+body.omni-sidebar-collapsed #omniAccountProfileSlot .mu-account-trigger { justify-content: center; min-height: 48px; padding: 4px; gap: 0; }
+body.omni-sidebar-collapsed #omniAccountProfileSlot :is(.mu-account-sidebar-name, .mu-account-trigger > .mu-icon) { display: none; }
+
+.mu-account-menu { z-index: 2147482000; padding: 10px; font-family: 'Google Sans Flex', system-ui, sans-serif; font-feature-settings: 'ss01' 1; font-size: 18px; font-weight: 400; }
+.mu-account-menu .mu-icon { font-family: 'Material Symbols Rounded' !important; }
+.mu-account-head { display: grid; grid-template-columns: 56px minmax(0, 1fr); align-items: center; gap: 14px; padding: 8px 10px 14px; }
+.mu-account-who { display: grid; min-width: 0; }
+.mu-account-name { font-size: 22px; font-weight: 300; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mu-account-email { color: var(--mu-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mu-account-status {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0 2px 6px; padding: 12px 16px;
+    border: 1px solid var(--mu-border); border-radius: var(--mu-radius-md); background: var(--mu-glass-flat);
+}
+.mu-account-status > .mu-icon { font-size: 26px; color: var(--mu-success); }
+.mu-account-status.is-error > .mu-icon { color: var(--mu-danger); }
+.mu-account-status.is-locked > .mu-icon { color: var(--mu-warning); }
+.mu-account-status.is-syncing > .mu-icon { color: var(--mu-accent); }
+.mu-account-status-text { display: grid; gap: 2px; flex: 1 1 180px; min-width: 0; }
+.mu-account-status-sub { display: inline-flex; align-items: center; gap: 6px; color: var(--mu-text-muted); }
+.mu-account-status-sub .mu-icon { font-size: 18px; }
+.mu-account-unlock { flex: 1 1 100%; }
+.mu-account-menu .mu-menu-item { min-height: 52px; font-size: 18px; }
+.mu-account-item-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: start; }
+.mu-account-chevron { margin-inline-start: auto; }
+.mu-account-sub { display: grid; gap: 2px; margin: 2px 0 6px; padding-inline-start: 18px; }
+.mu-account-sub .mu-account-avatar { width: 32px; height: 32px; font-size: 18px; }
+.mu-account-ws-initial {
+    display: inline-grid; place-items: center; flex: 0 0 auto; width: 32px; height: 32px; border-radius: 10px;
+    background: var(--mu-current-bg); color: var(--mu-current-text); font-size: 18px;
+}
+.mu-account-empty { margin: 4px 0 8px; padding: 0 18px; color: var(--mu-text-muted); }
+.mu-account-dialog-text { margin: 0; }
+.mu-account-dialog-error { margin: 0; color: var(--mu-danger); }
+.mu-account-dialog-error[hidden] { display: none; }
+
+/* ==== Redesign: header card + OmniWrite-style rows (v4 tokens) ==== */
+.mu-account-menu { padding: 12px; border-radius: var(--mu-radius-xl) !important; }
+.mu-account-head {
+    grid-template-columns: 64px minmax(0, 1fr); gap: 14px 16px; margin: 0 0 10px; padding: 18px;
+    border: 1px solid var(--mu-current-border); border-radius: var(--mu-radius-lg);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--mu-accent) 22%, transparent), color-mix(in srgb, var(--mu-accent) 6%, transparent));
+}
+.mu-account-head .mu-account-avatar.is-lg { width: 64px; height: 64px; font-size: 28px; box-shadow: 0 8px 22px color-mix(in srgb, var(--mu-accent) 30%, transparent); }
+.mu-account-head .mu-account-name { font-size: 24px; }
+.mu-account-manage { grid-column: 1 / -1; justify-content: center; width: 100%; background: var(--mu-field); }
+.mu-account-manage .mu-icon { font-size: 22px; }
+.mu-account-status { margin: 0 0 8px; border-radius: var(--mu-radius-lg); }
+.mu-account-menu .mu-menu-item { min-height: 56px; gap: 16px; padding: 0 18px; border-radius: var(--mu-radius-pill); }
+.mu-account-menu .mu-menu-item > .mu-icon:first-child { font-size: 26px; color: var(--mu-icon); }
+.mu-account-menu .mu-menu-item[aria-expanded="true"] { background: var(--mu-hover); }
+.mu-account-menu .mu-menu-item.is-selected { background: var(--mu-current-bg); color: var(--mu-current-text); box-shadow: inset 0 0 0 1px var(--mu-current-border); }
+.mu-account-sub { margin: 4px 0 8px; padding: 6px; padding-inline-start: 6px; border-radius: var(--mu-radius-lg); background: var(--mu-glass-flat); border: 1px solid var(--mu-divider); }
+.mu-account-sub .mu-menu-item { min-height: 52px; }
+.mu-account-signout { color: var(--mu-danger) !important; }
+.mu-account-signout > .mu-icon:first-child { color: var(--mu-danger) !important; }
+.mu-account-signout:hover { background: color-mix(in srgb, var(--mu-danger) 10%, transparent) !important; }
+
+/* OmniWrite gives buttons a heavier weight; menu text stays 400 (headings 300) */
+.mu-account-menu :is(.mu-menu-item, .mu-menu-item *, .mu-account-manage, .mu-account-manage *, .mu-account-email, .mu-account-status-text, .mu-account-status-text *) { font-weight: 400 !important; }
+.mu-account-menu .mu-account-name { font-weight: 300 !important; }

@@ -1,0 +1,839 @@
+/*
+ * OmniWrite Sheets
+ * Builds on OmniWrite's own stylesheet (../omniwrite.css) and its --ow-* tokens, so the
+ * shell (sidebar, navbar, toolbar, dropdowns, modals) is the exact OmniWrite UI.
+ * Only spreadsheet-specific parts live here. Text 18px–48px, weights 300/400,
+ * glass alpha 0.01–0.50, backdrop blur 2px max.
+ */
+.omni-sheets {
+    --sh-accent: var(--ow-accent, #8f5cff);
+    --sh-paper: #ffffff;
+    --sh-ink: #1d2433;
+    --sh-ink-muted: rgba(29, 36, 51, 0.62);
+    --sh-grid: #e6e1f1;
+    --sh-header-bg: #f5f2fc;
+    --sh-header-ink: #4b4569;
+    --sh-header-active: rgba(143, 92, 255, 0.16);
+    --sh-header-active-ink: #4c1fc7;
+    --sh-select-fill: rgba(143, 92, 255, 0.10);
+    --sh-row-h: 36px;
+    --sh-header-w: 64px;
+    --sh-header-h: 36px;
+}
+
+/* Material Symbols must keep ligatures even though the app turns them off for text. */
+.omni-sheets icon,
+.omni-sheets .sheets-check,
+.omni-sheets .sheets-dd-arrow { font-feature-settings: 'liga' 1 !important; }
+
+/* ---------------------------------------------------------------- pages */
+.sheets-page-pill { padding: 12px 18px; font-size: 18px; border-radius: 999px; }
+.sheets-page-hero { margin-bottom: 18px; }
+.sheets-navbar-actions { padding: 11px 16px; display: flex; align-items: center; gap: 14px; }
+
+.sheets-template-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    padding-bottom: 32px;
+}
+.sheets-template-card {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+    text-align: left;
+    padding: 22px;
+    border-radius: var(--ow-radius-md, 28px);
+    border: 1px solid var(--ow-border);
+    background: var(--ow-glass);
+    color: inherit;
+    cursor: pointer;
+    font-size: 18px;
+    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+.sheets-template-card:hover,
+.sheets-template-card:focus-visible {
+    transform: translateY(-2px);
+    border-color: var(--ow-current-border);
+    background: var(--ow-current-bg);
+}
+.sheets-template-card icon {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(143, 92, 255, 0.22);
+    font-size: 28px;
+}
+.sheets-template-card .sheets-template-title { font-size: 22px; font-weight: 400; }
+.sheets-template-card .sheets-template-desc { font-size: 18px; opacity: 0.75; line-height: 1.4; }
+
+.sheets-trash-list { display: grid; gap: 12px; padding-bottom: 32px; }
+.sheets-trash-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: var(--ow-radius-sm, 22px);
+    border: 1px solid var(--ow-border);
+    background: var(--ow-glass-flat);
+    font-size: 18px;
+}
+.sheets-trash-item .sheets-trash-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheets-trash-item .sheets-trash-date { opacity: 0.7; white-space: nowrap; }
+.sheets-empty {
+    padding: 28px;
+    text-align: center;
+    font-size: 18px;
+    opacity: 0.72;
+    border-radius: var(--ow-radius-md, 28px);
+    border: 1px dashed var(--ow-border);
+}
+.dashboard-list-item.sheets-recent-item { cursor: pointer; display: flex; align-items: center; gap: 12px; }
+.dashboard-list-item.sheets-recent-item small { font-size: 18px; }
+
+/* ---------------------------------------------------------------- toolbar */
+.omni-sheets .toolbar-item.is-active {
+    background: var(--ow-current-bg);
+    box-shadow: inset 0 0 0 1px var(--ow-current-border);
+}
+.omni-sheets .toolbar-item.is-disabled { opacity: 0.4; pointer-events: none; }
+.omni-sheets #shFontSizeDisplay,
+.omni-sheets #shDocumentZoomDisplay,
+.omni-sheets #shNumberFormatText { font-size: 18px; }
+.omni-sheets #shNumberFormatText { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+.omni-sheets #shFontFamilyText { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheets-color-bar {
+    position: absolute;
+    left: 22%;
+    right: 22%;
+    bottom: 3px;
+    height: 4px;
+    border-radius: 999px;
+    background: currentColor;
+    pointer-events: none;
+}
+#shFillColorBar { background: transparent; box-shadow: inset 0 0 0 1px var(--ow-border); }
+
+/* ---------------------------------------------------------------- editor layout */
+.omni-sheets #sheetEditorApp .editor-content-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+}
+.sheets-editor-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 320px;
+    height: calc(100dvh - 210px);
+}
+
+.sheets-formula-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    flex: 0 0 auto;
+    min-width: 0;
+}
+.omni-sheets .sheets-formula-bar input {
+    height: 44px;
+    min-height: 44px;
+    border-radius: 999px;
+    font-size: 18px;
+    font-weight: 400;
+    padding: 0 16px;
+    margin: 0;
+    box-sizing: border-box;
+}
+.omni-sheets .sheets-name-box { width: 120px; flex: 0 0 120px; text-align: center; font-family: 'Google Sans Code', 'Google Sans Flex', monospace; }
+.omni-sheets .sheets-formula-input { flex: 1 1 auto; min-width: 0; font-family: 'Google Sans Code', 'Google Sans Flex', monospace; }
+.sheets-fx { font-size: 26px; opacity: 0.75; cursor: default; flex: 0 0 auto; }
+.sheets-fx:hover { text-shadow: none; }
+
+/* ---------------------------------------------------------------- grid */
+.sheets-grid-card {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--sh-paper);
+    color: var(--sh-ink);
+    box-shadow: 0 18px 48px rgba(8, 3, 26, 0.22);
+    font-size: 18px;
+    font-weight: 400;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.sheets-corner {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--sh-header-w);
+    height: var(--sh-header-h);
+    background: var(--sh-header-bg);
+    border-right: 1px solid var(--sh-grid);
+    border-bottom: 1px solid var(--sh-grid);
+    z-index: 4;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+.sheets-corner::after {
+    content: '';
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    border: 8px solid transparent;
+    border-right-color: rgba(75, 69, 105, 0.35);
+    border-bottom-color: rgba(75, 69, 105, 0.35);
+}
+.sheets-col-headers,
+.sheets-row-headers {
+    position: absolute;
+    overflow: hidden;
+    background: var(--sh-header-bg);
+    z-index: 3;
+}
+.sheets-col-headers { left: var(--sh-header-w); top: 0; right: 0; height: var(--sh-header-h); border-bottom: 1px solid var(--sh-grid); box-sizing: border-box; }
+.sheets-row-headers { left: 0; top: var(--sh-header-h); bottom: 0; width: var(--sh-header-w); border-right: 1px solid var(--sh-grid); box-sizing: border-box; }
+.sheets-header-inner { position: absolute; left: 0; top: 0; will-change: transform; }
+.sheets-hcell {
+    position: absolute;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--sh-header-ink);
+    font-size: 18px;
+    font-weight: 400;
+    border-right: 1px solid var(--sh-grid);
+    border-bottom: 1px solid var(--sh-grid);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.sheets-row-headers .sheets-hcell { border-right: 0; width: var(--sh-header-w); }
+.sheets-col-headers .sheets-hcell { border-bottom: 0; height: var(--sh-header-h); }
+.sheets-hcell.is-active { background: var(--sh-header-active); color: var(--sh-header-active-ink); }
+.sheets-hcell.is-full { background: var(--sh-accent); color: #ffffff; }
+.sheets-resizer { position: absolute; z-index: 2; touch-action: none; }
+.sheets-col-headers .sheets-resizer { top: 0; width: 10px; height: var(--sh-header-h); margin-left: -5px; cursor: col-resize; }
+.sheets-row-headers .sheets-resizer { left: 0; height: 10px; width: var(--sh-header-w); margin-top: -5px; cursor: row-resize; }
+.sheets-resizer:hover { background: rgba(143, 92, 255, 0.45); border-radius: 999px; }
+.sheets-resize-guide { position: absolute; z-index: 10; pointer-events: none; background: var(--sh-accent); }
+.sheets-resize-guide[data-axis="col"] { top: 0; bottom: 0; width: 2px; }
+.sheets-resize-guide[data-axis="row"] { left: 0; right: 0; height: 2px; }
+
+.sheets-viewport {
+    position: absolute;
+    left: var(--sh-header-w);
+    top: var(--sh-header-h);
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+    overflow-anchor: none;
+    outline: none;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(29, 36, 51, 0.28) transparent;
+}
+.sheets-viewport:focus-visible { box-shadow: inset 0 0 0 2px rgba(143, 92, 255, 0.4); }
+.sheets-canvas { position: relative; transform-origin: 0 0; }
+.sheets-cells { position: absolute; left: 0; top: 0; }
+.sheets-cell {
+    position: absolute;
+    box-sizing: border-box;
+    border-right: 1px solid var(--sh-grid);
+    border-bottom: 1px solid var(--sh-grid);
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: pre;
+    color: var(--sh-ink);
+    font-size: 18px;
+    line-height: 1.25;
+    background-clip: padding-box;
+}
+.sheets-cell.is-spill { overflow: visible; z-index: 1; border-right-color: transparent; }
+.sheets-cell.is-wrap { white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
+.sheets-cell .sheets-text { min-width: 0; overflow: hidden; text-overflow: clip; flex: 1 1 auto; }
+.sheets-cell.is-spill .sheets-text { overflow: visible; }
+.sheets-cell.va-top { align-items: flex-start; padding-top: 6px; }
+.sheets-cell.va-bottom { align-items: flex-end; padding-bottom: 6px; }
+.sheets-cell.ha-left .sheets-text { text-align: left; }
+.sheets-cell.ha-center .sheets-text { text-align: center; }
+.sheets-cell.ha-right .sheets-text { text-align: right; }
+.sheets-cell.is-error .sheets-text { color: #c62828; }
+.sheets-cell.is-link .sheets-text { color: #4c1fc7; text-decoration: underline; }
+.sheets-cell.has-note::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    border: 6px solid transparent;
+    border-top-color: #f59e0b;
+    border-right-color: #f59e0b;
+}
+.sheets-cell.is-merged { z-index: 1; background-color: var(--sh-paper); }
+.sheets-check {
+    width: 24px;
+    height: 24px;
+    margin: 0 auto;
+    border-radius: 7px;
+    border: 2px solid rgba(29, 36, 51, 0.5);
+    display: grid;
+    place-items: center;
+    font-family: 'Material Symbols Rounded';
+    font-size: 20px;
+    color: transparent;
+    cursor: pointer;
+    flex: 0 0 auto;
+    background: #ffffff;
+}
+.sheets-check.is-checked { background: var(--sh-accent); border-color: var(--sh-accent); color: #ffffff; }
+.sheets-dd-chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    gap: 4px;
+    padding: 2px 4px 2px 12px;
+    border-radius: 999px;
+    background: rgba(143, 92, 255, 0.12);
+    color: #3b1a99;
+    overflow: hidden;
+}
+.sheets-dd-chip .sheets-text { overflow: hidden; text-overflow: ellipsis; }
+.sheets-dd-arrow { font-family: 'Material Symbols Rounded'; font-size: 22px; cursor: pointer; flex: 0 0 auto; }
+
+/* Selection layers */
+.sheets-selection,
+.sheets-active-cell,
+.sheets-fill-preview {
+    position: absolute;
+    pointer-events: none;
+    box-sizing: border-box;
+    display: none;
+    z-index: 3;
+}
+.sheets-selection { background: var(--sh-select-fill); border: 1px solid var(--sh-accent); }
+.sheets-active-cell { border: 2px solid var(--sh-accent); border-radius: 2px; z-index: 4; }
+.sheets-fill-preview { border: 2px dashed var(--sh-accent); z-index: 4; }
+.sheets-fill-handle {
+    position: absolute;
+    right: -6px;
+    bottom: -6px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--sh-accent);
+    border: 2px solid #ffffff;
+    pointer-events: auto;
+    cursor: crosshair;
+    box-sizing: border-box;
+}
+.sheets-ref-layer { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 3; }
+.sheets-ref-box { position: absolute; box-sizing: border-box; border: 2px dashed; border-radius: 2px; }
+
+.omni-sheets .sheets-cell-editor {
+    position: absolute;
+    display: none;
+    z-index: 6;
+    margin: 0;
+    padding: 0 8px;
+    box-sizing: border-box;
+    border: 2px solid var(--sh-accent);
+    border-radius: 2px;
+    background: #ffffff;
+    color: var(--sh-ink);
+    font-size: 18px;
+    line-height: 1.25;
+    resize: none;
+    overflow: hidden;
+    white-space: pre;
+    outline: none;
+    box-shadow: 0 6px 22px rgba(29, 36, 51, 0.18);
+    min-height: 0;
+    font-weight: 400;
+    user-select: text;
+    -webkit-user-select: text;
+}
+/* OmniWrite styles every textarea as a rounded field; the cell editor must look like the cell. */
+.omni-sheets textarea.sheets-cell-editor,
+.omni-sheets textarea.sheets-cell-editor:focus,
+.omni-sheets textarea.sheets-cell-editor:focus-visible {
+    border: 2px solid var(--sh-accent) !important;
+    border-radius: 2px !important;
+    min-height: 0;
+    padding: 0 8px !important;
+    margin: 0 !important;
+    outline: none !important;
+    background: #ffffff !important;
+    color: var(--sh-ink);
+    box-shadow: 0 6px 22px rgba(29, 36, 51, 0.18) !important;
+    transition: none !important;
+    resize: none !important;
+}
+
+.sheets-link-chip {
+    position: absolute;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    z-index: 7;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 18px;
+    max-width: 420px;
+    color: var(--sh-ink);
+    background: rgba(255, 255, 255, 0.50) !important;
+    box-shadow: 0 10px 28px rgba(29, 36, 51, 0.18) !important;
+}
+.sheets-link-chip a { color: #4c1fc7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheets-link-chip icon { font-size: 22px; }
+
+.sheets-add-rows {
+    position: absolute;
+    left: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--sh-grid);
+    background: var(--sh-header-bg);
+    color: var(--sh-header-ink);
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 2;
+}
+.omni-sheets .sheets-add-rows { color: var(--sh-header-ink) !important; }
+.sheets-add-rows icon { font-size: 22px; }
+
+/* Charts float over the grid and scroll with it. */
+.sheets-charts-layer { position: absolute; left: 0; top: 0; z-index: 5; }
+.sheets-chart {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    color: var(--sh-ink);
+    border: 1px solid var(--sh-grid);
+    border-radius: 16px;
+    box-shadow: 0 14px 36px rgba(29, 36, 51, 0.16);
+    overflow: hidden;
+    user-select: none;
+}
+.sheets-chart.is-selected { box-shadow: 0 0 0 2px var(--sh-accent), 0 14px 36px rgba(29, 36, 51, 0.2); }
+.sheets-chart-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 8px 0 16px;
+    cursor: grab;
+    flex: 0 0 auto;
+}
+.sheets-chart-head:active { cursor: grabbing; }
+.sheets-chart-title { flex: 1; min-width: 0; font-size: 20px; font-weight: 300; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheets-chart-head icon {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 22px;
+    color: var(--sh-header-ink);
+}
+.sheets-chart-head icon:hover { background: rgba(143, 92, 255, 0.12); text-shadow: none; }
+.sheets-chart-body { position: relative; flex: 1 1 auto; min-height: 0; padding: 4px 12px 12px; }
+.sheets-chart-body canvas { width: 100% !important; height: 100% !important; }
+.sheets-chart-empty { display: grid; place-items: center; height: 100%; font-size: 18px; color: var(--sh-ink-muted); text-align: center; padding: 12px; }
+.sheets-chart-resize {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 22px;
+    height: 22px;
+    cursor: nwse-resize;
+    border-right: 3px solid rgba(143, 92, 255, 0.5);
+    border-bottom: 3px solid rgba(143, 92, 255, 0.5);
+    border-radius: 0 0 10px 0;
+}
+
+/* ---------------------------------------------------------------- sheet tabs */
+.sheets-tabs-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    border-radius: 999px;
+    flex: 0 0 auto;
+    min-width: 0;
+}
+.sheets-tab-icon {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    display: grid !important;
+    place-items: center;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+.sheets-tab-icon icon { font-size: 24px; }
+.sheets-tab-icon:hover { background: var(--ow-hover) !important; }
+.sheets-tabs {
+    display: flex;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.sheets-tabs::-webkit-scrollbar { display: none; }
+.sheets-tab {
+    position: relative;
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0 20px !important;
+    border-radius: 999px !important;
+    font-size: 18px !important;
+    font-weight: 400;
+    white-space: nowrap;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+    cursor: pointer;
+}
+.sheets-tab:hover { background: var(--ow-hover) !important; }
+.sheets-tab.is-active { background: var(--ow-current-bg) !important; border-color: var(--ow-current-border) !important; }
+.sheets-tab .sheets-tab-color {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 4px;
+    height: 4px;
+    border-radius: 999px;
+}
+.sheets-tab-rename {
+    min-height: 40px !important;
+    height: 40px;
+    width: 180px;
+    border-radius: 999px !important;
+    font-size: 18px !important;
+    padding: 0 14px !important;
+}
+.sheets-stats {
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 0 14px;
+    font-size: 18px;
+    opacity: 0.85;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---------------------------------------------------------------- split screen (topbar Split Screen) */
+.sheets-split-row { display: flex; flex: 1 1 auto; min-height: 0; gap: 0; }
+.sheets-split-row > .sheets-grid-card { flex: 1 1 0; min-width: 0; }
+.sheets-split-divider {
+    flex: 0 0 14px;
+    cursor: col-resize;
+    display: grid;
+    place-items: center;
+    touch-action: none;
+}
+.sheets-split-divider::before { content: ''; width: 4px; height: 56px; border-radius: 999px; background: var(--ow-border); transition: background-color 0.15s ease; }
+.sheets-split-divider:hover::before,
+.sheets-split-divider.dragging::before,
+.sheets-split-divider:focus-visible::before { background: var(--sh-accent); }
+.sheets-split-divider:focus-visible { outline: none; }
+.sheets-split-divider[hidden], .sheets-split-pane[hidden] { display: none !important; }
+.sheets-split-pane {
+    flex: 0 0 min(46%, 640px);
+    min-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border-radius: var(--ow-radius-lg, 36px);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+.sheets-split-head { display: flex; align-items: center; gap: 10px; padding: 0 4px 0 10px; min-height: 48px; }
+.sheets-split-head icon { font-size: 24px; flex: 0 0 auto; }
+.sheets-split-title { flex: 1 1 auto; min-width: 0; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheets-split-tabs { align-self: flex-start; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.sheets-split-tabs button { white-space: nowrap; font-size: 18px; }
+.sheets-split-doc,
+.sheets-split-sheet {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    border-radius: 24px;
+    background: var(--sh-paper);
+    color: var(--sh-ink);
+    box-sizing: border-box;
+}
+.sheets-split-doc { padding: 28px 32px; font-size: 18px; line-height: 1.6; outline: none; overflow-wrap: anywhere; }
+.sheets-split-doc:focus-visible { box-shadow: inset 0 0 0 3px rgba(143, 92, 255, 0.45); }
+.sheets-split-doc :is(h1, h2, h3) { font-weight: 300; }
+.sheets-split-doc img, .sheets-split-doc video { max-width: 100%; height: auto; }
+.sheets-split-sheet { padding: 0; }
+.sheets-split-sheet:focus-visible { outline: 3px solid rgba(143, 92, 255, 0.45); outline-offset: -3px; }
+.sheets-split-empty { padding: 16px; margin: 0; color: var(--sh-ink-muted); font-size: 18px; }
+.sheets-split-grid { border-collapse: separate; border-spacing: 0; font-size: 18px; color: var(--sh-ink); }
+.sheets-split-grid :is(th, td) { height: 34px; padding: 4px 10px; border-right: 1px solid var(--sh-grid); border-bottom: 1px solid var(--sh-grid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
+.sheets-split-grid th { position: sticky; background: var(--sh-header-bg); color: var(--sh-header-ink); font-weight: 400; text-align: center; z-index: 1; }
+.sheets-split-grid thead th { top: 0; }
+.sheets-split-grid tbody th { left: 0; min-width: 52px; }
+.sheets-split-grid .sheets-split-corner { left: 0; z-index: 2; min-width: 52px; }
+.sheets-split-foot { flex: 0 0 auto; padding: 0 12px; font-size: 18px; opacity: 0.72; }
+.sheets-split-search { margin: 4px 0 12px; }
+.sheets-split-group { margin-top: 6px; }
+.sheets-split-head .mu-icon-btn { flex: 0 0 auto; }
+/* Split Screen: editable spreadsheet grid */
+.sheets-split-grid td { cursor: cell; position: relative; }
+.sheets-split-grid td.is-selected { box-shadow: inset 0 0 0 2px var(--sh-accent); background-color: var(--sh-select-fill); }
+.sheets-split-sheet:focus { outline: none; }
+.sheets-split-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 4px 10px;
+    border: 0;
+    border-radius: 2px;
+    outline: 2px solid var(--sh-accent);
+    background: #ffffff;
+    color: var(--sh-ink);
+    font: inherit;
+    font-size: 18px;
+}
+/* Lock with "Prevent Viewing": cells stay hidden until the spreadsheet is unlocked */
+.sheets-editor-shell { position: relative; }
+.sheets-lock-hidden > :not(.sheets-lock-overlay) { visibility: hidden; }
+.sheets-lock-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 14px;
+    padding: 24px;
+    border-radius: var(--ow-radius-lg, 36px);
+    text-align: center;
+}
+.sheets-lock-overlay[hidden] { display: none; }
+.sheets-lock-overlay icon { font-size: 48px; color: var(--ow-warning, #ffcf4a); }
+.sheets-lock-overlay p { margin: 0; font-size: 18px; max-width: 420px; }
+/* Reading Mode */
+.sheets-reading-rows { display: grid; gap: 4px; }
+.sheets-reading-row { margin: 0 0 6px; }
+.sheets-reading-label { opacity: 0.68; }
+/* OmniWrite's floating pickers opened from the spreadsheet toolbar */
+#sheetsFontPicker, #sheetsFontSizePicker { position: fixed; z-index: 1000000; margin: 0; }
+#sheetsFontSizePicker { max-height: min(420px, calc(100dvh - 24px)); overflow-y: auto; }
+#sheetsFontSizePicker .dropdown-item.is-checked { background: var(--ow-current-bg); }
+.sheets-align-group { position: fixed; z-index: 1000000; }
+.sheets-align-group .toolbar-item.is-active { background: var(--ow-current-bg); color: var(--ow-current-text); }
+.sheets-preview-table { border-collapse: collapse; font-size: 18px; color: #1d2433; }
+.sheets-preview-table td { border: 1px solid var(--sh-grid, #e6e1f1); padding: 6px 12px; white-space: pre-wrap; vertical-align: middle; min-width: 48px; }
+.sheets-preview h2 { font-weight: 300; margin: 24px 0 10px; color: #1d2433; }
+.sheets-preview h2:first-child { margin-top: 0; }
+.sheets-preview { overflow-x: auto; }
+@media (max-width: 760px) {
+    .sheets-split-row { flex-direction: column; }
+    .sheets-split-divider { display: none !important; }
+    .sheets-split-pane { flex: 0 0 45%; min-width: 0; }
+}
+
+/* ---------------------------------------------------------------- menus & popovers */
+.omni-sheets .dropdown-wrapper.sheets-menu { margin: 0; position: fixed; max-height: min(600px, calc(100dvh - 24px)); }
+.sheets-menu .dropdown-item { font-size: 18px; text-decoration: none; color: inherit; }
+.sheets-menu .dropdown-item.is-checked { background: var(--ow-current-bg); }
+.sheets-menu .dropdown-item .sheets-menu-hint { margin-left: auto; padding-left: 24px; opacity: 0.6; font-size: 18px; }
+.sheets-menu .sheets-menu-label { padding: 10px 24px 4px; font-size: 18px; opacity: 0.62; }
+.sheets-menu hr { border: 0; border-top: 1px solid var(--ow-divider, rgba(255,255,255,0.1)); margin: 6px 12px; }
+.sheets-menu .sheets-menu-row { display: flex; gap: 4px; padding: 4px 8px; }
+.sheets-menu .sheets-menu-row .dropdown-item { margin: 0; padding: 10px; flex: 1; justify-content: center; }
+
+.sheets-find-panel {
+    position: fixed;
+    top: 96px;
+    right: 24px;
+    z-index: 100000;
+    display: none;
+    width: min(560px, calc(100vw - 32px));
+    padding: 14px;
+    border-radius: var(--ow-radius-md, 28px);
+    box-sizing: border-box;
+    gap: 10px;
+    flex-direction: column;
+}
+.sheets-find-panel.is-open { display: flex; }
+.sheets-find-row { display: flex; align-items: center; gap: 8px; }
+.omni-sheets .sheets-find-row input { flex: 1; min-width: 0; height: 46px; border-radius: 999px; font-size: 18px; margin: 0; padding: 0 16px; }
+.sheets-find-row button { white-space: nowrap; min-height: 46px; border-radius: 999px; font-size: 18px; padding: 0 16px; }
+.sheets-find-count { font-size: 18px; opacity: 0.75; white-space: nowrap; }
+.sheets-find-option { padding: 0 8px; }
+
+/* ---------------------------------------------------------------- modals */
+.sheets-form { display: grid; gap: 16px; margin-top: 18px; }
+.sheets-form label:not(.mu-check):not(.mu-search):not(.mu-field),
+.sheets-form .sheets-form-label { display: grid; gap: 8px; font-size: 18px; }
+.sheets-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+.sheets-form-actions { display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; margin-top: 8px; }
+.sheets-form-actions button { min-height: 48px; padding: 0 22px; border-radius: 999px; font-size: 18px; }
+.sheets-form-actions .sheets-primary { background: var(--sh-accent) !important; color: #ffffff !important; border-color: transparent !important; }
+.sheets-form-actions .sheets-danger { background: rgba(255, 107, 94, 0.2) !important; color: inherit; }
+.omni-sheets .modal-content { font-size: 18px; }
+.omni-sheets .modal-content h2 { font-weight: 300; font-size: 28px; margin: 0 48px 0 0; }
+.omni-sheets .modal-content p { font-size: 18px; line-height: 1.5; }
+.sheets-chart-types { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.sheets-chart-type { justify-items: center; text-align: center; }
+.sheets-chart-type.is-selected { background: var(--mu-current-bg); border-color: var(--mu-current-border); color: var(--mu-current-text); }
+.sheets-help-table { width: 100%; border-collapse: collapse; font-size: 18px; }
+.sheets-help-table td { padding: 8px 6px; border-bottom: 1px solid var(--ow-divider); vertical-align: top; }
+.sheets-help-table td:first-child { white-space: nowrap; padding-right: 16px; }
+.sheets-fn-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sheets-fn-list .mu-badge { font-family: 'Google Sans Code', monospace; }
+.sheets-info-list { display: grid; gap: 10px; margin-top: 18px; }
+.sheets-info-list div { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--ow-divider); font-size: 18px; }
+.sheets-info-list span:last-child { opacity: 0.78; text-align: right; }
+
+/* Workspace switcher menu */
+.sheets-ws-avatar { width: 30px; height: 30px; border-radius: 50%; display: inline-grid; place-items: center; background: #7c3aed; color: #ffffff; font-size: 18px; flex: 0 0 auto; }
+
+/* ---------------------------------------------------------------- light mode */
+.omni-sheets.omni-light-mode .sheets-grid-card { box-shadow: 0 18px 48px rgba(86, 104, 150, 0.18); }
+.omni-sheets.omni-light-mode .sheets-color-swatch { border-color: rgba(29, 36, 51, 0.18); }
+
+/* ---------------------------------------------------------------- print */
+.sheets-print-area { display: none; }
+@media print {
+    body.omni-sheets > *:not(.sheets-print-area) { display: none !important; }
+    body.omni-sheets { background: #ffffff !important; animation: none !important; }
+    .sheets-print-area { display: block !important; color: #000000; }
+    .sheets-print-area h1 { font-size: 22px; font-weight: 300; margin: 0 0 12px; }
+    .sheets-print-area table { border-collapse: collapse; font-size: 12pt; }
+    .sheets-print-area td { border: 1px solid #cccccc; padding: 4px 8px; white-space: pre-wrap; vertical-align: middle; }
+}
+
+/* ---------------------------------------------------------------- small screens */
+@media (max-width: 1025px) {
+    .sheets-editor-shell { height: calc(100dvh - 200px); }
+}
+@media (max-width: 760px) {
+    /* Same phone layout as OmniWrite: topbar actions move into More (OmniWrite's responsive rules), tools into the bottom bar. */
+    .omni-sheets #sheetEditorApp .toolbar #shNumberFormatBtn { grid-column: span 3; width: 100%; min-width: 0 !important; }
+    .omni-sheets #sheetEditorApp .toolbar #shNumberFormatText { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .omni-sheets #sheetEditorApp .toolbar #shFontFamilyBtn { grid-column: span 3; }
+    .omni-sheets #sheetEditorApp .toolbar #shUndoBtn,
+    .omni-sheets #sheetEditorApp .toolbar #shRedoBtn { grid-column: span 1; }
+    body.omni-sheets:has(#sheetEditorApp.active) .main-content::after { display: none; }
+    body.omni-sheets:has(#sheetEditorApp.active) #shMobileEditorToolbar { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    .omni-sheets #shMobileEditorToolbar .sheets-color-bar { bottom: 6px; }
+    .omni-sheets .sheets-tabs-bar { border-radius: 28px; }
+}
+@media (max-width: 700px) {
+    .omni-sheets { --sh-header-w: 52px; }
+    .omni-sheets .sheets-name-box { width: 84px; flex-basis: 84px; padding: 0 8px; }
+    .sheets-stats { display: none; }
+    .sheets-find-panel { right: 16px; top: 84px; }
+    .sheets-template-grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .sheets-template-card,
+    .sheets-color-swatch { transition: none; }
+}
+
+/* Munetios UI v4 floating pieces (select menus, pickers) open above OmniWrite modals. */
+.omni-sheets .mu-menu-floating,
+.omni-sheets .mu-picker { z-index: 100000002 !important; }
+
+/* ---------------------------------------------------------------- frozen panes */
+.sheets-pane {
+    position: absolute;
+    left: var(--sh-header-w);
+    top: var(--sh-header-h);
+    display: none;
+    overflow: hidden;
+    background: var(--sh-paper);
+    z-index: 7;
+}
+.sheets-pane-inner { position: absolute; left: 0; top: 0; will-change: transform; }
+.sheets-pane-top { box-shadow: 0 3px 0 rgba(143, 92, 255, 0.35); }
+.sheets-pane-left { box-shadow: 3px 0 0 rgba(143, 92, 255, 0.35); }
+.sheets-pane-corner { z-index: 8; box-shadow: 3px 3px 0 rgba(143, 92, 255, 0.35); }
+.sheets-pane .sheets-selection,
+.sheets-pane .sheets-active-cell { display: block; }
+.omni-sheets textarea.sheets-cell-editor { z-index: 9; }
+.sheets-header-frozen { position: absolute; left: 0; top: 0; display: none; background: var(--sh-header-bg); z-index: 1; }
+.sheets-col-headers .sheets-header-frozen { height: var(--sh-header-h); box-shadow: 3px 0 0 rgba(143, 92, 255, 0.35); }
+.sheets-row-headers .sheets-header-frozen { width: var(--sh-header-w); box-shadow: 0 3px 0 rgba(143, 92, 255, 0.35); }
+
+/* ---------------------------------------------------------------- filters */
+.sheets-filter-btn {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    margin-left: 4px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-family: 'Material Symbols Rounded';
+    font-size: 22px;
+    font-weight: 400;
+    font-style: normal;
+    color: #4b4569;
+    cursor: pointer;
+    text-decoration: none;
+}
+.sheets-filter-btn:hover { background: rgba(143, 92, 255, 0.14); }
+.sheets-filter-btn.is-active { background: var(--sh-accent); color: #ffffff; }
+.sheets-filter-list { display: grid; gap: 6px; max-height: 320px; overflow-y: auto; padding: 6px; border-radius: var(--mu-radius-md, 28px); border: 1px solid var(--mu-border); background: var(--mu-glass-flat); }
+.sheets-filter-list .mu-check { min-height: 40px; padding: 0 10px; }
+.sheets-cf-rule-swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--mu-border); flex: 0 0 auto; }
+
+/* ---------------------------------------------------------------- Munetios UI v4 inside the OmniWrite shell
+   OmniWrite gives every <button> a glass pill (shadow, backdrop, hover circle, 16px text).
+   v4 components keep their own look here. */
+.omni-sheets :is(.mu-btn, .mu-icon-btn, .mu-tile, .mu-swatch, .mu-calendar-day, .mu-time-option, .mu-picker-field, .mu-action-card, .mu-menu-item, .mu-segmented button) {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    font-size: var(--mu-fs-body, 18px);
+    font-weight: 400;
+}
+.omni-sheets :is(.mu-btn, .mu-icon-btn, .mu-tile, .mu-swatch, .mu-calendar-day, .mu-time-option, .mu-picker-field, .mu-action-card, .mu-menu-item, .mu-segmented button):hover { transform: none; }
+.omni-sheets :is(.mu-btn, .mu-icon-btn, .mu-tile, .mu-swatch, .mu-calendar-day, .mu-time-option, .mu-picker-field, .mu-action-card, .mu-menu-item, .mu-segmented button)::before { content: none !important; }
+.omni-sheets :is(.mu-btn:not(.mu-btn-primary), .mu-icon-btn:not(.mu-icon-btn-primary), .mu-tile, .mu-calendar-day, .mu-time-option, .mu-picker-field, .mu-segmented button, .mu-action-card) { box-shadow: none; }
+.omni-sheets button.mu-calendar-day,
+.omni-sheets button.mu-swatch,
+.omni-sheets button.mu-icon-btn { border-radius: 50% !important; }
+.omni-sheets button.mu-tile,
+.omni-sheets button.mu-action-card { border-radius: var(--mu-radius-md, 28px) !important; }
+.omni-sheets .mu-calendar-day,
+.omni-sheets .mu-time-option { padding: 0; }
+.omni-sheets .mu-picker .mu-segmented button { padding: 0 14px; }
+.omni-sheets .mu-row { text-align: left; }
+.omni-sheets .mu-row-info { flex: 1 1 auto; min-width: 0; }
+.omni-sheets .mu-row-subtitle { overflow-wrap: anywhere; }
+.omni-sheets .mu-check { display: inline-flex; align-items: center; gap: 12px; }
+.omni-sheets .modal-content .mu-group { margin: 14px 0; }
+.omni-sheets .mu-picker-field { justify-content: flex-start; }
+.omni-sheets .mu-calendar-day.is-today:not([aria-pressed="true"]) { box-shadow: inset 0 0 0 2px var(--mu-accent); }
+.omni-sheets .modal-content [hidden],
+.omni-sheets .mu-picker [hidden] { display: none !important; }
+body.sheets-is-locked #shLockDocumentBtn { color: var(--ow-warning, #ffcf4a); }

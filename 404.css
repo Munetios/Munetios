@@ -1,0 +1,40 @@
+.not-found {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    min-block-size: 100svh;
+}
+
+.not-found-topbar {
+    padding: 16px clamp(16px, 4vw, 40px);
+}
+
+.not-found-brand {
+    text-decoration: none;
+}
+
+.not-found-main {
+    display: grid;
+    place-items: center;
+    padding: 16px 16px clamp(32px, 10vh, 96px);
+}
+
+.not-found-panel {
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+    inline-size: min(100%, 40rem);
+    padding: clamp(24px, 6vw, 56px);
+    text-align: center;
+}
+
+.not-found-code {
+    margin: 0;
+    color: var(--mu-accent-text, var(--mu-text));
+    font-size: 24px;
+    font-variant-numeric: tabular-nums;
+}
+
+.not-found-description {
+    max-inline-size: 36ch;
+    margin: 0 0 12px;
+}

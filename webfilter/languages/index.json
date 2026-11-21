@@ -1,0 +1,26 @@
+{
+  "languages": ["en-US", "es-419", "es-ES", "pt-BR", "pt-PT", "fr"],
+  "fallbacks": {
+    "en": "en-US",
+    "en-GB": "en-US",
+    "en-CA": "en-US",
+    "en-AU": "en-US",
+    "en-IN": "en-US",
+    "en-NZ": "en-US",
+    "en-ZA": "en-US",
+    "es": "es-419",
+    "es-MX": "es-419",
+    "es-US": "es-419",
+    "es-AR": "es-419",
+    "es-CO": "es-419",
+    "es-CL": "es-419",
+    "es-PE": "es-419",
+    "es-ES": "es-419",
+    "pt": "pt-BR",
+    "pt-PT": "pt-BR",
+    "fr-FR": "fr",
+    "fr-CA": "fr",
+    "fr-BE": "fr",
+    "fr-CH": "fr"
+  }
+}

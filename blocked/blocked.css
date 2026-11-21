@@ -1,0 +1,36 @@
+/* Munetios WebFilter block page (/blocked). Layout only: components come from Munetios UI v4. */
+html, body { margin: 0; min-height: 100%; }
+body.mwf-blocked {
+  background: radial-gradient(circle at 15% 10%, rgba(143, 92, 255, 0.32), transparent 45%),
+    radial-gradient(circle at 85% 95%, rgba(67, 217, 160, 0.12), transparent 40%), var(--mu-bg);
+  color: var(--mu-text);
+}
+.mwf-blocked [hidden] { display: none !important; }
+.mwf-blocked-main { min-height: calc(100svh - 94px); display: grid; place-items: center; padding: 24px 16px; box-sizing: border-box; }
+.mwf-blocked-card { box-sizing: border-box; width: min(960px, 100%); display: grid; gap: 20px; justify-items: center; text-align: center; padding: 32px; }
+.mwf-blocked-topbar { min-height: 94px; padding: 12px 16px; justify-content: flex-start; background: transparent; }
+.mwf-blocked-topbar .mu-capsule { min-width: 0; max-width: 100%; padding-inline: 18px; }
+#mwfWorkspace { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mwf-blocked-lock { width: 90px; height: 90px; }
+.mwf-blocked-lock > .mu-icon { font-size: 44px; }
+.mwf-blocked-text { display: grid; gap: 8px; }
+.mwf-blocked-text p { margin: 0; }
+.mwf-blocked-facts { width: 100%; display: grid; gap: 10px; text-align: start; }
+.mwf-fact { display: flex; gap: 14px; align-items: flex-start; padding: 14px 18px; border-radius: var(--mu-radius-md); background: var(--mu-field); border: 1px solid var(--mu-border); }
+.mwf-fact > .mu-icon { color: var(--mu-icon); margin-top: 2px; }
+.mwf-fact > div { display: grid; gap: 2px; min-width: 0; }
+.mwf-fact-value { overflow-wrap: anywhere; }
+.mwf-blocked-message { width: 100%; box-sizing: border-box; margin: 0; padding: 20px 24px; border-radius: var(--mu-radius-md); background: var(--mu-field); border: 1px solid var(--mu-border);
+  font-size: var(--mu-fs-title); font-weight: 300; white-space: pre-wrap; overflow-wrap: anywhere; }
+.mwf-blocked-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; width: 100%; }
+.mwf-blocked-panel { width: 100%; box-sizing: border-box; display: grid; gap: 14px; text-align: start; padding: 20px; border-radius: var(--mu-radius-lg); background: var(--mu-field); border: 1px solid var(--mu-border); }
+.mwf-blocked-panel h2, .mwf-blocked-panel p { margin: 0; }
+.mwf-blocked-panel .mwf-blocked-actions { justify-content: flex-end; }
+.mwf-blocked-status { margin: 0; width: 100%; box-sizing: border-box; padding: 14px 18px; border-radius: var(--mu-radius-md); border: 1px solid var(--mu-border); background: var(--mu-field); }
+.mwf-blocked-status.is-good { border-color: color-mix(in srgb, var(--mu-success) 40%, transparent); }
+.mwf-blocked-status.is-bad { border-color: color-mix(in srgb, var(--mu-danger) 40%, transparent); }
+.mwf-blocked-note { margin: 0; }
+@media (max-width: 520px) {
+  .mwf-blocked-card { padding: 24px 18px; }
+  .mwf-blocked-actions .mu-btn { flex: 1 1 100%; justify-content: center; }
+}

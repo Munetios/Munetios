@@ -1,0 +1,1526 @@
+﻿/* V4 visual tokens; Ganetios keeps its existing layout and background. */
+body.ganetios-v4 {
+  --mu-text: var(--ganetios-text, #f6f3ff);
+  --june7-radius-sm: var(--mu-radius-sm);
+  --june7-radius-md: var(--mu-radius-md);
+  --june7-radius-lg: var(--mu-radius-lg);
+  --june7-radius-xl: var(--mu-radius-xl);
+  --june7-radius-pill: var(--mu-radius-pill);
+}
+/* Retain button placement while giving labels the v4 control height. */
+body.ganetios-v4 .mu-btn {
+  min-height: var(--mu-control);
+  line-height: normal;
+}
+body.ganetios-v4 :is(.search-button, .modal-button).mu-btn {
+  display: inline-block;
+}
+body.ganetios-v4
+  :is(
+    button,
+    input,
+    textarea,
+    select,
+    p,
+    label,
+    .menu-text,
+    .btn-label,
+    .shortcut-label,
+    .settings-label,
+    .footer-link,
+    .footer-tagline,
+    .footer-bottom,
+    .search-suggestion-label
+  ) {
+  font-size: 18px !important;
+  font-weight: 400 !important;
+}
+body.ganetios-v4 :is(h1, h2, h3, h4, h5, h6, .footer-brand-name) {
+  font-weight: 300 !important;
+  color: var(--mu-text);
+}
+body.ganetios-v4
+  :is(strong, b, .footer-col-title, .munetios-brand-label, .shortcut-name) {
+  font-weight: 400 !important;
+}
+body.ganetios-v4
+  :is(icon, .material-symbols-rounded, .material-symbols-outlined) {
+  font-weight: 400;
+  font-feature-settings: "liga" 1 !important;
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
+}
+body.ganetios-v4 :focus-visible {
+  outline: 3px solid var(--mu-accent);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+body.ganetios-v4
+  :is(
+    .liquid-glass,
+    .modal-content,
+    .confirm-modal-content,
+    .settings-modal-content,
+    .voice-mode-wrapper,
+    .image-search-wrapper,
+    .apps-container,
+    .bookmarks-panel,
+    .wiki-read-modal,
+    .captcha-modal,
+    .left-sidebar,
+    .dropdown-menu,
+    .act-window
+  ) {
+  background: var(--mu-glass) !important;
+  border-color: var(--mu-border) !important;
+  box-shadow: var(--mu-shadow) !important;
+  backdrop-filter: var(--mu-blur) !important;
+  -webkit-backdrop-filter: var(--mu-blur) !important;
+  color: var(--mu-text) !important;
+}
+body.ganetios-v4
+  :is(
+    .dropdown-wrapper,
+    .dropdown-menu,
+    .color-picker-popover,
+    .search-suggestions
+  ) {
+  background:
+    linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass) !important;
+  backdrop-filter: var(--mu-blur) !important;
+  -webkit-backdrop-filter: var(--mu-blur) !important;
+  border-color: var(--mu-border) !important;
+  box-shadow: var(--mu-shadow) !important;
+  color: var(--mu-text);
+}
+:root {
+  --ganetios-picker-text: var(--mu-text);
+}
+body.ganetios-v4 .color-picker-popover {
+  color: var(--ganetios-picker-text);
+}
+body.ganetios-v4
+  :is(
+    .modal,
+    .settings-modal,
+    .confirm-modal,
+    .sidebar-overlay,
+    .bookmarks-overlay,
+    .captcha-modal-overlay
+  ) {
+  background-color: var(--mu-backdrop) !important;
+  backdrop-filter: blur(2px) !important;
+  -webkit-backdrop-filter: blur(2px) !important;
+}
+body.ganetios-v4
+  :is(
+    .topbar-nav,
+    .topbar-actions,
+    .topbar-container .munetios-brand-label,
+    .topbar-container a,
+    .settings-modal-header h2
+  ) {
+  color: var(--mu-text) !important;
+}
+body.ganetios-v4 :is(.settings-sidebar-item.active, .theme-card.selected) {
+  background: var(--mu-current-bg) !important;
+  color: var(--mu-current-text) !important;
+  border-color: var(--mu-current-border) !important;
+}
+body.ganetios-v4
+  :is(
+    .news-card,
+    .wiki-card,
+    .book-card,
+    .video-card,
+    .quiz-card,
+    .theme-card,
+    .shortcut-card,
+    .activity-card,
+    .settings-item
+  ) {
+  background: var(--mu-glass-flat) !important;
+  border-color: var(--mu-border) !important;
+  box-shadow: none !important;
+  color: var(--mu-text) !important;
+}
+body.ganetios-v4
+  :is(
+    .news-card,
+    .wiki-card,
+    .book-card,
+    .quiz-card,
+    .theme-card,
+    .shortcut-card,
+    .activity-card
+  ):hover {
+  background: var(--mu-hover) !important;
+}
+body.ganetios-v4
+  :is(
+    .sidebar-item,
+    .settings-sidebar-item,
+    .dropdown-item,
+    .dropdown-option,
+    .shortcut-name,
+    .shortcut-label,
+    .settings-label,
+    .footer-col-title
+  ) {
+  color: var(--mu-text) !important;
+}
+body.ganetios-v4
+  :is(
+    .sidebar-item,
+    .settings-sidebar-item,
+    .dropdown-item,
+    .dropdown-option
+  ):hover {
+  background: var(--mu-hover) !important;
+}
+body.ganetios-v4
+  :is(
+    .footer-tagline,
+    .footer-link,
+    .footer-bottom,
+    .shortcut-url,
+    .videos-hint,
+    .bookmarks-empty
+  ) {
+  color: var(--mu-text-muted) !important;
+}
+body.ganetios-v4
+  :is(
+    .footer-divider,
+    .footer-bottom,
+    .settings-sidebar,
+    .settings-modal-header
+  ) {
+  border-color: var(--mu-divider) !important;
+}
+body.ganetios-v4 :is(input, textarea) {
+  color: var(--mu-text);
+}
+body.ganetios-v4
+  :is(.settings-page, .modal-content, .quiz-fields)
+  :is(input[type="text"], input[type="number"], input[type="url"], textarea) {
+  background: var(--mu-field) !important;
+  border-color: var(--mu-border) !important;
+}
+body.ganetios-v4 input::placeholder,
+body.ganetios-v4 textarea::placeholder {
+  color: var(--mu-text-muted) !important;
+}
+body.ganetios-v4 .toggle-switch {
+  background: var(--mu-field-hover);
+  border-color: var(--mu-border);
+}
+body.ganetios-v4 .toggle-switch.active {
+  background: var(--mu-accent);
+}
+body.ganetios-v4 .toggle-switch.active::after {
+  background: #fff;
+}
+html.reduce-transparency
+  body.ganetios-v4
+  :is(.liquid-glass, .settings-modal-content, .modal-content, .dropdown-menu) {
+  background: var(--mu-bg) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Shared v4 button variants override legacy gradients and hover animations.
+   Padding, alignment, widths, and the surrounding containers stay unchanged. */
+body.ganetios-v4 .mu-btn {
+  border-radius: var(--mu-radius-pill) !important;
+  border-style: solid;
+  border-width: 1px;
+  border-color: var(--mu-border) !important;
+  background: var(--mu-field) !important;
+  color: var(--mu-text) !important;
+  box-shadow: none !important;
+  font-weight: 400 !important;
+  font-size: var(--mu-fs-body) !important;
+  text-decoration: none;
+  cursor: pointer;
+  filter: none;
+  transition:
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    filter 0.14s ease,
+    transform 0.14s ease;
+}
+body.ganetios-v4 .account-sign-in.mu-btn {
+  line-height: 1.25;
+  border-width: 0;
+  white-space: nowrap;
+}
+body.ganetios-v4 .mu-btn::before {
+  display: none;
+}
+body.ganetios-v4
+  .mu-btn
+  > :is(icon, .material-symbols-rounded, .btn-label, [data-translate]) {
+  color: inherit !important;
+}
+body.ganetios-v4 .mu-btn:not(:disabled):not([aria-disabled="true"]):hover {
+  background: var(--mu-field-hover) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--mu-accent) 45%,
+    var(--mu-border)
+  ) !important;
+  transform: none;
+}
+body.ganetios-v4 .mu-btn:not(:disabled):not([aria-disabled="true"]):active {
+  transform: scale(0.97);
+}
+body.ganetios-v4 .mu-btn.mu-btn-primary {
+  background: var(--mu-accent) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--mu-accent) 32%, transparent) !important;
+}
+body.ganetios-v4
+  .mu-btn.mu-btn-primary:not(:disabled):not([aria-disabled="true"]):hover {
+  background: var(--mu-accent) !important;
+  border-color: transparent !important;
+  filter: brightness(1.08);
+}
+body.ganetios-v4 .mu-btn.mu-btn-danger-outline {
+  background: transparent !important;
+  border-color: color-mix(
+    in srgb,
+    var(--mu-danger) 50%,
+    transparent
+  ) !important;
+  color: var(--mu-danger) !important;
+}
+body.ganetios-v4
+  .mu-btn.mu-btn-danger-outline:not(:disabled):not(
+    [aria-disabled="true"]
+  ):hover {
+  background: color-mix(in srgb, var(--mu-danger) 12%, transparent) !important;
+  border-color: var(--mu-danger) !important;
+}
+body.ganetios-v4 .mu-icon-btn {
+  border-radius: 50% !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--mu-icon) !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  transition:
+    background-color 0.14s ease,
+    color 0.14s ease,
+    transform 0.14s ease;
+}
+body.ganetios-v4 .mu-icon-btn:not(:disabled):not([aria-disabled="true"]):hover {
+  background: var(--mu-hover) !important;
+  color: var(--mu-text) !important;
+  transform: none;
+}
+body.ganetios-v4
+  .mu-icon-btn:not(:disabled):not([aria-disabled="true"]):active {
+  transform: scale(0.94);
+}
+body.ganetios-v4
+  :is(.mu-btn, .mu-icon-btn):is(:disabled, [aria-disabled="true"]) {
+  opacity: 0.5 !important;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+  box-shadow: none !important;
+}
+body.ganetios-v4 :is(.mu-btn, .mu-icon-btn):focus-visible {
+  outline: 3px solid var(--mu-accent);
+  outline-offset: 3px;
+}
+
+/* Finish the v4 component skins without replacing Ganetios's layout rules. */
+body.ganetios-v4 .topbar-left-item > a.mu-nav-inline {
+  background: transparent !important;
+  border-radius: var(--mu-radius-pill) !important;
+  font-size: var(--mu-fs-body);
+  font-weight: 400;
+  user-select: none;
+}
+body.ganetios-v4 .mu-icon-btn.mu-icon-inline {
+  background: transparent !important;
+  border: 0;
+}
+body.ganetios-v4 .mu-icon-btn.mu-icon-inline:hover {
+  background: transparent !important;
+}
+body.ganetios-v4 .mu-search {
+  min-height: 0;
+}
+body.ganetios-v4 .mu-search:focus-within {
+  border-color: var(--mu-accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mu-accent) 25%, transparent) !important;
+}
+body.ganetios-v4 .mu-search input::placeholder {
+  opacity: 1;
+}
+body.ganetios-v4 #shortcutsList {
+  max-width: 100%;
+}
+body.ganetios-v4
+  :is(.settings-item, .modal-content, .confirm-modal-content)
+  .mu-btn {
+  max-width: 100%;
+  height: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+body.ganetios-v4
+  .footer-content
+  :is(
+    .footer-col-title,
+    .footer-tagline,
+    .footer-link,
+    .footer-bottom-right a,
+    #countryStatusLabel,
+    #offerLanguageStatusLabel
+  ) {
+  opacity: 1;
+}
+body.ganetios-v4
+  .footer-content
+  :is(
+    .footer-col-title,
+    .footer-brand-name,
+    .footer-bottom-left,
+    .footer-bottom-right a,
+    #countryStatusLabel,
+    #offerLanguageStatusLabel,
+    #changeCountryLink
+  ) {
+  font-size: var(--mu-fs-body) !important;
+}
+body.ganetios-v4 .footer-col-title {
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--mu-text) !important;
+}
+body.ganetios-v4
+  .footer-content
+  :is(
+    #countryStatusLabel,
+    #offerLanguageStatusLabel,
+    .footer-bottom-left,
+    .footer-bottom-right a
+  ) {
+  color: var(--mu-text-muted) !important;
+}
+body.ganetios-v4 .footer-link {
+  transition: color 0.14s ease;
+}
+body.ganetios-v4 .footer-link:hover {
+  padding-left: 0;
+  color: var(--mu-current-text) !important;
+}
+@media (max-width: 405px) {
+  body.ganetios-v4 #appsBtnMobile {
+    display: none;
+  }
+}
+body.ganetios-v4 .mu-dialog-layer {
+  background: color-mix(
+    in srgb,
+    var(--mu-backdrop) 45%,
+    transparent
+  ) !important;
+  backdrop-filter: saturate(130%) brightness(0.96) !important;
+  -webkit-backdrop-filter: saturate(130%) brightness(0.96) !important;
+}
+body.ganetios-v4 .mu-dialog-surface {
+  background:
+    linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass) !important;
+  border: 1px solid var(--mu-border) !important;
+  border-radius: var(--mu-radius-lg) !important;
+  box-shadow:
+    var(--mu-shadow),
+    0 30px 80px rgba(0, 0, 0, 0.24) !important;
+  backdrop-filter: var(--mu-blur) !important;
+  -webkit-backdrop-filter: var(--mu-blur) !important;
+  color: var(--mu-text) !important;
+  animation: mu-fade 0.18s ease-out !important;
+}
+body.ganetios-v4 .settings-sidebar-item.mu-nav-item {
+  min-height: 0;
+  border: 0;
+}
+body.ganetios-v4 :is(.settings-modal-header, .settings-sidebar) {
+  background: var(--mu-tile-glass) !important;
+}
+body.ganetios-v4 .advanced-color-popover {
+  background:
+    linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass) !important;
+  border-color: var(--mu-border);
+  backdrop-filter: var(--mu-blur);
+  -webkit-backdrop-filter: var(--mu-blur);
+  border-radius: var(--mu-radius-lg);
+}
+body.ganetios-v4 .settings-sidebar-item.mu-nav-item.active {
+  background: var(--mu-current-bg) !important;
+  color: var(--mu-current-text) !important;
+}
+body.ganetios-v4 .mu-menu {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: calc(100vw - 24px);
+  border-radius: var(--mu-radius-lg) !important;
+}
+body.ganetios-v4 .mu-menu-item {
+  box-sizing: border-box;
+  color: var(--mu-text) !important;
+  border-radius: var(--mu-radius-pill);
+}
+body.ganetios-v4 .video-miniplayer:has(munetios-youtube-player) {
+  aspect-ratio: auto;
+  height: auto;
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+}
+html.reduce-transparency body.ganetios-v4 .mu-dialog-surface {
+  background: var(--mu-bg) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ===================================================== Full v4 adoption
+   Fills the gaps the mappings above left: v4 backdrop, rows, switch,
+   segmented control, fields, sidebar nav, cards, and toasts. */
+
+/* Backdrop: v4 dim + saturation/brightness so modal text stays readable */
+html:not(.reduce-transparency) body.ganetios-v4 .mu-dialog-layer {
+  background: var(--mu-backdrop) !important;
+  backdrop-filter: var(--mu-backdrop-filter) !important;
+  -webkit-backdrop-filter: var(--mu-backdrop-filter) !important;
+}
+/* Blur ceiling: the older June 7 layer used blur(3px) on these */
+html:not(.reduce-transparency)
+  body.ganetios-v4
+  :is(
+    .color-picker-popover,
+    .modal-content,
+    .confirm-modal-content,
+    .wiki-read-modal,
+    .captcha-modal,
+    .bookmarks-header,
+    .sidebar-header
+  ) {
+  backdrop-filter: var(--mu-blur) !important;
+  -webkit-backdrop-filter: var(--mu-blur) !important;
+}
+/* Headers inside a glass panel don't need a second glass layer */
+body.ganetios-v4 :is(.settings-modal-header, .settings-sidebar) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Blocked pages (School mode): 2px blur + a stronger dim instead of 8px */
+html:not(.reduce-transparency) body.ganetios-v4 .page-block-overlay {
+  background: color-mix(
+    in srgb,
+    var(--mu-backdrop) 100%,
+    transparent
+  ) !important;
+  backdrop-filter: blur(2px) saturate(140%) brightness(0.7) !important;
+  -webkit-backdrop-filter: blur(2px) saturate(140%) brightness(0.7) !important;
+}
+body.ganetios-v4 :is(.settings-modal-header, .settings-sidebar) {
+  background: transparent !important;
+}
+body.ganetios-v4
+  :is(
+    .settings-modal-content,
+    .modal-content,
+    .confirm-modal-content,
+    .wiki-read-modal,
+    .captcha-modal,
+    .bookmarks-panel,
+    .advanced-modal-card
+  ) {
+  border-radius: var(--mu-radius-xl) !important;
+}
+body.ganetios-v4 :is(.settings-modal-header h2, .settings-page > h2) {
+  font-size: var(--mu-fs-section) !important;
+  font-weight: 300 !important;
+}
+
+/* Close buttons: v4 soft icon button */
+body.ganetios-v4
+  :is(
+    .settings-modal-close,
+    #captchaClose,
+    #wikiReadClose,
+    #closeVoiceMode,
+    #bookmarksCloseBtn,
+    .sidebar-close
+  ) {
+  display: inline-grid !important;
+  place-items: center;
+  width: var(--mu-control) !important;
+  height: var(--mu-control) !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background: var(--mu-hover) !important;
+  color: var(--mu-icon) !important;
+  cursor: pointer;
+}
+body.ganetios-v4
+  :is(
+    .settings-modal-close,
+    #captchaClose,
+    #wikiReadClose,
+    #closeVoiceMode,
+    #bookmarksCloseBtn,
+    .sidebar-close
+  ):hover {
+  background: var(--mu-field-hover) !important;
+  color: var(--mu-text) !important;
+}
+
+/* Settings nav + left sidebar: v4 nav items */
+body.ganetios-v4 .mu-nav-item:not(.mu-nav-inline) {
+  display: flex !important;
+  align-items: center;
+  gap: 16px !important;
+  min-height: 56px !important;
+  padding: 12px 16px !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--mu-radius-pill) !important;
+  background: transparent !important;
+  color: var(--mu-text) !important;
+  font-size: var(--mu-fs-body) !important;
+  box-shadow: none !important;
+}
+body.ganetios-v4 .mu-nav-item:not(.mu-nav-inline) icon {
+  font-size: 26px !important;
+  color: var(--mu-icon) !important;
+}
+body.ganetios-v4 .mu-nav-item:not(.mu-nav-inline):hover {
+  background: var(--mu-hover) !important;
+}
+body.ganetios-v4
+  .mu-nav-item:not(.mu-nav-inline):is(.active, [aria-current="page"]) {
+  background: var(--mu-current-bg) !important;
+  border-color: var(--mu-current-border) !important;
+  color: var(--mu-current-text) !important;
+}
+body.ganetios-v4
+  .mu-nav-item:not(.mu-nav-inline):is(.active, [aria-current="page"])
+  icon {
+  color: var(--mu-current-text) !important;
+  font-variation-settings:
+    "FILL" 1,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
+}
+
+/* Settings rows: v4 row geometry */
+body.ganetios-v4 .settings-item {
+  gap: 24px;
+  min-height: 76px;
+  padding: 16px 16px 16px 24px !important;
+  border: 1px solid var(--mu-border) !important;
+  border-radius: var(--mu-radius-lg) !important;
+  transition: background-color 0.14s ease;
+}
+body.ganetios-v4 .settings-item:hover {
+  background: var(--mu-hover) !important;
+}
+body.ganetios-v4 .settings-label {
+  font-size: var(--mu-fs-label) !important;
+}
+body.ganetios-v4 .settings-description {
+  max-width: none !important;
+  color: var(--mu-text-muted) !important;
+  line-height: 1.45 !important;
+}
+
+/* Switch: v4 geometry on Ganetios' .toggle-switch (.active / aria-checked) */
+body.ganetios-v4 .toggle-switch {
+  flex: 0 0 auto;
+  width: 60px !important;
+  height: 36px !important;
+  border-radius: var(--mu-radius-pill) !important;
+  border: 1px solid var(--mu-border) !important;
+  background: var(--mu-field-hover) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12) !important;
+  transition: background-color 0.16s ease !important;
+}
+[data-mu-theme="light"] body.ganetios-v4 .toggle-switch {
+  background: rgba(29, 36, 51, 0.14) !important;
+}
+body.ganetios-v4 .toggle-switch::after {
+  top: 4px !important;
+  left: 4px !important;
+  width: 26px !important;
+  height: 26px !important;
+  background: #fff !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22) !important;
+  transform: none !important;
+  transition: transform 0.16s ease !important;
+}
+body.ganetios-v4 .toggle-switch:is(.active, [aria-checked="true"]) {
+  background: var(--mu-accent) !important;
+  border-color: transparent !important;
+}
+body.ganetios-v4 .toggle-switch:is(.active, [aria-checked="true"])::after {
+  transform: translateX(24px) !important;
+}
+[dir="rtl"] body.ganetios-v4 .toggle-switch::after {
+  left: auto !important;
+  right: 4px !important;
+}
+[dir="rtl"]
+  body.ganetios-v4
+  .toggle-switch:is(.active, [aria-checked="true"])::after {
+  transform: translateX(-24px) !important;
+}
+
+/* Segmented: Default search mode (Web / Images use the [selected] attribute) */
+body.ganetios-v4 .mu-segmented {
+  display: inline-flex !important;
+  gap: 4px !important;
+  padding: 5px !important;
+  border: 1px solid var(--mu-border) !important;
+  border-radius: var(--mu-radius-pill) !important;
+  background: var(--mu-glass-flat) !important;
+}
+body.ganetios-v4 .mu-segmented .button-group {
+  min-height: 44px !important;
+  padding: 0 20px !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--mu-radius-pill) !important;
+  background: transparent !important;
+  color: var(--mu-text-muted) !important;
+  box-shadow: none !important;
+  font-size: var(--mu-fs-body) !important;
+}
+body.ganetios-v4 .mu-segmented .button-group:hover {
+  background: var(--mu-hover) !important;
+}
+body.ganetios-v4 .mu-segmented .button-group[selected] {
+  background: var(--mu-current-bg) !important;
+  border-color: var(--mu-current-border) !important;
+  color: var(--mu-current-text) !important;
+}
+
+/* Fields: v4 pill inputs */
+body.ganetios-v4 input.mu-input {
+  min-height: 50px !important;
+  padding: 0 18px !important;
+  border: 1px solid var(--mu-border) !important;
+  border-radius: var(--mu-radius-pill) !important;
+  background: var(--mu-field) !important;
+  color: var(--mu-text) !important;
+  box-shadow: none !important;
+  outline: none;
+}
+body.ganetios-v4 input.mu-input:focus {
+  border-color: var(--mu-accent) !important;
+  background: var(--mu-field-hover) !important;
+}
+
+/* Cards: v4 tile states */
+body.ganetios-v4 :is(.theme-card, .shortcut-card, .activity-card) {
+  border: 1px solid var(--mu-border) !important;
+  border-radius: var(--mu-radius-lg) !important;
+  transition:
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    transform 0.14s ease;
+}
+body.ganetios-v4 :is(.theme-card, .shortcut-card, .activity-card):hover {
+  background: var(--mu-current-bg) !important;
+  border-color: var(--mu-current-border) !important;
+}
+body.ganetios-v4 :is(.theme-card, .shortcut-card, .activity-card):active {
+  transform: scale(0.98);
+}
+body.ganetios-v4 .theme-card.selected {
+  border-color: var(--mu-accent) !important;
+  box-shadow: inset 0 0 0 1px var(--mu-accent) !important;
+}
+
+/* Settings text: 18px minimum, weight 400, readable in light mode */
+body.ganetios-v4
+  .settings-modal-content
+  :is(
+    .theme-name,
+    .color-value,
+    #bgImageFileName,
+    .shortcut-preset,
+    .shortcut-name,
+    .shortcut-url,
+    span:not(.settings-label):not(.mu-icon):not(.mu-select-label):not(
+        .notranslate
+      )
+  ) {
+  font-size: var(--mu-fs-body) !important;
+  font-weight: 400 !important;
+}
+body.ganetios-v4
+  .settings-modal-content
+  :is(.theme-name, .shortcut-name, .shortcut-preset) {
+  color: var(--mu-text) !important;
+}
+body.ganetios-v4
+  .settings-modal-content
+  :is(.color-value, #bgImageFileName, .shortcut-url) {
+  color: var(--mu-text-muted) !important;
+}
+body.ganetios-v4 .settings-modal-content .shortcut-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.ganetios-v4 .theme-card.selected .theme-name {
+  color: var(--mu-current-text) !important;
+}
+body.ganetios-v4
+  .settings-modal-content
+  :is(.shortcuts-description, .shortcuts-preset-panel p, .settings-page > p) {
+  color: var(--mu-text-muted) !important;
+  font-size: var(--mu-fs-body) !important;
+}
+body.ganetios-v4 .shortcuts-preset-panel {
+  border: 1px solid var(--mu-border) !important;
+  border-radius: var(--mu-radius-lg) !important;
+  background: var(--mu-glass-flat) !important;
+}
+body.ganetios-v4 .settings-modal-content h3 {
+  font-size: var(--mu-fs-title) !important;
+  font-weight: 300 !important;
+  color: var(--mu-text) !important;
+}
+
+/* Left sidebar + bookmarks headers: part of the glass panel, no dark band */
+body.ganetios-v4 :is(.sidebar-header, .bookmarks-header) {
+  background: transparent !important;
+  border-bottom: 1px solid var(--mu-divider) !important;
+  color: var(--mu-text) !important;
+}
+
+/* Toasts: v4 toast stack (top center by default) above everything Ganetios layers */
+.mu-toast-stack {
+  z-index: 2147483000;
+}
+/* Saved toast color is applied as a translucent tint (alpha <= 0.50) */
+.mu-toast.g-tinted {
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--g-toast) 34%, transparent),
+      color-mix(in srgb, var(--g-toast) 34%, transparent)
+    ),
+    var(--mu-glass);
+  border-color: color-mix(in srgb, var(--g-toast) 45%, var(--mu-border));
+}
+.mu-toast.g-tinted .mu-icon-circle {
+  background: color-mix(in srgb, var(--g-toast) 40%, transparent);
+  color: var(--mu-text);
+}
+.mu-toast-stack[data-g-position="top-right"] {
+  left: auto;
+  right: 20px;
+  transform: none;
+}
+.mu-toast-stack[data-g-position="top-left"] {
+  left: 20px;
+  transform: none;
+}
+.mu-toast-stack[data-g-position="bottom-right"] {
+  top: auto;
+  bottom: 20px;
+  left: auto;
+  right: 20px;
+  transform: none;
+}
+.mu-toast-stack[data-g-position="bottom-left"] {
+  top: auto;
+  bottom: 20px;
+  left: 20px;
+  transform: none;
+}
+.mu-toast-stack[data-g-position="bottom-center"] {
+  top: auto;
+  bottom: 20px;
+}
+
+/* Appearance: toast settings group, background image row, local font list */
+body.ganetios-v4 .toast-settings {
+  flex-direction: column;
+  align-items: stretch !important;
+  gap: 14px;
+}
+body.ganetios-v4 .toast-settings h3 {
+  margin: 0;
+}
+body.ganetios-v4 .toast-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+body.ganetios-v4 #bgImageUploadBtn,
+body.ganetios-v4 #bgImageClearBtn {
+  padding: 0 22px !important;
+  border-radius: var(--mu-radius-pill) !important;
+}
+body.ganetios-v4 #bgImageClearBtn {
+  color: var(--mu-danger) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--mu-danger) 50%,
+    transparent
+  ) !important;
+  background: transparent !important;
+}
+body.ganetios-v4 .font-detect-section {
+  padding: 16px;
+  border: 1px solid var(--mu-border);
+  border-radius: var(--mu-radius-lg) !important;
+  background: var(--mu-glass-flat) !important;
+}
+body.ganetios-v4 .detect-fonts-btn {
+  width: 100%;
+  justify-content: center;
+}
+body.ganetios-v4 .local-fonts-list {
+  margin-top: 12px;
+}
+body.ganetios-v4 .local-font-item {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 18px !important;
+  border-radius: var(--mu-radius-pill) !important;
+  color: var(--mu-text) !important;
+  font-size: var(--mu-fs-body) !important;
+  background: transparent !important;
+}
+body.ganetios-v4 .local-font-item:hover {
+  background: var(--mu-hover) !important;
+}
+
+/* Apps panel: native v4 tile grid */
+body.ganetios-v4 .apps-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+body.ganetios-v4 .apps-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+body.ganetios-v4 .apps-header h2 {
+  margin: 0;
+  font-size: var(--mu-fs-section);
+  font-weight: 300;
+}
+body.ganetios-v4 .apps-grid {
+  grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+  overflow-y: auto;
+  padding: 2px;
+}
+body.ganetios-v4 .apps-tile {
+  min-height: 112px;
+  text-decoration: none;
+  color: var(--mu-text);
+}
+body.ganetios-v4 .apps-tile .mu-icon {
+  font-size: 32px;
+  color: var(--mu-current-text);
+}
+
+.home-search {
+  position: relative;
+  width: min(1000px, calc(100% - 100px));
+  min-width: 0;
+}
+.home-search .search-bar {
+  box-sizing: border-box;
+  width: 100%;
+  margin-inline: 0;
+}
+.home-search .search-suggestions {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(100% + 8px);
+  z-index: 50;
+  min-width: 0;
+  max-height: min(45dvh, 360px);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.search-suggestion-item {
+  text-align: start;
+}
+.search-suggestion-item .mu-icon {
+  flex: none;
+}
+.search-suggestion-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.search-suggestion-type {
+  color: inherit;
+  font-size: var(--mu-fs-body);
+  text-align: end;
+}
+@media (max-width: 900px) {
+  .home-search {
+    width: calc(100% - 5px);
+  }
+}
+@media (max-width: 540px) {
+  .home-search .search-suggestion-item {
+    gap: 8px;
+    padding-inline: 12px;
+  }
+  .search-suggestion-type {
+    display: none;
+  }
+}
+
+.voice-settings-group,
+.voice-settings-card {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.voice-settings-card {
+  padding: clamp(16px, 4vw, 24px);
+}
+.voice-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.voice-settings-row .mu-switch,
+.voice-settings-row .mu-badge {
+  flex: none;
+}
+.voice-settings-row .settings-description {
+  margin: 4px 0 0;
+}
+.voice-settings-card .mu-select-button {
+  width: 100%;
+  min-width: 0;
+}
+body.ganetios-v4:has(.voice-settings-card .mu-select-button.is-open) > .mu-menu-floating {
+  z-index: 9999999;
+}
+body.ganetios-v4:has(.settings-modal.active .settings-page.active .voice-settings-card) > .mu-menu-floating {
+  max-width: calc(100vw - 24px);
+  max-height: min(40dvh, 300px);
+}
+body.ganetios-v4:has(.settings-modal.active .settings-page.active .voice-settings-card) > .mu-menu-floating .mu-menu-item {
+  overflow-wrap: anywhere;
+}
+.music-url-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+body.ganetios-v4 .music-url-controls .mu-input {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+body.ganetios-v4 .music-url-controls .mu-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Google Sans Flex stylistic-set toggles: v4 rows (their labels carry inline white 14px) */
+body.ganetios-v4 #fontFeatures {
+  display: grid;
+  gap: 12px;
+  margin-top: 0 !important;
+}
+body.ganetios-v4 .font-feature-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 76px;
+  padding: 16px 16px 16px 24px;
+  border: 1px solid var(--mu-border);
+  border-radius: var(--mu-radius-lg) !important;
+  background: var(--mu-glass-flat);
+}
+body.ganetios-v4 .font-feature-toggle > span {
+  color: var(--mu-text) !important;
+  font-size: var(--mu-fs-label) !important;
+  font-weight: 400 !important;
+}
+
+/* Top bar "More" label: 18px like the other tabs */
+body.ganetios-v4 #mobileMoreDropdownBtn,
+body.ganetios-v4 #mobileMoreDropdownBtn span {
+  font-size: var(--mu-fs-body) !important;
+  font-weight: 400 !important;
+}
+
+/* ===================================================== Video preview (v4)
+   Click-through layer: the page stays usable, outside clicks never close it. */
+body.ganetios-v4 .video-player-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 10000000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  pointer-events: none;
+  background: color-mix(
+    in srgb,
+    var(--mu-backdrop) 45%,
+    transparent
+  ) !important;
+  backdrop-filter: saturate(130%) brightness(0.96) !important;
+  -webkit-backdrop-filter: saturate(130%) brightness(0.96) !important;
+  animation: mu-fade 0.18s ease both;
+}
+body.ganetios-v4 .video-player-dialog .video-player-panel {
+  pointer-events: auto;
+  display: grid;
+  gap: 18px;
+  width: min(880px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 20px;
+  border-radius: var(--mu-radius-xl) !important;
+  border: 1px solid var(--mu-border) !important;
+  background:
+    linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass) !important;
+  box-shadow:
+    var(--mu-shadow),
+    0 30px 80px rgba(0, 0, 0, 0.28) !important;
+  backdrop-filter: var(--mu-blur) !important;
+  -webkit-backdrop-filter: var(--mu-blur) !important;
+  color: var(--mu-text);
+  font-family: "Google Sans Flex", system-ui, sans-serif;
+  font-feature-settings: "ss01" 1;
+}
+body.ganetios-v4 .video-player-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+body.ganetios-v4 .video-player-header > .mu-icon-circle {
+  width: 52px;
+  height: 52px;
+}
+body.ganetios-v4 .video-player-heading {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+body.ganetios-v4 .video-player-title {
+  margin: 0;
+  font-size: var(--mu-fs-title) !important;
+  font-weight: 300 !important;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+body.ganetios-v4 .video-player-desc {
+  margin: 0;
+  color: var(--mu-text-muted);
+  font-size: var(--mu-fs-body) !important;
+  overflow-wrap: anywhere;
+}
+body.ganetios-v4 .video-player-frame {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--mu-radius-lg);
+  background: #000000;
+  box-shadow: inset 0 0 0 1px var(--mu-border);
+}
+body.ganetios-v4 .video-player-frame:has(> munetios-youtube-player) {
+  aspect-ratio: auto;
+  height: auto;
+}
+body.ganetios-v4 .video-player-frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+}
+body.ganetios-v4 .video-player-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 0;
+}
+body.ganetios-v4 .video-player-actions :is(a, button).mu-btn {
+  display: inline-flex;
+  padding: 0 22px;
+  border-radius: var(--mu-radius-pill) !important;
+  font-size: var(--mu-fs-body) !important;
+  font-weight: 400 !important;
+  text-decoration: none;
+}
+body.ganetios-v4 .video-player-actions .mu-btn:not(.mu-btn-primary) {
+  background: var(--mu-field) !important;
+  border: 1px solid var(--mu-border) !important;
+  color: var(--mu-text) !important;
+}
+body.ganetios-v4 .video-player-actions .mu-btn-primary {
+  background: var(--mu-accent) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+}
+
+/* Miniplayer: rounded glass frame with Expand / Close on hover or focus */
+body.ganetios-v4 .video-miniplayer {
+  z-index: 2147482500 !important;
+  border-radius: var(--mu-radius-lg) !important;
+  border: 1px solid var(--mu-border) !important;
+  box-shadow:
+    var(--mu-shadow),
+    0 24px 60px rgba(0, 0, 0, 0.4) !important;
+  background: #000000 !important;
+}
+body.ganetios-v4 .video-mini-bar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+body.ganetios-v4 .video-miniplayer:is(:hover, :focus-within) .video-mini-bar {
+  opacity: 1;
+}
+@media (hover: none) {
+  body.ganetios-v4 .video-mini-bar {
+    opacity: 1;
+  }
+}
+body.ganetios-v4 .video-mini-bar .mu-icon-btn {
+  background: rgba(10, 4, 24, 0.5) !important;
+  color: #ffffff !important;
+}
+body.ganetios-v4 .video-mini-bar .mu-icon-btn:hover {
+  background: rgba(10, 4, 24, 0.5) !important;
+  filter: brightness(1.3);
+}
+body.ganetios-v4 .video-close-confirm {
+  z-index: 2147483100 !important;
+}
+/* Dim the page behind the confirm so its text stays readable over busy video cards */
+html:not(.reduce-transparency) body.ganetios-v4 .video-close-confirm {
+  background: var(--mu-backdrop) !important;
+  backdrop-filter: saturate(140%) brightness(0.92) !important;
+  -webkit-backdrop-filter: saturate(140%) brightness(0.92) !important;
+} /* no extra blur layer: stacked 2px blurs compound */
+/* Sit above the floating Settings button */
+body.ganetios-v4 .video-miniplayer {
+  bottom: 88px !important;
+}
+body.ganetios-v4 .video-close-text {
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  body.ganetios-v4 .video-player-dialog {
+    padding: 12px;
+  }
+  body.ganetios-v4 .video-player-dialog .video-player-panel {
+    padding: 14px;
+    gap: 14px;
+    border-radius: var(--mu-radius-lg) !important;
+  }
+  body.ganetios-v4 .video-player-header > .mu-icon-circle {
+    display: none;
+  }
+  body.ganetios-v4 .video-player-actions .mu-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+/* ===================================================== Munetios UI v4 page chrome
+   The top bar is the v4 Top bar split into a menu circle (.mu-capsule-btn), a
+   navigation capsule, and an action capsule (.mu-capsule with .mu-icon-btn and
+   .mu-divider-v). Shortcuts are a .mu-tile-grid, the footer is a .mu-panel, and
+   Settings sits in a .mu-capsule. These rules only stop older Ganetios rules from
+   overriding the v4 components, plus page layout. */
+body.ganetios-v4 .topbar-container .mu-capsule-btn {
+  padding: 0;
+  box-sizing: border-box;
+}
+body.ganetios-v4 .topbar-container .mu-capsule {
+  box-sizing: border-box;
+  min-width: 0;
+}
+body.ganetios-v4 .topbar-container .mu-icon-btn {
+  padding: 0;
+  box-sizing: border-box;
+}
+body.ganetios-v4 .topbar-nav {
+  padding: 0 20px 0 8px;
+  margin-inline-end: auto;
+}
+/* Inline tabs keep the preview's spacing so their pill backgrounds never touch */
+body.ganetios-v4 .topbar-nav .topbar-left-item {
+  gap: 20px;
+  padding-inline: 8px;
+}
+body.ganetios-v4 .topbar-actions {
+  flex-shrink: 0;
+}
+@media (max-width: 1100px) {
+  body.ganetios-v4 .topbar-desktop .munetios-brand-label {
+    display: none;
+  }
+  body.ganetios-v4 .topbar-nav .topbar-left-item {
+    gap: 16px;
+  }
+}
+/* The split menu circle takes room from the tabs, so each tab moves into More a little sooner */
+@media (max-width: 950px) {
+  body.ganetios-v4 .topbar-desktop [data-translate="navNews"] {
+    display: none !important;
+  }
+  body.ganetios-v4 #newsMoreBtn {
+    display: block !important;
+  }
+}
+@media (max-width: 890px) {
+  body.ganetios-v4 .topbar-desktop [data-translate="navMaps"] {
+    display: none !important;
+  }
+  body.ganetios-v4 #mapsMoreBtn {
+    display: block !important;
+  }
+}
+@media (max-width: 830px) {
+  body.ganetios-v4 .topbar-desktop [data-translate="navVideos"] {
+    display: none !important;
+  }
+  body.ganetios-v4 #videosMoreBtn {
+    display: block !important;
+  }
+}
+@media (max-width: 760px) {
+  body.ganetios-v4 .topbar-desktop [data-translate="navImages"] {
+    display: none !important;
+  }
+  body.ganetios-v4 #imagesMoreBtn {
+    display: block !important;
+  }
+}
+@media (max-width: 640px) {
+  body.ganetios-v4 .topbar-desktop {
+    display: none !important;
+  }
+  body.ganetios-v4 .topbar-mobile {
+    display: flex !important;
+  }
+}
+body.ganetios-v4 .topbar-nav .munetios-brand-nav img {
+  border-radius: 12px;
+}
+body.ganetios-v4 .topbar-actions .munetios-account-slot {
+  padding-inline-end: 2px;
+}
+@media (max-width: 698px) {
+  body.ganetios-v4 .topbar-brand-divider {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  body.ganetios-v4 .topbar-mobile .munetios-brand-label {
+    display: none !important;
+  }
+  body.ganetios-v4 .topbar-mobile .topbar-nav {
+    padding: 0 8px;
+  }
+  body.ganetios-v4 .topbar-mobile .munetios-brand-nav {
+    padding: 0;
+  }
+}
+body.ganetios-v4 .content-container {
+  margin-top: 96px;
+}
+
+/* Light mode: tokens follow the theme unless a custom text color is saved */
+[data-mu-theme="light"] body.ganetios-v4 {
+  --mu-text: var(--ganetios-text, #1d2433);
+}
+
+/* Hero wordmark: its near-black backing blends away on dark themes, light themes show it as a rounded badge */
+body.ganetios-v4 .home-page .logo-container img {
+  max-width: 100%;
+  height: auto;
+}
+[data-mu-theme="dark"]
+  body.ganetios-v4
+  #canChangeLogoinDoodles[src$="ganetios-logo.png"] {
+  mix-blend-mode: lighten;
+}
+[data-mu-theme="light"]
+  body.ganetios-v4
+  #canChangeLogoinDoodles[src$="ganetios-logo.png"] {
+  border-radius: var(--mu-radius-lg);
+}
+
+/* Shortcuts: .mu-tile-grid as wide as the search bar */
+body.ganetios-v4 #shortcutsList.mu-tile-grid {
+  width: min(100% - 32px, 1000px);
+  margin-top: 20px;
+}
+body.ganetios-v4 #shortcutsList .mu-tile {
+  box-sizing: border-box;
+  min-width: 0;
+}
+body.ganetios-v4 #shortcutsList .ganetios-shortcut-name {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* Footer: a .mu-panel inset from the page edges */
+body.ganetios-v4 .footer-content.mu-panel {
+  margin: 48px 16px 16px;
+  border-top-color: var(--mu-border);
+}
+
+/* Settings: ghost button inside its capsule */
+body.ganetios-v4 .mu-btn.mu-btn-ghost {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+body.ganetios-v4
+  .mu-btn.mu-btn-ghost:not(:disabled):not([aria-disabled="true"]):hover {
+  background: var(--mu-hover) !important;
+  border-color: transparent !important;
+}
+body.ganetios-v4 .settings-btn.mu-capsule {
+  box-sizing: border-box;
+  height: auto;
+  padding: 0;
+}
+body.ganetios-v4 .settings-btn .settings-button {
+  box-sizing: border-box;
+  min-width: var(--mu-control);
+  padding-inline: 16px;
+  line-height: 1.2;
+}
+@media (max-width: 405px) {
+  body.ganetios-v4 .settings-btn .settings-button {
+    padding-inline: 0;
+  }
+}
+@media (max-width: 600px) {
+  body.ganetios-v4 .content-container {
+    margin-top: 88px;
+  }
+  body.ganetios-v4 .footer-content.mu-panel {
+    margin: 40px 8px 8px;
+  }
+}
+body.ganetios-v4 .topbar-mobile .topbar-nav {
+  flex-shrink: 0;
+  margin-inline-end: auto;
+}
+@media (max-width: 360px) {
+  body.ganetios-v4 .topbar-mobile .topbar-nav {
+    display: none;
+  }
+}
+
+.ganetios-feature-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 16px;
+  margin-block: 8px;
+}
+
+#searchInput {
+  min-inline-size: 4ch;
+}
+.ganetios-filter-fields {
+  width: min(100%, 720px);
+}
+.ganetios-filter-fields .mu-field {
+  min-inline-size: 0;
+  flex: 1 1 185px;
+}
+.ganetios-filter-fields .mu-input {
+  min-inline-size: 0;
+  width: 100%;
+}
+.ganetios-map-actions {
+  position: absolute;
+  inset-inline-start: 14px;
+  inset-block-end: 48px;
+  z-index: 11;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  max-inline-size: calc(100% - 100px);
+  padding: 6px;
+  border-radius: var(--mu-radius-lg);
+}
+#ganetiosMapReadout {
+  flex: 1 0 100%;
+  padding-inline: 8px;
+}
+#ganetiosSearchFilters[hidden],
+#clearGanetiosQuery[hidden],
+#ganetiosSaveSearch[hidden],
+#ganetiosWikiRefine[hidden],
+#ganetiosWikiNoMatches[hidden],
+#wikiResults .wiki-item[hidden],
+#ganetiosMapReadout[hidden] {
+  display: none;
+}
+#mapResultsList button.map-result-item {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: var(--mu-radius-sm);
+  background: transparent;
+  text-align: start;
+  font: inherit;
+}
+#mapResultsList button.map-result-item:hover {
+  background: var(--mu-hover);
+}
+#mapResultsList button.map-result-item:focus-visible {
+  outline: 2px solid var(--mu-accent);
+  outline-offset: -2px;
+}
+.ganetios-visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

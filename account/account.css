@@ -1,0 +1,83 @@
+/* Account settings: layout only; every control is a Munetios UI v4 component. */
+.account-page { min-height: 100svh; }
+.account-page [hidden] { display: none !important; }
+.account-page .mu-icon { inline-size: 1em; block-size: 1em; flex-shrink: 0; overflow: hidden; }
+.account-topbar { gap: 12px; padding: 16px clamp(16px, 3vw, 40px); }
+.account-back { gap: 10px; min-height: 52px; padding: 0 22px 0 16px; border-radius: var(--mu-radius-pill); }
+.account-topbar > .mu-icon-btn { flex: 0 0 var(--mu-control); border-radius: 50%; }
+[dir="rtl"] .account-back > .mu-icon { transform: scaleX(-1); }
+
+.account-main { width: min(100%, 1180px); margin: 0 auto; padding: 8px 20px 64px; }
+.account-main[aria-busy="true"] .account-layout { opacity: 0.4; pointer-events: none; }
+.account-title { margin: 8px 4px 24px; font-size: clamp(32px, 4vw, 44px); }
+.account-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 24px; align-items: start; }
+.account-side { position: sticky; top: 16px; display: grid; gap: 16px; min-width: 0; }
+.account-nav { display: grid; gap: 4px; padding: 12px; border-radius: var(--mu-radius-xl); }
+.account-nav .mu-nav-item { width: 100%; text-align: start; font: inherit; font-size: var(--mu-fs-body); }
+.account-language { display: grid; gap: 8px; padding: 16px 18px 18px; border-radius: var(--mu-radius-lg); }
+.account-language .mu-select-button { width: 100%; }
+.account-content { min-width: 0; }
+.account-section { display: grid; gap: 22px; padding: clamp(20px, 4vw, 36px); }
+.account-section h3 { margin: 6px 0 -6px; }
+.account-text { margin: 0; }
+
+.account-profile { display: flex; align-items: center; gap: 18px; min-width: 0; }
+.account-profile .mu-account-avatar.is-lg { width: 72px; height: 72px; font-size: 32px; }
+.account-profile-text { display: grid; gap: 2px; min-width: 0; }
+.account-profile-name { font-size: var(--mu-fs-title); font-weight: 300; overflow-wrap: anywhere; }
+.account-profile-text .mu-muted { overflow-wrap: anywhere; }
+
+.account-form { display: grid; gap: 18px; max-width: 560px; }
+.account-inline-form { grid-template-columns: minmax(0, 1fr) auto; align-items: end; max-width: none; }
+.account-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.account-error { margin: 0; color: var(--mu-danger); }
+.account-rows .mu-row { gap: 16px; min-height: 76px; }
+.account-rows .mu-row > .mu-icon { font-size: 26px; color: var(--mu-icon); }
+.account-rows .mu-row-info { flex: 1 1 auto; }
+.account-rows .mu-row-title, .account-rows .mu-row-subtitle { overflow-wrap: anywhere; }
+.account-sync-items .mu-row { justify-content: flex-start; min-height: 64px; }
+.account-sync-items .mu-row-title { flex: 1 1 auto; font-size: var(--mu-fs-body); }
+.account-check { color: var(--mu-success) !important; font-variation-settings: 'FILL' 1; }
+.account-sync-status .mu-icon-circle { width: 52px; height: 52px; }
+.account-sync-status[data-status="error"] .mu-icon-circle { background: color-mix(in srgb, var(--mu-danger) 14%, transparent); color: var(--mu-danger); }
+.account-sync-status[data-status="locked"] .mu-icon-circle { background: color-mix(in srgb, var(--mu-warning) 16%, transparent); color: var(--mu-warning); }
+.account-e2e .mu-alert-body { gap: 4px; }
+
+.account-device-badge, .account-ws-badge {
+    display: inline-flex; align-items: center; min-height: 34px; padding: 0 14px; border-radius: var(--mu-radius-pill);
+    background: var(--mu-current-bg); color: var(--mu-current-text); border: 1px solid var(--mu-current-border); white-space: nowrap;
+}
+.account-ws-initial {
+    display: inline-grid; place-items: center; flex: 0 0 auto; width: 44px; height: 44px; border-radius: 14px;
+    background: var(--mu-current-bg); color: var(--mu-current-text); font-size: 20px;
+}
+.account-row-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.account-dialog-text { margin: 0; }
+.account-dialog-error { margin: 0; color: var(--mu-danger); }
+
+@media (max-width: 860px) {
+    .account-layout { grid-template-columns: minmax(0, 1fr); }
+    .account-side { position: static; }
+    .account-nav { display: flex; overflow-x: auto; padding: 8px; border-radius: var(--mu-radius-lg); scrollbar-width: none; }
+    .account-nav .mu-nav-item { flex: 0 0 auto; width: auto; min-height: 52px; }
+    .account-nav .mu-nav-item::before { display: none; }
+    .account-language { grid-template-columns: auto minmax(0, 1fr); align-items: center; }
+}
+@media (max-width: 560px) {
+    .account-main { padding: 4px 12px 48px; }
+    .account-back > span:not(.mu-icon) { display: none; }
+    .account-back { padding: 0; width: 52px; justify-content: center; }
+    .account-inline-form { grid-template-columns: minmax(0, 1fr); }
+    .account-rows .mu-row { flex-wrap: wrap; padding: 16px 18px; }
+    .account-row-buttons { width: 100%; justify-content: flex-start; }
+}
+
+.account-dialog-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.account-setting-rows .mu-row > .mu-input,
+.account-setting-rows .mu-row > .mu-select-button { width: min(100%, 260px); min-width: 0; }
+.account-setting-rows .mu-row-info { min-width: 0; }
+@media (max-width: 560px) {
+    .account-setting-rows .mu-row > .mu-input,
+    .account-setting-rows .mu-row > .mu-select-button { width: 100%; }
+}

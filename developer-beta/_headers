@@ -1,0 +1,13 @@
+# Keep Cloudflare Web Analytics from injecting a beacon into beta pages.
+/
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/*/
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/webfilter/extension/editor
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/webfilter/extension/popup
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/404
+  Cache-Control: public, max-age=0, must-revalidate, no-transform

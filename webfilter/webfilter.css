@@ -1,0 +1,323 @@
+/* Munetios WebFilter console layout. Components (buttons, fields, rows, modals,
+   tables, badges) come from Munetios UI v4; this file only arranges them. */
+
+html, body { margin: 0; min-height: 100%; }
+body.wf-app { background: var(--mu-bg); color: var(--mu-text); }
+body.wf-app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(circle at 12% 0%, rgba(143, 92, 255, 0.32), transparent 45%),
+    radial-gradient(circle at 92% 100%, rgba(67, 217, 160, 0.12), transparent 40%);
+}
+
+.wf-visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+.wf-mono { font-family: 'Google Sans Mono', 'Google Sans Code', ui-monospace, monospace; }
+.wf-grow { flex: 1 1 auto; min-width: 0; }
+
+/* ------------------------------------------------------------- shell */
+.wf-shell { display: grid; grid-template-columns: auto minmax(0, 1fr); min-height: 100vh; }
+.wf-sidebar {
+  position: sticky; top: 0; height: 100vh; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 16px;
+  padding: 20px 16px; border-radius: 0 var(--mu-radius-xl) var(--mu-radius-xl) 0;
+  overflow-y: auto; overflow-x: hidden; z-index: 20;
+  /* Width comes from the Munetios UI v4 resizable sidebar (data-mu-resizable). */
+  --mu-sidebar-width: 320px; --mu-sidebar-min: 260px; --mu-sidebar-max: 480px;
+}
+.wf-sidebar-head { display: flex; align-items: center; gap: 12px; padding: 4px 8px; }
+.wf-brand { font-size: var(--mu-fs-title); font-weight: 300; flex: 1; }
+.wf-sidebar-close { display: none; }
+.wf-nav { flex: 1; align-content: start; }
+.wf-nav .mu-nav-item, .wf-sidebar-foot .mu-nav-item { text-decoration: none; color: inherit; width: 100%; text-align: start; font: inherit; cursor: pointer; }
+.wf-workspace .mu-field { gap: 6px; }
+.wf-scrim { display: none; }
+
+.wf-main { min-width: 0; outline: none; padding: 16px 24px 48px; box-sizing: border-box; }
+/* Always sticky; only the glass capsules show (no solid bar behind them). */
+.wf-topbar { position: sticky; top: 12px; z-index: 15; display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.wf-menu-btn { display: none; }
+.wf-title-capsule { flex: 1 1 auto; min-width: 0; }
+.wf-title-capsule .mu-topbar-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.wf-status-badge { cursor: pointer; border: 0; font: inherit; }
+
+.wf-content { display: grid; gap: 20px; max-width: 1280px; margin: 0 auto; }
+.wf-page { display: grid; gap: 20px; min-width: 0; }
+
+/* ------------------------------------------------------------ blocks */
+.wf-hero { display: flex; align-items: center; gap: 20px; }
+.wf-hero p { margin: 6px 0 0; }
+.wf-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
+.wf-card-head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.wf-card-head > div:first-child { flex: 1 1 280px; min-width: 0; }
+.wf-card-head p { margin: 4px 0 0; }
+.wf-card-head .mu-field { min-width: 240px; }
+.wf-list { display: grid; gap: 8px; }
+.wf-rule.is-disabled .mu-row-info { opacity: 0.6; }
+.wf-toolbar, .wf-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.wf-toolbar { justify-content: flex-end; }
+.wf-inline-form { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.wf-inline-form .mu-field { min-width: 200px; }
+.wf-inline-form > .wf-grow { flex: 1 1 220px; }
+.wf-inline-form > .wf-actions { margin-inline-start: auto; }
+.wf-role-notice { flex-wrap: wrap; }
+.wf-class-scope-notice { flex-wrap: wrap; }
+.wf-class-scope-notice > .mu-alert-body { flex: 1 1 160px; min-width: 0; }
+.wf-grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); }
+.wf-class-card { display: grid; gap: 14px; align-content: start; }
+.wf-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.wf-skeleton { height: 220px; border-radius: var(--mu-radius-lg); }
+.wf-select-wrap { min-width: 240px; }
+
+/* ----------------------------------------------------------- UserCSS */
+.wf-policy-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.wf-policy-list { display: grid; gap: 12px; align-content: start; padding: 20px; border-radius: var(--mu-radius-lg); background: var(--mu-field); border: 1px solid var(--mu-border); }
+.wf-policy-head { display: flex; gap: 12px; align-items: flex-start; }
+.wf-policy-head > .mu-icon-circle { flex: none; }
+.wf-policy-head p { margin: 4px 0 0; }
+.wf-partial-note { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin: 0; }
+.wf-inherited summary { cursor: pointer; }
+
+.wf-editor-fields { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.wf-editor-toolbar { flex-wrap: wrap; gap: 8px; }
+.wf-editor-split { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.wf-code-wrap { display: grid; gap: 8px; align-content: start; }
+.wf-code {
+  font-family: 'Google Sans Mono', 'Google Sans Code', ui-monospace, monospace;
+  font-size: 18px; line-height: 1.6; tab-size: 2;
+  min-height: 460px; resize: vertical; white-space: pre; overflow: auto;
+}
+.wf-preview-wrap {
+  position: relative; min-height: 460px; border-radius: var(--mu-radius-lg); overflow: hidden;
+  border: 1px solid var(--mu-border); background: #ffffff;
+}
+.wf-preview { display: block; width: 100%; height: 100%; min-height: 460px; border: 0; background: #ffffff; }
+.wf-preview-wrap.is-picking { outline: 2px solid var(--mu-accent); outline-offset: 2px; }
+.wf-preview-wrap.is-picking .wf-preview { cursor: crosshair; }
+.wf-pick-box {
+  position: absolute; pointer-events: none; box-sizing: border-box;
+  border: 2px solid var(--mu-accent); background: rgba(143, 92, 255, 0.12); border-radius: 6px;
+  transition: all 0.06s linear;
+}
+.wf-pick-label {
+  position: absolute; left: -2px; bottom: 100%; margin-bottom: 4px; max-width: 360px;
+  padding: 4px 12px; border-radius: var(--mu-radius-pill); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: var(--mu-accent); color: #ffffff; font-size: 18px;
+  font-family: 'Google Sans Mono', 'Google Sans Code', ui-monospace, monospace;
+}
+.wf-restricted {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  padding: 24px; text-align: center; font-size: var(--mu-fs-title); font-weight: 300;
+  background: rgba(17, 7, 54, 0.46); color: #f6f3ff; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+}
+.wf-restricted[hidden] { display: none; }
+.wf-restricted .mu-icon { font-size: 48px; }
+
+.wf-validator { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.wf-validator section { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.wf-output {
+  margin: 0; padding: 16px 20px; min-height: 160px; max-height: 420px; overflow: auto;
+  border-radius: var(--mu-radius-md); background: var(--mu-field); border: 1px solid var(--mu-border);
+  font-family: 'Google Sans Mono', 'Google Sans Code', ui-monospace, monospace; font-size: 18px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.wf-violations { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 420px; overflow: auto; }
+.wf-violation { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; border-radius: var(--mu-radius-md); background: var(--mu-field); border: 1px solid var(--mu-border); }
+.wf-violation > div { display: grid; gap: 2px; min-width: 0; }
+.wf-violation .mu-badge { flex: none; }
+.wf-violation .wf-mono { overflow-wrap: anywhere; }
+
+.wf-suggest { position: fixed; z-index: 1300; max-height: 280px; overflow-y: auto; padding: 6px; }
+.wf-suggest-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; cursor: pointer; }
+.wf-suggest-item.is-blocked { opacity: 0.62; cursor: not-allowed; }
+.wf-suggest-item.is-selected { background: var(--mu-current-bg); }
+
+/* ----------------------------------------------------------- devices */
+.wf-device-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 16px; }
+.wf-device-card { display: grid; align-content: start; gap: 12px; min-width: 0; padding: 16px; }
+.wf-device-info { display: grid; gap: 10px; min-width: 0; }
+.wf-device-screen, .wf-view-screen {
+  display: grid; place-items: center; aspect-ratio: 16 / 9; width: 100%; overflow: hidden;
+  background: var(--mu-field); color: inherit; border: 1px solid var(--mu-border);
+  border-radius: var(--mu-radius-md);
+}
+.wf-device-screen { cursor: pointer; }
+.wf-device-screen img, .wf-view-screen img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.wf-view-screen { flex-shrink: 0; grid-template-rows: minmax(0, 1fr); max-height: 55vh; }
+.wf-device-url { display: flex; gap: 8px; align-items: center; margin: 0; min-width: 0; }
+.wf-device-url > span[dir], .wf-tab-row .mu-row-title, .wf-tab-row .mu-row-subtitle, .wf-request-reason { overflow-wrap: anywhere; }
+.wf-favicon { flex: none; border-radius: 6px; }
+.wf-tab-row { flex-wrap: nowrap; gap: clamp(8px, 2vw, 24px); padding-inline: clamp(10px, 2.5vw, 24px); }
+.wf-tab-row > .mu-row-info, .wf-text-block .mu-row > .mu-row-info { flex: 1 1 0; }
+.wf-tab-row > .mu-badge, .wf-tab-row > .mu-icon-btn, .wf-text-block .mu-row > .mu-switch { flex: none; }
+.wf-request { flex-wrap: wrap; }
+.wf-request > .mu-row-info { flex: 1 1 12rem; }
+.wf-status-cell, .wf-device-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.wf-url-cell { max-width: 280px; }
+.wf-url-cell span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ----------------------------------------------------------- dialogs */
+.wf-fieldset { border: 0; padding: 0; margin: 0; }
+.wf-options { display: grid; gap: 8px; max-height: 320px; overflow-y: auto; }
+.wf-option > span { display: grid; gap: 2px; min-width: 0; }
+.wf-option-sub { overflow-wrap: anywhere; }
+.wf-providers { flex-wrap: wrap; }
+.wf-deploy-section { display: grid; gap: 14px; padding-top: 8px; }
+.wf-deploy-section h3 { display: flex; align-items: center; gap: 8px; }
+.wf-steps { margin: 0; padding-inline-start: 28px; display: grid; gap: 8px; }
+.wf-snippet { min-height: 200px; }
+.wf-version { max-width: 180px; }
+.wf-zip-contents { margin: 0; }
+#wfExtensionDialog { max-height: calc(100vh - 48px); overflow-y: auto; }
+#wfExtensionDialog .mu-dialog-heading img { flex: none; }
+
+/* --------------------------------------------------------- responsive */
+@media (max-width: 1100px) {
+  .wf-editor-split, .wf-validator { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .wf-shell { grid-template-columns: minmax(0, 1fr); }
+  .wf-sidebar {
+    position: fixed; inset: 0 auto 0 0; width: min(340px, 88vw);
+    transform: translateX(-105%); transition: transform 0.22s ease; border-radius: 0 var(--mu-radius-xl) var(--mu-radius-xl) 0;
+  }
+  [dir="rtl"] .wf-sidebar { inset: 0 0 0 auto; transform: translateX(105%); }
+  body.wf-sidebar-open .wf-sidebar { transform: none; }
+  body.wf-sidebar-open .wf-scrim { display: block; position: fixed; inset: 0; z-index: 19; background: var(--mu-backdrop); }
+  .wf-sidebar-close { display: inline-flex; }
+  /* Keep v4's centered grid so the menu icon sits in the middle of the circle. */
+  .wf-menu-btn { display: grid; place-items: center; padding: 0; }
+  .wf-main { padding: 12px 16px 40px; }
+  .wf-hide-narrow { display: none; }
+}
+@media (max-width: 600px) {
+  .wf-topbar { flex-wrap: wrap; }
+  .wf-topbar-actions { width: 100%; justify-content: stretch; }
+  .wf-hero { flex-direction: column; align-items: flex-start; }
+  .wf-card-head .mu-field, .wf-inline-form .mu-field, .wf-select-wrap { min-width: 0; width: 100%; }
+  .wf-inline-form > .mu-btn { width: 100%; justify-content: center; }
+  .wf-inline-form > .wf-grow, .wf-inline-form > .wf-actions { flex: 1 1 100%; }
+  .wf-inline-form > .wf-actions > .mu-btn { flex: 1 1 auto; }
+  .wf-class-scope-notice > .mu-field { flex: 1 1 100%; min-width: 0; }
+  .wf-code, .wf-preview-wrap, .wf-preview { min-height: 340px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wf-sidebar, .wf-pick-box { transition: none; }
+}
+
+/* Skip link stays off-screen until it gets keyboard focus. */
+.wf-app > .mu-skip-link { position: fixed; top: 12px; inset-inline-start: 16px; z-index: 60; transform: translateY(-200%); transition: transform 0.15s ease; }
+.wf-app > .mu-skip-link:focus, .wf-app > .mu-skip-link:focus-visible { transform: none; }
+
+/* Permission-locked controls: still focusable and hoverable (for the tooltip), visibly unavailable. */
+.wf-app [aria-disabled="true"][data-wf-locked] { opacity: 0.5; cursor: not-allowed; }
+.wf-app [aria-disabled="true"][data-wf-locked] * { cursor: not-allowed; }
+.wf-table-note { margin: 0; }
+
+/* v4 components set display (mu-inline-error, mu-row, mu-alert...), which beats the
+   hidden attribute. Hidden always wins in WebFilter. */
+.wf-app [hidden] { display: none !important; }
+
+/* Stronger backdrop so page text doesn't read through the glass dialog (alpha 0.50). */
+.wf-app > .mu-modal:not(.is-duplicate) { background: var(--mu-backdrop); }
+
+/* ---------------------------------------------------------- UI fixes */
+
+/* Dialog legibility: an extra 50% layer of the page color under the v4 glass
+   (every layer stays within the 0.01-0.50 glass alpha range, blur stays 2px). */
+.wf-app > .mu-modal .mu-dialog {
+  background: linear-gradient(color-mix(in srgb, var(--mu-bg) 50%, transparent), color-mix(in srgb, var(--mu-bg) 50%, transparent)),
+    linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass);
+  overflow-x: hidden;
+}
+
+/* Themed scrollbars instead of the browser's white track. */
+.wf-app .mu-dialog, .wf-app .wf-code, .wf-app .wf-output, .wf-app .wf-options, .wf-app .wf-violations,
+.wf-app .wf-suggest, .wf-app .mu-table-wrap, .wf-sidebar {
+  scrollbar-color: var(--mu-scrollbar) transparent;
+  scrollbar-width: thin;
+}
+
+/* Customize sidebar rows: label takes the free space so controls line up. */
+.wf-customizer .mu-row { gap: 8px; }
+.wf-customizer .mu-row-info { flex: 1 1 auto; min-width: 0; }
+.wf-app .mu-switch input:disabled + .mu-switch-track { opacity: 0.5; cursor: not-allowed; }
+
+/* Class cards: copy button stays beside the title; long IDs wrap inside. */
+.wf-class-card .wf-card-head { flex-wrap: nowrap; align-items: flex-start; }
+.wf-class-card .wf-card-head .wf-mono { overflow-wrap: anywhere; }
+.wf-class-card .mu-section-label { padding-inline: 0; }
+
+/* Selects inside rows get a sensible width instead of stretching. */
+.wf-card .mu-row > .wf-select-wrap { flex: 0 1 360px; }
+@media (max-width: 600px) { .wf-card .mu-row > .wf-select-wrap { flex: 1 1 100%; } }
+
+/* Blocked text section inside the rules cards */
+.wf-text-block { display: grid; gap: 12px; min-width: 0; padding: clamp(12px, 3vw, 20px); border-radius: var(--mu-radius-lg); background: var(--mu-field); border: 1px solid var(--mu-border); }
+.wf-text-block .wf-policy-head p { margin: 4px 0 0; }
+/* Dropdown menus over dialogs: same extra 50% page-color layer as dialogs so text underneath doesn't read through. */
+.wf-app > .mu-menu-floating {
+  background: linear-gradient(color-mix(in srgb, var(--mu-bg) 50%, transparent), color-mix(in srgb, var(--mu-bg) 50%, transparent)),
+    linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass);
+  scrollbar-color: var(--mu-scrollbar) transparent;
+}
+.wf-class-card .wf-card-head > .mu-icon-btn, .wf-class-card .wf-card-head > .mu-icon-circle { flex: none; }
+
+/* Categories */
+.wf-category-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.wf-category { border: 1px solid var(--mu-border); border-radius: var(--mu-radius-md); background: var(--mu-field); }
+.wf-category .mu-row-info { flex: 1 1 auto; min-width: 0; }
+.wf-category .mu-row-subtitle .mu-icon { font-size: 18px; vertical-align: -3px; }
+.wf-category .mu-icon-circle { flex: none; }
+.wf-note { display: flex; gap: 8px; align-items: baseline; margin: 0; }
+
+/* Mobile drawer ignores the desktop resizable width. */
+@media (max-width: 900px) {
+  .wf-sidebar.mu-sidebar-resizable { inline-size: min(340px, 88vw); min-inline-size: 0; max-inline-size: none; }
+}
+
+/* Top bar right: page actions, divider, account button in one capsule. */
+.wf-topbar-actions { gap: 8px; }
+.wf-topbar-dynamic { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+.wf-topbar-actions .munetios-account-slot { display: inline-flex; align-items: center; }
+
+/* Keep workspace status and account controls in one capsule. */
+.wf-topbar-actions { flex-wrap: nowrap; min-width: 0; }
+.wf-topbar-dynamic { flex-wrap: nowrap; flex: 1 1 auto; }
+.wf-topbar-dynamic > .mu-icon-btn, .wf-topbar-dynamic > .wf-status-badge, .wf-topbar-actions > .mu-divider-v, .wf-topbar-actions .munetios-account-slot { flex: none; }
+@media (max-width: 900px) {
+  .wf-topbar { flex-wrap: wrap; }
+  .wf-title-capsule { flex: 1 1 0; }
+  .wf-topbar-actions { flex: 1 1 100%; order: 3; }
+}
+
+/* Remote Devices: one card per device with its latest screen */
+.wf-device-grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
+.wf-device-card { display: grid; gap: 14px; align-content: start; padding: 16px; }
+.wf-device-screen { display: grid; place-items: center; aspect-ratio: 16 / 10; width: 100%; padding: 0; overflow: hidden; cursor: pointer;
+  border-radius: var(--mu-radius-md); border: 1px solid var(--mu-border); background: var(--mu-field); color: var(--mu-icon); font: inherit; }
+.wf-device-screen img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.wf-device-screen .mu-icon { font-size: 48px; }
+.wf-device-screen:focus-visible { outline: 3px solid color-mix(in srgb, var(--mu-accent) 60%, transparent); outline-offset: 3px; }
+.wf-device-info { display: grid; gap: 10px; min-width: 0; padding: 0 4px; }
+.wf-device-url { display: flex; gap: 10px; align-items: center; margin: 0; min-width: 0; }
+.wf-device-url span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-favicon { width: 24px; height: 24px; flex: none; border-radius: 6px; object-fit: contain; font-size: 24px; color: var(--mu-icon); }
+.wf-view-screen { border-radius: var(--mu-radius-md); overflow: hidden; border: 1px solid var(--mu-border); background: var(--mu-field); }
+.wf-view-screen img { display: block; width: 100%; height: auto; }
+.wf-tab-row .mu-row-info { flex: 1 1 auto; min-width: 0; }
+.wf-tab-row .mu-row-subtitle, .wf-tab-row .mu-row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Access requests */
+.wf-request { flex-wrap: wrap; align-items: center; }
+.wf-request .mu-row-info { flex: 1 1 260px; min-width: 0; }
+.wf-request-reason { color: var(--mu-text); overflow-wrap: anywhere; }
+.wf-nav-count { margin-inline-start: auto; min-width: 32px; justify-content: center; }

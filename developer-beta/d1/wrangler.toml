@@ -1,0 +1,36 @@
+name = "munetios-developer-beta-db"
+main = "account-worker.mjs"
+compatibility_date = "2026-11-20"
+workers_dev = false
+preview_urls = false
+
+[observability]
+enabled = false
+
+[vars]
+PUBLIC_ORIGIN = "https://beta.munetios.com"
+AUTH_SHARE_MUNETIOS_SESSION = "true"
+MAIL_WORKER_URL = "https://munetios-mail.munetios.workers.dev"
+GOOGLE_CLIENT_URL = "https://beta.munetios.com/api/auth/google/callback"
+
+[[services]]
+binding = "MUNETIOS_MAIL"
+service = "munetios-mail"
+
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true
+
+[[durable_objects.bindings]]
+name = "WEBFILTER"
+class_name = "MunetiosWebFilterStorage"
+
+[[migrations]]
+tag = "webfilter-v1"
+new_sqlite_classes = ["MunetiosWebFilterStorage"]
+
+[[d1_databases]]
+binding = "ACCOUNTS_DB"
+database_name = "munetios-developer-beta"
+database_id = "ef28124a-df15-4a19-b9bf-d1ad5bbf509f"

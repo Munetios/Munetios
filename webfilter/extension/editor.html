@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UserCSS</title>
+  <link rel="icon" href="icons/icon-32.png">
+  <link rel="stylesheet" href="https://api.munetios.com/beautiful-css/beautiful.css">
+  <link rel="stylesheet" href="pages.css">
+  <link rel="stylesheet" href="editor.css">
+</head>
+<!-- Munetios WebFilter UserCSS editor: students and teachers write their own UserCSS here.
+     It only runs when "Inject UserCSS" is on, and the school's policy decides what is kept. -->
+<body class="mwf-editor">
+  <main class="mwf-card">
+    <div class="mwf-head">
+      <img src="icons/icon-48.png" alt="">
+      <h1 data-i18n="ext_editor_title">UserCSS editor</h1>
+    </div>
+
+    <section class="mwf-panel">
+      <div class="mwf-switch-row">
+        <div>
+          <label class="mwf-switch-label" for="mwfInject" data-i18n="ext_inject">Inject UserCSS</label>
+          <p class="mwf-hint" data-i18n="ext_inject_desc">Your styles only run when this is on. Your school decides where UserCSS is allowed.</p>
+        </div>
+        <label class="mwf-switch"><input type="checkbox" id="mwfInject" role="switch"><span class="mwf-switch-track" aria-hidden="true"></span></label>
+      </div>
+      <div class="mwf-page-mode" id="mwfPageMode" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="mwf-panel">
+      <div class="mwf-row">
+        <label class="mwf-grow mwf-field"><span data-i18n="ext_styles">Your styles</span><select class="mwf-input" id="mwfStyleSelect"></select></label>
+      </div>
+      <div class="mwf-actions mwf-actions-start">
+        <button type="button" id="mwfNewStyle" data-i18n="ext_new_style">New style</button>
+        <button type="button" id="mwfDeleteStyle" data-i18n="ext_delete_style">Delete style</button>
+      </div>
+      <p class="mwf-hint" id="mwfNoStyles" hidden data-i18n="ext_no_styles">You don't have any styles yet.</p>
+    </section>
+
+    <section class="mwf-panel" id="mwfStyleFields" hidden>
+      <div class="mwf-field"><label for="mwfName" data-i18n="ext_style_name">Name</label><input class="mwf-input" id="mwfName" autocomplete="off"></div>
+      <div class="mwf-field"><label for="mwfTargets" data-i18n="ext_runs_on">Runs on</label><input class="mwf-input" id="mwfTargets" dir="ltr" autocomplete="off" placeholder="wikipedia.org"><p class="mwf-hint" data-i18n="ext_runs_on_help">Websites separated by commas. Leave empty for every website.</p></div>
+      <div class="mwf-switch-row">
+        <label class="mwf-switch-label" for="mwfEnabled" data-i18n="ext_style_on">Use this style</label>
+        <label class="mwf-switch"><input type="checkbox" id="mwfEnabled" role="switch"><span class="mwf-switch-track" aria-hidden="true"></span></label>
+      </div>
+      <div class="mwf-actions mwf-actions-start">
+        <button type="button" id="mwfPick" aria-pressed="false"><span data-i18n="ext_select_element">Select an element</span></button>
+      </div>
+      <div class="mwf-field mwf-code-wrap">
+        <label for="mwfCss" data-i18n="ext_css_label">CSS</label>
+        <textarea class="mwf-code" id="mwfCss" spellcheck="false" autocapitalize="off" autocomplete="off" dir="ltr" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="mwfSuggest"></textarea>
+        <div class="mwf-suggest" id="mwfSuggest" role="listbox" hidden></div>
+      </div>
+      <p class="mwf-live mwf-muted" id="mwfSaved" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="mwf-panel" id="mwfReportPanel" hidden>
+      <h2 data-i18n="ext_report">What your school's rules removed</h2>
+      <ul class="mwf-report" id="mwfReport"></ul>
+    </section>
+  </main>
+  <script src="categories.js"></script>
+  <script src="policy-engine.js"></script>
+  <script src="editor.js"></script>
+</body>
+</html>

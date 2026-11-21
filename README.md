@@ -1,129 +1,48 @@
 # Munetios
 
-Munetios is a modern productivity platform built with Next.js, designed with a focus on privacy, performance, accessibility, and a clean user experience.
+This repository contains the Ganetios start page, Munetios Accounts, OmniWrite and Sheets, Munetios Mail, WebFilter, and the shared Munetios UI v4 components. The local server uses Express and serves the browser apps and their API routes from one origin.
 
-## Open Source
+## Run locally
 
-The Munetios source code is open source.
+Use Node.js 18 or newer, npm, and Git LFS. Git LFS stores the background audio asset. After cloning, run the following commands from the repository root:
 
-For security and privacy reasons, the Munetios Accounts infrastructure, authentication systems, and account databases are proprietary and are **not** open source.
-
-## Features
-
-- ⚡ Fast and modern web application
-- 🎨 Responsive user interface
-- 🔒 Privacy-focused design
-- 🌐 Internationalization support
-- 📱 Mobile-friendly
-- 🚀 Optimized performance
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 20 or newer
-- npm, pnpm, yarn, or bun
-
-### Installation
-
-Clone the repository:
-
-```bash
-git clone https://github.com/munetios/munetios
-```
-
-Enter the project directory:
-
-```bash
-cd munetios
-```
-
-Install dependencies:
-
-```bash
-npm install
-```
-
-Or use your preferred package manager:
-
-```bash
-pnpm install
-```
-
-```bash
-yarn
-```
-
-```bash
-bun install
-```
-
-## Development
-
-Start the development server:
-
-```bash
-npm run dev
-```
-
-or
-
-```bash
-pnpm dev
-```
-
-or
-
-```bash
-yarn dev
-```
-
-or
-
-```bash
-bun dev
-```
-
-Open your browser and visit:
-
-```
-http://localhost:3000
-```
-
-The application automatically reloads as you edit the source code.
-
-## Production
-
-Build the application:
-
-```bash
-npm run build
-```
-
-Start the production server:
-
-```bash
+```sh
+git lfs pull
+npm ci
 npm start
 ```
 
-## Technology
+Open [http://localhost:3000](http://localhost:3000). The server listens on loopback by default. Set `PORT` to use a different port.
 
-- Next.js
-- JavaScript
-- CSS
+| Path | App |
+| --- | --- |
+| `/` | Ganetios start page |
+| `/signin/` and `/account/` | Munetios sign-in and account settings |
+| `/omniwrite/` and `/omniwrite/sheets/` | OmniWrite editor and Sheets |
+| `/mail/` | Munetios Mail |
+| `/webfilter/` | Munetios WebFilter dashboard |
+| `/munetios-ui/` | Munetios UI v4 component previews |
 
-## Deployment
+## Configure account-backed features
 
-Munetios can be deployed on any platform capable of hosting a Next.js application, including:
+Create an empty local MySQL database and a dedicated database user. Set the connection variables described in the [Accounts guide](auth/README.md) before starting the server. Express loads variables from the process environment or a local `.env` file. The SQL files in this repository define schemas and migrations for fresh databases.
 
-- Vercel
-- Docker
-- Self-hosted Node.js servers
+- [Collaboration storage and setup](collab/README.md)
+- [WebFilter API](webfilter-api/README.md)
+- [Mail Worker](mail-worker/README.md)
+- [Cloudflare developer beta](developer-beta/README.md) and [D1 backend](developer-beta/d1/README.md)
+
+## Checks
+
+```sh
+npm run test:account
+npm run test:auth
+npm run test:collab
+npm run test:webfilter
+npm run test:youtube
+npm run i18n:validate
+```
 
 ## License
 
-Copyright © Munetios.
-
-The Munetios project is open source.
-
-The Munetios Accounts backend, authentication services, account databases, and related infrastructure are proprietary and are not included as part of the open-source project.
+Munetios source code is licensed under the [Apache License, Version 2.0](LICENSE). Third-party assets retain their own licenses, including [Google Sans Flex](fonts/google-sans-flex/OFL.txt) and the [English spellcheck dictionary](omniwrite/spellcheck-license.txt).

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en" data-mu-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="referrer" content="same-origin">
+  <title>Sign in · Munetios</title>
+  <link rel="icon" href="/favicon-ganetios.ico">
+  <link rel="stylesheet" href="https://api.munetios.com/beautiful-css/beautiful.css">
+  <link rel="stylesheet" href="/munetios-ui/munetios-ui-v4.css">
+  <link rel="stylesheet" href="/signin/signin.css">
+  <script src="/munetios-ui/munetios-ui-v4.js" defer></script>
+  <script src="/signin/translations.js" defer></script>
+  <script>window.MunetiosAccountConfig = { autoSync: false, autoRefresh: false };</script>
+  <script src="/account/account-i18n.js" defer></script>
+  <script src="/account/account-core.js" defer></script>
+  <script src="/omniwrite/local-signin.js" defer></script>
+  <script src="/signin/signin.js" defer></script>
+</head>
+<body class="mu-root signin-page">
+  <header class="mu-topbar signin-topbar">
+    <a class="mu-capsule-btn liquid-glass" href="/" id="backLink" aria-label="Back">
+      <span class="mu-icon" aria-hidden="true">arrow_back</span>
+    </a>
+    <div class="mu-capsule liquid-glass signin-title-capsule">
+      <img id="backLogo" class="signin-brand-logo" src="/ganetios-logo-icon.png" width="36" height="36" alt="">
+      <span class="mu-topbar-title" id="backBrand" translate="no">Ganetios</span>
+    </div>
+    <div class="mu-capsule liquid-glass signin-theme">
+      <button type="button" class="mu-icon-btn" id="themeButton" aria-label="Switch to light theme">
+        <span class="mu-icon" aria-hidden="true">light_mode</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="signin-main">
+    <div class="mu-glass mu-panel liquid-glass signin-card">
+      <div class="signin-actions">
+        <section class="signin-body" id="signinBody" aria-labelledby="signinTitle">
+          <h1 id="signinTitle" class="mu-h-display">Sign in</h1>
+          <div class="mu-segmented signin-mode" role="group" id="modeGroup" aria-label="Sign in or create an account">
+            <button type="button" id="signinModeButton" aria-pressed="true" data-i18n="signIn">Sign in</button>
+            <button type="button" id="modeButton" aria-pressed="false" data-i18n="createAccount">Create account</button>
+          </div>
+
+          <form id="signinForm" class="signin-form" method="post" action="/signin" novalidate>
+            <div class="mu-field">
+              <label class="mu-field-label" for="email" data-i18n="email">Email address</label>
+              <input class="mu-input" id="email" name="email" type="email" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false" required aria-describedby="emailError" dir="auto">
+              <span class="mu-field-help signin-error" id="emailError" hidden></span>
+            </div>
+            <div class="mu-field">
+              <label class="mu-field-label" for="password" data-i18n="password">Password</label>
+              <div class="mu-input-action">
+                <input class="mu-input" id="password" name="password" type="password" autocomplete="current-password" required aria-describedby="passwordError" dir="auto">
+                <button type="button" class="mu-icon-btn" id="passwordToggle" aria-label="Show password" aria-controls="password" aria-pressed="false">
+                  <span class="mu-icon" aria-hidden="true">visibility</span>
+                </button>
+              </div>
+              <span class="mu-field-help signin-error" id="passwordError" hidden></span>
+            </div>
+            <div class="mu-field" id="authCodeField" hidden>
+              <label class="mu-field-label" for="authCode"></label>
+              <input class="mu-input" id="authCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6">
+            </div>
+            <div class="mu-field" id="confirmField" hidden>
+              <label class="mu-field-label" for="confirmPassword" data-i18n="confirmPassword">Confirm password</label>
+              <input class="mu-input" id="confirmPassword" type="password" autocomplete="new-password" aria-describedby="confirmPasswordError" disabled>
+              <span class="mu-field-help signin-error" id="confirmPasswordError" hidden></span>
+            </div>
+            <div class="mu-field" id="emailCodeField" hidden>
+              <label class="mu-field-label" for="emailCode" data-i18n="emailCodeLabel">Email verification code</label>
+              <input class="mu-input" id="emailCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code">
+              <button class="mu-btn" type="button" id="sendEmailCode" data-i18n="sendEmailCode">Send code</button>
+              <p class="mu-muted" id="emailCodeNotice" role="status" hidden data-i18n="emailCodeSent">Check your email for the code.</p>
+            </div>
+            <button class="mu-btn mu-btn-ghost" type="button" id="backToSignup" data-i18n="back" hidden>Back</button>
+            <div class="mu-alert is-danger" id="signinStatus" role="alert" tabindex="-1" hidden>
+              <span class="mu-icon" aria-hidden="true">error</span>
+              <div class="mu-alert-body"><span id="statusMessage"></span></div>
+            </div>
+            <button type="submit" class="mu-btn mu-btn-primary mu-btn-lg mu-btn-block" id="signinSubmit" disabled>
+              <span class="spinner-container is-sm signin-spinner" aria-hidden="true" hidden><svg class="google-spinner" viewBox="0 0 50 50" aria-hidden="true" focusable="false"><circle class="spinner-circle" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg></span>
+              <span data-i18n="signIn">Sign in</span><span class="mu-icon signin-arrow" aria-hidden="true">arrow_forward</span>
+            </button>
+          </form>
+          <button type="button" class="mu-btn mu-btn-ghost" id="forgotPassword" data-i18n="forgotPassword">Forgot password?</button>
+          <button type="button" class="mu-btn mu-btn-ghost" id="forgotEmail" data-i18n="forgotEmail">Forgot email?</button>
+          <p class="mu-muted" id="forgotEmailResult" data-i18n="forgotEmailSent" role="status" hidden></p>
+          <div class="mu-divider-label" id="googleSignInDivider" data-i18n="signInOr" hidden>or</div>
+          <a class="mu-btn mu-btn-block mu-google-signin" href="/api/auth/google/start" id="googleSignIn" hidden>
+            <img src="/signin/google-g.png" width="22" height="22" alt="">
+            <span data-i18n="googleSignIn">Sign in with Google</span>
+          </a>
+          <p class="mu-muted" id="resetSuccess" data-i18n="passwordResetDone" role="status" hidden></p>
+          <form id="resetForm" class="signin-form" hidden>
+            <p class="mu-muted" id="resetInstructions"></p>
+            <div class="mu-field" id="resetEmailField">
+              <label class="mu-field-label" for="resetEmail" data-i18n="email">Email address</label>
+              <input class="mu-input" id="resetEmail" type="email" autocomplete="email" required>
+            </div>
+            <div class="mu-field" id="resetCodeField" hidden>
+              <label class="mu-field-label" for="resetCode" data-i18n="emailCodeLabel">Email verification code</label>
+              <input class="mu-input" id="resetCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" disabled required>
+            </div>
+            <div class="mu-field" id="resetPasswordFields" hidden>
+              <label class="mu-field-label" for="resetPassword" data-i18n="newPassword">New password</label>
+              <input class="mu-input" id="resetPassword" type="password" autocomplete="new-password" minlength="12" disabled required>
+              <label class="mu-field-label" for="resetConfirm" data-i18n="confirmPassword">Confirm password</label>
+              <input class="mu-input" id="resetConfirm" type="password" autocomplete="new-password" disabled required>
+            </div>
+            <div class="mu-field" id="resetFactorField" hidden>
+              <label class="mu-field-label" for="resetFactor"></label>
+              <input class="mu-input" id="resetFactor" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" disabled>
+            </div>
+            <p class="mu-inline-error" id="resetError" role="alert" hidden></p>
+            <button class="mu-btn mu-btn-primary" type="submit" id="resetSubmit" data-i18n="sendEmailCode">Send code</button>
+            <button class="mu-btn mu-btn-ghost" type="button" id="cancelReset" data-i18n="back">Back</button>
+          </form>
+        </section>
+
+        <section class="signin-session" id="sessionPanel" aria-labelledby="sessionTitle" hidden>
+          <header class="signin-head">
+            <span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">check_circle</span></span>
+            <h1 id="sessionTitle" class="mu-h-display" data-i18n="signedIn">You're signed in</h1>
+          </header>
+          <span class="mu-status"><span class="mu-icon" aria-hidden="true">lock</span><span id="accountEmail" dir="auto"></span></span>
+          <a class="mu-btn mu-btn-primary mu-btn-lg mu-btn-block" href="/" id="continueLink" data-i18n="continue">Continue</a>
+          <a class="mu-btn mu-btn-block mu-google-signin" href="/api/auth/google/start?add=1" id="sessionGoogleSignIn" hidden>
+            <img src="/signin/google-g.png" width="22" height="22" alt="">
+            <span data-i18n="googleSignIn">Sign in with Google</span>
+          </a>
+          <button type="button" class="mu-btn mu-btn-danger-outline mu-btn-lg mu-btn-block" id="signoutButton" data-i18n="signOut">Sign out</button>
+          <p class="mu-alert is-danger" id="sessionError" role="alert" hidden></p>
+        </section>
+      </div>
+
+      <aside class="signin-context" aria-labelledby="accountTitle">
+        <div class="signin-brand">
+          <span class="mu-icon-circle signin-brand-mark" aria-hidden="true"><span class="mu-icon">person</span></span>
+          <h2 id="accountTitle" class="mu-h-display" data-i18n="account">Munetios account</h2>
+          <p class="mu-muted" data-i18n="intro">Your account. Your space.</p>
+          <div class="mu-tags signin-products" id="signinProducts" aria-label="Ganetios, OmniWrite">
+            <span class="mu-badge" id="signinGanetiosBadge"><img src="/ganetios-logo-icon.png" width="22" height="22" alt=""><span translate="no">Ganetios</span></span>
+            <span class="mu-badge"><span class="mu-icon" aria-hidden="true">edit_document</span><span translate="no">OmniWrite</span></span>
+          </div>
+        </div>
+
+        <div class="mu-alert">
+          <span class="mu-icon" aria-hidden="true">shield_lock</span>
+          <div class="mu-alert-body">
+            <span class="mu-alert-title" data-i18n="privacy">Private by design</span>
+            <span class="mu-muted" data-i18n="privacyDetail">Your synced data is end-to-end encrypted with a key only your password can unlock.</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="signin-settings">
+      <label class="mu-row-title" for="language" data-i18n="language">Language</label>
+      <div class="signin-row-control">
+        <select id="language" class="mu-select">
+          <option value="en">English</option>
+          <option value="es-ES">Español (España)</option>
+          <option value="es-419">Español (Latinoamérica)</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+          <option value="it">Italiano</option>
+          <option value="pt-BR">Português (Brasil)</option>
+          <option value="pt-PT">Português (Portugal)</option>
+          <option value="ja">日本語</option>
+          <option value="ko">한국어</option>
+          <option value="zh-CN">简体中文</option>
+          <option value="zh-TW">繁體中文</option>
+          <option value="ru">Русский</option>
+          <option value="hi">हिन्दी</option>
+          <option value="ar">العربية</option>
+        </select>
+      </div>
+    </footer>
+  </main>
+</body>
+</html>

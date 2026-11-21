@@ -1,0 +1,41 @@
+/* Munetios WebFilter UserCSS editor (side panel). Builds on pages.css. */
+body.mwf-editor { min-height: 100vh; }
+.mwf-editor .mwf-card { border-radius: 0; border: 0; box-shadow: none; width: 100%; padding: 20px 16px 32px; gap: 16px; }
+.mwf-editor .mwf-head img { width: 48px; height: 48px; }
+.mwf-editor h1 { font-size: 28px; }
+.mwf-panel { display: grid; gap: 12px; padding: 16px; border-radius: 28px; background: var(--mwf-field); border: 1px solid var(--mwf-border); }
+.mwf-row { display: flex; gap: 12px; align-items: flex-end; }
+.mwf-grow { flex: 1; min-width: 0; }
+.mwf-field { display: grid; gap: 6px; }
+.mwf-field > span, .mwf-field > label { color: var(--mwf-muted); }
+.mwf-actions-start { justify-content: flex-start; }
+.mwf-switch-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.mwf-switch-label { font-size: 20px; }
+.mwf-switch { position: relative; display: inline-flex; flex: none; }
+.mwf-switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.mwf-switch-track { width: 60px; height: 34px; border-radius: 999px; background: var(--mwf-border); border: 1px solid var(--mwf-border); position: relative; transition: background-color 0.15s ease; }
+.mwf-switch-track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; transition: transform 0.15s ease; }
+.mwf-switch input:checked + .mwf-switch-track { background: var(--mwf-accent); }
+.mwf-switch input:checked + .mwf-switch-track::after { transform: translateX(26px); }
+.mwf-switch input:focus-visible + .mwf-switch-track { outline: 2px solid #c4aaff; outline-offset: 2px; }
+.mwf-page-mode { padding: 12px 16px; border-radius: 22px; border: 1px solid var(--mwf-border); }
+.mwf-page-mode strong { font-weight: 400; display: block; }
+.mwf-code-wrap { position: relative; }
+.mwf-code { box-sizing: border-box; width: 100%; min-height: 280px; resize: vertical; padding: 14px 16px; border-radius: 22px; border: 1px solid var(--mwf-border);
+  background: var(--mwf-field); color: inherit; font: 400 18px/1.6 "Google Sans Mono", ui-monospace, monospace; tab-size: 2; white-space: pre; overflow: auto; }
+.mwf-code:focus-visible { outline: 2px solid #c4aaff; outline-offset: 2px; }
+.mwf-suggest { position: fixed; z-index: 10; max-height: 260px; overflow-y: auto; padding: 6px; border-radius: 22px; border: 1px solid var(--mwf-border);
+  background: linear-gradient(color-mix(in srgb, var(--mwf-bg) 50%, transparent), color-mix(in srgb, var(--mwf-bg) 50%, transparent)), var(--mwf-glass);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); box-shadow: 0 18px 48px rgba(8, 3, 26, 0.32); }
+.mwf-suggest[hidden] { display: none; }
+.mwf-option { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 8px 14px; border-radius: 16px; cursor: pointer; font-family: "Google Sans Mono", ui-monospace, monospace; }
+.mwf-option.is-active { background: rgba(143, 92, 255, 0.28); }
+.mwf-option.is-blocked { opacity: 0.6; cursor: not-allowed; }
+.mwf-option small { font-family: "Google Sans Flex", system-ui, sans-serif; font-size: 18px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--mwf-border); white-space: nowrap; }
+.mwf-option small.is-bad { color: var(--mwf-danger); }
+.mwf-option small.is-good { color: var(--mwf-success); }
+#mwfPick[aria-pressed="true"] { background: var(--mwf-accent); color: #fff; border-color: transparent; }
+.mwf-report { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mwf-report li { padding: 10px 14px; border-radius: 18px; border: 1px solid var(--mwf-border); overflow-wrap: anywhere; }
+.mwf-report .mwf-code-line { display: block; color: var(--mwf-muted); font-family: "Google Sans Mono", ui-monospace, monospace; }
+.mwf-editor [hidden] { display: none !important; }

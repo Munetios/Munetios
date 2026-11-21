@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en" data-mu-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="referrer" content="same-origin">
+  <title>Account settings · Munetios</title>
+  <link rel="icon" href="/favicon-ganetios.ico">
+  <link rel="stylesheet" href="https://api.munetios.com/beautiful-css/beautiful.css">
+  <link rel="stylesheet" href="/munetios-ui/munetios-ui-v4.css">
+  <link rel="stylesheet" href="/account/account-menu.css">
+  <link rel="stylesheet" href="/account/account.css">
+  <script src="/munetios-ui/munetios-ui-v4.js" defer></script>
+  <script src="/account/account-i18n.js" defer></script>
+  <script src="/account/account-core.js" defer></script>
+  <script src="/account/account-menu.js" defer></script>
+  <script src="/account/account.js" defer></script>
+</head>
+<body class="mu-root account-page">
+  <header class="mu-topbar account-topbar">
+    <a class="mu-btn mu-glass liquid-glass account-back" href="/" id="backLink">
+      <span class="mu-icon" aria-hidden="true">arrow_back</span><span data-t="back">Back</span>
+    </a>
+    <span class="mu-topbar-title" aria-hidden="true"></span>
+    <button type="button" class="mu-icon-btn mu-icon-btn-soft mu-glass liquid-glass" id="themeButton" aria-label="Switch to light theme">
+      <span class="mu-icon" aria-hidden="true">light_mode</span>
+    </button>
+    <div class="munetios-account-slot" data-munetios-account></div>
+  </header>
+
+  <main class="account-main" id="accountMain" aria-busy="true">
+    <h1 class="mu-h-display account-title" data-t="accountSettings">Account settings</h1>
+    <div class="account-layout">
+      <aside class="account-side">
+      <nav class="mu-nav account-nav mu-glass liquid-glass" aria-label="Account settings" id="accountNav">
+        <button type="button" class="mu-nav-item" data-section="account" aria-current="page"><span class="mu-icon" aria-hidden="true">person</span><span data-t="navAccount">Account</span></button>
+        <button type="button" class="mu-nav-item" data-section="security"><span class="mu-icon" aria-hidden="true">shield_lock</span><span data-t="navSecurity">Security</span></button>
+        <button type="button" class="mu-nav-item" data-section="sync"><span class="mu-icon" aria-hidden="true">sync</span><span data-t="navSync">Sync</span></button>
+        <button type="button" class="mu-nav-item" data-section="workspaces"><span class="mu-icon" aria-hidden="true">workspaces</span><span data-t="workspaces">Workspaces</span></button>
+        <button type="button" class="mu-nav-item" data-section="data"><span class="mu-icon" aria-hidden="true">privacy_tip</span><span data-t="navData">Data &amp; privacy</span></button>
+      </nav>
+        <div class="account-language mu-glass liquid-glass">
+          <label class="mu-field-label" for="language" data-t="language">Language</label>
+          <select id="language" class="mu-select">
+            <option value="en">English</option>
+            <option value="es-ES">Español (España)</option>
+            <option value="es-419">Español (Latinoamérica)</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="it">Italiano</option>
+            <option value="pt-BR">Português (Brasil)</option>
+            <option value="pt-PT">Português (Portugal)</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="zh-CN">简体中文</option>
+            <option value="zh-TW">繁體中文</option>
+            <option value="ru">Русский</option>
+            <option value="hi">हिन्दी</option>
+            <option value="ar">العربية</option>
+          </select>
+        </div>
+      </aside>
+
+      <div class="account-content">
+        <!-- Account -->
+        <section class="account-section mu-glass mu-glass-solid mu-panel liquid-glass" id="section-account" aria-labelledby="h-account">
+          <h2 class="mu-h-section" id="h-account" data-t="profileTitle">Profile</h2>
+          <div class="account-profile">
+            <span class="mu-account-avatar is-lg" id="profileAvatar" aria-hidden="true"></span>
+            <div class="account-profile-text"><span class="account-profile-name" id="profileName"></span><span class="mu-muted" id="profileEmail"></span></div>
+          </div>
+          <div class="account-actions">
+            <button type="button" class="mu-btn" id="changePicture"><span class="mu-icon" aria-hidden="true">add_a_photo</span><span data-t="changePicture">Change picture</span></button>
+            <button type="button" class="mu-btn mu-btn-ghost" id="removePicture" data-t="removePicture" hidden>Remove picture</button>
+            <input type="file" id="pictureFile" accept="image/png,image/jpeg,image/webp,image/gif,image/avif" hidden>
+          </div>
+          <form class="account-form" id="profileForm" novalidate>
+            <div class="mu-field">
+              <label class="mu-field-label" for="displayName" data-t="name">Name</label>
+              <input class="mu-input" id="displayName" maxlength="80" autocomplete="name" dir="auto">
+              <span class="mu-field-help" data-t="nameHelp">Shown in your account menu.</span>
+            </div>
+            <div class="account-actions"><button type="submit" class="mu-btn mu-btn-primary" data-t="save">Save</button></div>
+          </form>
+          <div class="mu-group account-rows">
+            <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" data-t="email">Email address</span><span class="mu-row-subtitle" id="emailValue" dir="auto"></span></div><button class="mu-btn" id="changeEmail" type="button" data-t="changeEmail">Change email address</button></div>
+            <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" id="memberSince"></span></div><span class="mu-icon" aria-hidden="true">calendar_month</span></div>
+            <div class="mu-row" id="googleConnection" hidden>
+              <div class="mu-row-info"><span class="mu-row-title" id="googleConnectionLabel"></span></div>
+              <div class="account-actions">
+                <button class="mu-btn" id="disconnectGoogle" type="button" data-t="disconnectGoogle" hidden>Disconnect</button>
+                <span class="mu-btn mu-google-signin" aria-hidden="true"><img src="/signin/google-g.png" width="24" height="24" alt=""></span>
+              </div>
+            </div>
+          </div>
+          <p class="mu-muted account-text" data-t="settingsDeviceHelp"></p>
+          <div class="mu-group account-rows account-setting-rows" id="accountSettings"></div>
+          <p class="account-error" id="accountSettingsError" role="alert" hidden></p>
+        </section>
+
+        <!-- Security -->
+        <section class="account-section mu-glass mu-glass-solid mu-panel liquid-glass" id="section-security" aria-labelledby="h-security" hidden>
+          <h2 class="mu-h-section" id="h-security" data-t="navSecurity">Security</h2>
+          <div class="mu-alert is-success account-e2e">
+            <span class="mu-icon" aria-hidden="true">lock</span>
+            <div class="mu-alert-body"><span class="mu-alert-title" data-t="encryptionTitle">End-to-end encryption</span><span data-t="encryptionBody"></span></div>
+          </div>
+          <h3 class="mu-h-title" id="passwordHeading" data-t="changePassword">Change password</h3>
+          <div class="account-actions" id="addPasswordActions" hidden>
+            <a class="mu-btn mu-btn-primary" href="/signin/?forgot=1" data-t="addPassword">Add password</a>
+          </div>
+          <form class="account-form" id="passwordForm" novalidate>
+            <input type="text" name="username" autocomplete="username" hidden id="passwordUsername">
+            <div class="mu-field"><label class="mu-field-label" for="currentPassword" data-t="currentPassword">Current password</label><input class="mu-input" id="currentPassword" type="password" autocomplete="current-password" required></div>
+            <div class="mu-field"><label class="mu-field-label" for="newPassword" data-t="newPassword">New password</label><input class="mu-input" id="newPassword" type="password" autocomplete="new-password" required><span class="mu-field-help" data-t="passwordWeak">Use at least 12 characters.</span></div>
+            <div class="mu-field"><label class="mu-field-label" for="confirmNewPassword" data-t="confirmPassword">Confirm new password</label><input class="mu-input" id="confirmNewPassword" type="password" autocomplete="new-password" required></div>
+            <p class="account-error" id="passwordError" role="alert" hidden></p>
+            <div class="account-actions"><button type="submit" class="mu-btn mu-btn-primary" data-t="changePassword">Change password</button></div>
+          </form>
+          <div class="mu-group account-rows">
+            <div class="mu-row"><span class="mu-icon" aria-hidden="true">shield_lock</span><div class="mu-row-info"><span class="mu-row-title" data-t="twoFactor">Two-factor authentication</span><span class="mu-row-subtitle" id="twoFactorStatus"></span></div><button class="mu-btn" type="button" id="twoFactorButton" data-t="enable2fa">Set up authenticator</button></div>
+            <div class="mu-row"><span class="mu-icon" aria-hidden="true">alternate_email</span><div class="mu-row-info"><span class="mu-row-title" data-t="recoveryEmail">Recovery email</span><span class="mu-row-subtitle" id="recoveryValue"></span></div><button class="mu-btn" type="button" id="recoveryButton" data-t="edit">Edit</button></div>
+          </div>
+          <p class="mu-muted account-text" data-t="recoverySetupHelp"></p>
+          <h3 class="mu-h-title" data-t="devicesTitle">Signed-in devices</h3>
+          <div class="mu-group account-rows" id="devicesList" aria-live="polite"></div>
+          <p class="account-error" id="devicesError" role="alert" hidden></p>
+          <div class="account-actions"><button type="button" class="mu-btn mu-btn-danger-outline" id="signOutOthers"><span class="mu-icon" aria-hidden="true">devices_off</span><span data-t="signOutOthers">Sign out of all other devices</span></button></div>
+        </section>
+
+        <!-- Sync -->
+        <section class="account-section mu-glass mu-glass-solid mu-panel liquid-glass" id="section-sync" aria-labelledby="h-sync" hidden>
+          <h2 class="mu-h-section" id="h-sync" data-t="syncTitle">Sync</h2>
+          <div class="mu-group account-rows">
+            <div class="mu-row account-sync-status" id="syncStatusRow">
+              <span class="mu-icon-circle"><span class="mu-icon mu-icon-filled" aria-hidden="true" id="syncStatusIcon">cloud_done</span></span>
+              <div class="mu-row-info"><span class="mu-row-title" id="syncStatusText"></span><span class="mu-row-subtitle" id="syncStatusSub"></span></div>
+              <button type="button" class="mu-btn mu-btn-primary" id="syncNow"><span class="mu-icon" aria-hidden="true">sync</span><span data-t="syncNow">Sync now</span></button>
+            </div>
+          </div>
+          <div class="account-actions"><button class="mu-btn" type="button" id="toggleSync" data-t="turnOffSync">Turn off sync</button></div>
+          <div class="mu-storage">
+            <div class="mu-storage-heading"><h3 class="mu-h-title" data-t="syncStorage">Sync storage</h3><span id="storageSummary" aria-live="polite"></span></div>
+            <div class="mu-storage-bar" id="storageBar" role="img"></div>
+            <div class="mu-storage-legend" id="storageLegend"></div>
+            <p class="mu-muted account-text" data-t="quotaHelp"></p>
+          </div>
+          <p class="mu-muted account-text" data-t="settingsSyncHelp"></p>
+          <div class="mu-group account-rows account-setting-rows" id="syncSettings"></div>
+          <p class="account-error" id="syncSettingsError" role="alert" hidden></p>
+          <div class="mu-danger-zone">
+            <div><h3 class="mu-h-title" data-t="deleteSynced">Delete synced data</h3><p class="mu-muted account-text" data-t="deleteSyncedBody"></p></div>
+            <div class="account-actions"><button type="button" class="mu-btn mu-btn-danger-outline" id="deleteSynced"><span class="mu-icon" aria-hidden="true">cloud_off</span><span data-t="deleteSynced">Delete synced data</span></button></div>
+          </div>
+        </section>
+
+        <!-- Workspaces -->
+        <section class="account-section mu-glass mu-glass-solid mu-panel liquid-glass" id="section-workspaces" aria-labelledby="h-workspaces" hidden>
+          <h2 class="mu-h-section" id="h-workspaces" data-t="workspaces">Workspaces</h2>
+          <p class="mu-muted account-text" data-t="workspacesBody"></p>
+          <div class="mu-group account-rows" id="workspacesList" aria-live="polite"></div>
+          <form class="account-form account-inline-form" id="workspaceForm" novalidate>
+            <div class="mu-field"><label class="mu-field-label" for="workspaceName" data-t="newWorkspace">New workspace</label><input class="mu-input" id="workspaceName" maxlength="80" autocomplete="off" dir="auto"></div>
+            <button type="submit" class="mu-btn mu-btn-primary"><span class="mu-icon" aria-hidden="true">add</span><span data-t="create">Create</span></button>
+          </form>
+        </section>
+
+        <!-- Data & privacy -->
+        <section class="account-section mu-glass mu-glass-solid mu-panel liquid-glass" id="section-data" aria-labelledby="h-data" hidden>
+          <h2 class="mu-h-section" id="h-data" data-t="navData">Data &amp; privacy</h2>
+          <p class="mu-muted account-text" data-t="settingsExportHelp"></p>
+          <div class="mu-group account-rows account-setting-rows" id="dataSettings"></div>
+          <p class="account-error" id="dataSettingsError" role="alert" hidden></p>
+          <div class="mu-group account-rows">
+            <div class="mu-row">
+              <div class="mu-row-info"><span class="mu-row-title" data-t="exportTitle">Export your data</span><span class="mu-row-subtitle" data-t="exportBody"></span></div>
+              <button type="button" class="mu-btn" id="exportData"><span class="mu-icon" aria-hidden="true">download</span><span data-t="export">Export</span></button>
+            </div>
+          </div>
+          <div class="mu-danger-zone">
+            <div><h3 class="mu-h-title" data-t="deleteAccount">Delete account</h3><p class="mu-muted account-text" data-t="deleteAccountBody"></p></div>
+            <div class="account-actions"><button type="button" class="mu-btn mu-btn-danger" id="deleteAccount"><span class="mu-icon" aria-hidden="true">delete_forever</span><span data-t="deleteAccount">Delete account</span></button></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

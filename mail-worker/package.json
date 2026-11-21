@@ -1,0 +1,12 @@
+{
+  "name": "munetios-mail-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test worker.test.js"
+  },
+  "dependencies": {
+    "postal-mime": "4.2.1"
+  }
+}

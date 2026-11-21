@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Munetios WebFilter</title>
+  <link rel="stylesheet" href="https://api.munetios.com/beautiful-css/beautiful.css">
+  <link rel="stylesheet" href="pages.css">
+</head>
+<body class="mwf-popup">
+  <main class="mwf-card">
+    <div class="mwf-head">
+      <img src="icons/icon-48.png" alt="">
+      <div>
+        <h1 style="font-size:28px" translate="no">Munetios WebFilter</h1>
+        <span class="mwf-status" id="mwfConnection"></span>
+      </div>
+    </div>
+    <dl class="mwf-facts">
+      <div><dt data-i18n="ext_page_access">This page</dt><dd id="mwfPage"></dd></div>
+      <div><dt data-i18n="ext_usercss_mode">UserCSS</dt><dd id="mwfMode"></dd></div>
+      <div><dt data-i18n="ext_last_sync">Last sync</dt><dd id="mwfLastSync"></dd></div>
+    </dl>
+    <button type="button" class="mwf-primary mwf-wide" id="mwfOpenEditor" data-i18n="ext_edit_usercss">Edit UserCSS</button>
+    <h2 data-i18n="ext_this_device">This device</h2>
+    <dl class="mwf-facts">
+      <div><dt data-i18n="ext_device_name">Device name</dt><dd id="mwfDeviceName"></dd></div>
+      <div><dt data-i18n="ext_class">Class</dt><dd id="mwfClass"></dd></div>
+    </dl>
+    <p class="mwf-hint" data-i18n="ext_set_by_school">Your school sets these. They can't be changed here.</p>
+    <div class="mwf-actions">
+      <button type="button" id="mwfSync" data-i18n="ext_sync_now">Sync now</button>
+    </div>
+    <p class="mwf-live mwf-muted" id="mwfLive" role="status" aria-live="polite"></p>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

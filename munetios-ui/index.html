@@ -1,0 +1,1137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Munetios UI v4</title>
+<meta name="description" content="Reusable Munetios UI v4 components with live previews, matching OmniWrite.">
+<link rel="stylesheet" href="https://api.munetios.com/beautiful-css/beautiful.css">
+<link rel="stylesheet" href="munetios-ui-v4.css">
+<style>
+    /* Page chrome only. Components come from munetios-ui-v4.css. */
+    .doc-shell { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 24px; max-width: 1440px; margin: 0 auto; padding: 20px; }
+    .doc-top { position: sticky; top: 12px; z-index: 20; grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 10px 12px 10px 16px; border-radius: 999px; }
+    .doc-brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+    .doc-brand h1 { font-size: 26px; font-weight: 300; }
+    .doc-top .mu-search { width: 260px; flex: 0 1 260px; min-width: 0; min-height: 44px; padding: 0 14px; }
+    .doc-top .mu-search input { height: 40px; }
+    .doc-top .mu-segmented button { min-height: 40px; padding: 0 16px; }
+    .doc-nav { position: sticky; top: 108px; align-self: start; max-height: calc(100vh - 128px); overflow-y: auto; padding: 12px; border-radius: 36px; }
+    .doc-shell > *, .doc-main > *, .doc-section, .doc-demo, .doc-code, .doc-code-box { min-width: 0; }
+    .doc-code pre { max-width: 100%; }
+    .doc-component-list { display: grid; gap: 20px; }
+    .doc-component { min-width: 0; }
+    .doc-component > h3 { margin-block-end: 8px; }
+    .doc-main { display: grid; gap: 24px; min-width: 0; }
+    .doc-section { padding: 24px; border-radius: 40px; scroll-margin-top: 110px; }
+    .doc-section > header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+    .doc-section > header h2 { font-size: 28px; font-weight: 300; }
+    .doc-section > header p { margin: 4px 0 0; color: var(--mu-text-muted); }
+    .doc-demo { display: grid; gap: 14px; padding: 24px; border-radius: 28px; border: 1px dashed var(--mu-border); background: var(--mu-glass-flat); overflow: hidden; }
+    .doc-demo.is-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    .doc-code { margin-top: 12px; }
+    .doc-code summary { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--mu-border); background: var(--mu-field); cursor: pointer; list-style: none; }
+    .doc-code summary::-webkit-details-marker { display: none; }
+    .doc-code[open] summary { background: var(--mu-current-bg); border-color: var(--mu-current-border); color: var(--mu-current-text); }
+    .doc-code-box { position: relative; margin-top: 10px; }
+    .doc-code pre { margin: 0; max-height: 360px; overflow: auto; padding: 20px 22px; border-radius: 24px; border: 1px solid var(--mu-border); background: rgba(5, 3, 15, 0.50); color: #eae6ff; font-family: 'Google Sans Code', ui-monospace, monospace; font-size: 18px; line-height: 1.55; white-space: pre; }
+    [data-mu-theme="light"] .doc-code pre { background: rgba(255, 255, 255, 0.50); color: #1d2433; }
+    .doc-copy { position: absolute; top: 10px; right: 10px; }
+    .doc-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+    .doc-swatch { display: grid; gap: 8px; padding: 10px; border-radius: 24px; border: 1px solid var(--mu-border); background: var(--mu-glass-flat); }
+    .doc-swatch i { display: block; height: 56px; border-radius: 18px; border: 1px solid var(--mu-border); }
+    .doc-swatch code { font-family: 'Google Sans Code', monospace; color: var(--mu-text-muted); font-size: 18px; overflow-wrap: anywhere; }
+    .doc-radius { display: grid; place-items: center; width: 120px; height: 90px; border: 1px solid var(--mu-current-border); background: var(--mu-current-bg); color: var(--mu-current-text); }
+    .doc-rules { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .doc-rules li { display: flex; gap: 12px; align-items: flex-start; }
+    .doc-rules .mu-icon { color: var(--mu-success); }
+    .doc-hidden { display: none !important; }
+    .doc-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    @media (max-width: 960px) {
+        .doc-shell { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+        .mu-topbar { flex-wrap: wrap; }
+        .doc-top .mu-segmented { flex: 1 1 100%; justify-content: space-between; }
+        .doc-nav { position: static; max-height: none; display: flex; overflow-x: auto; gap: 6px; border-radius: 999px; padding: 8px; }
+        .doc-nav .mu-nav { display: flex; gap: 6px; }
+        .doc-nav .mu-nav-item { min-height: 46px; white-space: nowrap; }
+        .doc-nav .mu-section-label { display: none; }
+        /* Phones: the header scrolls away instead of covering a third of the screen */
+        .doc-top { position: static; border-radius: 32px; padding: 10px; gap: 10px; }
+        .doc-brand h1 { font-size: 22px; }
+        .doc-top .mu-search { width: auto; flex: 1 1 100%; }
+        .doc-top .mu-segmented button { flex: 1 1 0; padding: 0 8px; }
+        .doc-section > header { flex-direction: column; gap: 10px; }
+        .doc-section > header h2 { font-size: 24px; }
+        .doc-demo .mu-capsule { height: auto; min-height: 60px; flex-wrap: wrap; padding: 6px; border-radius: 30px; }
+        .doc-demo .mu-topbar-title { flex-basis: 100%; padding: 8px 12px; }
+        .doc-demo .mu-row > div[style] { min-width: 0 !important; width: 100%; }
+        .doc-copy { position: static; margin-top: 8px; }
+        .doc-code pre { max-height: 280px; }
+        .doc-section { padding: 18px; border-radius: 32px; }
+        .doc-demo { padding: 16px; }
+    }
+</style>
+</head>
+<body class="mu-root">
+<div class="doc-shell">
+    <header class="doc-top mu-glass mu-glass-solid">
+        <div class="doc-brand">
+            <span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">widgets</span></span>
+            <h1>Munetios UI v4</h1>
+            <span class="mu-badge">4.3.0</span>
+        </div>
+        <label class="mu-search"><span class="mu-icon" aria-hidden="true">search</span><input id="docFilter" type="search" placeholder="Filter components" aria-label="Filter components" autocomplete="off"></label>
+        <div class="mu-segmented" role="group" aria-label="Theme" id="docTheme">
+            <button type="button" data-theme-pref="system" aria-pressed="false">System</button>
+            <button type="button" data-theme-pref="light" aria-pressed="false">Light</button>
+            <button type="button" data-theme-pref="dark" aria-pressed="false">Dark</button>
+        </div>
+    </header>
+
+    <nav class="doc-nav mu-glass mu-scroll" aria-label="Components">
+        <div class="mu-section-label">Components</div>
+        <div class="mu-nav" id="docNav"></div>
+    </nav>
+
+    <main class="doc-main" id="docMain">
+
+        <!-- ============================================================ -->
+        <section class="doc-section mu-glass" id="foundations" data-title="Foundations" data-icon="palette">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">palette</span></span><div><h2>Foundations</h2><p>Load the stylesheet and script, put <code>mu-root</code> on <code>&lt;body&gt;</code>, and every component below works in light and dark mode.</p></div></header>
+            <div class="doc-demo">
+                <ul class="doc-rules">
+                    <li><span class="mu-icon" aria-hidden="true">check_circle</span><span>Liquid glass with blur no higher than 2px and glass alpha between 0.01 and 0.50.</span></li>
+                    <li><span class="mu-icon" aria-hidden="true">check_circle</span><span>Text from 18px to 48px. No bold: headings use weight 300, everything else 400.</span></li>
+                    <li><span class="mu-icon" aria-hidden="true">check_circle</span><span>High roundness: pills for single-line controls, circles for icon buttons.</span></li>
+                    <li><span class="mu-icon" aria-hidden="true">check_circle</span><span>Google Sans Flex with ss01, and Material Symbols Rounded icons.</span></li>
+                    <li><span class="mu-icon" aria-hidden="true">check_circle</span><span>Google-style ripple on every clickable control (add <code>data-mu-ripple</code> to any other element), and the Google spinner for loading.</span></li>
+                </ul>
+            </div>
+            <details class="doc-code" open><summary><span class="mu-icon" aria-hidden="true">code</span>Setup</summary><div class="doc-code-box"><pre>&lt;link rel="stylesheet" href="https://api.munetios.com/beautiful-css/beautiful.css"&gt;
+&lt;link rel="stylesheet" href="/munetios-ui/munetios-ui-v4.css"&gt;
+&lt;script src="/munetios-ui/munetios-ui-v4.js" defer&gt;&lt;/script&gt;
+
+&lt;body class="mu-root"&gt; ... &lt;/body&gt;</pre></div></details>
+            <h3 class="mu-h-title" style="margin:22px 0 12px">Color tokens</h3>
+            <div class="doc-swatches" id="docSwatches"></div>
+            <h3 class="mu-h-title" style="margin:22px 0 12px">Type scale</h3>
+            <div class="doc-demo">
+                <div style="font-size:48px;font-weight:300">Hero 48</div>
+                <div class="mu-h-display">Display 36</div>
+                <div class="mu-h-section">Section 28</div>
+                <div class="mu-h-title">Title 22</div>
+                <div style="font-size:20px">Label 20</div>
+                <div>Body 18 <span class="mu-muted">and muted body</span></div>
+            </div>
+            <h3 class="mu-h-title" style="margin:22px 0 12px">Radius</h3>
+            <div class="doc-demo is-row">
+                <div class="doc-radius" style="border-radius:22px">sm 22</div>
+                <div class="doc-radius" style="border-radius:28px">md 28</div>
+                <div class="doc-radius" style="border-radius:36px">lg 36</div>
+                <div class="doc-radius" style="border-radius:44px">xl 44</div>
+                <div class="doc-radius" style="border-radius:999px">pill</div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Buttons" data-icon="smart_button" id="buttons">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">smart_button</span></span><div><h2>Buttons</h2><p>Pill buttons. One primary action per view.</p></div></header>
+            <div class="doc-demo is-row" data-demo>
+<button type="button" class="mu-btn mu-btn-primary"><span class="mu-icon" aria-hidden="true">add</span>Create</button>
+<button type="button" class="mu-btn">Secondary</button>
+<button type="button" class="mu-btn mu-btn-ghost">Ghost</button>
+<button type="button" class="mu-btn mu-btn-danger"><span class="mu-icon" aria-hidden="true">delete_forever</span>Delete</button>
+<button type="button" class="mu-btn mu-btn-danger-outline">Delete fonts</button>
+<button type="button" class="mu-btn mu-btn-warning-outline">Reset key</button>
+<button type="button" class="mu-btn mu-btn-lg mu-btn-primary">Large</button>
+<button type="button" class="mu-btn mu-google-signin"><img src="/signin/google-g.png" width="22" height="22" alt="">Sign in with Google</button>
+<button type="button" class="mu-btn" disabled>Disabled</button>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Icon buttons" data-icon="radio_button_checked" id="icon-buttons">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">radio_button_checked</span></span><div><h2>Icon buttons</h2><p>Circles. Always give them an <code>aria-label</code>.</p></div></header>
+            <div class="doc-demo is-row" data-demo>
+<button type="button" class="mu-icon-btn" aria-label="Bold"><span class="mu-icon" aria-hidden="true">format_bold</span></button>
+<button type="button" class="mu-icon-btn" aria-pressed="true" aria-label="Italic"><span class="mu-icon" aria-hidden="true">format_italic</span></button>
+<button type="button" class="mu-icon-btn mu-icon-btn-soft" aria-label="Close"><span class="mu-icon" aria-hidden="true">close</span></button>
+<button type="button" class="mu-icon-btn mu-icon-btn-primary" aria-label="Share"><span class="mu-icon" aria-hidden="true">share</span></button>
+<button type="button" class="mu-icon-btn mu-icon-btn-sm" aria-label="More"><span class="mu-icon" aria-hidden="true">more_vert</span></button>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Text fields" data-icon="text_fields" id="fields">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">text_fields</span></span><div><h2>Text fields</h2><p>Labels sit above fields in muted text.</p></div></header>
+            <div class="doc-demo doc-columns" data-demo>
+<label class="mu-field"><span class="mu-field-label">Project name</span><input class="mu-input" type="text" placeholder="e.g. Launch plan"></label>
+<label class="mu-search"><span class="mu-icon" aria-hidden="true">search</span><input type="search" placeholder="Search documents" aria-label="Search documents"></label>
+<label class="mu-field"><span class="mu-field-label">Passphrase</span><input class="mu-input is-invalid" type="password" value="short" aria-invalid="true"><span class="mu-field-help">Use at least 8 characters.</span></label>
+<label class="mu-field"><span class="mu-field-label">Notes</span><textarea class="mu-textarea" placeholder="Write something"></textarea></label>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Select" data-icon="arrow_drop_down_circle" id="select">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">arrow_drop_down_circle</span></span><div><h2>Select</h2><p>Write a normal <code>&lt;select class="mu-select"&gt;</code>. The script replaces its look; <code>.value</code> and <code>change</code> keep working. Never ship a native select.</p></div></header>
+            <div class="doc-demo doc-columns" data-demo>
+<div class="mu-field"><label class="mu-field-label" for="encodingSelect">File encoding</label>
+<select id="encodingSelect" class="mu-select"><option>UTF-8</option><option>UTF-8 with BOM</option><option>UTF-16 LE</option><option>Windows-1252</option></select></div>
+<div class="mu-field"><label class="mu-field-label" for="themeSelect">Theme</label>
+<select id="themeSelect" class="mu-select"><option>System</option><option>Light</option><option>Dark</option><option>Custom</option></select></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Pickers" data-icon="palette" id="pickers">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">colorize</span></span><div><h2>Color, date, and time pickers</h2><p>Write a <code>&lt;button class="mu-picker-field" data-mu-picker="color|date|time|datetime"&gt;</code> with an optional <code>data-value</code>. The script opens the matching picker, shows the value (times use NM and AN), and fires <code>change</code> and <code>mu-pick</code>. Add <code>data-input="id"</code> to mirror the value into a hidden input. In code, call <code>MunetiosUI.pickColor()</code>, <code>pickDate()</code>, <code>pickTime()</code>, or <code>pickDateTime()</code> with <code>{ anchor, value, locale, labels, onPick }</code>. The color picker is OmniWrite's: named swatches, a saturation and brightness area, a hue track, and a hex field.</p></div></header>
+            <div class="doc-demo doc-columns" data-demo>
+<div class="mu-field"><span class="mu-field-label" id="pickColorLabel">Text color</span><button type="button" class="mu-picker-field" data-mu-picker="color" data-value="#8F5CFF" aria-labelledby="pickColorLabel"></button></div>
+<div class="mu-field"><span class="mu-field-label" id="pickDateLabel">Due date</span><button type="button" class="mu-picker-field" data-mu-picker="date" data-value="2026-11-15" data-clearable aria-labelledby="pickDateLabel"></button></div>
+<div class="mu-field"><span class="mu-field-label" id="pickTimeLabel">Reminder</span><button type="button" class="mu-picker-field" data-mu-picker="time" data-value="14:30" aria-labelledby="pickTimeLabel"></button></div>
+<div class="mu-field"><span class="mu-field-label" id="pickDateTimeLabel">Meeting</span><button type="button" class="mu-picker-field" data-mu-picker="datetime" data-value="2026-11-18T09:15" aria-labelledby="pickDateTimeLabel"></button></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Switch, checkbox, radio" data-icon="toggle_on" id="toggles">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">toggle_on</span></span><div><h2>Switch, checkbox, radio</h2><p>Switches for on/off settings, round checkboxes for picking items.</p></div></header>
+            <div class="doc-demo is-row" data-demo>
+<label class="mu-switch"><input type="checkbox" checked aria-label="Spell check"><span class="mu-switch-track"></span></label>
+<label class="mu-switch"><input type="checkbox" aria-label="Compact mode"><span class="mu-switch-track"></span></label>
+<label class="mu-check"><input type="checkbox" checked>Selected</label>
+<label class="mu-check"><input type="checkbox">Not selected</label>
+<label class="mu-radio"><input type="radio" name="width" checked>Balanced</label>
+<label class="mu-radio"><input type="radio" name="width">Wide</label>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Slider" data-icon="tune" id="slider">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">tune</span></span><div><h2>Slider</h2><p>Custom track and thumb with a filled part. Used for variable font axes; the value updates on the right.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-slider"><label class="mu-slider-head" for="weightRange"><span>Weight</span><span class="mu-muted">wght</span><output class="mu-slider-value" for="weightRange">400</output></label><input id="weightRange" class="mu-range" type="range" min="1" max="1000" value="400"></div>
+<div class="mu-slider"><label class="mu-slider-head" for="roundRange"><span>Roundness</span><span class="mu-muted">ROND</span><output class="mu-slider-value" for="roundRange">60</output></label><input id="roundRange" class="mu-range" type="range" min="0" max="100" value="60"></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Segmented and tabs" data-icon="tab" id="tabs">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">tab</span></span><div><h2>Segmented and tabs</h2><p>The script manages <code>aria-pressed</code> and <code>aria-selected</code>.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-segmented" role="group" aria-label="View"><button type="button" aria-pressed="true">Day</button><button type="button" aria-pressed="false">Week</button><button type="button" aria-pressed="false">Month</button></div>
+<div>
+<div class="mu-tabs" role="tablist"><button type="button" role="tab" data-mu-tab="all" aria-selected="true">All icons</button><button type="button" role="tab" data-mu-tab="recent" aria-selected="false">Recent</button></div>
+<div data-mu-panel="all" style="padding-top:12px">All icons panel</div>
+<div data-mu-panel="recent" style="padding-top:12px" hidden>Recent panel</div>
+</div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Toggle chips" data-icon="label" id="chips">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">label</span></span><div><h2>Toggle chips</h2><p>Multi-select toggles, like stylistic sets ss01 to ss20.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-chip-grid" id="ssChips"></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Badges and status" data-icon="sell" id="badges">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">sell</span></span><div><h2>Badges and status</h2><p>Small labels, status chips, avatars, and keyboard keys.</p></div></header>
+            <div class="doc-demo is-row" data-demo>
+<span class="mu-badge">Variable</span>
+<span class="mu-badge mu-badge-success">Saved</span>
+<span class="mu-badge mu-badge-warning">Offline</span>
+<span class="mu-badge mu-badge-danger">Locked</span>
+<span class="mu-status"><span class="mu-icon" aria-hidden="true">lock</span>End to end encrypted</span>
+<span class="mu-avatar" aria-hidden="true">P</span>
+<span>Press <span class="mu-kbd">Ctrl</span> + <span class="mu-kbd">K</span></span>
+<span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">palette</span></span>
+<span class="mu-icon-circle mu-icon-circle-danger"><span class="mu-icon" aria-hidden="true">warning</span></span>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Navigation list" data-icon="menu" id="nav">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">menu</span></span><div><h2>Navigation list</h2><p>Sidebar items. Mark the current page with <code>aria-current="page"</code>.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-glass" style="max-width:360px;padding:12px;border-radius:44px">
+<div class="mu-nav">
+<a class="mu-nav-item" href="#nav"><span class="mu-icon" aria-hidden="true">browse</span>Templates</a>
+<a class="mu-nav-item" href="#nav" aria-current="page"><span class="mu-icon" aria-hidden="true">filter</span>Images</a>
+<a class="mu-nav-item" href="#nav"><span class="mu-icon" aria-hidden="true">more_horiz</span>More</a>
+</div>
+<div class="mu-section-label">Pinned</div>
+<div class="mu-nav"><a class="mu-nav-item" href="#nav"><span class="mu-icon" aria-hidden="true">description</span>Quarterly plan</a></div>
+</div>
+            </div>
+            <div class="doc-demo is-row" data-demo style="gap:28px;margin-top:14px">
+<a class="mu-nav-item mu-nav-inline" href="#nav" aria-current="page">Search</a>
+<a class="mu-nav-item mu-nav-inline" href="#nav">Images</a>
+<button type="button" class="mu-icon-btn mu-icon-inline" aria-label="Open menu"><span class="mu-icon" aria-hidden="true">menu</span></button>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Settings group" data-icon="settings" id="group">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">settings</span></span><div><h2>Settings group</h2><p>One glass panel with rows split by dividers.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-group">
+<div class="mu-row"><div class="mu-row-info"><span class="mu-row-title">Spell check</span><span class="mu-row-subtitle">Underline misspelled words while you type.</span></div><label class="mu-switch"><input type="checkbox" checked aria-label="Spell check"><span class="mu-switch-track"></span></label></div>
+<div class="mu-row"><div class="mu-row-info"><span class="mu-row-title">Accent color</span><span class="mu-row-subtitle">Used for highlights and primary actions.</span></div><div style="min-width:220px"><select class="mu-select" aria-label="Accent color"><option>Purple</option><option>Blue</option><option>Green</option></select></div></div>
+<div class="mu-row"><div class="mu-row-info"><span class="mu-row-title">Customize toolbar</span><span class="mu-row-subtitle">Reorder or hide tools.</span></div><button type="button" class="mu-btn">Open</button></div>
+</div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Pick list" data-icon="checklist" id="pick">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">checklist</span></span><div><h2>Pick list</h2><p>Choose one or more items, such as documents for a project.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-pick-list mu-scroll" style="max-width:520px">
+<label class="mu-pick mu-check"><input type="checkbox" checked><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">description</span></span>Quarterly plan</label>
+<label class="mu-pick mu-check"><input type="checkbox"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">description</span></span>Meeting notes</label>
+<label class="mu-pick mu-check"><input type="checkbox"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">description</span></span>Budget review</label>
+</div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Tiles" data-icon="grid_view" id="tiles">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">grid_view</span></span><div><h2>Tiles</h2><p>Grid tiles for formats and pickers, and option tiles for panels.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-tile-grid">
+<button type="button" class="mu-tile"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">text_snippet</span></span>Download as TXT<span class="mu-tile-sub">.txt</span></button>
+<button type="button" class="mu-tile"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">description</span></span>Download as DOCX<span class="mu-tile-sub">.docx</span></button>
+<button type="button" class="mu-tile"><span class="mu-icon" style="font-size:36px" aria-hidden="true">rocket_launch</span>rocket launch</button>
+</div>
+<div class="doc-columns">
+<button type="button" class="mu-option-tile is-active"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">ink_highlighter</span></span>Marker</button>
+<button type="button" class="mu-option-tile"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">match_case</span></span>Title Case</button>
+</div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Action cards" data-icon="ads_click" id="actions">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">ads_click</span></span><div><h2>Action cards and danger zone</h2><p>Big choices with a title and description. Destructive actions go last.</p></div></header>
+            <div class="doc-demo" data-demo>
+<button type="button" class="mu-action-card is-primary"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">settings_backup_restore</span></span><span><span class="mu-action-card-title">Try restoring</span><span class="mu-action-card-desc">Recover from the last version that opened.</span></span></button>
+<button type="button" class="mu-action-card is-danger"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">delete_forever</span></span><span><span class="mu-action-card-title">Delete affected documents</span><span class="mu-action-card-desc">Permanently remove them.</span></span></button>
+<div class="mu-danger-zone">
+<button type="button" class="mu-btn mu-btn-block mu-btn-danger-outline">Delete all custom fonts</button>
+<button type="button" class="mu-btn mu-btn-block mu-btn-warning-outline">Reset encryption key</button>
+<button type="button" class="mu-btn mu-btn-block mu-btn-danger">Delete everything</button>
+</div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Top bar" data-icon="web_asset" id="topbar">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">web_asset</span></span><div><h2>Top bar</h2><p>A split menu circle, a title capsule, and an action capsule with group dividers.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-topbar">
+<button type="button" class="mu-capsule-btn" aria-label="Menu"><span class="mu-icon" aria-hidden="true">menu</span></button>
+<div class="mu-capsule" style="flex:1 1 auto;min-width:0"><span class="mu-topbar-title">Quarterly plan</span><span class="mu-icon-circle" style="width:46px;height:46px"><span class="mu-icon" aria-hidden="true">lock</span></span></div>
+<div class="mu-capsule">
+<button type="button" class="mu-icon-btn" aria-label="Preview"><span class="mu-icon" aria-hidden="true">visibility</span></button>
+<span class="mu-divider-v"></span>
+<button type="button" class="mu-icon-btn" aria-label="Pin"><span class="mu-icon" aria-hidden="true">push_pin</span></button>
+<span class="mu-divider-v"></span>
+<button type="button" class="mu-icon-btn mu-icon-btn-primary" aria-label="Share"><span class="mu-icon" aria-hidden="true">share</span></button>
+<button type="button" class="mu-icon-btn" aria-label="More options"><span class="mu-icon" aria-hidden="true">more_vert</span></button>
+</div>
+</div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Toolbar" data-icon="construction" id="toolbar">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">construction</span></span><div><h2>Toolbar</h2><p>Core tools first, field-style controls for text style and font, dividers between groups.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-toolbar" role="toolbar" aria-label="Formatting">
+<button type="button" class="mu-toolbar-field">Normal text<span class="mu-icon" aria-hidden="true">arrow_drop_down</span></button>
+<button type="button" class="mu-toolbar-field"><span class="mu-icon" aria-hidden="true">font_download</span>Google Sans Flex</button>
+<span class="mu-divider-v"></span>
+<button type="button" class="mu-icon-btn" aria-label="Bold"><span class="mu-icon" aria-hidden="true">format_bold</span></button>
+<button type="button" class="mu-icon-btn is-active" aria-label="Italic"><span class="mu-icon" aria-hidden="true">format_italic</span></button>
+<button type="button" class="mu-icon-btn" aria-label="Underline"><span class="mu-icon" aria-hidden="true">format_underlined</span></button>
+<span class="mu-divider-v"></span>
+<button type="button" class="mu-icon-btn" aria-label="Undo"><span class="mu-icon" aria-hidden="true">undo</span></button>
+</div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Menu" data-icon="list" id="menu">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">list</span></span><div><h2>Menu</h2><p>Dropdowns and context menus. Floating menus use the second glass layer built in.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-menu mu-menu-context" role="menu">
+<button type="button" class="mu-menu-item" role="menuitem"><span class="mu-icon" aria-hidden="true">edit</span><span>Rename</span><kbd aria-hidden="true">F2</kbd></button>
+<button type="button" class="mu-menu-item is-selected" role="menuitem"><span class="mu-icon" aria-hidden="true">push_pin</span>Pinned<span class="mu-icon mu-menu-check" aria-hidden="true">check</span></button>
+<div class="mu-menu-sep" role="separator"></div>
+<button type="button" class="mu-menu-item is-danger" role="menuitem"><span class="mu-icon" aria-hidden="true">delete</span>Delete</button>
+</div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Tooltip and toast" data-icon="notifications" id="toast">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">notifications</span></span><div><h2>Tooltip and toast</h2><p>Call <code>MunetiosUI.toast(message, { type })</code>. Toasts appear at the top center with the newest on top. Short toasts (the default, including errors) close themselves; a close button appears only when <code>duration</code> is longer than 2600ms.</p></div></header>
+            <div class="doc-demo is-row" data-demo>
+<span class="mu-tooltip">Version history</span>
+<button type="button" class="mu-btn" onclick="MunetiosUI.toast('Document saved', { type: 'success' })">Show success toast</button>
+<button type="button" class="mu-btn" onclick="MunetiosUI.toast('Failed to restore document version', { type: 'error' })">Show error toast</button>
+<button type="button" class="mu-btn" onclick="MunetiosUI.toast('Backup exported. You can close this when you are done.', { type: 'info', duration: 8000 })">Show long toast</button>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Input action" data-icon="password" id="input-action">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">password</span></span><div><h2>Input action</h2><p>An input with a trailing action. Supports both writing directions.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-field"><label class="mu-field-label" for="demoPasswordAction">Password</label><div class="mu-input-action"><input class="mu-input" id="demoPasswordAction" type="password" autocomplete="current-password"><button type="button" class="mu-icon-btn" aria-label="Show password" aria-controls="demoPasswordAction" aria-pressed="false" onclick="const input=document.getElementById('demoPasswordAction'); const shown=input.type==='password'; input.type=shown?'text':'password'; this.setAttribute('aria-pressed',String(shown)); this.setAttribute('aria-label',shown?'Hide password':'Show password'); this.querySelector('.mu-icon').textContent=shown?'visibility_off':'visibility';"><span class="mu-icon" aria-hidden="true">visibility</span></button></div></div>
+            </div>
+        </section>
+        <section class="doc-section mu-glass" data-title="YouTube" data-icon="smart_display" id="youtube">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">smart_display</span></span><div><h2>YouTube player</h2><p>Consent-gated nocookie embeds with YouTube's own controls and captions. The warning stays visible below the video. Application API requests use the same-origin Express proxy; playback connects to YouTube.</p></div></header>
+            <div class="doc-demo" data-demo>
+<munetios-youtube-player video-id="M7lc1UVf-VE" video-title="YouTube API demo"></munetios-youtube-player>
+            </div>
+        </section>
+        <section class="doc-section mu-glass" data-title="Modal" data-icon="web" id="modal">
+            <p>Existing dialog layouts can use <code>mu-dialog-layer</code> on the overlay and <code>mu-dialog-surface</code> on its direct panel. Call <code>MunetiosUI.enhanceDialogLayer(overlay)</code> to synchronize open state and allow clicks through the background.</p>
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">web</span></span><div><h2>Modal</h2><p>Medium size and always in the same position. Open with <code>data-mu-open</code>; close with <code>data-mu-close</code> or Escape (clicking outside doesn't close it). You can keep clicking the page behind it, and opening it again stacks a duplicate in exactly the same spot. While any modal is open, danger actions on the page (like the Danger zone below) are locked.</p></div></header>
+            <div class="doc-demo" data-demo>
+<button type="button" class="mu-btn mu-btn-primary" data-mu-open="demoModal"><span class="mu-icon" aria-hidden="true">open_in_new</span>Open modal</button>
+<div class="mu-modal" id="demoModal" hidden>
+<div class="mu-dialog" role="dialog" aria-labelledby="demoModalTitle">
+<div class="mu-dialog-header"><div class="mu-dialog-heading"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">create_new_folder</span></span><h2 id="demoModalTitle">Create project</h2></div><button type="button" class="mu-icon-btn mu-icon-btn-soft" data-mu-close aria-label="Close"><span class="mu-icon" aria-hidden="true">close</span></button></div>
+<label class="mu-field"><span class="mu-field-label">Project name</span><input class="mu-input" type="text" placeholder="e.g. Launch plan"></label>
+<div class="mu-dialog-actions"><button type="button" class="mu-btn mu-btn-ghost" data-mu-open="demoModal">Open again</button><button type="button" class="mu-btn" data-mu-close>Cancel</button><button type="button" class="mu-btn mu-btn-primary" data-mu-close>Create project</button></div>
+</div>
+</div>
+            </div>
+            <h3 class="mu-h-title" style="margin:22px 0 12px">Static preview</h3>
+            <div class="doc-demo">
+                <div class="mu-dialog mu-dialog-surface mu-dialog-static" role="presentation">
+                    <div class="mu-dialog-header"><div class="mu-dialog-heading"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">download</span></span><h2>Download document</h2></div><button type="button" class="mu-icon-btn mu-icon-btn-soft" aria-label="Close"><span class="mu-icon" aria-hidden="true">close</span></button></div>
+                    <p class="mu-muted" style="margin:0">Choose a format for "Quarterly plan".</p>
+                    <div class="mu-tile-grid"><button type="button" class="mu-tile"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">code</span></span>HTML<span class="mu-tile-sub">.html</span></button><button type="button" class="mu-tile"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">notes</span></span>Markdown<span class="mu-tile-sub">.md</span></button></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Paper" data-icon="article" id="paper">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">article</span></span><div><h2>Paper</h2><p>Document pages are light by default in every theme.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-paper"><h2 style="font-size:28px;font-weight:300;margin:0 0 8px">Quarterly plan</h2><p style="margin:0">Ship the new editor and review the encryption design before Friday.</p></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Empty and loading" data-icon="hourglass_empty" id="empty">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">hourglass_empty</span></span><div><h2>Empty and loading</h2><p>Empty states, progress bars, and spinners.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-empty"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">inbox</span></span><span>No documents yet</span><button type="button" class="mu-btn mu-btn-primary">New document</button></div>
+<div class="mu-progress" role="progressbar" aria-valuenow="62" aria-valuemin="0" aria-valuemax="100" aria-label="Upload"><span style="width:62%"></span></div>
+<div class="spinner-container" role="status" aria-label="Loading">
+  <svg class="google-spinner" viewBox="0 0 50 50" aria-hidden="true" focusable="false">
+    <circle class="spinner-circle" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+  </svg>
+</div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Alerts" data-icon="campaign" id="alerts">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">campaign</span></span><div><h2>Alerts</h2><p>Inline messages that stay on the page.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-alert" role="status"><span class="mu-icon" aria-hidden="true">info</span><div class="mu-alert-body"><span class="mu-alert-title">New version available</span><span class="mu-muted">Reload to get the latest features.</span></div><button type="button" class="mu-btn">Reload</button></div>
+<div class="mu-alert is-success" role="status"><span class="mu-icon" aria-hidden="true">check_circle</span><div class="mu-alert-body"><span class="mu-alert-title">Backup complete</span><span class="mu-muted">All 24 documents were exported.</span></div></div>
+<div class="mu-alert is-warning" role="status"><span class="mu-icon" aria-hidden="true">wifi_off</span><div class="mu-alert-body"><span class="mu-alert-title">You're offline</span><span class="mu-muted">Changes are saved on this device.</span></div></div>
+<div class="mu-alert is-danger" role="alert"><span class="mu-icon" aria-hidden="true">error</span><div class="mu-alert-body"><span class="mu-alert-title">Couldn't decrypt 1 document</span><span class="mu-muted">Its stored data is kept unchanged.</span></div></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Accordion" data-icon="expand_circle_down" id="accordion">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">expand_circle_down</span></span><div><h2>Accordion</h2><p>Built on <code>&lt;details&gt;</code>, so it works without JavaScript.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-accordion">
+<details open><summary>Is my data encrypted?</summary><div class="mu-accordion-body">Yes. Documents are encrypted on your device before they are saved.</div></details>
+<details><summary>Does it work offline?</summary><div class="mu-accordion-body">Yes. Everything is stored locally.</div></details>
+<details><summary>Can I export my documents?</summary><div class="mu-accordion-body">Download as TXT, HTML, DOCX, or Markdown.</div></details>
+</div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Stepper" data-icon="exposure" id="stepper">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">exposure</span></span><div><h2>Number stepper</h2><p>Plus and minus around a number, like the font size control.</p></div></header>
+            <div class="doc-demo is-row" data-demo>
+<div class="mu-stepper"><button type="button" class="mu-icon-btn" data-mu-step="-1" aria-label="Decrease"><span class="mu-icon" aria-hidden="true">remove</span></button><input type="number" value="14" min="1" max="200" aria-label="Font size"><button type="button" class="mu-icon-btn" data-mu-step="1" aria-label="Increase"><span class="mu-icon" aria-hidden="true">add</span></button></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Breadcrumbs" data-icon="route" id="breadcrumbs">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">route</span></span><div><h2>Breadcrumbs</h2><p>Show where a page sits in a hierarchy.</p></div></header>
+            <div class="doc-demo" data-demo>
+<nav aria-label="Breadcrumb"><ol class="mu-breadcrumbs"><li><a href="#breadcrumbs">Workspace</a></li><li><a href="#breadcrumbs">Projects</a></li><li><span aria-current="page">Launch plan</span></li></ol></nav>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Pagination" data-icon="last_page" id="pagination">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">last_page</span></span><div><h2>Pagination</h2><p>Move between pages of results.</p></div></header>
+            <div class="doc-demo" data-demo>
+<nav class="mu-pagination" aria-label="Pages"><button type="button" aria-label="Previous page" disabled><span class="mu-icon" aria-hidden="true">chevron_left</span></button><button type="button" data-page="1" aria-current="page">1</button><button type="button" data-page="2">2</button><button type="button" data-page="3">3</button><button type="button" aria-label="Next page"><span class="mu-icon" aria-hidden="true">chevron_right</span></button></nav>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Avatar group" data-icon="groups" id="avatars">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">groups</span></span><div><h2>Avatar group</h2><p>Overlapping avatars with a count for the rest.</p></div></header>
+            <div class="doc-demo is-row" data-demo>
+<div class="mu-avatar-group" aria-label="5 people"><span class="mu-avatar">A</span><span class="mu-avatar" style="background:#e9618a">B</span><span class="mu-avatar" style="background:#2f9e8f">C</span><span class="mu-avatar is-more">+2</span></div>
+            </div>
+            <h3 class="mu-h-title" style="margin:22px 0 12px">Profile pictures and people here now</h3>
+            <p class="mu-muted" style="margin:0 0 12px">Put an <code>&lt;img&gt;</code> inside <code>.mu-avatar</code> for a profile picture. Add <code>.is-live</code> for people currently in the file (used by OmniWrite's real-time collaboration).</p>
+            <div class="doc-demo is-row" data-demo>
+<div class="mu-avatar-group" role="group" aria-label="Here now: Alex, Bea, Chris"><span class="mu-avatar is-live" title="Alex"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'%3E%3Crect width='44' height='44' fill='%23f2b880'/%3E%3Ccircle cx='22' cy='17' r='8' fill='%23fff'/%3E%3Cellipse cx='22' cy='40' rx='14' ry='10' fill='%23fff'/%3E%3C/svg%3E" alt=""></span><span class="mu-avatar is-live" style="background:#e9618a" title="Bea">B</span><span class="mu-avatar is-live" style="background:#2f9e8f" title="Chris">C</span></div>
+<span class="mu-badge"><span class="mu-icon" aria-hidden="true">visibility</span>View only</span>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Stat cards" data-icon="monitoring" id="stats">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">monitoring</span></span><div><h2>Stat cards</h2><p>Single numbers with a label, for dashboards.</p></div></header>
+            <div class="doc-demo doc-columns" data-demo>
+<div class="mu-stat"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">description</span></span><div><div class="mu-stat-value">24</div><div class="mu-stat-label">Documents</div></div><span class="mu-badge mu-badge-success mu-stat-trend">+3</span></div>
+<div class="mu-stat"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">folder</span></span><div><div class="mu-stat-value">6</div><div class="mu-stat-label">Projects</div></div></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Skeleton" data-icon="view_day" id="skeleton">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">view_day</span></span><div><h2>Skeleton</h2><p>Placeholders while content loads.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div style="display:flex;gap:14px;align-items:center"><span class="mu-skeleton is-circle"></span><div style="flex:1;display:grid;gap:10px"><span class="mu-skeleton is-title"></span><span class="mu-skeleton is-text"></span></div></div>
+<span class="mu-skeleton is-block"></span>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Progress ring" data-icon="donut_large" id="ring">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">donut_large</span></span><div><h2>Progress ring</h2><p>Set <code>--mu-value</code> from 0 to 100.</p></div></header>
+            <div class="doc-demo is-row" data-demo>
+<div class="mu-ring" style="--mu-value:72" role="progressbar" aria-valuenow="72" aria-valuemin="0" aria-valuemax="100" aria-label="Storage used"><span>72%</span></div>
+<div class="mu-ring" style="--mu-value:30" role="progressbar" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100" aria-label="Goal"><span>30%</span></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Steps" data-icon="linear_scale" id="steps">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">linear_scale</span></span><div><h2>Steps</h2><p>Progress through a multi-step flow.</p></div></header>
+            <div class="doc-demo" data-demo>
+<ol class="mu-steps"><li class="is-done"><span class="mu-step-dot"><span class="mu-icon" aria-hidden="true">check</span></span>Account</li><li class="is-current" aria-current="step"><span class="mu-step-dot">2</span>Workspace</li><li><span class="mu-step-dot">3</span>Invite</li></ol>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Timeline" data-icon="history" id="timeline">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">history</span></span><div><h2>Timeline</h2><p>Activity or version history.</p></div></header>
+            <div class="doc-demo" data-demo>
+<ol class="mu-timeline">
+<li><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">edit</span></span><div><div>Edited the introduction</div><div class="mu-timeline-time">Today, 9:41 NM</div></div></li>
+<li><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">share</span></span><div><div>Shared with the team</div><div class="mu-timeline-time">Yesterday, 4:12 AN</div></div></li>
+<li><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">add</span></span><div><div>Document created</div><div class="mu-timeline-time">Monday, 11:05 NM</div></div></li>
+</ol>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Dropzone" data-icon="upload_file" id="dropzone">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">upload_file</span></span><div><h2>Dropzone</h2><p>Drop files or click to choose.</p></div></header>
+            <div class="doc-demo" data-demo>
+<label class="mu-dropzone"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">upload_file</span></span><span>Drop a font file here, or click to choose</span><span class="mu-muted mu-dropzone-file">.ttf, .otf, .woff, .woff2</span><input type="file" accept=".ttf,.otf,.woff,.woff2"></label>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Color swatches" data-icon="format_color_fill" id="swatches">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">format_color_fill</span></span><div><h2>Color swatches</h2><p>Pick one color. Give each swatch a name.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-swatches" role="group" aria-label="Accent color"><button type="button" class="mu-swatch" style="background:#8f5cff" aria-label="Purple" aria-pressed="true"></button><button type="button" class="mu-swatch" style="background:#3b82f6" aria-label="Blue" aria-pressed="false"></button><button type="button" class="mu-swatch" style="background:#22c55e" aria-label="Green" aria-pressed="false"></button><button type="button" class="mu-swatch" style="background:#f97316" aria-label="Orange" aria-pressed="false"></button><button type="button" class="mu-swatch" style="background:#e9618a" aria-label="Pink" aria-pressed="false"></button></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Rating" data-icon="star" id="rating">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">star</span></span><div><h2>Rating</h2><p>Click a star to rate.</p></div></header>
+            <div class="doc-demo is-row" data-demo>
+<div class="mu-rating" role="radiogroup" aria-label="Rating"><button type="button" class="is-on" role="radio" aria-checked="false" aria-label="1 star"><span class="mu-icon" aria-hidden="true">star</span></button><button type="button" class="is-on" role="radio" aria-checked="false" aria-label="2 stars"><span class="mu-icon" aria-hidden="true">star</span></button><button type="button" class="is-on" role="radio" aria-checked="true" aria-label="3 stars"><span class="mu-icon" aria-hidden="true">star</span></button><button type="button" role="radio" aria-checked="false" aria-label="4 stars"><span class="mu-icon" aria-hidden="true">star</span></button><button type="button" role="radio" aria-checked="false" aria-label="5 stars"><span class="mu-icon" aria-hidden="true">star</span></button></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Tags" data-icon="sell" id="tags">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">sell</span></span><div><h2>Removable tags</h2><p>Labels you can remove.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-tags"><span class="mu-tag">Design<button type="button" aria-label="Remove Design"><span class="mu-icon" aria-hidden="true">close</span></button></span><span class="mu-tag">Q4<button type="button" aria-label="Remove Q4"><span class="mu-icon" aria-hidden="true">close</span></button></span><span class="mu-tag">Draft<button type="button" aria-label="Remove Draft"><span class="mu-icon" aria-hidden="true">close</span></button></span></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Split button and popover" data-icon="call_split" id="split">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">call_split</span></span><div><h2>Split button and popover</h2><p>A main action with extra options, and a small panel anchored to a button.</p></div></header>
+            <div class="doc-demo is-row" data-demo>
+<div class="mu-split"><button type="button" class="mu-btn mu-btn-primary"><span class="mu-icon" aria-hidden="true">download</span>Download</button><button type="button" class="mu-btn mu-btn-primary" aria-label="More download options"><span class="mu-icon" aria-hidden="true">expand_more</span></button></div>
+<div class="mu-popover-anchor"><button type="button" class="mu-btn" data-mu-popover="demoPopover" aria-expanded="false"><span class="mu-icon" aria-hidden="true">info</span>Details</button>
+<div class="mu-popover" id="demoPopover" hidden><div class="mu-h-title" style="margin-bottom:6px">Document info</div><div class="mu-muted">1,240 words · 6 min read</div></div></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Table" data-icon="table" id="table">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">table</span></span><div><h2>Table</h2><p>Scrolls sideways on small screens.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-table-wrap"><table class="mu-table"><thead><tr><th>Document</th><th>Words</th><th>Status</th></tr></thead><tbody><tr><td>Quarterly plan</td><td>1,240</td><td><span class="mu-badge mu-badge-success">Saved</span></td></tr><tr><td>Meeting notes</td><td>380</td><td><span class="mu-badge mu-badge-warning">Draft</span></td></tr></tbody></table></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Bottom sheet" data-icon="call_to_action" id="sheet">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">call_to_action</span></span><div><h2>Bottom sheet</h2><p>A panel that slides up from the bottom, good for phones.</p></div></header>
+            <div class="doc-demo" data-demo>
+<button type="button" class="mu-btn" data-mu-sheet="demoSheet"><span class="mu-icon" aria-hidden="true">vertical_align_top</span>Open sheet</button>
+<div class="mu-sheet" id="demoSheet" role="dialog" aria-label="Share" hidden><div class="mu-sheet-grip"></div><div class="mu-h-title" style="margin-bottom:12px">Share</div><div class="mu-nav"><button type="button" class="mu-nav-item"><span class="mu-icon" aria-hidden="true">link</span>Copy link</button><button type="button" class="mu-nav-item"><span class="mu-icon" aria-hidden="true">mail</span>Email</button></div><button type="button" class="mu-btn mu-btn-block" data-mu-close style="margin-top:12px">Done</button></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Media card" data-icon="smart_display" id="media">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">smart_display</span></span><div><h2>Media card and divider</h2><p>Cards with a preview area, and a labeled divider.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-media-card" style="max-width:420px"><div class="mu-media-card-media"><span class="mu-icon" aria-hidden="true">play_circle</span></div><div class="mu-media-card-body"><span class="mu-h-title">Product walkthrough</span><span class="mu-muted">4 min video</span></div></div>
+<div class="mu-divider-label">or</div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Shortcuts" data-icon="keyboard" id="shortcuts">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">keyboard</span></span><div><h2>Keyboard shortcuts</h2><p>A list of actions and their keys.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-shortcuts"><div class="mu-shortcut"><span>Bold</span><span><span class="mu-kbd">Ctrl</span> + <span class="mu-kbd">B</span></span></div><div class="mu-shortcut"><span>Search</span><span><span class="mu-kbd">Ctrl</span> + <span class="mu-kbd">K</span></span></div><div class="mu-shortcut"><span>Undo</span><span><span class="mu-kbd">Ctrl</span> + <span class="mu-kbd">Z</span></span></div></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Command palette" data-icon="manage_search" id="palette">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">manage_search</span></span><div><h2>Command palette</h2><p>Search actions. Type to filter; arrow keys move the selection.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-palette" role="dialog" aria-label="Command palette">
+<label class="mu-search"><span class="mu-icon" aria-hidden="true">search</span><input type="search" placeholder="Type a command" aria-label="Type a command"></label>
+<div class="mu-palette-list" role="listbox">
+<div class="mu-palette-item" role="option" aria-selected="true"><span class="mu-icon" aria-hidden="true">note_add</span>New document<span class="mu-palette-hint"><span class="mu-kbd">Ctrl</span> <span class="mu-kbd">N</span></span></div>
+<div class="mu-palette-item" role="option" aria-selected="false"><span class="mu-icon" aria-hidden="true">create_new_folder</span>New project</div>
+<div class="mu-palette-item" role="option" aria-selected="false"><span class="mu-icon" aria-hidden="true">settings</span>Open settings</div>
+<div class="mu-palette-item" role="option" aria-selected="false"><span class="mu-icon" aria-hidden="true">dark_mode</span>Switch theme</div>
+</div>
+</div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Notifications" data-icon="notifications_active" id="notifications">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">notifications_active</span></span><div><h2>Notifications</h2><p>An inbox list; unread items show a dot.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-notifications">
+<div class="mu-notification is-unread"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">share</span></span><div><div>Alex shared "Quarterly plan"</div><div class="mu-muted">You can now edit it.</div></div><span class="mu-notification-time">9:41 NM</span></div>
+<div class="mu-notification"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">cloud_done</span></span><div><div>Backup finished</div><div class="mu-muted">24 documents exported.</div></div><span class="mu-notification-time">Yesterday</span></div>
+</div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="File row" data-icon="draft" id="file">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">draft</span></span><div><h2>File row</h2><p>A file with its size and upload progress.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-file"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">image</span></span><div class="mu-file-info"><span class="mu-file-name">cover-photo.png</span><div class="mu-progress" role="progressbar" aria-valuenow="64" aria-valuemin="0" aria-valuemax="100" aria-label="Uploading cover-photo.png"><span style="width:64%"></span></div><span class="mu-file-meta">2.4 MB of 3.8 MB</span></div><button type="button" class="mu-icon-btn" aria-label="Cancel upload"><span class="mu-icon" aria-hidden="true">close</span></button></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Calendar" data-icon="calendar_month" id="calendar">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">calendar_month</span></span><div><h2>Mini calendar</h2><p>Pick a day. Today has a ring; the chosen day is filled.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-calendar"><div class="mu-calendar-head"><button type="button" class="mu-icon-btn mu-icon-btn-sm" aria-label="Previous month"><span class="mu-icon" aria-hidden="true">chevron_left</span></button><span class="mu-calendar-title">November 2026</span><button type="button" class="mu-icon-btn mu-icon-btn-sm" aria-label="Next month"><span class="mu-icon" aria-hidden="true">chevron_right</span></button></div><div class="mu-calendar-grid" id="demoCalendar"></div></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Icon toggle group" data-icon="format_align_center" id="icon-toggles">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">format_align_center</span></span><div><h2>Icon toggle group</h2><p>A segmented control with icons, like text alignment.</p></div></header>
+            <div class="doc-demo is-row" data-demo>
+<div class="mu-segmented is-icons" role="group" aria-label="Alignment"><button type="button" aria-pressed="true" aria-label="Align left"><span class="mu-icon" aria-hidden="true">format_align_left</span></button><button type="button" aria-pressed="false" aria-label="Center"><span class="mu-icon" aria-hidden="true">format_align_center</span></button><button type="button" aria-pressed="false" aria-label="Align right"><span class="mu-icon" aria-hidden="true">format_align_right</span></button><button type="button" aria-pressed="false" aria-label="Justify"><span class="mu-icon" aria-hidden="true">format_align_justify</span></button></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Copy field" data-icon="content_copy" id="copy">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">content_copy</span></span><div><h2>Copy field</h2><p>A read-only value with a copy button.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-copy-field" style="max-width:560px"><input type="text" readonly value="https://write.munetios.com/s/8f2k1x" aria-label="Share link"><button type="button" class="mu-btn mu-btn-primary" data-mu-copy data-mu-copied="Link copied"><span class="mu-icon" aria-hidden="true">content_copy</span>Copy</button></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Tasks" data-icon="task_alt" id="tasks">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">task_alt</span></span><div><h2>Task list</h2><p>Checking a task strikes it through.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-tasks">
+<label class="mu-task mu-check"><input type="checkbox" checked><span class="mu-task-text">Draft the announcement</span><span class="mu-badge mu-badge-success">Done</span></label>
+<label class="mu-task mu-check"><input type="checkbox"><span class="mu-task-text">Review the encryption design</span><span class="mu-badge">Friday</span></label>
+</div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Plan cards" data-icon="workspace_premium" id="plans">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">workspace_premium</span></span><div><h2>Plan cards</h2><p>Compare options side by side.</p></div></header>
+            <div class="doc-demo doc-columns" data-demo>
+<div class="mu-plan"><span class="mu-h-title">Personal</span><span class="mu-plan-price">Free</span><ul class="mu-plan-features"><li><span class="mu-icon" aria-hidden="true">check</span>Unlimited documents</li><li><span class="mu-icon" aria-hidden="true">check</span>End-to-end encryption</li></ul><button type="button" class="mu-btn mu-btn-block">Current plan</button></div>
+<div class="mu-plan is-featured"><span class="mu-h-title">Business <span class="mu-badge">Popular</span></span><span class="mu-plan-price">$8</span><ul class="mu-plan-features"><li><span class="mu-icon" aria-hidden="true">check</span>Everything in Personal</li><li><span class="mu-icon" aria-hidden="true">check</span>Team workspaces</li></ul><button type="button" class="mu-btn mu-btn-primary mu-btn-block">Upgrade</button></div>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Comments" data-icon="forum" id="comments">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">forum</span></span><div><h2>Comments</h2><p>A thread; your own replies sit on the right.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-comments">
+<div class="mu-comment"><span class="mu-avatar" aria-hidden="true">A</span><div class="mu-comment-bubble"><div class="mu-comment-meta"><span>Alex</span><span class="mu-muted">10:02 NM</span></div>Can we move the launch to Monday?</div></div>
+<div class="mu-comment is-own"><span class="mu-avatar" aria-hidden="true">P</span><div class="mu-comment-bubble"><div class="mu-comment-meta"><span>You</span><span class="mu-muted">10:05 NM</span></div>Yes, I will update the plan.</div></div>
+</div>
+            </div>
+            <h3 class="mu-h-title" style="margin:22px 0 12px">Side panel</h3>
+            <p class="mu-muted" style="margin:0 0 12px"><code>.mu-side-panel</code> docks on the right on wide screens and becomes a bottom sheet (with <code>.mu-sheet-grip</code>) at 760px and narrower. OmniWrite's Comments panel uses it. Toggle it with the <code>hidden</code> attribute.</p>
+            <div class="doc-demo" data-demo>
+<button type="button" class="mu-btn" onclick="const panel=document.getElementById('demoSidePanel'); panel.hidden=!panel.hidden;"><span class="mu-icon" aria-hidden="true">forum</span>Toggle side panel</button>
+<aside class="mu-side-panel" id="demoSidePanel" aria-labelledby="demoSidePanelTitle" hidden>
+<div class="mu-sheet-grip" aria-hidden="true"></div>
+<div class="mu-side-panel-header"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">forum</span></span><h2 id="demoSidePanelTitle">Comments</h2><span class="mu-badge">2</span><button type="button" class="mu-icon-btn mu-icon-btn-soft" aria-label="Close" onclick="this.closest('.mu-side-panel').hidden=true;"><span class="mu-icon" aria-hidden="true">close</span></button></div>
+<textarea class="mu-textarea" rows="3" placeholder="Add a comment" aria-label="Add a comment"></textarea>
+<div class="mu-comments">
+<div class="mu-comment"><span class="mu-avatar" aria-hidden="true">A</span><div class="mu-comment-bubble"><div class="mu-comment-meta"><span>Alex</span><span class="mu-muted">10:02 NM</span></div>Can we move the launch to Monday?</div></div>
+<div class="mu-comment"><span class="mu-avatar" style="background:#2f9e8f" aria-hidden="true">S</span><div class="mu-comment-bubble"><div class="mu-comment-meta"><span>Sam</span><span class="mu-badge">Guest</span><span class="mu-muted">10:07 NM</span></div>Monday works for me.</div></div>
+</div>
+</aside>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Selection bar" data-icon="select_all" id="selection-bar">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">select_all</span></span><div><h2>Selection action bar</h2><p>Floating actions for the selected items. Its delete action is a danger action, so it locks while a modal is open.</p></div></header>
+            <div class="doc-demo is-row" data-demo>
+<div class="mu-action-bar" role="toolbar" aria-label="Selected documents"><span class="mu-action-bar-count">3 selected</span><button type="button" class="mu-icon-btn" aria-label="Move"><span class="mu-icon" aria-hidden="true">drive_file_move</span></button><button type="button" class="mu-icon-btn" aria-label="Download"><span class="mu-icon" aria-hidden="true">download</span></button><button type="button" class="mu-icon-btn" aria-label="Delete" data-mu-danger><span class="mu-icon" aria-hidden="true">delete</span></button><button type="button" class="mu-icon-btn mu-icon-btn-soft" aria-label="Clear selection"><span class="mu-icon" aria-hidden="true">close</span></button></div>
+            </div>
+        </section>
+        <section id="advanced-inputs" class="doc-section mu-glass liquid-glass" data-title="Advanced inputs" data-icon="tune">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">tune</span></span><h2>Advanced inputs</h2></header>
+            <div class="doc-component-list">
+                <article class="doc-component" data-component="mu-scoped-search">
+                    <h3 class="mu-h-title">Search field with a scope</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-scoped-search"><label><span class="mu-field-label">Find files</span><input class="mu-input" type="search" placeholder="Search file names"></label><label><span class="mu-field-label">Search in</span><select class="mu-select"><option>All files</option><option>Current folder</option></select></label></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-address-fields">
+                    <h3 class="mu-h-title">Compound address</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-address-fields"><label>Street <input class="mu-input" autocomplete="street-address"></label><label>City <input class="mu-input" autocomplete="address-level2"></label><label>ZIP code <input class="mu-input" autocomplete="postal-code"></label></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-unit-field">
+                    <h3 class="mu-h-title">Quantity with unit</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-unit-field"><label for="exampleQuantity">Page width</label><div><div class="mu-stepper"><button type="button" class="mu-icon-btn" data-mu-step="-1" aria-label="Decrease page width"><span class="mu-icon" aria-hidden="true">remove</span></button><input id="exampleQuantity" type="number" min="0" value="210" aria-describedby="exampleQuantityUnit"><button type="button" class="mu-icon-btn" data-mu-step="1" aria-label="Increase page width"><span class="mu-icon" aria-hidden="true">add</span></button></div><span id="exampleQuantityUnit">mm</span></div></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-price-range">
+                    <h3 class="mu-h-title">Price range</h3>
+                    <div data-demo class="doc-demo">
+                        <fieldset class="mu-price-range"><legend>Budget in USD</legend><div><label for="exampleMinBudget">Minimum</label><div class="mu-stepper"><button type="button" class="mu-icon-btn" data-mu-step="-1" aria-label="Decrease minimum budget"><span class="mu-icon" aria-hidden="true">remove</span></button><input id="exampleMinBudget" type="number" min="0" value="25"><button type="button" class="mu-icon-btn" data-mu-step="1" aria-label="Increase minimum budget"><span class="mu-icon" aria-hidden="true">add</span></button></div></div><div><label for="exampleMaxBudget">Maximum</label><div class="mu-stepper"><button type="button" class="mu-icon-btn" data-mu-step="-1" aria-label="Decrease maximum budget"><span class="mu-icon" aria-hidden="true">remove</span></button><input id="exampleMaxBudget" type="number" min="0" value="150"><button type="button" class="mu-icon-btn" data-mu-step="1" aria-label="Increase maximum budget"><span class="mu-icon" aria-hidden="true">add</span></button></div></div></fieldset>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-file-input">
+                    <h3 class="mu-h-title">File input</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-file-input">
+                            <button type="button" class="mu-btn" data-mu-file-choose aria-describedby="examplePdfName"><span class="mu-icon" aria-hidden="true">upload_file</span>Choose a PDF</button>
+                            <input type="file" name="document" accept="application/pdf" hidden>
+                            <span class="mu-muted" id="examplePdfName" data-mu-file-name data-empty="No file selected" role="status">No file selected</span>
+                        </div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-suggestion-field">
+                    <h3 class="mu-h-title">Field with an input suggestion list</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-suggestion-field">
+                            <label class="mu-field-label" for="exampleRegion">Workspace region</label>
+                            <input class="mu-input" id="exampleRegion" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="regionSuggestions" autocomplete="off" placeholder="Type a region">
+                            <ul class="mu-menu" id="regionSuggestions" role="listbox" aria-label="Workspace regions" hidden>
+                                <li class="mu-menu-item" role="option" id="regionAmericas" aria-selected="false">Americas</li>
+                                <li class="mu-menu-item" role="option" id="regionAsia" aria-selected="false">Asia Pacific</li>
+                                <li class="mu-menu-item" role="option" id="regionEurope" aria-selected="false">Europe</li>
+                            </ul>
+                        </div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-limit-field">
+                    <h3 class="mu-h-title">Character-limit field</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-limit-field"><label class="mu-field-label" for="exampleSummary">Summary</label><textarea class="mu-textarea" id="exampleSummary" maxlength="120" aria-describedby="exampleSummaryHint"></textarea><span class="mu-field-help" id="exampleSummaryHint">Up to 120 characters.</span></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-disclosure-fieldset">
+                    <h3 class="mu-h-title">Disclosure fieldset</h3>
+                    <div data-demo class="doc-demo">
+                        <details class="mu-disclosure-fieldset"><summary>Advanced export options</summary><label class="mu-check"><input type="checkbox"> Include document history</label></details>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-question-group">
+                    <h3 class="mu-h-title">Question group</h3>
+                    <div data-demo class="doc-demo">
+                        <fieldset class="mu-question-group"><legend>How often do you export files?</legend><label class="mu-radio"><input type="radio" name="exportFrequency"> Weekly</label><label class="mu-radio"><input type="radio" name="exportFrequency"> Monthly</label></fieldset>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-identifier-field">
+                    <h3 class="mu-h-title">Two-part identifier</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-identifier-field"><label>Project prefix <input class="mu-input" value="DOC" maxlength="8"></label><span aria-hidden="true">–</span><label>Issue number <input class="mu-input" inputmode="numeric" pattern="[0-9]+" value="528"></label></div>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="data-and-metrics" class="doc-section mu-glass liquid-glass" data-title="Data and metrics" data-icon="insights">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">insights</span></span><h2>Data and metrics</h2></header>
+            <div class="doc-component-list">
+                <article class="doc-component" data-component="mu-definition-grid">
+                    <h3 class="mu-h-title">Definition grid</h3>
+                    <div data-demo class="doc-demo">
+                        <dl class="mu-definition-grid"><div><dt>Owner</dt><dd>Design team</dd></div><div><dt>Access</dt><dd>Workspace</dd></div><div><dt>Updated</dt><dd>November 17</dd></div></dl>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-comparison-bars">
+                    <h3 class="mu-h-title">Comparison bars</h3>
+                    <div data-demo class="doc-demo">
+                        <ul class="mu-comparison-bars"><li><span id="exampleDocumentsBar">Documents</span><span class="mu-progress mu-meter" role="meter" aria-labelledby="exampleDocumentsBar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="72" aria-valuetext="72 percent"><span style="--mu-meter-value:72%"></span></span><span aria-hidden="true">72%</span></li><li><span id="exampleSheetsBar">Spreadsheets</span><span class="mu-progress mu-meter" role="meter" aria-labelledby="exampleSheetsBar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="38" aria-valuetext="38 percent"><span style="--mu-meter-value:38%"></span></span><span aria-hidden="true">38%</span></li></ul>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-heatmap">
+                    <h3 class="mu-h-title">Heatmap calendar</h3>
+                    <div data-demo class="doc-demo">
+                        <figure class="mu-heatmap"><figcaption>Edits this week</figcaption><ol><li data-level="1"><abbr title="Monday">Mon</abbr> 1</li><li data-level="3"><abbr title="Tuesday">Tue</abbr> 8</li><li data-level="2"><abbr title="Wednesday">Wed</abbr> 4</li><li data-level="1"><abbr title="Thursday">Thu</abbr> 2</li><li data-level="3"><abbr title="Friday">Fri</abbr> 9</li></ol></figure>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-sparkline">
+                    <h3 class="mu-h-title">Sparkline with summary</h3>
+                    <div data-demo class="doc-demo">
+                        <figure class="mu-sparkline"><figcaption>Weekly edits increased from 12 to 28</figcaption><svg viewBox="0 0 120 36" aria-hidden="true"><polyline points="0,29 24,22 48,24 72,12 96,16 120,4" fill="none" stroke="currentColor" stroke-width="3"/></svg></figure>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-usage-gauge">
+                    <h3 class="mu-h-title">Usage gauge</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-usage-gauge"><span id="exampleAllowance">Monthly allowance</span><span aria-hidden="true">42 / 50 GB</span><span class="mu-progress mu-meter" role="meter" aria-labelledby="exampleAllowance" aria-valuemin="0" aria-valuemax="50" aria-valuenow="42" aria-valuetext="42 of 50 GB"><span style="--mu-meter-value:84%;--mu-meter-fill:var(--mu-warning)"></span></span></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-ranking">
+                    <h3 class="mu-h-title">Ranked list</h3>
+                    <div data-demo class="doc-demo">
+                        <ol class="mu-ranking"><li><span>Project brief</span><span>84 reads</span></li><li><span>Launch checklist</span><span>52 reads</span></li><li><span>Meeting notes</span><span>31 reads</span></li></ol>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-change-summary">
+                    <h3 class="mu-h-title">Change summary</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-change-summary"><div><span class="mu-icon" aria-hidden="true">add_circle</span><span>8 added</span></div><div><span class="mu-icon" aria-hidden="true">edit</span><span>12 changed</span></div><div><span class="mu-icon" aria-hidden="true">remove_circle</span><span>3 removed</span></div></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-version-comparison">
+                    <h3 class="mu-h-title">Version comparison</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-version-comparison"><section><h4>Before</h4><p><del>Review due Tuesday</del></p></section><section><h4>After</h4><p><ins>Review due Thursday</ins></p></section></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-timezone-lineup">
+                    <h3 class="mu-h-title">Time-zone lineup</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-timezone-lineup"><div><span>New York</span><time datetime="2026-11-17T09:00-05:00">9:00 NM</time></div><div><span>Madrid</span><time datetime="2026-11-17T15:00+01:00">3:00 AN</time></div></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-table-caption">
+                    <h3 class="mu-h-title">Rich table caption</h3>
+                    <div data-demo class="doc-demo">
+                        <table class="mu-table-caption"><caption><span>Recent exports</span><span class="mu-muted">2 files</span></caption><thead><tr><th scope="col">Name</th><th scope="col">Format</th></tr></thead><tbody><tr><td>Project brief</td><td>PDF</td></tr><tr><td>Budget</td><td>CSV</td></tr></tbody></table>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="status-and-feedback" class="doc-section mu-glass liquid-glass" data-title="Status and feedback" data-icon="notifications">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">notifications</span></span><h2>Status and feedback</h2></header>
+            <div class="doc-component-list">
+                <article class="doc-component" data-component="mu-inline-error">
+                    <h3 class="mu-h-title">Inline field error</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-inline-error"><span class="mu-icon" aria-hidden="true">error</span><span>Enter a valid email address.</span></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-heads-up">
+                    <h3 class="mu-h-title">Heads-up banner</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-heads-up"><span class="mu-icon" aria-hidden="true">info</span><p>Maintenance starts at 8:00 AN.</p><a class="mu-btn mu-btn-ghost" href="#advanced-inputs">View options</a></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-connectivity">
+                    <h3 class="mu-h-title">Inline connectivity indicator</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-connectivity"><span aria-hidden="true"></span> Working offline</div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-system-health">
+                    <h3 class="mu-h-title">System health panel</h3>
+                    <div data-demo class="doc-demo">
+                        <section class="mu-system-health"><h4>Service status</h4><ul><li><span>Document editor</span><span class="mu-badge mu-badge-success">Operational</span></li><li><span>File export</span><span class="mu-badge mu-badge-warning">Delayed</span></li></ul></section>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-upload-queue">
+                    <h3 class="mu-h-title">Upload queue</h3>
+                    <div data-demo class="doc-demo">
+                        <ul class="mu-upload-queue"><li><span class="mu-icon" aria-hidden="true">picture_as_pdf</span><span>Brief.pdf</span><span class="mu-progress mu-meter" role="progressbar" aria-label="Brief.pdf upload progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="65"><span style="--mu-meter-value:65%"></span></span></li><li><span class="mu-icon" aria-hidden="true">image</span><span>Cover.webp</span><span class="mu-muted">Waiting</span></li></ul>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-password-strength">
+                    <h3 class="mu-h-title">Password strength display</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-password-strength"><span id="exampleStrength">Password strength: fair</span><span class="mu-progress mu-meter" role="meter" aria-labelledby="exampleStrength" aria-valuemin="0" aria-valuemax="4" aria-valuenow="2"><span style="--mu-meter-value:50%;--mu-meter-fill:var(--mu-warning)"></span></span><span class="mu-muted">Add more words to improve strength.</span></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-date-countdown">
+                    <h3 class="mu-h-title">Date countdown</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-date-countdown"><span class="mu-icon" aria-hidden="true">event_upcoming</span><div><span class="mu-muted">Review deadline</span><br><time datetime="2026-11-20">Friday, November 20</time></div></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-activity-strip">
+                    <h3 class="mu-h-title">Activity summary strip</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-activity-strip"><span class="mu-avatar" aria-hidden="true">KC</span><span>Kim updated the project brief</span><time class="mu-muted" datetime="2026-11-17T12:20">12:20 AN</time></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-read-only-notice">
+                    <h3 class="mu-h-title">Read-only notice</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-read-only-notice"><span class="mu-icon" aria-hidden="true">lock</span><span>View-only access</span><span class="mu-muted">Ask the owner for edit permission.</span></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-partial-results">
+                    <h3 class="mu-h-title">Partial-results message</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-partial-results"><span class="mu-icon" aria-hidden="true">filter_alt</span><div><span>2 matching files</span><br><span class="mu-muted">Searching within your current folder.</span></div></div>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="navigation-and-browsing" class="doc-section mu-glass liquid-glass" data-title="Navigation and browsing" data-icon="explore">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">explore</span></span><h2>Navigation and browsing</h2></header>
+            <div class="doc-component-list">
+                <article class="doc-component" data-component="mu-jump-list">
+                    <h3 class="mu-h-title">In-page jump list</h3>
+                    <div data-demo class="doc-demo">
+                        <nav class="mu-jump-list"><a href="#advanced-inputs">Advanced inputs</a><a href="#data-and-metrics">Data and metrics</a><a href="#status-and-feedback">Status and feedback</a></nav>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-directory-index">
+                    <h3 class="mu-h-title">Directory index</h3>
+                    <div data-demo class="doc-demo">
+                        <nav class="mu-directory-index"><ul><li><a href="#advanced-inputs">A · Advanced inputs</a></li><li><a href="#data-and-metrics">D · Data and metrics</a></li><li><a href="#story-surfaces">S · Story surfaces</a></li></ul></nav>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-outline">
+                    <h3 class="mu-h-title">Document outline</h3>
+                    <div data-demo class="doc-demo">
+                        <nav class="mu-outline"><ol><li><a href="#foundations">Foundations</a><ol><li><a href="#buttons">Buttons</a></li><li><a href="#advanced-inputs">Advanced inputs</a></li></ol></li></ol></nav>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-resource-link">
+                    <h3 class="mu-h-title">Resource link</h3>
+                    <div data-demo class="doc-demo">
+                        <a class="mu-resource-link" href="#foundations"><span class="mu-icon" aria-hidden="true">article</span><span>Design foundations</span><span class="mu-icon" aria-hidden="true">arrow_forward</span></a>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-mega-menu">
+                    <h3 class="mu-h-title">Mega menu</h3>
+                    <div data-demo class="doc-demo">
+                        <details class="mu-mega-menu"><summary>Browse components</summary><nav aria-label="Component groups"><section><h4>Build</h4><a href="#advanced-inputs">Fields</a><a href="#buttons">Actions</a></section><section><h4>Present</h4><a href="#data-and-metrics">Metrics</a><a href="#story-surfaces">Stories</a></section></nav></details>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-related-footer">
+                    <h3 class="mu-h-title">Related-links footer</h3>
+                    <div data-demo class="doc-demo">
+                        <footer class="mu-related-footer"><h4>Related components</h4><a href="#buttons">Buttons</a><a href="#advanced-inputs">Advanced inputs</a></footer>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-article-navigation">
+                    <h3 class="mu-h-title">Previous and next article</h3>
+                    <div data-demo class="doc-demo">
+                        <nav class="mu-article-navigation"><a href="#data-and-metrics"><span class="mu-icon" aria-hidden="true">arrow_back</span><span>Data and metrics</span></a><a href="#story-surfaces"><span>Story surfaces</span><span class="mu-icon" aria-hidden="true">arrow_forward</span></a></nav>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-filter-summary">
+                    <h3 class="mu-h-title">Filter summary</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-filter-summary"><span class="mu-muted">Active filters</span><a class="mu-badge" href="#advanced-inputs">PDF</a><a class="mu-badge" href="#advanced-inputs">This week</a></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-tree-browser">
+                    <h3 class="mu-h-title">Tree browser</h3>
+                    <div data-demo class="doc-demo">
+                        <nav class="mu-tree-browser"><details open><summary>Projects</summary><ul><li><a href="#data-and-metrics">Budget</a></li><li><details><summary>Research</summary><ul><li><a href="#story-surfaces">Design notes</a></li></ul></details></li></ul></details></nav>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-sidebar-resizable">
+                    <h3 class="mu-h-title">Resizable sidebar</h3>
+                    <div data-demo class="doc-demo">
+<div style="display:flex;min-height:220px;border-radius:28px;overflow:hidden;border:1px solid var(--mu-border)">
+<aside class="mu-glass" data-mu-resizable="docs-demo-sidebar" data-mu-resize-label="Resize sidebar" style="--mu-sidebar-width:260px;--mu-sidebar-min:200px;--mu-sidebar-max:420px;padding:16px;border-radius:0"><div class="mu-nav"><a class="mu-nav-item is-current" href="#"><span class="mu-icon" aria-hidden="true">home</span>Home</a><a class="mu-nav-item" href="#"><span class="mu-icon" aria-hidden="true">folder</span>Projects</a></div></aside>
+<div style="flex:1;padding:20px" class="mu-muted">Drag the edge, or focus it and use the arrow keys. Double-click resets the width.</div>
+</div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-skip-link">
+                    <h3 class="mu-h-title">Skip link</h3>
+                    <div data-demo class="doc-demo">
+                        <a class="mu-skip-link" href="#story-surfaces">Skip to story surfaces</a>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="story-surfaces" class="doc-section mu-glass liquid-glass" tabindex="-1" data-title="Story surfaces" data-icon="auto_stories">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">auto_stories</span></span><h2>Story surfaces</h2></header>
+            <div class="doc-component-list">
+                <article class="doc-component" data-component="mu-pull-quote">
+                    <h3 class="mu-h-title">Pull quote</h3>
+                    <div data-demo class="doc-demo">
+                        <figure class="mu-pull-quote"><blockquote><p>Write down the decision while the context is still fresh.</p></blockquote><figcaption>Editorial handbook</figcaption></figure>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-byline">
+                    <h3 class="mu-h-title">Byline</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-byline"><span class="mu-avatar" aria-hidden="true">AD</span><div><span>Alex Diaz</span><br><time class="mu-muted" datetime="2026-11-17">November 17, 2026</time></div></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-reading-details">
+                    <h3 class="mu-h-title">Reading details</h3>
+                    <div data-demo class="doc-demo">
+                        <ul class="mu-reading-details"><li><span class="mu-icon" aria-hidden="true">schedule</span> 4 minute read</li><li><span class="mu-icon" aria-hidden="true">translate</span> English</li><li><span class="mu-icon" aria-hidden="true">update</span> Updated November 17</li></ul>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-glossary-entry">
+                    <h3 class="mu-h-title">Glossary entry</h3>
+                    <div data-demo class="doc-demo">
+                        <dl class="mu-glossary-entry"><dt>Variable font</dt><dd>A font file with adjustable axes such as weight or width.</dd></dl>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-fact-sheet">
+                    <h3 class="mu-h-title">Fact sheet</h3>
+                    <div data-demo class="doc-demo">
+                        <section class="mu-fact-sheet"><h4>Project brief</h4><dl><dt>Stage</dt><dd>Review</dd><dt>Owner</dt><dd>Operations</dd></dl></section>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-footnote">
+                    <h3 class="mu-h-title">Footnote reference</h3>
+                    <div data-demo class="doc-demo">
+                        <div class="mu-footnote"><p>Files are encrypted before sync.<sup><a href="#componentFootnote" id="componentFootnoteRef" aria-label="Footnote">1</a></sup></p><p id="componentFootnote"><a href="#componentFootnoteRef" aria-label="Back to the footnote reference">1.</a> Encryption takes place on this device.</p></div>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-annotated-code">
+                    <h3 class="mu-h-title">Annotated code</h3>
+                    <div data-demo class="doc-demo">
+                        <figure class="mu-annotated-code"><pre><code>git status --short</code></pre><figcaption>List files that changed in the working tree.</figcaption></figure>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-term-definition">
+                    <h3 class="mu-h-title">Expandable definition</h3>
+                    <div data-demo class="doc-demo">
+                        <details class="mu-term-definition"><summary>What is optical sizing?</summary><p>A font axis that adapts letter shapes for the displayed text size.</p></details>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-transcript">
+                    <h3 class="mu-h-title">Transcript</h3>
+                    <div data-demo class="doc-demo">
+                        <ol class="mu-transcript"><li><time datetime="PT0S">00:00</time><span>Welcome to the workspace walkthrough.</span></li><li><time datetime="PT12S">00:12</time><span>Open a project to see your recent documents.</span></li></ol>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-checklist-card">
+                    <h3 class="mu-h-title">Checklist card</h3>
+                    <div data-demo class="doc-demo">
+                        <section class="mu-checklist-card"><h4>Before publishing</h4><label class="mu-check"><input type="checkbox" checked> Review links</label><label class="mu-check"><input type="checkbox"> Check headings</label></section>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+    </main>
+</div>
+<script src="munetios-ui-v4.js"></script>
+<script>
+(function () {
+    'use strict';
+    // Demo calendar: November 2026 starts on a Sunday
+    const cal = document.getElementById('demoCalendar');
+    if (cal) {
+        const dows = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+        let html = dows.map(dw => '<span class="mu-calendar-dow" aria-hidden="true">' + dw + '</span>').join('');
+        for (let day = 1; day <= 30; day++) html += '<button type="button" class="mu-calendar-day' + (day === 14 ? ' is-today' : '') + '" aria-pressed="' + (day === 18) + '" aria-label="November ' + day + ', 2026">' + day + '</button>';
+        for (let day = 1; day <= 5; day++) html += '<button type="button" class="mu-calendar-day is-muted" aria-pressed="false" aria-label="December ' + day + ', 2026">' + day + '</button>';
+        cal.innerHTML = html;
+    }
+    // Stylistic set chips: ss01 on by default
+    const chips = document.getElementById('ssChips');
+    chips.innerHTML = Array.from({ length: 20 }, (_, i) => {
+        const k = 'ss' + String(i + 1).padStart(2, '0');
+        return '<button type="button" class="mu-chip" aria-pressed="' + (k === 'ss01') + '">' + k + '</button>';
+    }).join('');
+
+    // Color swatches from the live tokens
+    const tokens = ['--mu-accent', '--mu-text', '--mu-text-muted', '--mu-icon', '--mu-field', '--mu-border', '--mu-current-bg', '--mu-current-text', '--mu-danger', '--mu-warning', '--mu-success', '--mu-paper'];
+    const swatches = document.getElementById('docSwatches');
+    function paintSwatches() {
+        const cs = getComputedStyle(document.documentElement);
+        swatches.innerHTML = tokens.map(t => '<div class="doc-swatch"><i style="background:var(' + t + ')"></i><code>' + t + '</code><code>' + cs.getPropertyValue(t).trim() + '</code></div>').join('');
+    }
+    paintSwatches();
+    document.addEventListener('mu-theme', paintSwatches);
+
+    // Code blocks generated from each preview's markup
+    const escapeHtml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    document.querySelectorAll('[data-demo]').forEach(demo => {
+        const clone = demo.cloneNode(true);
+        clone.querySelectorAll('.mu-select-button').forEach(b => b.remove());
+        clone.querySelectorAll('select.mu-select-native').forEach(s => { s.classList.remove('mu-select-native'); s.removeAttribute('tabindex'); s.removeAttribute('aria-hidden'); if (!s.getAttribute('class')) s.removeAttribute('class'); });
+        const html = clone.innerHTML.replace(/^\n+|\s+$/g, '');
+        const details = document.createElement('details');
+        details.className = 'doc-code';
+        details.innerHTML = '<summary><span class="mu-icon" aria-hidden="true">code</span>Code</summary><div class="doc-code-box"><pre></pre><button type="button" class="mu-btn doc-copy"><span class="mu-icon" aria-hidden="true">content_copy</span>Copy</button></div>';
+        details.querySelector('pre').innerHTML = escapeHtml(html);
+        details.querySelector('.doc-copy').addEventListener('click', async e => {
+            try { await navigator.clipboard.writeText(html); MunetiosUI.toast('Copied to clipboard', { type: 'success' }); }
+            catch (err) { MunetiosUI.toast('Copy failed. Select the code and copy it manually.', { type: 'error' }); }
+        });
+        demo.after(details);
+    });
+
+    // Side navigation and filter
+    const nav = document.getElementById('docNav');
+    const sections = Array.from(document.querySelectorAll('.doc-section'));
+    nav.innerHTML = sections.map(s => '<a class="mu-nav-item" href="#' + s.id + '" data-target="' + s.id + '"><span class="mu-icon" aria-hidden="true">' + s.dataset.icon + '</span>' + s.dataset.title + '</a>').join('');
+    const links = Array.from(nav.querySelectorAll('.mu-nav-item'));
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            links.forEach(l => { if (l.dataset.target === entry.target.id) l.setAttribute('aria-current', 'page'); else l.removeAttribute('aria-current'); });
+        });
+    }, { rootMargin: '-30% 0px -60% 0px' });
+    sections.forEach(s => observer.observe(s));
+    document.getElementById('docFilter').addEventListener('input', e => {
+        const q = e.target.value.trim().toLowerCase();
+        sections.forEach(s => {
+            const sectionMatches = !q || s.dataset.title.toLowerCase().includes(q);
+            const components = [...s.querySelectorAll('[data-component]')];
+            let match = sectionMatches;
+            if (components.length) {
+                components.forEach(component => {
+                    const title = component.querySelector('h3').textContent.toLowerCase();
+                    const visible = sectionMatches || title.includes(q) || component.dataset.component.includes(q);
+                    component.classList.toggle('doc-hidden', !visible);
+                    match ||= visible;
+                });
+            } else {
+                match ||= s.textContent.toLowerCase().includes(q);
+            }
+            s.classList.toggle('doc-hidden', !match);
+            nav.querySelector('[data-target="' + s.id + '"]').classList.toggle('doc-hidden', !match);
+        });
+    });
+
+    // Theme switch
+    const themeGroup = document.getElementById('docTheme');
+    const markTheme = () => themeGroup.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themePref === MunetiosUI.theme.get())));
+    themeGroup.addEventListener('click', e => { const b = e.target.closest('[data-theme-pref]'); if (b) { MunetiosUI.theme.set(b.dataset.themePref); markTheme(); } });
+    markTheme();
+})();
+</script>
+
+<script src="youtube-i18n.js"></script>
+<script src="youtube-player.js"></script>
+</body>
+</html>
