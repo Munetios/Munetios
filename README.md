@@ -45,4 +45,6 @@ npm run i18n:validate
 
 ## License
 
-Munetios source code is licensed under the [Apache License, Version 2.0](LICENSE). Third-party assets retain their own licenses, including [Google Sans Flex](fonts/google-sans-flex/OFL.txt) and the [English spellcheck dictionary](omniwrite/spellcheck-license.txt).
+Munetios source code is licensed under the [Apache License, Version 2.0](LICENSE).
+
+[Munetios Sans](fonts/google-sans-flex/googlesansflex-ss01.ttf) is the modified Google Sans Flex font with the single-story `a` (SS01) enabled by default. Munetios Sans and the original Google Sans Flex are distributed under the [SIL Open Font License 1.1](fonts/google-sans-flex/OFL.txt), which includes the upstream copyright notice. The [English spellcheck dictionary](omniwrite/spellcheck-license.txt) retains its own license.
