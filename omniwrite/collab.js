@@ -1221,9 +1221,12 @@
         const grid = document.getElementById('sharedFilesGrid');
         const status = document.getElementById('sharedFilesStatus');
         if (!grid || !status) return;
-        const files = new Map((sharedViewer === viewerId() ? sharedFiles : []).map(file => [file.id, file]));
+        // The Shared tab is an invitation inbox, not a history of links opened locally.
+        // Only server-confirmed invitations for the signed-in account belong here.
+        const invited = sharedViewer === viewerId() && viewerId() ? sharedFiles : [];
+        const files = new Map(invited.map(file => [file.id, file]));
         for (const local of storedShares()) {
-            if (!local.item.collab.inaccessible || files.has(local.id)) files.set(local.id, { ...files.get(local.id), ...local });
+            if (files.has(local.id)) files.set(local.id, { ...files.get(local.id), ...local });
         }
         status.hidden = files.size > 0 && !sharedError;
         status.textContent = t(sharedError ? 'collab_shared_load_failed' : sharedLoading ? 'loading' : 'collab_shared_empty');
