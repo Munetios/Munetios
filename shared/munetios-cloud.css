@@ -1,0 +1,11 @@
+/* Munetios Cloud sharing dialog (Calendar and Photos). Components come from munetios-ui-v4.css. */
+.mu-share-dialog .mu-dialog { gap: 16px; }
+.mu-share-add { display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, auto); gap: 12px; align-items: end; }
+.mu-share-add > .mu-btn, .mu-share-add > .mu-inline-error { grid-column: 1 / -1; justify-self: start; }
+.mu-share-add > .mu-inline-error[hidden] { display: none; }
+.mu-share-people { display: grid; gap: 4px; }
+.mu-share-person { gap: 12px; flex-wrap: wrap; }
+.mu-share-person .mu-row-info { flex: 1 1 200px; }
+.mu-share-person .mu-select-button { min-width: 170px; }
+.mu-share-note { margin: 0; }
+@media (max-width: 560px) { .mu-share-add { grid-template-columns: 1fr; } }

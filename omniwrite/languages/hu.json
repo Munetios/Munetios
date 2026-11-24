@@ -1,4 +1,6 @@
 {
+  "insert_from_munetios_photos": "Beszúrás a Munetios Photosból",
+  "photos_insert_load_failed": "Nem sikerült betölteni a fényképeket. Próbálkozz újra",
   "read_aloud": "Felolvasás",
   "import_spreadsheet": "Táblázat importálása",
   "document_status_local": "Helyi",

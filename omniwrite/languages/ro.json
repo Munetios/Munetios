@@ -1,4 +1,6 @@
 {
+  "insert_from_munetios_photos": "Inserează din Munetios Photos",
+  "photos_insert_load_failed": "Fotografiile nu au putut fi încărcate. Încearcă din nou",
   "read_aloud": "Citește cu voce tare",
   "import_spreadsheet": "Importă o foaie de calcul",
   "document_status_local": "Local",

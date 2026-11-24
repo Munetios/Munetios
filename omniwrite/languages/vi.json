@@ -1,4 +1,6 @@
 {
+  "insert_from_munetios_photos": "Chèn từ Munetios Photos",
+  "photos_insert_load_failed": "Không thể tải ảnh. Hãy thử lại",
   "read_aloud": "Đọc to",
   "import_spreadsheet": "Nhập bảng tính",
   "document_status_local": "Trên thiết bị",

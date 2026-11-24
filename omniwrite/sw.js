@@ -1,4 +1,4 @@
-const CACHE_NAME = "omniwrite-cache-v85";
+const CACHE_NAME = "omniwrite-cache-v99";
 
 // Every local path is resolved against the service worker's own scope, so
 // OmniWrite works the same at a domain root (write.munetios.com/) and inside

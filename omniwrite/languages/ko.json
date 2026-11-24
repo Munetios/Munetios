@@ -1,4 +1,6 @@
 {
+  "insert_from_munetios_photos": "Munetios Photos에서 삽입",
+  "photos_insert_load_failed": "사진을 불러올 수 없습니다. 다시 시도하세요",
   "read_aloud": "소리 내어 읽기",
   "import_spreadsheet": "스프레드시트 가져오기",
   "document_status_local": "로컬",

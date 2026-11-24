@@ -1,4 +1,6 @@
 {
+  "insert_from_munetios_photos": "Insert from Munetios Photos",
+  "photos_insert_load_failed": "Couldn't load photos. Try again",
   "read_aloud": "Read aloud",
   "import_spreadsheet": "Import Spreadsheet",
   "document_status_local": "Local",

@@ -1,4 +1,6 @@
 {
+  "insert_from_munetios_photos": "Уметни из апликације Munetios Photos",
+  "photos_insert_load_failed": "Није могуће учитати фотографије. Покушајте поново",
   "read_aloud": "Читај наглас",
   "import_spreadsheet": "Увези табелу",
   "document_status_local": "Локално",
