@@ -1,4 +1,6 @@
 {
+  "insert_from_munetios_photos": "Vložiť z Munetios Photos",
+  "photos_insert_load_failed": "Fotografie sa nepodarilo načítať. Skúste to znova",
   "read_aloud": "Čítať nahlas",
   "import_spreadsheet": "Importovať tabuľku",
   "document_status_local": "Miestny",

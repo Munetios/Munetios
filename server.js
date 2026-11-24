@@ -103,6 +103,7 @@ app.use((req, res, next) => {
   });
 });
 
+app.get(require("./photos/routes.js").pathPattern, (req, res) => res.sendFile(path.join(ROOT, "photos", "index.html")));
 app.use(express.static(ROOT, { dotfiles: "ignore", index: "index.html" }));
 
 app.get("/", (req, res) => res.sendFile(path.join(ROOT, "index.html")));

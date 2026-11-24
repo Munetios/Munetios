@@ -1,4 +1,6 @@
 {
+  "insert_from_munetios_photos": "Εισαγωγή από το Munetios Photos",
+  "photos_insert_load_failed": "Δεν ήταν δυνατή η φόρτωση των φωτογραφιών. Δοκιμάστε ξανά",
   "read_aloud": "Ανάγνωση φωναχτά",
   "document_status_local": "Τοπικό",
   "sync_local_document": "Συγχρονισμός εγγράφου",

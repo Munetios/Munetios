@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en" data-mu-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="referrer" content="same-origin">
+  <script>
+    if (window.parent !== window && new URLSearchParams(location.search).has("omniwrite-picker")) {
+      document.documentElement.dataset.phEmbedded = "";
+      window.MunetiosAccountConfig = { autoRefresh: false, autoSync: false };
+    }
+    if (/^\/photos(?:\/|$)/.test(location.pathname)) {
+      const base = document.createElement("base");
+      base.href = location.hostname === "photos.munetios.com" ? "/" : "/photos/";
+      document.head.append(base);
+    }
+  </script>
+  <title translate="no">Munetios Photos</title>
+  <meta name="description" content="Munetios Photos: private, encrypted photos and videos with cloud backup, shared albums, and editing.">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="https://api.munetios.com/beautiful-css/beautiful.css">
+  <link rel="stylesheet" href="/munetios-ui/munetios-ui-v4.css">
+  <link rel="stylesheet" href="/account/account-menu.css">
+  <link rel="stylesheet" href="/shared/munetios-cloud.css">
+  <link rel="stylesheet" href="photos.css">
+  <script src="/munetios-ui/munetios-ui-v4.js" defer></script>
+  <script src="/account/account-i18n.js" defer></script>
+  <script src="/account/account-core.js" defer></script>
+  <script src="/account/account-menu.js" defer></script>
+  <script src="/shared/cloud-i18n.js" defer></script>
+  <script src="/shared/munetios-cloud.js" defer></script>
+  <script src="/munetios-ui/media-player-styles.js" defer></script>
+  <script src="/omniwrite/video-player.js" defer></script>
+  <script src="/tone.js" defer></script>
+  <script src="jszip.min.js" defer></script>
+  <script src="ai-eraser.js" defer></script>
+  <script src="photo-editor.js" defer></script>
+  <script src="photos-i18n.js" defer></script>
+  <script src="routes.js" defer></script>
+  <script src="photos.js" defer></script>
+</head>
+<body class="mu-root ph-app">
+  <main id="phPicker" class="ph-grid ph-picker mu-scroll" hidden></main>
+  <a class="mu-skip-link" href="#phMain" data-t="skipToPhotos">Skip to photos</a>
+
+  <header class="mu-topbar ph-topbar">
+    <button type="button" class="mu-capsule-btn" id="sidebarToggle" aria-controls="phSidebar" aria-expanded="true" data-t-label="toggleSidebar"><span class="mu-icon" aria-hidden="true">menu</span></button>
+    <div class="mu-capsule ph-title-capsule">
+      <img class="ph-brand" src="icon-192.png" width="46" height="46" alt="Munetios Photos" translate="no">
+      <h1 class="ph-section-title" id="sectionTitle" aria-live="polite"></h1>
+    </div>
+    <label class="mu-search mu-topbar-search" id="searchBox">
+      <span class="mu-icon" aria-hidden="true">search</span>
+      <input id="searchInput" type="search" autocomplete="off" data-t-placeholder="searchPlaceholder" data-t-label="searchPlaceholder">
+      <button type="button" class="mu-icon-btn mu-icon-btn-sm mu-topbar-search-close" id="searchClose" data-t-label="closeSearch"><span class="mu-icon" aria-hidden="true">close</span></button>
+    </label>
+    <div class="mu-capsule ph-actions">
+      <button type="button" class="mu-icon-btn mu-icon-btn-primary" id="uploadBtn" data-t-label="upload"><span class="mu-icon" aria-hidden="true">upload</span></button>
+      <button type="button" class="mu-icon-btn" id="cameraBtn" data-t-label="camera"><span class="mu-icon" aria-hidden="true">photo_camera</span></button>
+      <button type="button" class="mu-icon-btn" id="selectBtn" data-t-label="select" aria-pressed="false"><span class="mu-icon" aria-hidden="true">check_circle</span></button>
+      <span class="mu-divider-v" aria-hidden="true"></span>
+      <button type="button" class="mu-icon-btn" id="settingsBtn" data-t-label="settings"><span class="mu-icon" aria-hidden="true">settings</span></button>
+      <div class="munetios-account-slot" data-munetios-account></div>
+    </div>
+  </header>
+
+  <div class="ph-shell">
+    <div class="ph-sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true" hidden></div>
+    <aside class="ph-sidebar mu-glass mu-scroll" id="phSidebar" data-mu-resizable="photos-sidebar">
+      <button type="button" class="mu-icon-btn ph-sidebar-close" id="sidebarClose" data-t-label="close" aria-label="Close"><span class="mu-icon" aria-hidden="true">close</span></button>
+      <nav class="mu-nav" aria-labelledby="navLibraryLabel">
+        <div class="mu-section-label" id="navLibraryLabel" data-t="library">Library</div>
+        <button type="button" class="mu-nav-item" data-section="library"><span class="mu-icon" aria-hidden="true">photo_library</span><span data-t="photos">Photos</span><span class="mu-badge ph-count" data-count="library"></span></button>
+        <button type="button" class="mu-nav-item" data-section="memories"><span class="mu-icon" aria-hidden="true">auto_awesome</span><span data-t="memories">Memories</span></button>
+        <button type="button" class="mu-nav-item" data-section="favorites"><span class="mu-icon" aria-hidden="true">favorite</span><span data-t="favorites">Favorites</span><span class="mu-badge ph-count" data-count="favorites"></span></button>
+        <button type="button" class="mu-nav-item" data-section="videos"><span class="mu-icon" aria-hidden="true">movie</span><span data-t="videos">Videos</span><span class="mu-badge ph-count" data-count="videos"></span></button>
+        <button type="button" class="mu-nav-item" data-section="screenshots"><span class="mu-icon" aria-hidden="true">screenshot_monitor</span><span data-t="screenshots">Screenshots</span><span class="mu-badge ph-count" data-count="screenshots"></span></button>
+        <button type="button" class="mu-nav-item" data-section="albums"><span class="mu-icon" aria-hidden="true">photo_album</span><span data-t="albums">Albums</span><span class="mu-badge ph-count" data-count="albums"></span></button>
+      </nav>
+      <nav class="mu-nav" aria-labelledby="navAlbumsLabel">
+        <div class="ph-nav-head"><div class="mu-section-label" id="navAlbumsLabel" data-t="yourAlbums">Your albums</div><button type="button" class="mu-icon-btn mu-icon-btn-sm" id="newAlbumBtn" data-t-label="newAlbum"><span class="mu-icon" aria-hidden="true">add</span></button></div>
+        <div id="albumNav"></div>
+      </nav>
+      <nav class="mu-nav" aria-labelledby="navMoreLabel">
+        <div class="mu-section-label" id="navMoreLabel" data-t="more">More</div>
+        <button type="button" class="mu-nav-item" data-section="archive"><span class="mu-icon" aria-hidden="true">archive</span><span data-t="archive">Archive</span><span class="mu-badge ph-count" data-count="archive"></span></button>
+        <button type="button" class="mu-nav-item" data-section="locked"><span class="mu-icon" aria-hidden="true">lock</span><span data-t="lockedFolder">Locked folder</span></button>
+        <button type="button" class="mu-nav-item" data-section="trash"><span class="mu-icon" aria-hidden="true">delete</span><span data-t="recentlyDeleted">Recently deleted</span><span class="mu-badge ph-count" data-count="trash"></span></button>
+      </nav>
+      <nav class="mu-nav" aria-labelledby="navToolsLabel">
+        <div class="mu-section-label" id="navToolsLabel" data-t="utilities">Utilities</div>
+        <button type="button" class="mu-nav-item" data-section="duplicates"><span class="mu-icon" aria-hidden="true">content_copy</span><span data-t="duplicates">Duplicates</span></button>
+        <button type="button" class="mu-nav-item" data-section="storage"><span class="mu-icon" aria-hidden="true">cloud</span><span data-t="storage">Storage</span></button>
+        <button type="button" class="mu-nav-item" data-section="recap"><span class="mu-icon" aria-hidden="true">celebration</span><span data-t="yearInReview">Year in review</span></button>
+        <button type="button" class="mu-nav-item" id="collageBtn"><span class="mu-icon" aria-hidden="true">dashboard</span><span data-t="collage">Collage</span></button>
+        <button type="button" class="mu-nav-item" id="recordBtn"><span class="mu-icon" aria-hidden="true">screen_record</span><span data-t="screenRecord">Record screen</span></button>
+        <button type="button" class="mu-nav-item" id="shortcutsBtn"><span class="mu-icon" aria-hidden="true">keyboard</span><span data-t="keyboardShortcuts">Keyboard shortcuts</span></button>
+      </nav>
+      <section class="ph-cloud-card" id="cloudCard" aria-labelledby="cloudTitle">
+        <div class="mu-section-label" id="cloudTitle" data-t="munetiosCloud">Munetios Cloud</div>
+        <div id="cloudStatus"></div>
+      </section>
+    </aside>
+
+    <main class="ph-main mu-glass" id="phMain" tabindex="-1" aria-busy="true">
+      <div class="ph-loading" role="status"><div class="spinner-container"><svg class="google-spinner" viewBox="0 0 50 50" aria-hidden="true" focusable="false"><circle class="spinner-circle" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg></div></div>
+    </main>
+  </div>
+
+  <nav class="ph-bottom-nav mu-glass mu-glass-solid" aria-label="Photos">
+    <button type="button" data-section="library"><span class="mu-icon" aria-hidden="true">photo_library</span><span data-t="photos">Photos</span></button>
+    <button type="button" data-section="albums"><span class="mu-icon" aria-hidden="true">photo_album</span><span data-t="albums">Albums</span></button>
+    <button type="button" data-section="favorites"><span class="mu-icon" aria-hidden="true">favorite</span><span data-t="favorites">Favorites</span></button>
+    <button type="button" data-section="memories"><span class="mu-icon" aria-hidden="true">auto_awesome</span><span data-t="memories">Memories</span></button>
+  </nav>
+
+  <div class="mu-action-bar ph-action-bar" id="actionBar" role="toolbar" hidden>
+    <span class="mu-action-bar-count" id="selectionCount"></span>
+    <button type="button" class="mu-icon-btn" data-bulk="favorite" data-t-label="favorite"><span class="mu-icon" aria-hidden="true">favorite</span></button>
+    <button type="button" class="mu-icon-btn" data-bulk="album" data-t-label="addToAlbum"><span class="mu-icon" aria-hidden="true">library_add</span></button>
+    <button type="button" class="mu-icon-btn" data-bulk="compare" data-t-label="compare"><span class="mu-icon" aria-hidden="true">compare</span></button>
+    <button type="button" class="mu-icon-btn" data-bulk="collage" data-t-label="collage"><span class="mu-icon" aria-hidden="true">dashboard</span></button>
+    <button type="button" class="mu-icon-btn" data-bulk="download" data-t-label="downloadZip"><span class="mu-icon" aria-hidden="true">folder_zip</span></button>
+    <button type="button" class="mu-icon-btn" data-bulk="archive" data-t-label="archive"><span class="mu-icon" aria-hidden="true">archive</span></button>
+    <button type="button" class="mu-icon-btn" data-bulk="lock" data-t-label="moveToLocked"><span class="mu-icon" aria-hidden="true">lock</span></button>
+    <button type="button" class="mu-icon-btn" data-bulk="restore" data-t-label="restore" hidden><span class="mu-icon" aria-hidden="true">restore</span></button>
+    <button type="button" class="mu-icon-btn" data-bulk="delete" data-t-label="delete" data-mu-danger><span class="mu-icon" aria-hidden="true">delete</span></button>
+    <button type="button" class="mu-icon-btn mu-icon-btn-soft" data-bulk="clear" data-t-label="clearSelection"><span class="mu-icon" aria-hidden="true">close</span></button>
+  </div>
+
+  <div class="ph-drop" id="dropOverlay" hidden><div class="mu-dropzone"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">upload</span></span><span data-t="dropToUpload">Drop photos and videos to upload</span></div></div>
+  <div class="mu-action-bar ph-recording-bar" id="screenRecordingBar" role="group" aria-labelledby="screenRecordingStatus" hidden>
+    <span class="ph-recording-info">
+      <span class="ph-recording-dot" aria-hidden="true"></span>
+      <span id="screenRecordingStatus" role="status"></span>
+      <span class="ph-recording-time" id="screenRecordingTime" role="timer">00:00</span>
+    </span>
+    <button type="button" class="mu-icon-btn mu-btn-ghost" id="pauseScreenRecording">
+      <span class="mu-icon" aria-hidden="true">pause</span>
+    </button>
+    <button type="button" class="mu-btn mu-btn-danger" id="stopScreenRecording">
+      <span class="mu-icon" aria-hidden="true">stop_circle</span><span data-t="stopRecording">Stop recording</span>
+    </button>
+  </div>
+  <input type="file" id="fileInput" accept="image/*,video/*" multiple hidden>
+  <input type="file" id="zipInput" accept=".zip,application/zip" hidden>
+</body>
+</html>

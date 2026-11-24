@@ -1,4 +1,6 @@
 {
+  "insert_from_munetios_photos": "Вставити з Munetios Photos",
+  "photos_insert_load_failed": "Не вдалося завантажити фотографії. Спробуйте ще раз",
   "read_aloud": "Читати вголос",
   "import_spreadsheet": "Імпортувати електронну таблицю",
   "document_status_local": "Локально",

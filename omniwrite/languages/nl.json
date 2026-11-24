@@ -1,4 +1,6 @@
 {
+  "insert_from_munetios_photos": "Invoegen vanuit Munetios Photos",
+  "photos_insert_load_failed": "Foto’s konden niet worden geladen. Probeer het opnieuw",
   "read_aloud": "Hardop voorlezen",
   "import_spreadsheet": "Spreadsheet importeren",
   "document_status_local": "Lokaal",

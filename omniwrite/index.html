@@ -7215,8 +7215,97 @@ Q4: 22</textarea>
         function mediaChoice(id, icon, label, description) {
             return `<button type="button" class="mu-action-card omni-media-choice" id="${id}">
                 <span class="mu-icon-circle" aria-hidden="true"><span class="mu-icon">${icon}</span></span>
-                <span><span class="mu-action-card-title">${escapeHtml(_t(label))}</span><span class="mu-action-card-desc">${escapeHtml(_t(description))}</span></span>
+                <span><span class="mu-action-card-title">${escapeHtml(_t(label))}</span>${description ? `<span class="mu-action-card-desc">${escapeHtml(_t(description))}</span>` : ''}</span>
             </button>`;
+        }
+
+        function bindPhotosInsertion(modal, sourceId, contentId, kind, target, closeModal) {
+            const source = modal.querySelector('#' + sourceId);
+            const content = modal.querySelector('#' + contentId);
+            let stopPicker;
+            const cancel = () => { stopPicker?.(); stopPicker = null; };
+            const open = () => {
+                cancel();
+                const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+                const url = new URL(local ? '/photos/' : 'https://photos.munetios.com/', location.origin);
+                url.searchParams.set('omniwrite-picker', kind);
+                const frame = document.createElement('iframe');
+                frame.src = url.href;
+                frame.title = _t('insert_from_munetios_photos');
+                frame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+                frame.style.cssText = 'display:block;width:100%;height:0;max-height:600px;border:0';
+                const status = document.createElement('div');
+                status.className = 'mu-empty';
+                status.setAttribute('role', 'status');
+                status.dataset.photosPicker = '';
+                status.textContent = _t('loading');
+                const channel = new MessageChannel();
+                let active = true, inserting = false;
+                const timer = setTimeout(showFailure, 55000);
+                stopPicker = () => {
+                    active = false;
+                    clearTimeout(timer);
+                    channel.port1.close();
+                    frame.remove();
+                };
+                function showFailure() {
+                    if (!active || !modal.isConnected) return;
+                    cancel();
+                    const message = document.createElement('span');
+                    message.textContent = _t('photos_insert_load_failed');
+                    const retry = document.createElement('button');
+                    retry.type = 'button';
+                    retry.className = 'mu-btn mu-btn-ghost';
+                    retry.textContent = _t('retry');
+                    retry.addEventListener('click', open);
+                    status.style.display = '';
+                    status.replaceChildren(message, retry);
+                }
+                frame.addEventListener('load', () => {
+                    if (active) frame.contentWindow.postMessage({ type: 'munetios-photos-picker' }, url.origin, [channel.port2]);
+                }, { once: true });
+                frame.addEventListener('error', showFailure, { once: true });
+                channel.port1.onmessage = async ({ data }) => {
+                    if (!active || !modal.isConnected) return;
+                    if (data?.type === 'grid' && Number.isFinite(data.height) && data.height > 0) {
+                        clearTimeout(timer);
+                        frame.style.height = Math.min(600, data.height) + 'px';
+                        status.style.display = 'none';
+                        return;
+                    }
+                    if (data?.type === 'empty') {
+                        cancel();
+                        status.textContent = _t('no_results');
+                        return;
+                    }
+                    if (data?.type === 'error') { showFailure(); return; }
+                    if (data?.type !== 'selection' || inserting || !(data.blob instanceof Blob) || !data.blob.type.startsWith(kind + '/')) return;
+                    if (!target.editor.isConnected || !target.editor.isContentEditable || getEditorDocId(target.editor) !== target.docId) { showFailure(); return; }
+                    inserting = true;
+                    try {
+                        const name = typeof data.name === 'string' && data.name ? data.name : _t(kind === 'video' ? 'insert_video' : 'insert_image');
+                        const file = new File([data.blob], name, { type: data.blob.type });
+                        const id = await (kind === 'video' ? addVideoToDB(file) : addImageToDB(file));
+                        if (!active || !modal.isConnected) return;
+                        const inserted = kind === 'video' ? insertVideoAtCaret(file, id, target) : insertImageAtCaret(URL.createObjectURL(file), name, target, id);
+                        if (!inserted) { showFailure(); return; }
+                        closeModal();
+                        showToast(_t(kind === 'video' ? 'video_inserted' : 'image_inserted_library'), { type: 'success' });
+                    } catch {
+                        showFailure();
+                    }
+                };
+                content.replaceChildren(status, frame);
+            };
+            source.addEventListener('click', open);
+            modal.querySelectorAll('.media-option-grid .omni-media-choice').forEach(option => {
+                if (option === source) return;
+                option.addEventListener('click', () => {
+                    cancel();
+                    if (content.firstElementChild?.hasAttribute('data-photos-picker')) content.replaceChildren();
+                });
+            });
+            return cancel;
         }
 
         function showMusicInsertModal() {
@@ -7302,7 +7391,7 @@ Q4: 22</textarea>
             if (!target) return;
             const currentVideoInsertModal = document.createElement('div');
             videoInsertModal = currentVideoInsertModal;
-            const closeMediaModal = () => { currentVideoInsertModal.remove(); if (videoInsertModal === currentVideoInsertModal) videoInsertModal = null; };
+            const closeMediaModal = () => { cancelPhotos(); currentVideoInsertModal.remove(); if (videoInsertModal === currentVideoInsertModal) videoInsertModal = null; };
             currentVideoInsertModal.className = 'modal';
             currentVideoInsertModal.innerHTML = `
             <div class="modal-content liquid-glass media-insert-modal" style="position:relative;">
@@ -7312,12 +7401,14 @@ Q4: 22</textarea>
             </div>
             <div class="media-option-grid">
             ${mediaChoice('insertVideoFromFileBtn', 'video_library', 'upload_video_file', 'upload_video_file_desc')}
+            ${mediaChoice('insertVideoFromPhotosBtn', 'photo_library', 'insert_from_munetios_photos')}
             ${mediaChoice('insertYoutubeVideoBtn', 'play_circle', 'insert_from_youtube', 'insert_from_youtube_desc')}
             </div>
             <div class="media-insert-content" id="videoInsertContent"></div>
             </div>
             `;
             document.body.appendChild(currentVideoInsertModal);
+            const cancelPhotos = bindPhotosInsertion(currentVideoInsertModal, 'insertVideoFromPhotosBtn', 'videoInsertContent', 'video', target, closeMediaModal);
 
             // Close modal
             currentVideoInsertModal.querySelector('#closeVideoInsertModal').onclick = () => {
@@ -7390,21 +7481,8 @@ Q4: 22</textarea>
                         const captionData = typedCaptions.value.trim() ? window.OmniVideoPlayer.captionsFromText(typedCaptions.value) : captions.files[0] ? await window.OmniVideoPlayer.readCaptions(captions.files[0]) : null;
                         progressToast = showToast(_t('preparing_video'), { type: 'info', duration: 2000 });
                         const videoId = await addVideoToDB(file);
-                        if (!currentVideoInsertModal.isConnected) return;
-                        const blobUrl = URL.createObjectURL(file);
-                        const video = document.createElement('video');
-                        video.src = blobUrl;
-                        video.controls = true;
-                        video.contentEditable = 'false';
-                        video.className = 'omni-native-video';
-                        video.dataset.omniwriteVideoId = videoId;
-                        video.title = file.name;
-                        if (captionData) video.dataset.omniCaptions = JSON.stringify(captionData);
-                        if (!insertMediaNode(video, target)) {
-                            URL.revokeObjectURL(blobUrl);
-                            return;
-                        }
-                        upgradeVideoPlayers();
+                        if (!confirm.isConnected) return;
+                        if (!insertVideoAtCaret(file, videoId, target, captionData)) return;
                         closeMediaModal();
                         showToast(_t('video_inserted'), { type: 'success' });
                     } catch (failure) {
@@ -7415,6 +7493,21 @@ Q4: 22</textarea>
                     }
                 };
             };
+        }
+
+        function insertVideoAtCaret(file, videoId, target, captions) {
+            const url = URL.createObjectURL(file);
+            const video = document.createElement('video');
+            video.src = url;
+            video.controls = true;
+            video.contentEditable = 'false';
+            video.className = 'omni-native-video';
+            video.dataset.omniwriteVideoId = videoId;
+            video.title = file.name;
+            if (captions) video.dataset.omniCaptions = JSON.stringify(captions);
+            if (!insertMediaNode(video, target)) { URL.revokeObjectURL(url); return false; }
+            upgradeVideoPlayers();
+            return true;
         }
 
         // --- Custom Video Controls ---
@@ -7648,7 +7741,7 @@ Q4: 22</textarea>
             if (!target) return;
             const currentImageInsertModal = document.createElement('div');
             imageInsertModal = currentImageInsertModal;
-            const closeMediaModal = () => { currentImageInsertModal.remove(); if (imageInsertModal === currentImageInsertModal) imageInsertModal = null; };
+            const closeMediaModal = () => { cancelPhotos(); currentImageInsertModal.remove(); if (imageInsertModal === currentImageInsertModal) imageInsertModal = null; };
             currentImageInsertModal.className = 'modal';
             currentImageInsertModal.innerHTML = `
             <div class="modal-content liquid-glass media-insert-modal" style="position:relative;">
@@ -7658,6 +7751,7 @@ Q4: 22</textarea>
                 </div>
                 <div class="media-option-grid">
                     ${mediaChoice('insertFromLibraryBtn', 'photo_library', 'choose_from_library', 'choose_from_library_desc')}
+                    ${mediaChoice('insertImageFromPhotosBtn', 'photo_library', 'insert_from_munetios_photos')}
                     ${mediaChoice('insertFromFileBtn', 'upload_file', 'upload_file', 'upload_file_desc')}
                     ${mediaChoice('insertFromUrlBtn', 'add_link', 'insert_from_url', 'insert_from_url_desc')}
                 </div>
@@ -7665,6 +7759,7 @@ Q4: 22</textarea>
             </div>
             `;
             document.body.appendChild(currentImageInsertModal);
+            const cancelPhotos = bindPhotosInsertion(currentImageInsertModal, 'insertImageFromPhotosBtn', 'imageInsertContent', 'image', target, closeMediaModal);
 
             // Close modal
             currentImageInsertModal.querySelector('#closeImageInsertModal').onclick = () => {
@@ -7674,9 +7769,11 @@ Q4: 22</textarea>
             // Insert from Library
             currentImageInsertModal.querySelector('#insertFromLibraryBtn').onclick = async () => {
             const content = currentImageInsertModal.querySelector('#imageInsertContent');
-            content.innerHTML = _t('loading_images');
+            const loading = document.createElement('span');
+            loading.textContent = _t('loading_images');
+            content.replaceChildren(loading);
             const imgs = await getAllImages();
-            if (!currentImageInsertModal.isConnected) return;
+            if (!loading.isConnected) return;
             if (!imgs.length) {
                 content.innerHTML = `<div style="margin:16px 0;">${_t('no_images_in_library')}</div>`;
                 return;
@@ -7764,7 +7861,7 @@ Q4: 22</textarea>
                     const image = new Image();
                     image.src = url.href;
                     await image.decode();
-                    if (currentImageInsertModal.isConnected && insertImageAtCaret(url.href, url.href, target)) closeMediaModal();
+                    if (insertBtn.isConnected && insertImageAtCaret(url.href, url.href, target)) closeMediaModal();
                 } catch {
                     errorDiv.textContent = _t('invalid_image_url');
                 } finally {

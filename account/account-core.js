@@ -118,12 +118,13 @@
   });
 
   /* ---------------------------------------------------------- api */
-  async function api(path, body) {
+  async function api(path, body, { signal } = {}) {
+    const timeout = AbortSignal.timeout(45000);
     const response = await fetch(API + path, {
       method: body === undefined ? "GET" : "POST", credentials: "same-origin", cache: "no-store",
       headers: body === undefined ? {} : { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(45000)
+      signal: signal ? AbortSignal.any([signal, timeout]) : timeout
     });
     let data = null;
     try { data = await response.json(); } catch {}
@@ -701,6 +702,43 @@
     return counts;
   }
 
+  async function readPhotosLibrary({ signal } = {}) {
+    signal?.throwIfAborted();
+    if (!state.ready || state.offline) await refresh({ scheduleSync: false });
+    const accountId = state.account?.id;
+    const checkAccount = () => {
+      signal?.throwIfAborted();
+      if (!accountId || state.account?.id !== accountId || state.revocation || state.offline || !state.syncEnabled) throw new Error("photosUnavailable");
+    };
+    checkAccount();
+    const dataKey = await keys.get(accountId);
+    if (!dataKey) throw new Error("photosLocked");
+    const prefix = "munetios-photos:item:";
+    const photos = [];
+    let cursor = "0";
+    for (;;) {
+      checkAccount();
+      const page = await api(`/sync/items?prefix=${encodeURIComponent(prefix)}&since=${cursor}&paged=1`, undefined, { signal });
+      checkAccount();
+      if (!Array.isArray(page?.items)) throw new Error("photosUnavailable");
+      for (const item of page.items) {
+        checkAccount();
+        if (item.deleted || !item.key.startsWith(prefix)) continue;
+        const { d: photo } = await decryptItem(dataKey, accountId, item);
+        if (photo?.cloud?.blobId && !photo.trashed && !photo.locked) {
+          const { cloud, name, type, thumb, takenAt, date, cloudId, isVideo, archived, color } = photo;
+          photos.push({ cloud, name, type, thumb, takenAt, date, cloudId: cloudId || item.key.slice(prefix.length), isVideo, archived, color });
+        }
+      }
+      if (!page.hasMore || !page.items.length) break;
+      const next = String(page.items.at(-1).version);
+      if (!/^\d+$/.test(next) || BigInt(next) <= BigInt(cursor)) throw new Error("photosUnavailable");
+      cursor = next;
+    }
+    checkAccount();
+    return { accountId, photos };
+  }
+
   /* ---------------------------------------------------------- auto sync */
   if (config.autoSync) {
     let nextSync = Date.now() + 30000;
@@ -743,6 +781,7 @@
       return api('/google/disconnect', { password: await authSecret(password, state.account.email) });
     } },
     security: { get: () => api("/security"), action: securityAction },
+    photos: { readLibrary: readPhotosLibrary },
     sync: { storage, setEnabled: setSyncEnabled, register, now: sync, schedule, exportLocal, reset: resetSynced, remoteWorkspaceCounts },
     workspaces
   };

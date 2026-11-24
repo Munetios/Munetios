@@ -1,4 +1,6 @@
 {
+  "insert_from_munetios_photos": "Wstaw z Munetios Photos",
+  "photos_insert_load_failed": "Nie udało się wczytać zdjęć. Spróbuj ponownie",
   "read_aloud": "Czytaj na głos",
   "import_spreadsheet": "Importuj arkusz kalkulacyjny",
   "document_status_local": "Lokalny",

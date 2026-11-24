@@ -1,9 +1,12 @@
+import photosRoutes from './assets/photos/routes.js';
+
 const noStore = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
 const appRoots = new Map([
     ['write.munetios.com', '/omniwrite'],
     ['accounts.munetios.com', '/signin'],
+    ['photos.munetios.com', '/photos'],
 ]);
-const sharedAssets = /^\/(?:signin|omniwrite|account|fonts|munetios-ui|blocked|mail|webfilter)(?:\/|$)|^\/(?:ganetios-logo-icon\.png|404(?:\.html|\.css|-i18n\.js)?)$/;
+const sharedAssets = /^\/(?:signin|omniwrite|account|fonts|munetios-ui|shared|blocked|mail|photos|webfilter)(?:\/|$)|^\/(?:tone\.js|ganetios-logo-icon\.png|404(?:\.html|\.css|-i18n\.js)?)$/;
 
 function unavailable(isApi) {
     if (isApi) return Response.json({ error: 'unavailable' }, { status: 503, headers: noStore });
@@ -26,7 +29,8 @@ export default {
         if (!isApi && !isProtectedPage) {
             const root = appRoots.get(url.hostname);
             const target = new URL(request.url);
-            if (root && !sharedAssets.test(pathname)) target.pathname = root + (pathname === '/index.html' ? '/' : pathname);
+            if (photosRoutes.pathPattern.test(pathname) && ['GET', 'HEAD'].includes(request.method)) target.pathname = '/photos/';
+            else if (root && !sharedAssets.test(pathname)) target.pathname = root + (pathname === '/index.html' ? '/' : pathname);
             const asset = await env.ASSETS.fetch(target.href === request.url ? request : new Request(target, request));
             if (asset.status !== 404 || !['GET', 'HEAD'].includes(request.method)) return asset;
             const accept = request.headers.get('Accept');

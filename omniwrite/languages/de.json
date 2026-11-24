@@ -1,4 +1,6 @@
 {
+  "insert_from_munetios_photos": "Aus Munetios Photos einfügen",
+  "photos_insert_load_failed": "Fotos konnten nicht geladen werden. Versuche es erneut",
   "read_aloud": "Vorlesen",
   "document_status_local": "Lokal",
   "sync_local_document": "Dokument synchronisieren",
