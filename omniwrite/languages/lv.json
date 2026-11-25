@@ -687,7 +687,7 @@
   "version_restored": "Versija atjaunota.",
   "theme_updated": "Motīvs atjaunināts.",
   "custom_theme_applied": "Pielāgotais motīvs lietots.",
-  "language_updated": "Valoda atjaunināta.",
+  "language_reload_required": "Pārlādējiet lapu, lai lietotu izvēlēto valodu.",
   "sidebar_position_updated": "Sānjoslas novietojums atjaunināts.",
   "transparency_updated": "Caurspīdīguma iestatījums atjaunināts.",
   "compact_mode_updated": "Kompaktais režīms atjaunināts.",

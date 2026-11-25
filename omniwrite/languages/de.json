@@ -686,7 +686,7 @@
   "version_restored": "Version wiederhergestellt.",
   "theme_updated": "Design aktualisiert.",
   "custom_theme_applied": "Benutzerdefiniertes Design angewendet.",
-  "language_updated": "Sprache aktualisiert.",
+  "language_reload_required": "Lade die Seite neu, um die Sprache zu übernehmen.",
   "sidebar_position_updated": "Panel-Position aktualisiert.",
   "transparency_updated": "Transparenz-Einstellung aktualisiert.",
   "compact_mode_updated": "Kompaktmodus aktualisiert.",

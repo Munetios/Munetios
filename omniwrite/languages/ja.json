@@ -687,7 +687,7 @@
   "version_restored": "バージョンを復元しました。",
   "theme_updated": "テーマを更新しました。",
   "custom_theme_applied": "カスタムテーマを適用しました。",
-  "language_updated": "言語を更新しました。",
+  "language_reload_required": "ページを再読み込みすると、選択した言語が適用されます。",
   "sidebar_position_updated": "サイドバーの位置を更新しました。",
   "transparency_updated": "透明度の設定を更新しました。",
   "compact_mode_updated": "コンパクトモードを更新しました。",

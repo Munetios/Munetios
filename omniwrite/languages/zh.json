@@ -687,7 +687,7 @@
   "version_restored": "版本已恢复。",
   "theme_updated": "主题已更新。",
   "custom_theme_applied": "自定义主题已应用。",
-  "language_updated": "语言已更新。",
+  "language_reload_required": "重新加载页面以应用所选语言。",
   "sidebar_position_updated": "侧栏位置已更新。",
   "transparency_updated": "透明度设置已更新。",
   "compact_mode_updated": "紧凑模式已更新。",

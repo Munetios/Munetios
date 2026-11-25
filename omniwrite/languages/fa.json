@@ -687,7 +687,7 @@
   "version_restored": "نسخه بازیابی شد.",
   "theme_updated": "زمینه به‌روز شد.",
   "custom_theme_applied": "زمینهٔ سفارشی اعمال شد.",
-  "language_updated": "زبان به‌روز شد.",
+  "language_reload_required": "برای اعمال زبان، صفحه را دوباره بارگیری کنید.",
   "sidebar_position_updated": "موقعیت نوار کناری به‌روز شد.",
   "transparency_updated": "تنظیم شفافیت به‌روز شد.",
   "compact_mode_updated": "حالت فشرده به‌روز شد.",

@@ -687,7 +687,7 @@
   "version_restored": "Verzija je vraćena.",
   "theme_updated": "Tema je ažurirana.",
   "custom_theme_applied": "Prilagođena tema je primijenjena.",
-  "language_updated": "Jezik je ažuriran.",
+  "language_reload_required": "Ponovno učitajte stranicu kako biste primijenili jezik.",
   "sidebar_position_updated": "Položaj bočne trake je ažuriran.",
   "transparency_updated": "Postavka prozirnosti je ažurirana.",
   "compact_mode_updated": "Kompaktni način je ažuriran.",

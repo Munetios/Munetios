@@ -686,7 +686,7 @@
   "version_restored": "تم استعادة النسخة.",
   "theme_updated": "تم تحديث المظهر.",
   "custom_theme_applied": "تم تطبيق المظهر المخصص.",
-  "language_updated": "تم تحديث اللغة.",
+  "language_reload_required": "أعد تحميل الصفحة لتطبيق اللغة.",
   "sidebar_position_updated": "تم تحديث موضع الشريط الجانبي.",
   "transparency_updated": "تم تحديث إعداد الشفافية.",
   "compact_mode_updated": "تم تحديث الوضع المدمج.",

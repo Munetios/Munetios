@@ -687,7 +687,7 @@
   "version_restored": "Verzia bola obnovená.",
   "theme_updated": "Motív bol aktualizovaný.",
   "custom_theme_applied": "Vlastný motív bol použitý.",
-  "language_updated": "Jazyk bol aktualizovaný.",
+  "language_reload_required": "Na použitie jazyka znova načítajte stránku.",
   "sidebar_position_updated": "Umiestnenie bočného panela bolo aktualizované.",
   "transparency_updated": "Nastavenie priehľadnosti bolo aktualizované.",
   "compact_mode_updated": "Kompaktný režim bol aktualizovaný.",

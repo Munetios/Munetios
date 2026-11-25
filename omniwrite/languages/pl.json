@@ -687,7 +687,7 @@
   "version_restored": "Przywrócono wersję.",
   "theme_updated": "Zaktualizowano motyw.",
   "custom_theme_applied": "Zastosowano motyw niestandardowy.",
-  "language_updated": "Zaktualizowano język.",
+  "language_reload_required": "Odśwież stronę, aby zastosować wybrany język.",
   "sidebar_position_updated": "Zaktualizowano położenie paska bocznego.",
   "transparency_updated": "Zaktualizowano ustawienie przezroczystości.",
   "compact_mode_updated": "Zaktualizowano tryb kompaktowy.",

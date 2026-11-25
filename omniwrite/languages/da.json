@@ -686,7 +686,7 @@
   "version_restored": "Versionen er gendannet.",
   "theme_updated": "Temaet er opdateret.",
   "custom_theme_applied": "Det tilpassede tema er anvendt.",
-  "language_updated": "Sproget er opdateret.",
+  "language_reload_required": "Genindlæs siden for at anvende sproget.",
   "sidebar_position_updated": "Sidepanelets placering er opdateret.",
   "transparency_updated": "Indstillingen for gennemsigtighed er opdateret.",
   "compact_mode_updated": "Kompakt tilstand er opdateret.",

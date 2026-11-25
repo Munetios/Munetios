@@ -686,7 +686,7 @@
   "version_restored": "Η έκδοση επαναφέρθηκε.",
   "theme_updated": "Το θέμα ενημερώθηκε.",
   "custom_theme_applied": "Το προσαρμοσμένο θέμα εφαρμόστηκε.",
-  "language_updated": "Η γλώσσα ενημερώθηκε.",
+  "language_reload_required": "Φορτώστε ξανά τη σελίδα για να εφαρμοστεί η γλώσσα.",
   "sidebar_position_updated": "Η θέση της πλαϊνής γραμμής ενημερώθηκε.",
   "transparency_updated": "Η ρύθμιση διαφάνειας ενημερώθηκε.",
   "compact_mode_updated": "Η συμπαγής λειτουργία ενημερώθηκε.",

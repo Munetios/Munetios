@@ -687,7 +687,7 @@
   "version_restored": "Versio palautettiin.",
   "theme_updated": "Teema päivitettiin.",
   "custom_theme_applied": "Mukautettu teema otettiin käyttöön.",
-  "language_updated": "Kieli päivitettiin.",
+  "language_reload_required": "Ota kieli käyttöön lataamalla sivu uudelleen.",
   "sidebar_position_updated": "Sivupalkin sijainti päivitettiin.",
   "transparency_updated": "Läpinäkyvyysasetus päivitettiin.",
   "compact_mode_updated": "Tiivis tila päivitettiin.",

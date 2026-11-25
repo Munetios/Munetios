@@ -687,7 +687,7 @@
   "version_restored": "आवृत्ती पुनर्संचयित केली.",
   "theme_updated": "थीम अपडेट केली.",
   "custom_theme_applied": "सानुकूल थीम लागू केली.",
-  "language_updated": "भाषा अपडेट केली.",
+  "language_reload_required": "भाषा लागू करण्यासाठी पृष्ठ पुन्हा लोड करा.",
   "sidebar_position_updated": "साइडबारचे स्थान अपडेट केले.",
   "transparency_updated": "पारदर्शकता सेटिंग अपडेट केली.",
   "compact_mode_updated": "संक्षिप्त मोड अपडेट केला.",

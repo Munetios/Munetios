@@ -687,7 +687,7 @@
   "version_restored": "Version restaurée.",
   "theme_updated": "Thème mis à jour.",
   "custom_theme_applied": "Thème personnalisé appliqué.",
-  "language_updated": "Langue mise à jour.",
+  "language_reload_required": "Rechargez la page pour appliquer la langue.",
   "sidebar_position_updated": "Position du panneau mise à jour.",
   "transparency_updated": "Paramètre de transparence mis à jour.",
   "compact_mode_updated": "Mode compact mis à jour.",

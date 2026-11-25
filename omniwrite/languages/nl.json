@@ -687,7 +687,7 @@
   "version_restored": "Versie hersteld.",
   "theme_updated": "Thema bijgewerkt.",
   "custom_theme_applied": "Aangepast thema toegepast.",
-  "language_updated": "Taal bijgewerkt.",
+  "language_reload_required": "Laad de pagina opnieuw om de taal toe te passen.",
   "sidebar_position_updated": "Positie van zijbalk bijgewerkt.",
   "transparency_updated": "Transparantie-instelling bijgewerkt.",
   "compact_mode_updated": "Compacte modus bijgewerkt.",

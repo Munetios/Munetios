@@ -687,7 +687,7 @@
   "version_restored": "กู้คืนเวอร์ชันแล้ว",
   "theme_updated": "อัปเดตธีมแล้ว",
   "custom_theme_applied": "ใช้ธีมที่กำหนดเองแล้ว",
-  "language_updated": "อัปเดตภาษาแล้ว",
+  "language_reload_required": "โหลดหน้าใหม่เพื่อใช้ภาษาที่เลือก",
   "sidebar_position_updated": "อัปเดตตำแหน่งแถบด้านข้างแล้ว",
   "transparency_updated": "อัปเดตการตั้งค่าความโปร่งใสแล้ว",
   "compact_mode_updated": "อัปเดตโหมดกะทัดรัดแล้ว",

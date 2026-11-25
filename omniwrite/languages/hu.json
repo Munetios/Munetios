@@ -687,7 +687,7 @@
   "version_restored": "A verzió visszaállítva.",
   "theme_updated": "A téma frissítve.",
   "custom_theme_applied": "Az egyéni téma alkalmazva.",
-  "language_updated": "A nyelv frissítve.",
+  "language_reload_required": "Töltsd újra az oldalt a nyelv alkalmazásához.",
   "sidebar_position_updated": "Az oldalsáv helye frissítve.",
   "transparency_updated": "Az átlátszóság beállítása frissítve.",
   "compact_mode_updated": "A kompakt mód frissítve.",

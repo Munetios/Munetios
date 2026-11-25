@@ -687,7 +687,7 @@
   "version_restored": "संस्करण पुनर्स्थापित किया गया।",
   "theme_updated": "थीम अपडेट की गई।",
   "custom_theme_applied": "कस्टम थीम लागू की गई।",
-  "language_updated": "भाषा अपडेट की गई।",
+  "language_reload_required": "भाषा लागू करने के लिए पेज फिर से लोड करें।",
   "sidebar_position_updated": "साइडबार की स्थिति अपडेट की गई।",
   "transparency_updated": "पारदर्शिता सेटिंग अपडेट की गई।",
   "compact_mode_updated": "कॉम्पैक्ट मोड अपडेट किया गया।",

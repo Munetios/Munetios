@@ -687,7 +687,7 @@
   "version_restored": "Верзија је враћена.",
   "theme_updated": "Тема је ажурирана.",
   "custom_theme_applied": "Прилагођена тема је примењена.",
-  "language_updated": "Језик је ажуриран.",
+  "language_reload_required": "Поново учитајте страницу да бисте применили језик.",
   "sidebar_position_updated": "Положај бочне траке је ажуриран.",
   "transparency_updated": "Подешавање провидности је ажурирано.",
   "compact_mode_updated": "Компактни режим је ажуриран.",

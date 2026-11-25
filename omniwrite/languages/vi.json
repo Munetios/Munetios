@@ -687,7 +687,7 @@
   "version_restored": "Đã khôi phục phiên bản.",
   "theme_updated": "Đã cập nhật chủ đề.",
   "custom_theme_applied": "Đã áp dụng chủ đề tùy chỉnh.",
-  "language_updated": "Đã cập nhật ngôn ngữ.",
+  "language_reload_required": "Tải lại trang để áp dụng ngôn ngữ đã chọn.",
   "sidebar_position_updated": "Đã cập nhật vị trí thanh bên.",
   "transparency_updated": "Đã cập nhật cài đặt độ trong suốt.",
   "compact_mode_updated": "Đã cập nhật chế độ thu gọn.",

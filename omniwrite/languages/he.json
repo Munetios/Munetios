@@ -687,7 +687,7 @@
   "version_restored": "הגרסה שוחזרה.",
   "theme_updated": "ערכת הנושא עודכנה.",
   "custom_theme_applied": "ערכת הנושא המותאמת הוחלה.",
-  "language_updated": "השפה עודכנה.",
+  "language_reload_required": "טענו מחדש את הדף כדי להחיל את השפה.",
   "sidebar_position_updated": "מיקום סרגל הצד עודכן.",
   "transparency_updated": "הגדרת השקיפות עודכנה.",
   "compact_mode_updated": "המצב המצומצם עודכן.",

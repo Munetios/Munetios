@@ -686,7 +686,7 @@
   "version_restored": "Weergawe is herstel.",
   "theme_updated": "Tema is bygewerk.",
   "custom_theme_applied": "Pasgemaakte tema is toegepas.",
-  "language_updated": "Taal is bygewerk.",
+  "language_reload_required": "Herlaai die bladsy om die taal toe te pas.",
   "sidebar_position_updated": "Kantbalkposisie is bygewerk.",
   "transparency_updated": "Deursigtigheidinstelling is bygewerk.",
   "compact_mode_updated": "Kompakte modus is bygewerk.",

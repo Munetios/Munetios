@@ -686,7 +686,7 @@
   "version_restored": "Версията е възстановена.",
   "theme_updated": "Темата е актуализирана.",
   "custom_theme_applied": "Персонализираната тема е приложена.",
-  "language_updated": "Езикът е актуализиран.",
+  "language_reload_required": "Презаредете страницата, за да приложите езика.",
   "sidebar_position_updated": "Позицията на страничната лента е актуализирана.",
   "transparency_updated": "Настройката за прозрачност е актуализирана.",
   "compact_mode_updated": "Компактният режим е актуализиран.",

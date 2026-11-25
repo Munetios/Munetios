@@ -687,7 +687,7 @@
   "version_restored": "Versi dipulihkan.",
   "theme_updated": "Tema dikemas kini.",
   "custom_theme_applied": "Tema tersuai digunakan.",
-  "language_updated": "Bahasa dikemas kini.",
+  "language_reload_required": "Muat semula halaman untuk menggunakan bahasa yang dipilih.",
   "sidebar_position_updated": "Kedudukan bar sisi dikemas kini.",
   "transparency_updated": "Tetapan ketelusan dikemas kini.",
   "compact_mode_updated": "Mod padat dikemas kini.",

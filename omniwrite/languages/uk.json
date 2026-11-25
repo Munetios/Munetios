@@ -687,7 +687,7 @@
   "version_restored": "Версію відновлено.",
   "theme_updated": "Тему оновлено.",
   "custom_theme_applied": "Власну тему застосовано.",
-  "language_updated": "Мову оновлено.",
+  "language_reload_required": "Перезавантажте сторінку, щоб застосувати вибрану мову.",
   "sidebar_position_updated": "Розташування бічної панелі оновлено.",
   "transparency_updated": "Налаштування прозорості оновлено.",
   "compact_mode_updated": "Компактний режим оновлено.",

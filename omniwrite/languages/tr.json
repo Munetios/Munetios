@@ -687,7 +687,7 @@
   "version_restored": "Sürüm geri yüklendi.",
   "theme_updated": "Tema güncellendi.",
   "custom_theme_applied": "Özel tema uygulandı.",
-  "language_updated": "Dil güncellendi.",
+  "language_reload_required": "Dili uygulamak için sayfayı yeniden yükleyin.",
   "sidebar_position_updated": "Kenar çubuğu konumu güncellendi.",
   "transparency_updated": "Saydamlık ayarı güncellendi.",
   "compact_mode_updated": "Kompakt mod güncellendi.",

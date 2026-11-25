@@ -686,7 +686,7 @@
   "version_restored": "S'ha restaurat la versió.",
   "theme_updated": "S'ha actualitzat el tema.",
   "custom_theme_applied": "S'ha aplicat el tema personalitzat.",
-  "language_updated": "S'ha actualitzat l'idioma.",
+  "language_reload_required": "Torna a carregar la pàgina per aplicar l’idioma.",
   "sidebar_position_updated": "S'ha actualitzat la posició de la barra lateral.",
   "transparency_updated": "S'ha actualitzat la configuració de transparència.",
   "compact_mode_updated": "S'ha actualitzat el mode compacte.",

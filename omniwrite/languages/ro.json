@@ -687,7 +687,7 @@
   "version_restored": "Versiunea a fost restaurată.",
   "theme_updated": "Tema a fost actualizată.",
   "custom_theme_applied": "Tema personalizată a fost aplicată.",
-  "language_updated": "Limba a fost actualizată.",
+  "language_reload_required": "Reîncarcă pagina pentru a aplica limba.",
   "sidebar_position_updated": "Poziția barei laterale a fost actualizată.",
   "transparency_updated": "Setarea de transparență a fost actualizată.",
   "compact_mode_updated": "Modul compact a fost actualizat.",

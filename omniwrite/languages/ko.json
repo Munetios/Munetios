@@ -687,7 +687,7 @@
   "version_restored": "버전을 복원했습니다.",
   "theme_updated": "테마를 업데이트했습니다.",
   "custom_theme_applied": "사용자 지정 테마를 적용했습니다.",
-  "language_updated": "언어를 업데이트했습니다.",
+  "language_reload_required": "선택한 언어를 적용하려면 페이지를 새로고침하세요.",
   "sidebar_position_updated": "사이드바 위치를 업데이트했습니다.",
   "transparency_updated": "투명도 설정을 업데이트했습니다.",
   "compact_mode_updated": "컴팩트 모드를 업데이트했습니다.",

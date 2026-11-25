@@ -687,7 +687,7 @@
   "version_restored": "Версия восстановлена.",
   "theme_updated": "Тема обновлена.",
   "custom_theme_applied": "Пользовательская тема применена.",
-  "language_updated": "Язык обновлён.",
+  "language_reload_required": "Перезагрузите страницу, чтобы применить выбранный язык.",
   "sidebar_position_updated": "Положение панели обновлено.",
   "transparency_updated": "Настройка прозрачности обновлена.",
   "compact_mode_updated": "Компактный режим обновлён.",

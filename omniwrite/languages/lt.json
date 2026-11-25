@@ -687,7 +687,7 @@
   "version_restored": "Versija atkurta.",
   "theme_updated": "Tema atnaujinta.",
   "custom_theme_applied": "Pasirinktinė tema pritaikyta.",
-  "language_updated": "Kalba atnaujinta.",
+  "language_reload_required": "Įkelkite puslapį iš naujo, kad pritaikytumėte kalbą.",
   "sidebar_position_updated": "Šoninės juostos padėtis atnaujinta.",
   "transparency_updated": "Skaidrumo nustatymas atnaujintas.",
   "compact_mode_updated": "Kompaktiškas režimas atnaujintas.",

@@ -2,6 +2,14 @@
 <html lang="en">
 <head>
         <script nonce="erjntgeryfheusjfhbdffeshF34YUH34yuhfuew8ufh34uidIRFEh3ui">
+        try {
+            var pendingLanguage = sessionStorage.getItem('omniwrite-pending-language');
+            if (pendingLanguage) {
+                localStorage.setItem('omniwrite-lang', pendingLanguage);
+                sessionStorage.removeItem('omniwrite-pending-language');
+            }
+        } catch (error) {}
+
         // Show an unsupported browser modal for PlayStation and Internet Explorer instead of redirecting.
         (function() {
             var ua = navigator.userAgent || '';
@@ -1938,6 +1946,22 @@ if ('serviceWorker' in navigator) {
         const inlineDisplay = dropdown.style.display;
         if (inlineDisplay && inlineDisplay !== 'none') return true;
         return dropdown.isConnected && window.getComputedStyle(dropdown).display !== 'none';
+    }
+
+    function selectOmniLanguage(event) {
+        const menu = event.currentTarget;
+        const option = event.target.closest?.('.dropdown-item[data-lang]');
+        if (!option || !menu.isConnected || !isOmniDropdownWrapperOpen(menu) || !menu.getClientRects().length) return null;
+        closeOmniDropdownWrapper(menu);
+        const language = option.dataset.lang;
+        try {
+            sessionStorage.setItem('omniwrite-pending-language', language);
+        } catch (error) {
+            showToast(_t('settings_update_failed'), { type: 'error' });
+            return null;
+        }
+        showToast(_t('language_reload_required'), { type: 'info' });
+        return option;
     }
 
     function closeOmniDropdownWrapper(dropdown) {
@@ -18372,9 +18396,11 @@ try {
                 { value: 'sr-RS', label: 'Serbian (Serbia)' }
             ]);
             const languageSelectBtn = settingsModal.querySelector('#languageSelectBtn');
-            let currentLang = localStorage.getItem('omniwrite-lang') || 'en';
+            const currentLang = localStorage.getItem('omniwrite-lang') || 'en';
+            let selectedLang = currentLang;
+            try { selectedLang = sessionStorage.getItem('omniwrite-pending-language') || currentLang; } catch (error) {}
             try { const names = new Intl.DisplayNames([resolveOmniLanguage(currentLang)], { type: 'language' }); languageOptions.forEach(option => { option.label = names.of(option.value) || option.label; }); } catch {}
-            setSettingsButtonLabel(languageSelectBtn, languageOptions.find(o => o.value === currentLang)?.label || 'English');
+            setSettingsButtonLabel(languageSelectBtn, languageOptions.find(o => o.value === selectedLang)?.label || 'English');
 
             // Create dropdown
             let languageDropdown = document.createElement('div');
@@ -18396,20 +18422,9 @@ try {
                 languageDropdown.style.left = (rect.left + window.scrollX) + 'px';
                 languageDropdown.style.display = languageDropdown.style.display === 'block' ? 'none' : 'block';
             };
-            languageDropdown.querySelectorAll('.dropdown-item').forEach(item => {
-                item.onclick = function () {
-                    const value = this.getAttribute('data-value');
-                    try { localStorage.setItem('omniwrite-lang', value); } catch(e) { console.warn('localStorage unavailable:', e); }
-                    setSettingsButtonLabel(languageSelectBtn, this.textContent);
-                    languageDropdown.style.display = 'none';
-                    showToast(_t('language_updated'), { type: 'success' });
-                    applyTranslations(value);
-                    setTimeout(() => {
-                        if (document.getElementById('templatesList')) renderTemplatesList();
-                        if (document.getElementById('documentsList') && typeof renderDocumentsList === 'function') renderDocumentsList();
-                        if (document.getElementById('foldersList') && typeof renderFoldersList === 'function') renderFoldersList();
-                    }, 100);
-                };
+            languageDropdown.addEventListener('click', event => {
+                const option = selectOmniLanguage(event);
+                if (option) setSettingsButtonLabel(languageSelectBtn, option.textContent);
             });
             document.addEventListener('mousedown', function (e) {
                 if (
@@ -21849,16 +21864,7 @@ try {
         forceTranslatedDefaultTitles();
         setupDesktopMiniSidebar();
         if (typeof TRANSLATIONS !== 'undefined') {
-            document.getElementById('languageDropDownOptions')?.addEventListener('click', event => {
-                const item = event.target.closest('.dropdown-item[data-lang]');
-                if (!item) return;
-                const value = item.getAttribute('data-lang');
-                try { localStorage.setItem('omniwrite-lang', value); } catch(e) {}
-                applyTranslations(value);
-                applyDocumentLanguage(value);
-                document.getElementById('languageDropDownOptions').style.display = 'none';
-                showToast(_t('language_updated'), { type: 'success' });
-            });
+            document.getElementById('languageDropDownOptions')?.addEventListener('click', selectOmniLanguage);
         }
         const OMNI_SIDEBAR_CUSTOMIZATION_KEY = 'omniwrite-sidebar-customization';
         const OMNI_SIDEBAR_ORGANIZATION_KEY = 'omniwrite-sidebar-organization';

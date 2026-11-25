@@ -687,7 +687,7 @@
   "version_restored": "Različica je obnovljena.",
   "theme_updated": "Tema je posodobljena.",
   "custom_theme_applied": "Tema po meri je uporabljena.",
-  "language_updated": "Jezik je posodobljen.",
+  "language_reload_required": "Znova naložite stran, da uveljavite jezik.",
   "sidebar_position_updated": "Položaj stranske vrstice je posodobljen.",
   "transparency_updated": "Nastavitev prosojnosti je posodobljena.",
   "compact_mode_updated": "Kompaktni način je posodobljen.",

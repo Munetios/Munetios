@@ -686,7 +686,7 @@
   "version_restored": "ভার্সন পুনরুদ্ধার হয়েছে।",
   "theme_updated": "থিম আপডেট হয়েছে।",
   "custom_theme_applied": "কাস্টম থিম প্রয়োগ হয়েছে।",
-  "language_updated": "ভাষা আপডেট হয়েছে।",
+  "language_reload_required": "ভাষা প্রয়োগ করতে পৃষ্ঠাটি পুনরায় লোড করুন।",
   "sidebar_position_updated": "সাইডবারের অবস্থান আপডেট হয়েছে।",
   "transparency_updated": "স্বচ্ছতার সেটিং আপডেট হয়েছে।",
   "compact_mode_updated": "কমপ্যাক্ট মোড আপডেট হয়েছে।",

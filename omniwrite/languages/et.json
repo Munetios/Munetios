@@ -687,7 +687,7 @@
   "version_restored": "Versioon taastati.",
   "theme_updated": "Teemat värskendati.",
   "custom_theme_applied": "Kohandatud teema rakendati.",
-  "language_updated": "Keelt värskendati.",
+  "language_reload_required": "Keele rakendamiseks laadi leht uuesti.",
   "sidebar_position_updated": "Külgriba asukohta värskendati.",
   "transparency_updated": "Läbipaistvuse sätet värskendati.",
   "compact_mode_updated": "Kompaktset režiimi värskendati.",
