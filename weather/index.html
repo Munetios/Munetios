@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en" data-mu-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <meta name="referrer" content="no-referrer">
+  <title translate="no">Ganetios Weather</title>
+  <meta name="description" content="Ganetios Weather: private forecasts, alerts, sunrise and sunset, and sky conditions for every place you care about.">
+  <link rel="canonical" href="https://weather.munetios.com/">
+  <link rel="icon" href="/favicon-ganetios.ico">
+  <link rel="apple-touch-icon" href="/ganetios-logo-icon.png">
+  <link rel="stylesheet" href="https://api.munetios.com/beautiful-css/beautiful.css">
+  <link rel="stylesheet" href="/munetios-ui/munetios-ui-v4.css">
+  <link rel="stylesheet" href="/weather/weather.css">
+  <script src="/munetios-ui/munetios-ui-v4.js" defer></script>
+  <script src="/weather/weather-i18n.js" defer></script>
+  <script src="/weather/weather-sun.js" defer></script>
+  <script src="/weather/weather-sky.js" defer></script>
+  <script src="/weather/weather-map.js" defer></script>
+  <script src="/weather/weather.js" defer></script>
+</head>
+<body class="mu-root gw-app">
+  <a class="mu-skip-link" href="#main" data-t="skipToForecast">Skip to forecast</a>
+
+  <header class="mu-topbar gw-topbar">
+    <button type="button" class="mu-capsule-btn" id="sidebarToggle" aria-controls="sidebar" aria-expanded="true" data-t-label="toggleLocations"><span class="mu-icon" aria-hidden="true">menu</span></button>
+    <div class="mu-capsule gw-brand">
+      <img src="/ganetios-logo-icon.png" alt="" width="44" height="44">
+      <h1 translate="no">Ganetios <span>Weather</span></h1>
+    </div>
+    <div class="gw-search-wrap">
+      <label class="mu-search mu-topbar-search" id="searchBox">
+        <span class="mu-icon" aria-hidden="true">search</span>
+        <input id="searchInput" type="search" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="searchResults" data-t-placeholder="searchPlaceholder" data-t-label="searchPlaceholder">
+        <button type="button" class="mu-icon-btn mu-icon-btn-sm mu-topbar-search-close" id="searchClose" data-t-label="clearSearch"><span class="mu-icon" aria-hidden="true">close</span></button>
+      </label>
+      <ul class="mu-menu gw-results gw-search-results" id="searchResults" role="listbox" data-t-label="searchResults" hidden></ul>
+    </div>
+    <div class="mu-capsule gw-actions">
+      <button type="button" class="mu-icon-btn" id="locateBtn" data-t-label="useMyLocation"><span class="mu-icon" aria-hidden="true">my_location</span></button>
+      <button type="button" class="mu-icon-btn" id="mapBtn" data-t-label="pickOnMap"><span class="mu-icon" aria-hidden="true">map</span></button>
+      <button type="button" class="mu-icon-btn" id="skyBtn" data-t-label="skyPreviews"><span class="mu-icon" aria-hidden="true">landscape</span></button>
+      <button type="button" class="mu-icon-btn" id="refreshBtn" data-t-label="refresh"><span class="mu-icon" aria-hidden="true">refresh</span></button>
+      <button type="button" class="mu-icon-btn" id="settingsBtn" data-t-label="settings"><span class="mu-icon" aria-hidden="true">settings</span></button>
+    </div>
+  </header>
+
+  <div class="gw-shell">
+    <aside class="gw-sidebar mu-glass mu-scroll" id="sidebar" data-t-label="locations">
+      <div class="gw-card-head">
+        <h2 class="mu-section-label" data-t="locations">Locations</h2>
+        <button type="button" class="mu-icon-btn mu-icon-btn-sm" id="addLocationBtn" data-t-label="addLocation"><span class="mu-icon" aria-hidden="true">add_location_alt</span></button>
+      </div>
+      <ul class="gw-locations" id="locationList"></ul>
+      <button type="button" class="mu-btn mu-btn-primary mu-btn-block" id="addLocationMain"><span class="mu-icon" aria-hidden="true">add</span><span data-t="addLocation">Add location</span></button>
+    </aside>
+
+    <main class="gw-main" id="main" tabindex="-1" aria-busy="true">
+      <section class="gw-hero mu-glass" id="hero" aria-labelledby="placeName">
+        <canvas class="gw-sky" id="sky" aria-hidden="true"></canvas>
+        <div class="gw-hero-content">
+          <div class="gw-hero-top">
+            <div>
+              <h2 class="gw-place" id="placeName">&nbsp;</h2>
+              <p class="gw-place-sub" id="placeSub"></p>
+            </div>
+            <div class="gw-preview-chip" id="previewChip" hidden>
+              <span class="mu-icon" aria-hidden="true">visibility</span>
+              <span id="previewLabel"></span>
+              <button type="button" class="mu-icon-btn mu-icon-btn-sm" id="previewReset" data-t-label="backToLive"><span class="mu-icon" aria-hidden="true">close</span></button>
+            </div>
+          </div>
+          <div class="gw-now">
+            <div class="gw-now-icon" id="nowIcon" aria-hidden="true"></div>
+            <div class="gw-now-temp" id="nowTemp">--</div>
+            <div class="gw-now-text">
+              <div class="gw-now-cond" id="nowCond"></div>
+              <div id="nowHiLo"></div>
+              <div id="nowFeels"></div>
+            </div>
+          </div>
+          <p class="gw-nowcast" id="nowcast" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <div class="gw-alert-strip" id="alertStrip" hidden></div>
+
+      <section class="gw-card mu-glass" aria-labelledby="hourlyTitle">
+        <div class="gw-card-head">
+          <h2 class="mu-h-title" id="hourlyTitle" data-t="hourlyForecast">Hourly forecast</h2>
+          <span class="mu-muted" data-t="next24Hours">Next 24 hours</span>
+        </div>
+        <div class="gw-hourly mu-scroll" id="hourly" role="list"></div>
+      </section>
+
+      <section class="gw-card mu-glass" aria-labelledby="detailsTitle">
+        <h2 class="mu-h-title" id="detailsTitle" data-t="currentConditions">Current conditions</h2>
+        <div class="gw-details" id="details"></div>
+      </section>
+
+      <section class="gw-card mu-glass" aria-labelledby="chartsTitle">
+        <div class="gw-card-head gw-chart-head">
+          <h2 class="mu-h-title" id="chartsTitle" data-t="forecastCharts">Forecast charts</h2>
+          <div class="gw-chart-controls">
+            <div class="gw-chart-metric"><select class="mu-select" id="chartMetric" data-t-label="chartMetric"></select></div>
+            <div class="mu-segmented" role="group" id="chartRange" data-t-label="chartRange">
+              <button type="button" data-range="24" aria-pressed="false" data-t="range24h">24 h</button>
+              <button type="button" data-range="48" aria-pressed="true" data-t="range48h">48 h</button>
+              <button type="button" data-range="168" aria-pressed="false" data-t="range7d">7 days</button>
+              <button type="button" data-range="384" aria-pressed="false" data-t="range16d">16 days</button>
+            </div>
+            <button type="button" class="mu-icon-btn" id="chartTableBtn" aria-pressed="false" data-t-label="showTable"><span class="mu-icon" aria-hidden="true">table</span></button>
+          </div>
+        </div>
+        <div class="gw-legend" id="chartLegend"></div>
+        <div class="gw-chart" id="chart"></div>
+        <div class="mu-table-wrap gw-chart-table mu-scroll" id="chartTable" hidden></div>
+      </section>
+
+      <section class="gw-card mu-glass" aria-labelledby="dailyTitle">
+        <div class="gw-card-head">
+          <h2 class="mu-h-title" id="dailyTitle" data-t="dailyForecast">16-day forecast</h2>
+        </div>
+        <ul class="gw-daily" id="daily"></ul>
+      </section>
+
+      <section class="gw-card mu-glass" id="nwsCard" aria-labelledby="nwsTitle" hidden>
+        <div class="gw-card-head">
+          <h2 class="mu-h-title" id="nwsTitle" data-t="nwsForecast">National Weather Service forecast</h2>
+          <span class="mu-badge">weather.gov</span>
+        </div>
+        <div class="mu-accordion gw-nws" id="nwsPeriods"></div>
+      </section>
+
+      <footer class="gw-attribution mu-glass" aria-labelledby="attrTitle">
+        <h2 class="mu-section-label" id="attrTitle" data-t="dataSources">Data sources</h2>
+        <ul>
+          <li><span class="mu-icon" aria-hidden="true">partly_cloudy_day</span><span><span data-t="attrOpenMeteo">Weather data by</span> <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo.com</a> (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>)</span></li>
+          <li><span class="mu-icon" aria-hidden="true">warning</span><span><span data-t="attrNws">Alerts and forecasts from the National Weather Service,</span> <a href="https://www.weather.gov/" target="_blank" rel="noopener noreferrer">weather.gov</a></span></li>
+          <li><span class="mu-icon" aria-hidden="true">search</span><span><span data-t="attrPhoton">Search by</span> <a href="https://photon.komoot.io/" target="_blank" rel="noopener noreferrer">Photon</a> · © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a></span></li>
+          <li><span class="mu-icon" aria-hidden="true">map</span><span><span data-t="attrMap">Map by</span> <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> · <a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> · © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a></span></li>
+          <li><span class="mu-icon" aria-hidden="true">wb_twilight</span><span data-t="attrSun">Sun and moon times are calculated on your device.</span></li>
+        </ul>
+      </footer>
+    </main>
+
+    <aside class="gw-right" id="rightPanel">
+      <section class="gw-card mu-glass" id="alertsCard" aria-labelledby="alertsTitle">
+        <div class="gw-card-head">
+          <h2 class="mu-h-title" id="alertsTitle"><span class="mu-icon" aria-hidden="true">warning</span><span data-t="alerts">Alerts</span></h2>
+          <span class="mu-badge" id="alertCount" hidden></span>
+        </div>
+        <div id="alertsBody"></div>
+      </section>
+
+      <section class="gw-card mu-glass" id="sunCard" aria-labelledby="sunTitle">
+        <div class="gw-card-head">
+          <h2 class="mu-h-title" id="sunTitle"><span class="mu-icon" aria-hidden="true">wb_twilight</span><span data-t="sunriseSunset">Sunrise and sunset</span></h2>
+        </div>
+        <div class="gw-sun-nav">
+          <button type="button" class="mu-icon-btn mu-icon-btn-sm" id="sunPrev" data-t-label="previousDay"><span class="mu-icon" aria-hidden="true">chevron_left</span></button>
+          <button type="button" class="mu-btn mu-btn-ghost gw-sun-date" id="sunDate"></button>
+          <button type="button" class="mu-icon-btn mu-icon-btn-sm" id="sunNext" data-t-label="nextDay"><span class="mu-icon" aria-hidden="true">chevron_right</span></button>
+          <button type="button" class="mu-icon-btn mu-icon-btn-sm" id="sunToday" data-t-label="today"><span class="mu-icon" aria-hidden="true">today</span></button>
+        </div>
+        <div class="gw-sun-polar" id="sunPolar" hidden></div>
+        <div class="gw-sun-dial" id="sunDial"></div>
+        <div class="gw-sun-chart" id="sunChart"></div>
+        <ul class="gw-sun-events" id="sunEvents"></ul>
+        <div class="gw-card-head gw-months-head">
+          <h3 class="mu-h-title" data-t="throughTheYear">Through the year</h3>
+          <div class="gw-month-day"><select class="mu-select" id="monthDay" data-t-label="dayOfMonth"></select></div>
+        </div>
+        <div class="gw-month-legend"><span><i class="is-day"></i><span data-t="dayLabel">Day</span></span><span><i class="is-night"></i><span data-t="nightLabel">Night</span></span></div>
+        <ul class="gw-months" id="sunMonths"></ul>
+      </section>
+    </aside>
+  </div>
+
+  <!-- Add location: search and map -->
+  <div class="mu-modal" id="locationModal" hidden>
+    <div class="mu-dialog mu-dialog-lg gw-location-dialog" role="dialog" aria-modal="true" aria-labelledby="locationModalTitle">
+      <div class="mu-dialog-header">
+        <div class="mu-dialog-heading"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">add_location_alt</span></span><h2 id="locationModalTitle" data-t="addLocation">Add location</h2></div>
+        <button type="button" class="mu-icon-btn mu-icon-btn-soft" data-mu-close data-t-label="close"><span class="mu-icon" aria-hidden="true">close</span></button>
+      </div>
+      <div class="gw-picker">
+        <div class="gw-picker-side">
+          <label class="mu-search">
+            <span class="mu-icon" aria-hidden="true">search</span>
+            <input id="modalSearch" type="search" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="modalResults" data-t-placeholder="searchPlaceholder" data-t-label="searchPlaceholder">
+          </label>
+          <p class="mu-muted gw-hint" data-t="searchHint">Search for a city or type coordinates like 40.7128, -74.0060.</p>
+          <ul class="gw-results gw-modal-results mu-scroll" id="modalResults" role="listbox" data-t-label="searchResults"></ul>
+          <div class="gw-selected" id="modalSelected" hidden>
+            <div class="gw-selected-text"><span id="modalSelectedName"></span><span class="mu-muted" id="modalSelectedSub"></span></div>
+            <button type="button" class="mu-btn mu-btn-primary" id="modalAdd"><span class="mu-icon" aria-hidden="true">add</span><span data-t="addLocation">Add location</span></button>
+          </div>
+        </div>
+        <div class="gw-map-wrap">
+          <div class="gw-map" id="pickerMap" role="application" data-t-label="mapLabel"></div>
+          <p class="gw-map-hint"><span class="mu-icon" aria-hidden="true">touch_app</span><span data-t="mapHint">Right-click or press and hold to add a place</span></p>
+          <div class="gw-map-status" id="mapStatus" hidden></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sky previews -->
+  <div class="mu-modal" id="skyModal" hidden>
+    <div class="mu-dialog mu-dialog-lg" role="dialog" aria-modal="true" aria-labelledby="skyModalTitle">
+      <div class="mu-dialog-header">
+        <div class="mu-dialog-heading"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">landscape</span></span><h2 id="skyModalTitle" data-t="skyPreviews">Sky previews</h2></div>
+        <button type="button" class="mu-icon-btn mu-icon-btn-soft" data-mu-close data-t-label="close"><span class="mu-icon" aria-hidden="true">close</span></button>
+      </div>
+      <div class="gw-sky-preview"><canvas id="skyPreviewCanvas" aria-hidden="true"></canvas><span class="gw-sky-preview-label" id="skyPreviewLabel"></span></div>
+      <div class="gw-scene-grid" id="sceneGrid" role="group" data-t-label="condition"></div>
+      <div class="mu-segmented gw-time-seg" role="group" id="skyTime" data-t-label="timeOfDay">
+        <button type="button" data-alt="-7" aria-pressed="false" data-t="timeDawn">Dawn</button>
+        <button type="button" data-alt="40" aria-pressed="true" data-t="timeDay">Day</button>
+        <button type="button" data-alt="-1" aria-pressed="false" data-t="timeSunset">Sunset</button>
+        <button type="button" data-alt="-30" aria-pressed="false" data-t="timeNight">Night</button>
+      </div>
+      <div class="mu-dialog-actions">
+        <button type="button" class="mu-btn" data-mu-close data-t="close">Close</button>
+        <button type="button" class="mu-btn mu-btn-primary" id="skyApply"><span class="mu-icon" aria-hidden="true">wallpaper</span><span data-t="showOnHome">Show on main sky</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day details -->
+  <div class="mu-modal" id="dayModal" hidden>
+    <div class="mu-dialog mu-dialog-md" role="dialog" aria-modal="true" aria-labelledby="dayModalTitle">
+      <div class="mu-dialog-header">
+        <div class="mu-dialog-heading"><span class="mu-icon-circle" id="dayModalIcon"><span class="mu-icon" aria-hidden="true">calendar_today</span></span><h2 id="dayModalTitle"></h2></div>
+        <button type="button" class="mu-icon-btn mu-icon-btn-soft" data-mu-close data-t-label="close"><span class="mu-icon" aria-hidden="true">close</span></button>
+      </div>
+      <div id="dayModalBody" class="gw-day-body"></div>
+      <div class="mu-dialog-actions">
+        <button type="button" class="mu-btn" id="daySunBtn"><span class="mu-icon" aria-hidden="true">wb_twilight</span><span data-t="showSunForDay">Show sun for this day</span></button>
+        <button type="button" class="mu-btn mu-btn-primary" data-mu-close data-t="done">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div class="mu-modal" id="settingsModal" hidden>
+    <div class="mu-dialog mu-dialog-md" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="mu-dialog-header">
+        <div class="mu-dialog-heading"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">settings</span></span><h2 id="settingsTitle" data-t="settings">Settings</h2></div>
+        <button type="button" class="mu-icon-btn mu-icon-btn-soft" data-mu-close data-t-label="close"><span class="mu-icon" aria-hidden="true">close</span></button>
+      </div>
+      <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" data-t="theme">Theme</span></div>
+        <div class="mu-segmented" role="group" id="themeSeg" data-t-label="theme">
+          <button type="button" data-theme-pref="system" aria-pressed="false" data-t="themeSystem">System</button>
+          <button type="button" data-theme-pref="light" aria-pressed="false" data-t="themeLight">Light</button>
+          <button type="button" data-theme-pref="dark" aria-pressed="false" data-t="themeDark">Dark</button>
+        </div>
+      </div>
+      <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" data-t="language">Language</span></div><div class="gw-setting-select"><select class="mu-select" id="setLanguage" data-t-label="language"></select></div></div>
+      <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" data-t="temperature">Temperature</span></div><div class="gw-setting-select"><select class="mu-select" id="setTemp" data-t-label="temperature"></select></div></div>
+      <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" data-t="windSpeed">Wind speed</span></div><div class="gw-setting-select"><select class="mu-select" id="setWind" data-t-label="windSpeed"></select></div></div>
+      <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" data-t="precipitation">Precipitation</span></div><div class="gw-setting-select"><select class="mu-select" id="setPrecip" data-t-label="precipitation"></select></div></div>
+      <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" data-t="pressure">Pressure</span></div><div class="gw-setting-select"><select class="mu-select" id="setPressure" data-t-label="pressure"></select></div></div>
+      <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" data-t="distance">Distance</span></div><div class="gw-setting-select"><select class="mu-select" id="setDistance" data-t-label="distance"></select></div></div>
+      <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" data-t="timeFormat">Time format</span></div><div class="gw-setting-select"><select class="mu-select" id="setClock" data-t-label="timeFormat"></select></div></div>
+      <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" data-t="animateSky">Animated sky</span><span class="mu-row-subtitle" data-t="animateSkyHelp">Moving clouds, rain, snow, and stars.</span></div><label class="mu-switch"><input type="checkbox" id="setAnimate" data-t-label="animateSky"><span class="mu-switch-track"></span></label></div>
+      <div class="mu-dialog-actions"><button type="button" class="mu-btn mu-btn-primary" data-mu-close data-t="done">Done</button></div>
+    </div>
+  </div>
+
+  <div class="mu-menu mu-menu-context gw-map-menu" id="mapMenu" role="menu" hidden></div>
+</body>
+</html>

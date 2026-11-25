@@ -8,6 +8,8 @@ const appRoots = new Map([
     ['photos.munetios.com', '/photos'],
 ]);
 const sharedAssets = /^\/(?:signin|omniwrite|account|fonts|munetios-ui|shared|blocked|mail|calendar|photos|webfilter)(?:\/|$)|^\/(?:tone\.js|ganetios-logo-icon\.png|munetios-logo(?:-icon)?\.png|404(?:\.html|\.css|-i18n\.js)?)$/;
+const weatherAssets = /^\/(?:weather|fonts|munetios-ui)(?:\/|$)|^\/(?:favicon-ganetios\.ico|ganetios-logo-icon\.png|404(?:\.html|\.css|-i18n\.js)?)$/;
+const siteFiles = new Set(['/sitemap.xml', '/robots.txt']);
 
 function unavailable(isApi) {
     if (isApi) return Response.json({ error: 'unavailable' }, { status: 503, headers: noStore });
@@ -25,6 +27,15 @@ export default {
         } catch {
             return new Response('Bad request', { status: 400, headers: noStore });
         }
+        const isWeather = url.hostname === 'weather.munetios.com';
+        const isWebFilter = url.hostname === 'webfilter.munetios.com';
+        if ((isWeather || isWebFilter) && (pathname === '/index.html' || (isWeather && /^\/weather(?:\/index\.html|\/)?$/.test(pathname)))) {
+            url.pathname = '/';
+            return Response.redirect(url.href, 308);
+        }
+        if (isWeather && !weatherAssets.test(pathname) && !siteFiles.has(pathname) && pathname !== '/') {
+            return new Response('Not found', { status: 404, headers: noStore });
+        }
         if (url.hostname === 'calendar.munetios.com' && (pathname === '/new' || pathname === '/new/')) {
             url.pathname = '/';
             return Response.redirect(url.href, 308);
@@ -38,7 +49,10 @@ export default {
         if (!isApi && !isProtectedPage) {
             const root = appRoots.get(url.hostname);
             const target = new URL(request.url);
-            if (photosRoutes.pathPattern.test(pathname) && ['GET', 'HEAD'].includes(request.method)) target.pathname = '/photos/';
+            if ((isWeather || isWebFilter) && siteFiles.has(pathname)) target.pathname = (isWeather ? '/weather' : '/webfilter') + pathname;
+            else if (isWeather && pathname === '/') target.pathname = '/weather/';
+            else if (isWebFilter && pathname === '/') target.pathname = '/webfilter/welcome';
+            else if (photosRoutes.pathPattern.test(pathname) && ['GET', 'HEAD'].includes(request.method)) target.pathname = '/photos/';
             else if (root && !sharedAssets.test(pathname)) target.pathname = root + (pathname === '/index.html' ? '/' : pathname);
             const asset = await env.ASSETS.fetch(target.href === request.url ? request : new Request(target, request));
             if (asset.status !== 404 || !['GET', 'HEAD'].includes(request.method)) return asset;

@@ -1,0 +1,13 @@
+.wf-welcome {
+  min-block-size: 100svh;
+}
+
+.wf-welcome-card {
+  inline-size: min(44rem, calc(100% - 2rem));
+  margin: clamp(2rem, 9vh, 6rem) auto 2rem;
+  padding: clamp(1.25rem, 4vw, 3rem);
+}
+
+.wf-welcome-card > p {
+  margin-block: 0.75rem 1.5rem;
+}

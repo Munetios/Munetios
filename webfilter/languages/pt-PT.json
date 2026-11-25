@@ -1,4 +1,6 @@
 {
+  "welcome_description": "Faça a gestão do acesso a sites, das regras da turma e das extensões do navegador com o Munetios WebFilter.",
+  "welcome_dashboard": "Abrir painel",
   "remote_tab_teacher_allowed": "Permitido pelo professor",
   "usercss_import_title": "Importações de UserCSS permitidas",
   "usercss_import_desc": "Adicione um site HTTPS ou o URL exato de uma folha de estilos para @import. Os recursos de url() estão limitados a api.munetios.com e fonts.googleapis.com.",

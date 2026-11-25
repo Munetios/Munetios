@@ -1,4 +1,6 @@
 {
+  "welcome_description": "Manage website access, classroom rules, and browser extensions with Munetios WebFilter.",
+  "welcome_dashboard": "Open dashboard",
   "remote_tab_teacher_allowed": "Teacher Allowed",
   "usercss_import_title": "Allowed UserCSS imports",
   "usercss_import_desc": "Add an HTTPS website or an exact stylesheet URL for @import. Resource URLs in url() are limited to api.munetios.com and fonts.googleapis.com.",

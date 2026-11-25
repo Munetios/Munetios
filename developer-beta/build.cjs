@@ -9,7 +9,7 @@ const root = path.resolve(__dirname, '..');
 const stage = mkdtempSync(path.join(tmpdir(), 'munetios-beta-'));
 const assets = path.join(stage, 'assets');
 const maxAssetBytes = 25 * 1024 * 1024;
-const publicTypes = new Set(['.css', '.gif', '.html', '.ico', '.js', '.json', '.png', '.svg', '.ttf', '.txt', '.webmanifest']);
+const publicTypes = new Set(['.css', '.gif', '.html', '.ico', '.js', '.json', '.png', '.svg', '.ttf', '.txt', '.webmanifest', '.xml']);
 const protectedPages = new Set(['account/index.html', 'mail/index.html', 'webfilter/index.html']);
 
 function copyAsset(relative) {
@@ -31,7 +31,7 @@ function copyDirectory(relative) {
 
 for (const file of ['index.html', '404.html', '404.css', '404-i18n.js', 'favicon-ganetios.ico', 'ganetios-logo-icon.png', 'munetios-logo-icon.png', 'munetios-logo.png', 'ganetios-ui.css', 'ganetios-ui.js',
     'ganetios-features.js', 'ganetios-features-i18n.js', 'ganetios-locales.js', 'tone.js', 'videos.js']) copyAsset(file);
-for (const directory of ['account', 'blocked', 'calendar', 'fonts', 'mail', 'munetios-ui', 'omniwrite', 'photos', 'shared', 'signin', 'tasks', 'webfilter']) copyDirectory(directory);
+for (const directory of ['account', 'blocked', 'calendar', 'fonts', 'mail', 'munetios-ui', 'omniwrite', 'photos', 'shared', 'signin', 'tasks', 'weather', 'webfilter']) copyDirectory(directory);
 
 const music = path.join(root, 'music.mp3');
 if (statSync(music).size > maxAssetBytes) {
