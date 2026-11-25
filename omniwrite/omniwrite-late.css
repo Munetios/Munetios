@@ -1296,90 +1296,9 @@
             .omni-panel-resize-handle { display: none; }
         }
 
-        /* ==========================================================
-           Media miniplayer
-           ========================================================== */
-        .omni-mini-player {
-            width: clamp(300px, 26vw, 420px);
-            min-width: 260px;
-            padding: 8px;
-            box-sizing: border-box;
-            border-radius: 30px !important;
-            border: 1px solid var(--ow-border) !important;
-            background: var(--ow-glass) !important;
-            box-shadow: var(--ow-shadow), 0 22px 60px rgba(0, 0, 0, 0.3) !important;
-            backdrop-filter: var(--ow-blur) !important;
-            -webkit-backdrop-filter: var(--ow-blur) !important;
-            color: var(--ow-text);
-        }
-        .omni-mini-player.is-hold-ready {
-            box-shadow: 0 0 0 3px var(--ow-accent), 0 22px 60px rgba(0, 0, 0, 0.3) !important;
-        }
-        .omni-mini-player-media {
-            border-radius: 22px;
-            overflow: hidden;
-            background: #05040c;
-        }
-        .omni-mini-player-bar {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-height: 56px;
-            padding: 6px 4px 2px 8px;
-        }
-        .omni-mini-player-kind {
-            flex: 0 0 auto;
-            width: 40px;
-            height: 40px;
-            display: grid;
-            place-items: center;
-            border-radius: 50%;
-            font-size: 22px !important;
-            cursor: default;
-            background: var(--ow-current-bg);
-            color: var(--ow-current-text);
-            font-variation-settings: 'FILL' 1;
-        }
-        .omni-mini-player .omni-mini-player-title {
-            flex: 1 1 auto;
-            min-width: 0;
-            font-size: var(--ow-fs-body) !important;
-            font-weight: 400;
-            opacity: 1;
-            color: var(--ow-text);
-        }
-        .omni-mini-player .omni-mini-player-close {
-            flex: 0 0 auto;
-            width: 44px !important;
-            height: 44px !important;
-            min-height: 0;
-            padding: 0 !important;
-            display: grid;
-            place-items: center;
-            border-radius: 50% !important;
-            border: 0 !important;
-            background: var(--ow-hover) !important;
-            color: var(--ow-text-muted) !important;
-            box-shadow: none !important;
-            cursor: pointer;
-        }
-        .omni-mini-player .omni-mini-player-close icon {
-            font-size: 22px !important;
-            color: inherit;
-        }
-        .omni-mini-player .omni-mini-player-close:hover {
-            background: var(--ow-field-hover) !important;
-            color: var(--ow-text) !important;
-            transform: none;
-        }
-        @media (max-width: 600px) {
-            .omni-mini-player { width: min(86vw, 360px); }
-        }
-
         /* Floating surfaces over the (now light) paper get a second glass layer,
            so dark mode stays dark and labels keep their contrast. */
         .reading__mode-panel,
-        .omni-mini-player,
         .dropdown-wrapper,
         .omni-ctx-menu:not(.omni-document-context),
         .color-picker-wrapper,

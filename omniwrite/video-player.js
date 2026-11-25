@@ -7,11 +7,6 @@
     const frameStyle = document.createElement('style');
     frameStyle.textContent = `
         .omni-video-frame.omni-shadow-video,.omni-audio-frame{display:block;position:relative;max-width:100%;padding:0;margin:12px 0;overflow:visible!important;background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;container-type:normal;line-height:0}
-        .omni-shadow-mini{position:fixed;right:16px;bottom:16px;width:min(420px,calc(100vw - 24px));z-index:10050;background:#080611;border:1px solid rgba(167,92,255,.30);border-radius:20px;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.35);font-family:'Google Sans Flex',sans-serif;font-feature-settings:'ss01' 1}
-        .omni-shadow-mini header{display:flex;align-items:center;gap:10px;padding:6px 12px;color:#fff;cursor:move;touch-action:none}
-        .omni-shadow-mini header span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
-        .omni-shadow-mini header button{width:36px;height:36px;padding:0;border:0;border-radius:50%;background:rgba(115,61,185,.35);color:#fff;cursor:pointer}
-        .omni-shadow-mini .omni-video-frame{width:100%!important;margin:0;border-radius:0}
         .omni-video-upload-fields{display:grid;gap:12px;margin-top:16px}.omni-video-upload-fields .media-option-card{width:100%;min-width:0}.omni-video-upload-fields .media-option-card span{overflow-wrap:anywhere}.omni-video-upload-fields>button{min-height:44px}
     `;
     document.head.appendChild(frameStyle);
@@ -71,76 +66,9 @@
         const h = Math.floor(seconds / 3600), m = Math.floor(seconds / 60) % 60, s = seconds % 60;
         return (h ? h + ':' + String(m).padStart(2, '0') : String(m)) + ':' + String(s).padStart(2, '0');
     }
-    let mini = null;
-    function closeMini(resume = true) {
-        if (!mini) return;
-        const { element, video, original } = mini;
-        if (document.fullscreenElement && element.contains(document.fullscreenElement)) document.exitFullscreen().catch(() => {});
-        const wasPlaying = !video.paused;
-        video.pause();
-        try { original.currentTime = video.currentTime; } catch {}
-        original.volume = video.volume;
-        original.muted = video.muted;
-        original.playbackRate = video.playbackRate;
-        original.defaultPlaybackRate = video.playbackRate;
-        original.loop = video.loop;
-        for (const [key, value] of Object.entries(video.dataset)) if (key.startsWith('omni')) original.dataset[key] = value;
-        delete original.dataset.omniMiniActive;
-        const player = players.get(original);
-        if (player) {
-            player.changePitch = original.dataset.omniChangePitch === 'true';
-            original.preservesPitch = !player.changePitch;
-            player.pitch.setAttribute('aria-checked', String(player.changePitch));
-        }
-        player?.reloadCaptions();
-        player?.sync();
-        element.remove();
-        mini = null;
-        save(original);
-        if (resume && wasPlaying && original.isConnected && original.getClientRects().length) original.play().catch(() => {});
-    }
-    function openMini(original) {
-        if (original.closest('#omniShadowMiniPlayer')) { closeMini(); return; }
-        closeMini(false);
-        const wasPlaying = !original.paused;
-        const at = original.currentTime;
-        original.dataset.omniMiniActive = 'true';
-        const element = document.createElement('section');
-        element.id = 'omniShadowMiniPlayer';
-        element.className = 'omni-shadow-mini';
-        element.setAttribute('aria-label', t('mini_player'));
-        const header = document.createElement('header');
-        const title = document.createElement('span');
-        title.textContent = original.title || t('mini_player');
-        const close = document.createElement('button');
-        close.type = 'button'; close.setAttribute('aria-label', t('close_mini_player')); close.textContent = '×';
-        close.onclick = () => closeMini();
-        header.append(title, close);
-        const video = original.cloneNode(true);
-        video.removeAttribute('id'); delete video.dataset.omniMiniActive;
-        video.volume = original.volume; video.muted = original.muted; video.playbackRate = original.playbackRate;
-        element.append(header, video);
-        document.body.appendChild(element);
-        mini = { element, video, original };
-        original.pause();
-        const restore = () => { try { video.currentTime = at; } catch {} if (wasPlaying) video.play().catch(() => {}); };
-        video.addEventListener('loadedmetadata', restore, { once: true });
-        if (video.readyState >= 1) restore();
-        upgrade(element);
-        let drag = null;
-        header.addEventListener('pointerdown', event => {
-            if (event.target.closest('button')) return;
-            const rect = element.getBoundingClientRect(); drag = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-            header.setPointerCapture(event.pointerId);
-        });
-        header.addEventListener('pointermove', event => {
-            if (!drag) return;
-            element.style.right = 'auto'; element.style.bottom = 'auto';
-            element.style.left = clamp(event.clientX - drag.x, 0, innerWidth - element.offsetWidth) + 'px';
-            element.style.top = clamp(event.clientY - drag.y, 0, innerHeight - element.offsetHeight) + 'px';
-        });
-        for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) header.addEventListener(event, () => { drag = null; });
-    }
+    const pipMode = 'picture-in-picture';
+    const embedSelector = 'munetios-youtube-player, iframe[src*="youtube.com"], iframe[src*="youtube-nocookie.com"], iframe[src*="youtu.be"], .youtube-nocookie-placeholder';
+    const editorSelector = '.editor-surface, .document-page-editor, .split-editor, #editorArea';
 
     class Player {
         constructor(video) {
@@ -153,7 +81,11 @@
             this.openPanel = null;
             this.cues = [];
             const tag = this.isAudio ? 'omni-audio-player' : 'omni-video-player';
-            if (this.isAudio && video.nextElementSibling?.matches('.custom-audio-controls')) video.nextElementSibling.remove();
+            if (video.nextElementSibling?.matches('.custom-audio-controls, .custom-video-controls')) video.nextElementSibling.remove();
+            if (!this.isAudio) {
+                video.classList.add('omni-native-video');
+                video.playsInline = true;
+            }
             const old = video.closest(this.isAudio ? '.omni-audio-frame' : '.omni-video-frame');
             let host = old?.localName === tag ? old : document.createElement(tag);
             if (host !== old) {
@@ -166,6 +98,7 @@
             if (this.isAudio) { host.classList.add('omni-audio-frame'); host.dataset.mediaType = 'audio'; }
             else host.classList.add('omni-video-frame', 'omni-shadow-video');
             host.contentEditable = 'false';
+            host.querySelectorAll('.custom-video-controls, .omni-video-speed-menu').forEach(node => node.remove());
             host.setAttribute(this.isAudio ? 'data-omni-audio-frame' : 'data-omni-video-frame', 'true');
             if (!host.style.width) host.style.width = video.style.width && video.style.width !== '100%' ? video.style.width : 'min(100%, 760px)';
             this.host = host;
@@ -248,14 +181,13 @@
             const right = document.createElement('div'); right.className = 'right liquid-glass';
             this.settingsButton = this.iconButton('settings', 'settings', () => this.showPanel(this.settings, this.settingsButton));
             this.settingsButton.setAttribute('aria-haspopup', 'dialog'); this.settingsButton.setAttribute('aria-expanded', 'false');
-            this.miniButton = this.iconButton('picture_in_picture_alt', 'mini_player', () => openMini(video));
-            this.miniButton.hidden = !!video.closest('#omniMediaMiniPlayer');
+            this.pipButton = this.iconButton('picture_in_picture_alt', 'video_picture_in_picture', () => this.togglePictureInPicture());
             this.fullscreenButton = this.iconButton('fullscreen', 'fullscreen', async () => {
                 try { if (document.fullscreenElement) await document.exitFullscreen(); else if (this.host.requestFullscreen) await this.host.requestFullscreen(); else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen(); } catch {}
             });
             this.fullscreenButton.hidden = this.isAudio;
-            this.miniButton.hidden ||= this.isAudio;
-            right.append(this.settingsButton, this.miniButton, this.fullscreenButton);
+            this.pipButton.hidden = !this.canUsePictureInPicture();
+            right.append(this.settingsButton, this.pipButton, this.fullscreenButton);
             this.controls.append(this.play, volume, this.time, timeline, right);
             this.timeline = timeline;
             this.right = right;
@@ -290,11 +222,11 @@
             this.settingsMute = mute;
             const volumeLabel = document.createElement('span'); volumeLabel.dataset.textKey = 'volume'; volumeHeading.append(mute, volumeLabel);
             this.settingsVolume = this.range(0, 1, .01, 'volume'); this.volumeSettings.append(volumeHeading, this.settingsVolume);
-            this.miniSettings = document.createElement('button'); this.miniSettings.type = 'button'; this.miniSettings.className = 'row'; this.miniSettings.hidden = true;
-            this.miniSettings.innerHTML = '<span class="row-label"><icon aria-hidden="true">picture_in_picture_alt</icon><span data-text-key="mini_player"></span></span>';
-            this.on(this.miniSettings, 'click', () => { this.closePanels(); openMini(video); });
-            this.settings.insertBefore(this.miniSettings, this.loop);
-            this.settings.insertBefore(this.volumeSettings, this.miniSettings);
+            this.pipSettings = document.createElement('button'); this.pipSettings.type = 'button'; this.pipSettings.className = 'row'; this.pipSettings.hidden = true;
+            this.pipSettings.innerHTML = '<span class="row-label"><icon aria-hidden="true">picture_in_picture_alt</icon><span data-text-key="video_picture_in_picture"></span></span>';
+            this.on(this.pipSettings, 'click', () => { this.closePanels(); this.togglePictureInPicture(); });
+            this.settings.insertBefore(this.pipSettings, this.loop);
+            this.settings.insertBefore(this.volumeSettings, this.pipSettings);
             this.captionPanel = this.panel('video_caption_type');
             const captionHeading = document.createElement('header');
             const captionBack = this.iconButton('arrow_back', 'settings', () => this.showPanel(this.settings, this.settingsButton));
@@ -347,11 +279,11 @@
             const playWidth = number(style(this.play).width);
             const volumeWidth = number(style(this.volumeButton).width);
             const settingsWidth = number(style(this.settingsButton).width), fullWidth = this.isAudio ? 0 : number(style(this.fullscreenButton).width);
-            const miniEligible = !this.isAudio && !this.video.closest('#omniMediaMiniPlayer');
-            const miniWidth = miniEligible ? number(style(this.miniButton).width) : 0;
+            const pipEligible = this.canUsePictureInPicture();
+            const pipWidth = pipEligible ? number(style(this.pipButton).width) : 0;
             const rightPadding = number(rightStyle.paddingLeft) + number(rightStyle.paddingRight) + number(rightStyle.borderLeftWidth) + number(rightStyle.borderRightWidth);
             const rightGap = number(rightStyle.columnGap);
-            const rightWidth = settingsWidth + fullWidth + miniWidth + rightPadding + rightGap * (this.isAudio ? 0 : miniEligible ? 2 : 1);
+            const rightWidth = settingsWidth + fullWidth + pipWidth + rightPadding + rightGap * (this.isAudio ? 0 : pipEligible ? 2 : 1);
             this.measureContext ||= document.createElement('canvas').getContext('2d');
             if (this.measureContext) this.measureContext.font = timeStyle.font;
             const textWidth = this.measureContext ? this.measureContext.measureText(this.time.textContent).width : this.time.textContent.length * number(timeStyle.fontSize);
@@ -361,13 +293,13 @@
             const hideTime = playWidth + volumeWidth + timeWidth + seekWidth + rightWidth + gap * 4 > available;
             const moveToMenu = hideTime && playWidth + volumeWidth + seekWidth + rightWidth + gap * 3 > available;
             const active = this.root.activeElement;
-            if ((hideTime && active === this.time) || (moveToMenu && (this.volumeGroup.contains(active) || active === this.miniButton)) || (!moveToMenu && (this.volumeSettings.contains(active) || active === this.miniSettings))) this.settingsButton.focus({ preventScroll: true });
+            if ((hideTime && active === this.time) || (moveToMenu && (this.volumeGroup.contains(active) || active === this.pipButton)) || (!moveToMenu && (this.volumeSettings.contains(active) || active === this.pipSettings))) this.settingsButton.focus({ preventScroll: true });
             const hide = (element, hidden) => { if (element.hidden !== hidden) element.hidden = hidden; };
             hide(this.time, hideTime);
             hide(this.volumeGroup, moveToMenu);
-            hide(this.miniButton, !miniEligible || moveToMenu);
+            hide(this.pipButton, !pipEligible || moveToMenu);
             hide(this.volumeSettings, !moveToMenu);
-            hide(this.miniSettings, !miniEligible || !moveToMenu);
+            hide(this.pipSettings, !pipEligible || !moveToMenu);
             const layout = moveToMenu ? 'menu' : hideTime ? 'no-time' : 'full';
             if (this.host.dataset.controlLayout !== layout) {
                 this.host.dataset.controlLayout = layout;
@@ -479,11 +411,45 @@
             this.root.querySelectorAll('[data-rate]').forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.rate) === video.playbackRate)));
             this.loop.setAttribute('aria-checked', String(video.loop));
             this.syncCaptions();
+            this.syncPictureInPicture();
             this.adaptControls();
+        }
+        canUsePictureInPicture() {
+            const video = this.video;
+            return !this.isAudio && !video.disablePictureInPicture && (
+                (document.pictureInPictureEnabled && typeof video.requestPictureInPicture === 'function') ||
+                (typeof video.webkitSetPresentationMode === 'function' && video.webkitSupportsPresentationMode?.(pipMode))
+            );
+        }
+        syncPictureInPicture() {
+            const video = this.video;
+            const pressed = String(document.pictureInPictureElement === video || video.webkitPresentationMode === pipMode);
+            this.pipButton.setAttribute('aria-pressed', pressed);
+            this.pipSettings.setAttribute('aria-pressed', pressed);
+            const unavailable = video.readyState === HTMLMediaElement.HAVE_NOTHING;
+            this.pipButton.disabled = unavailable;
+            this.pipSettings.disabled = unavailable;
+        }
+        async togglePictureInPicture() {
+            if (!this.canUsePictureInPicture()) return;
+            const video = this.video;
+            try {
+                if (document.pictureInPictureElement === video) await document.exitPictureInPicture();
+                else if (video.webkitPresentationMode === pipMode) video.webkitSetPresentationMode('inline');
+                else if (document.pictureInPictureEnabled && typeof video.requestPictureInPicture === 'function') await video.requestPictureInPicture();
+                else video.webkitSetPresentationMode(pipMode);
+            } catch {
+                this.message('video_picture_in_picture_error');
+            }
         }
         bind() {
             const video = this.video;
             for (const event of ['timeupdate', 'durationchange', 'loadedmetadata', 'volumechange', 'ratechange', 'play', 'pause', 'ended']) this.on(video, event, () => { if (event === 'loadedmetadata' || event === 'durationchange') this.reloadCaptions(); this.sync(); if (video.paused || event === 'play') this.reveal(); });
+            if (!this.isAudio) {
+                for (const event of ['enterpictureinpicture', 'leavepictureinpicture', 'webkitpresentationmodechanged', 'emptied']) {
+                    this.on(video, event, () => { this.syncPictureInPicture(); this.adaptControls(); });
+                }
+            }
             this.on(video, 'click', () => { if (!(matchMedia('(hover:none)').matches && !this.host.hasAttribute('data-controls-visible'))) this.togglePlay(); this.reveal(); });
             this.on(this.host, 'pointermove', () => { this.keyboardFocus = false; this.reveal(); });
             this.on(this.host, 'pointerdown', () => { this.keyboardFocus = false; this.reveal(); }, { capture: true });
@@ -533,29 +499,54 @@
         }
         destroy() { this.destroyed = true; this.resizeObserver?.disconnect(); clearTimeout(this.timer); clearTimeout(this.messageTimer); this.closePanels(); this.abort.abort(); }
     }
-    function upgrade(scope = document) {
-        const videos = [...(scope.matches?.('video, audio') ? [scope] : []), ...scope.querySelectorAll('video, audio')];
-        for (const video of videos) {
-            if (players.has(video)) { video.controls = false; video.removeAttribute('controls'); continue; }
-            if (!video.isConnected) continue;
-            const player = new Player(video); players.set(video, player); live.add(player);
+    function upgrade(scope) {
+        if (!scope?.isConnected || !scope.querySelectorAll) return;
+        const selector = 'video, audio, ' + embedSelector;
+        const media = [...(scope.matches?.(selector) ? [scope] : []), ...scope.querySelectorAll(selector)];
+        for (const element of media) {
+            if (!element.isConnected) continue;
+            if (element.matches(embedSelector)) {
+                if (!element.closest(editorSelector) || element.closest('.omni-embed-frame, .omni-video-frame')) continue;
+                const frame = document.createElement('figure');
+                frame.className = 'omni-embed-frame liquid-glass';
+                frame.contentEditable = 'false';
+                element.before(frame);
+                frame.appendChild(element);
+                continue;
+            }
+            if (players.has(element) || element.hasAttribute('data-mu-plain-video')) continue;
+            const player = new Player(element);
+            players.set(element, player);
+            live.add(player);
         }
     }
-    let scheduled = false;
+    const addedNodes = new Set();
+    let didRemoveNodes = false;
+    let upgradeFrame = 0;
     const observer = new MutationObserver(mutations => {
-        if (scheduled || !mutations.some(mutation => mutation.addedNodes.length || mutation.removedNodes.length)) return;
-        scheduled = true;
-        requestAnimationFrame(() => {
-            scheduled = false;
-            for (const player of live) if (!player.host.isConnected) { player.destroy(); live.delete(player); players.delete(player.video); }
-            upgrade();
+        for (const mutation of mutations) {
+            for (const node of mutation.addedNodes) if (node.nodeType === Node.ELEMENT_NODE) addedNodes.add(node);
+            didRemoveNodes ||= mutation.removedNodes.length > 0;
+        }
+        if (upgradeFrame || (!addedNodes.size && !didRemoveNodes)) return;
+        upgradeFrame = requestAnimationFrame(() => {
+            upgradeFrame = 0;
+            if (didRemoveNodes) {
+                for (const player of live) {
+                    if (player.host.isConnected && player.host.contains(player.video)) continue;
+                    player.destroy();
+                    live.delete(player);
+                    players.delete(player.video);
+                }
+                didRemoveNodes = false;
+            }
+            for (const node of addedNodes) upgrade(node);
+            addedNodes.clear();
         });
     });
     observer.observe(document.body, { childList: true, subtree: true });
     new MutationObserver(() => { for (const player of live) player.translate(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
-    window.addEventListener('keydown', event => { if (event.key === 'Escape' && mini && !document.fullscreenElement) closeMini(); });
     window.addEventListener('pagehide', event => {
-        closeMini(false);
         for (const player of live) {
             if (event.persisted) { player.closePanels(); clearTimeout(player.timer); player.video.pause(); }
             else player.destroy();
@@ -566,5 +557,5 @@
     });
     window.OmniVideoPlayer = { upgrade, readCaptions, parseCaptions, captionsFromText, setCaptions: (video, data) => { upgrade(video); players.get(video)?.setCaptions(data); } };
     window.OmniAudioPlayer = { upgrade };
-    upgrade();
+    upgrade(document.getElementById('editorPagesColumn') || document.getElementById('editorArea'));
 })();
