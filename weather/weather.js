@@ -37,22 +37,26 @@
   const view = { metric: "temp", range: 48, table: false, sunDate: null, monthDay: 16, preview: null, previewAlt: 40 };
 
   // ------------------------------------------------------------ language
-  const LANGS = ["en", "en-GB", "es", "es-ES", "fr", "de", "it", "pt", "pt-PT", "ru", "zh", "ja", "ko", "ar", "hi"];
+  const LANGS = ["en", "en-GB", "es-419", "es-ES", "fr", "de", "it", "pt-BR", "pt-PT", "ru", "zh", "ja", "ko", "ar", "hi"];
   function resolveLanguage(code) {
-    const lower = String(code || "en").toLowerCase().replace(/_/g, "-");
-    const base = lower.split("-")[0];
-    if (base === "es") return lower === "es" || lower === "es-es" ? "es-ES" : "es";
-    if (base === "pt") return lower === "pt-pt" ? "pt-PT" : "pt";
-    if (base === "en") return /-(gb|ie|nz|za|au|in)$/.test(lower) ? "en-GB" : "en";
-    return LANGS.includes(base) ? base : "en";
+    let locale;
+    try { locale = new Intl.Locale(String(code || "").replace(/_/g, "-")); }
+    catch { return null; }
+    const { language, region } = locale;
+    if (language === "es") return region === "ES" ? "es-ES" : "es-419";
+    if (language === "pt") return region === "PT" ? "pt-PT" : "pt-BR";
+    if (language === "en") return /^(GB|IE|NZ|ZA|AU|IN)$/.test(region) ? "en-GB" : "en";
+    return LANGS.includes(language) ? language : null;
   }
-  const lang = () => resolveLanguage(settings.language === "system" ? navigator.language : settings.language);
-  // Locale used for numbers and dates. Latin American Spanish formats as es-419.
-  const locale = () => ({ es: "es-419", "es-ES": "es-ES", pt: "pt-BR", zh: "zh-CN" }[lang()] || lang());
+  if (settings.language !== "system") settings.language = resolveLanguage(settings.language) || "system";
+  const browserLanguage = () => [...(navigator.languages || []), navigator.language].map(resolveLanguage).find(Boolean) || "en";
+  let systemLanguage = browserLanguage();
+  const lang = () => settings.language === "system" ? systemLanguage : settings.language;
+  const locale = () => ({ en: "en-US", zh: "zh-CN" }[lang()] || lang());
   function t(key, vars) {
     const l = lang();
-    const base = l.split("-")[0];
-    let s = (STR[l] && STR[l][key]) ?? (STR[base] && STR[base][key]) ?? STR.en[key] ?? key;
+    const shared = { "es-ES": "es-419", "pt-PT": "pt-BR" }[l];
+    let s = STR[l]?.[key] ?? STR[shared]?.[key] ?? STR.en[key] ?? key;
     if (vars) s = s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? ""));
     return s;
   }
@@ -801,7 +805,7 @@
     const periods = store.nws[loc.id];
     $("#nwsCard").hidden = !periods?.length;
     if (!periods?.length) return;
-    $("#nwsPeriods").innerHTML = periods.map((p, i) => `<details${i === 0 ? " open" : ""}><summary><span class="gw-nws-name">${esc(p.name)}</span><span class="mu-muted">${esc(p.shortForecast)}</span></summary><div class="mu-accordion-body" lang="en">${esc(p.detailedForecast)}</div></details>`).join("");
+    $("#nwsPeriods").innerHTML = periods.map((p, i) => `<details lang="en"${i === 0 ? " open" : ""}><summary><span class="gw-nws-name">${esc(p.name)}</span><span class="mu-muted">${esc(p.shortForecast)}</span></summary><div class="mu-accordion-body">${esc(p.detailedForecast)}</div></details>`).join("");
   }
 
   // ------------------------------------------------------------ alerts
@@ -1201,6 +1205,7 @@
     $("#modalSelectedSub").textContent = [pl.admin, pl.country].filter(Boolean).join(", ") || coordsLabel(pl.lat, pl.lon);
     if (picker) { picker.flyTo(pl.lon, pl.lat, 10); picker.mark(pl.lon, pl.lat); }
   }
+  let pickerLanguage;
   async function openLocationModal() {
     selectedPlace = null;
     $("#modalSelected").hidden = true;
@@ -1208,15 +1213,25 @@
     UI.openModal("locationModal");
     setTimeout(() => $("#modalSearch").focus(), 40);
     const status = $("#mapStatus");
+    const language = lang();
+    if (picker && pickerLanguage !== language) { picker.destroy(); picker = null; }
     if (picker) { requestAnimationFrame(() => picker.resize()); return; }
     status.hidden = false;
     status.textContent = t("loadingMap");
     const loc = activeLocation();
     try {
       picker = await MapLib.create({
-        container: $("#pickerMap"), center: loc ? [loc.lon, loc.lat] : [0, 25], zoom: loc ? 8 : 1.6, theme: currentTheme(), lang: lang(), attribution: mapAttribution,
+        container: $("#pickerMap"), center: loc ? [loc.lon, loc.lat] : [0, 25], zoom: loc ? 8 : 1.6, theme: currentTheme(), lang: language, attribution: mapAttribution,
+        locale: {
+          "Map.Title": t("mapLabel"),
+          "Marker.Title": t("mapMarker"),
+          "NavigationControl.ZoomIn": t("zoomIn"),
+          "NavigationControl.ZoomOut": t("zoomOut"),
+          "AttributionControl.ToggleAttribution": t("mapCredits"),
+        },
         onPick: (ll, point) => showMapMenu(ll, point),
       });
+      pickerLanguage = language;
       status.hidden = true;
       if (loc) picker.mark(loc.lon, loc.lat);
     } catch (e) {
@@ -1261,7 +1276,7 @@
     UI.refreshSelect?.(sel);
   }
   function languageName(code) {
-    const display = { "es": "es-419", "es-ES": "es-ES", "pt": "pt-BR", "pt-PT": "pt-PT", "zh": "zh-CN", "en-GB": "en-GB" }[code] || code;
+    const display = code === "zh" ? "zh-CN" : code;
     try { const n = new Intl.DisplayNames([display], { type: "language" }).of(display); return n.charAt(0).toLocaleUpperCase(display) + n.slice(1); } catch (e) { return code; }
   }
   function renderSettings() {
@@ -1434,7 +1449,9 @@
       if (!loc) return;
       const cur = view.sunDate || Sun.localParts(Date.now(), loc.tz, loc.lon);
       const iso = cur.year + "-" + String(cur.month + 1).padStart(2, "0") + "-" + String(cur.day).padStart(2, "0");
-      UI.pickDate({ anchor: e.currentTarget, value: iso, locale: locale(), onPick(v) {
+      UI.pickDate({ anchor: e.currentTarget, value: iso, locale: locale(), labels: {
+        date: t("selectDate"), today: t("today"), previous: t("previousMonth"), next: t("nextMonth"),
+      }, onPick(v) {
         if (!v) return;
         const [y, m, d] = v.split("-").map(Number);
         view.sunDate = { year: y, month: m - 1, day: d };
@@ -1445,7 +1462,11 @@
 
     // Settings
     $("#themeSeg").addEventListener("click", (e) => { const b = e.target.closest("[data-theme-pref]"); if (b) UI.theme.set(b.dataset.themePref); });
-    $("#setLanguage").addEventListener("change", (e) => { settings.language = e.target.value; onSettingsChange(false); if (picker) picker.setTheme(currentTheme(), lang()); });
+    $("#setLanguage").addEventListener("change", (e) => { settings.language = e.target.value; onSettingsChange(false); });
+    window.addEventListener("languagechange", () => {
+      systemLanguage = browserLanguage();
+      if (settings.language === "system") onSettingsChange(false);
+    });
     $("#setTemp").addEventListener("change", (e) => { settings.temp = e.target.value; store.summary = {}; onSettingsChange(true); });
     $("#setWind").addEventListener("change", (e) => { settings.wind = e.target.value; onSettingsChange(true); });
     $("#setPrecip").addEventListener("change", (e) => { settings.precip = e.target.value; onSettingsChange(true); });

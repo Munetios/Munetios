@@ -59,8 +59,10 @@
   const label = (o) => (o ? (o.label || o.textContent || "").trim() : "");
   function sync(select) {
     const s = select._mu;
-    if (s)
-      s.label.textContent = label(select.options[select.selectedIndex]) || " ";
+    if (!s) return;
+    s.label.textContent = label(select.options[select.selectedIndex]) || " ";
+    const ariaLabel = select.getAttribute("aria-label");
+    if (ariaLabel) s.button.setAttribute("aria-label", ariaLabel);
   }
   function closeSelect(focus) {
     if (!openSelect) return;

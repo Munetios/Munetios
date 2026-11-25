@@ -207,7 +207,7 @@
 
   /**
    * Create a picker map.
-   * opts: { container, center:[lon,lat], zoom, theme, lang, attribution, onPick(lngLat, point) }
+   * opts: { container, center:[lon,lat], zoom, theme, lang, locale, attribution, onPick(lngLat, point) }
    * onPick fires on right click and on a long press (touch or pen).
    */
   async function create(opts) {
@@ -216,6 +216,7 @@
     const map = new ml.Map({
       container: opts.container,
       style: style(opts.theme, opts.lang),
+      locale: opts.locale,
       center: opts.center || [0, 20],
       zoom: opts.zoom ?? 2,
       attributionControl: false,

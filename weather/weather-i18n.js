@@ -1,11 +1,13 @@
 /*!
  * Munetios Weather strings.
- * "es" is Latin American Spanish (es-US, es-MX, es-419) and "es-ES" holds the differences for Spain.
+ * Regional catalogs reuse shared translations and override regional wording.
  * "compass" lists the 16 compass points separated by "|".
  * Alert text from weather.gov stays in English because the National Weather Service publishes it in English.
  */
 window.GanetiosWeatherStrings = {
   en: {
+    selectDate: "Select date", previousMonth: "Previous month", nextMonth: "Next month",
+    mapMarker: "Map marker", zoomIn: "Zoom in", zoomOut: "Zoom out", mapCredits: "Show or hide map credits",
     skipToForecast: "Skip to forecast", toggleLocations: "Show or hide locations", searchPlaceholder: "Search cities or coordinates", searchResults: "Search results", clearSearch: "Clear search",
     useMyLocation: "Use my location", myLocation: "My Location", rateLimited: "Too many weather requests. Try again in a few minutes.", pickOnMap: "Pick on map", skyPreviews: "Sky previews", refresh: "Refresh", settings: "Settings", locations: "Locations", addLocation: "Add location",
     noLocations: "No locations yet. Search for a city or pick one on the map.", locationOptions: "Options for {name}", moveUp: "Move up", moveDown: "Move down", remove: "Remove", copyCoordinates: "Copy coordinates", copied: "Copied",
@@ -57,9 +59,11 @@ window.GanetiosWeatherStrings = {
   "en-GB": {
     millimeters: "Millimetres", kilometers: "Kilometres", vsYesterday: "{v} vs yesterday", searchHint: "Search for a city or type coordinates such as 51.5072, -0.1276.",
   },
-  es: {
+  "es-419": {
+    selectDate: "Elegir fecha", previousMonth: "Mes anterior", nextMonth: "Mes siguiente",
+    mapMarker: "Marcador del mapa", zoomIn: "Acercar", zoomOut: "Alejar", mapCredits: "Mostrar u ocultar los créditos del mapa",
     skipToForecast: "Ir al pronóstico", toggleLocations: "Mostrar u ocultar ubicaciones", searchPlaceholder: "Busca ciudades o coordenadas", searchResults: "Resultados de búsqueda", clearSearch: "Borrar búsqueda",
-    useMyLocation: "Usar mi ubicación", myLocation: "Mi ubicación", rateLimited: "Demasiadas solicitudes del clima. Inténtalo de nuevo en unos minutos.", pickOnMap: "Elegir en el mapa", skyPreviews: "Vistas del cielo", refresh: "Actualizar", settings: "Configuración", locations: "Ubicaciones", addLocation: "Agregar ubicación",
+    useMyLocation: "Usar mi ubicación", myLocation: "Mi ubicación", rateLimited: "Demasiadas solicitudes de datos meteorológicos. Intenta de nuevo en unos minutos.", pickOnMap: "Elegir en el mapa", skyPreviews: "Vistas del cielo", refresh: "Actualizar", settings: "Configuración", locations: "Ubicaciones", addLocation: "Agregar ubicación",
     noLocations: "Todavía no hay ubicaciones. Busca una ciudad o elígela en el mapa.", locationOptions: "Opciones de {name}", moveUp: "Subir", moveDown: "Bajar", remove: "Quitar", copyCoordinates: "Copiar coordenadas", copied: "Copiado",
     alreadySaved: "{name} ya está guardada", locationAdded: "Se agregó {name}", locationRemoved: "Se quitó {name}", locationUnavailable: "La ubicación no está disponible en este dispositivo", locationDenied: "No se pudo obtener tu ubicación",
     welcomeTitle: "Te damos la bienvenida a Munetios Weather", welcomeText: "Agrega una ciudad para ver su pronóstico, alertas y horarios del sol.", addToSeeForecast: "Agrega una ubicación para ver el pronóstico por hora.",
@@ -108,6 +112,7 @@ window.GanetiosWeatherStrings = {
   },
   "es-ES": {
     rateLimited: "Demasiadas solicitudes de información meteorológica. Vuelve a intentarlo en unos minutos.",
+    attrNws: "Avisos y previsiones del Servicio Meteorológico Nacional,",
     settings: "Ajustes", addLocation: "Añadir ubicación", locationAdded: "Se ha añadido {name}", locationRemoved: "Se ha quitado {name}",
     noLocations: "Aún no hay ubicaciones. Busca una ciudad o elígela en el mapa.", welcomeTitle: "Te damos la bienvenida a Munetios Weather", welcomeText: "Añade una ciudad para ver su previsión, avisos y horarios del sol.", addToSeeForecast: "Añade una ubicación para ver la previsión por horas.",
     hourlyForecast: "Previsión por horas", forecastCharts: "Gráficos de la previsión", dailyForecast: "Previsión de 16 días", dailyForecastN: "Previsión de {n} días", nwsForecast: "Previsión del Servicio Meteorológico Nacional",
@@ -117,6 +122,8 @@ window.GanetiosWeatherStrings = {
     unitIn: "in",
   },
   fr: {
+    selectDate: "Choisir une date", previousMonth: "Mois précédent", nextMonth: "Mois suivant",
+    mapMarker: "Repère sur la carte", zoomIn: "Zoom avant", zoomOut: "Zoom arrière", mapCredits: "Afficher ou masquer les crédits de la carte",
     skipToForecast: "Aller aux prévisions", toggleLocations: "Afficher ou masquer les lieux", searchPlaceholder: "Rechercher des villes ou des coordonnées", searchResults: "Résultats de recherche", clearSearch: "Effacer la recherche",
     useMyLocation: "Utiliser ma position", myLocation: "Ma position", rateLimited: "Trop de requêtes météo. Réessayez dans quelques minutes.", pickOnMap: "Choisir sur la carte", skyPreviews: "Aperçus du ciel", refresh: "Actualiser", settings: "Paramètres", locations: "Lieux", addLocation: "Ajouter un lieu",
     noLocations: "Aucun lieu pour l’instant. Recherchez une ville ou choisissez-la sur la carte.", locationOptions: "Options pour {name}", moveUp: "Monter", moveDown: "Descendre", remove: "Retirer", copyCoordinates: "Copier les coordonnées", copied: "Copié",
@@ -140,7 +147,7 @@ window.GanetiosWeatherStrings = {
     alerts: "Alertes", noAlerts: "Aucune alerte en cours pour cette zone", alertsUnsupported: "Les alertes de weather.gov couvrent les États-Unis et leurs territoires.", alertsError: "Impossible de charger les alertes de weather.gov", alertsNoLocation: "Ajoutez un lieu pour voir les alertes.",
     sourceNws: "Source : Service météorologique national des États-Unis (weather.gov)", viewAlerts: "Voir les alertes", untilTime: "Jusqu’à {time}", loading: "Chargement",
     severityExtreme: "Extrême", severitySevere: "Grave", severityModerate: "Modérée", severityMinor: "Mineure", severityUnknown: "Gravité inconnue",
-    urgencyImmediate: "Immédiate", urgencyExpected: "Attendue", urgencyFuture: "Future", urgencyPast: "Passée", urgencyUnknown: "Urgence inconnue",
+    urgencyImmediate: "Immédiate", urgencyExpected: "Attendue", urgencyFuture: "À venir", urgencyPast: "Passée", urgencyUnknown: "Urgence inconnue",
     sunriseSunset: "Lever et coucher du soleil", previousDay: "Jour précédent", nextDay: "Jour suivant",
     veryDawn: "Aube précoce", dawn: "Aube", sunrise: "Lever du soleil", solarNoon: "Midi solaire", sunset: "Coucher du soleil", dusk: "Crépuscule", veryDusk: "Crépuscule tardif", dayLength: "Durée du jour",
     almostLight: "Presque jour", almostDark: "Presque nuit", sunBetweenBelow: "Soleil de {a}° à {b}° sous l’horizon", sunBelow: "Soleil à {n}° sous l’horizon", sunAt: "Soleil à {n}°", vsYesterday: "{v} par rapport à hier", doesNotOccur: "Ne se produit pas",
@@ -166,6 +173,8 @@ window.GanetiosWeatherStrings = {
     dataSources: "Sources des données", attrOpenMeteo: "Données météo fournies par", attrNws: "Alertes et prévisions du Service météorologique national des États-Unis,", attrPhoton: "Recherche par", attrMap: "Carte par", attrSun: "Les heures du soleil et de la lune sont calculées sur votre appareil.",
   },
   de: {
+    selectDate: "Datum auswählen", previousMonth: "Vorheriger Monat", nextMonth: "Nächster Monat",
+    mapMarker: "Kartenmarkierung", zoomIn: "Vergrößern", zoomOut: "Verkleinern", mapCredits: "Kartenhinweise ein- oder ausblenden",
     skipToForecast: "Zur Vorhersage springen", toggleLocations: "Orte ein- oder ausblenden", searchPlaceholder: "Städte oder Koordinaten suchen", searchResults: "Suchergebnisse", clearSearch: "Suche löschen",
     useMyLocation: "Meinen Standort verwenden", myLocation: "Mein Standort", rateLimited: "Zu viele Wetteranfragen. Versuche es in ein paar Minuten erneut.", pickOnMap: "Auf der Karte wählen", skyPreviews: "Himmelsvorschau", refresh: "Aktualisieren", settings: "Einstellungen", locations: "Orte", addLocation: "Ort hinzufügen",
     noLocations: "Noch keine Orte. Suche nach einer Stadt oder wähle sie auf der Karte.", locationOptions: "Optionen für {name}", moveUp: "Nach oben", moveDown: "Nach unten", remove: "Entfernen", copyCoordinates: "Koordinaten kopieren", copied: "Kopiert",
@@ -215,6 +224,8 @@ window.GanetiosWeatherStrings = {
     dataSources: "Datenquellen", attrOpenMeteo: "Wetterdaten von", attrNws: "Warnungen und Vorhersagen des US-Wetterdienstes,", attrPhoton: "Suche mit", attrMap: "Karte von", attrSun: "Sonnen- und Mondzeiten werden auf deinem Gerät berechnet.",
   },
   it: {
+    selectDate: "Seleziona data", previousMonth: "Mese precedente", nextMonth: "Mese successivo",
+    mapMarker: "Indicatore sulla mappa", zoomIn: "Ingrandisci", zoomOut: "Riduci", mapCredits: "Mostra o nascondi i crediti della mappa",
     skipToForecast: "Vai alle previsioni", toggleLocations: "Mostra o nascondi le località", searchPlaceholder: "Cerca città o coordinate", searchResults: "Risultati della ricerca", clearSearch: "Cancella ricerca",
     useMyLocation: "Usa la mia posizione", myLocation: "La mia posizione", rateLimited: "Troppe richieste meteo. Riprova tra qualche minuto.", pickOnMap: "Scegli sulla mappa", skyPreviews: "Anteprime del cielo", refresh: "Aggiorna", settings: "Impostazioni", locations: "Località", addLocation: "Aggiungi località",
     noLocations: "Nessuna località. Cerca una città o sceglila sulla mappa.", locationOptions: "Opzioni per {name}", moveUp: "Sposta su", moveDown: "Sposta giù", remove: "Rimuovi", copyCoordinates: "Copia coordinate", copied: "Copiato",
@@ -263,8 +274,10 @@ window.GanetiosWeatherStrings = {
     offline: "Sei offline. Vengono mostrate le ultime previsioni.", loadError: "Impossibile caricare le previsioni. Riprova tra poco.",
     dataSources: "Fonti dei dati", attrOpenMeteo: "Dati meteo di", attrNws: "Allerte e previsioni del servizio meteorologico nazionale statunitense,", attrPhoton: "Ricerca con", attrMap: "Mappa di", attrSun: "Gli orari di sole e luna sono calcolati sul tuo dispositivo.",
   },
-  pt: {
-    skipToForecast: "Pular para a previsão", toggleLocations: "Mostrar ou ocultar locais", searchPlaceholder: "Pesquise cidades ou coordenadas", searchResults: "Resultados da pesquisa", clearSearch: "Limpar pesquisa",
+  "pt-BR": {
+    selectDate: "Selecionar data", previousMonth: "Mês anterior", nextMonth: "Próximo mês",
+    mapMarker: "Marcador do mapa", zoomIn: "Aproximar", zoomOut: "Afastar", mapCredits: "Mostrar ou ocultar os créditos do mapa",
+    skipToForecast: "Pular para a previsão", toggleLocations: "Mostrar ou ocultar locais", searchPlaceholder: "Buscar cidades ou coordenadas", searchResults: "Resultados da busca", clearSearch: "Limpar busca",
     useMyLocation: "Usar minha localização", myLocation: "Minha localização", rateLimited: "Muitas solicitações de dados meteorológicos. Tente novamente em alguns minutos.", pickOnMap: "Escolher no mapa", skyPreviews: "Prévias do céu", refresh: "Atualizar", settings: "Configurações", locations: "Locais", addLocation: "Adicionar local",
     noLocations: "Nenhum local ainda. Pesquise uma cidade ou escolha no mapa.", locationOptions: "Opções de {name}", moveUp: "Mover para cima", moveDown: "Mover para baixo", remove: "Remover", copyCoordinates: "Copiar coordenadas", copied: "Copiado",
     alreadySaved: "{name} já está salvo", locationAdded: "{name} adicionado", locationRemoved: "{name} removido", locationUnavailable: "A localização não está disponível neste dispositivo", locationDenied: "Não foi possível obter sua localização",
@@ -295,8 +308,8 @@ window.GanetiosWeatherStrings = {
     sunDialLabel: "Relógio solar de 24 horas, luz do dia {v}", sunAngleChart: "Ângulo do sol ao longo do dia", sunAltitude: "Altura", sunAzimuth: "Direção",
     throughTheYear: "Ao longo do ano", dayOfMonth: "Dia do mês", dayN: "Dia {n}", dayLabel: "Dia", nightLabel: "Noite",
     durationHm: "{h} h {m} min", durationMs: "{m} min {s} s",
-    searching: "Pesquisando…", noCities: "Nenhuma cidade encontrada", searchError: "A pesquisa não está disponível agora", lookingUp: "Procurando este lugar…", coordinates: "Coordenadas",
-    searchHint: "Pesquise uma cidade ou digite coordenadas como -23.5505, -46.6333.", mapLabel: "Mapa para escolher um local", mapHint: "Clique com o botão direito ou toque e segure para adicionar um lugar", loadingMap: "Carregando mapa…", mapError: "Não foi possível carregar o mapa. Você ainda pode pesquisar.",
+    searching: "Pesquisando…", noCities: "Nenhuma cidade encontrada", searchError: "A busca não está disponível agora", lookingUp: "Procurando este lugar…", coordinates: "Coordenadas",
+    searchHint: "Busque uma cidade ou digite coordenadas como -23.5505, -46.6333.", mapLabel: "Mapa para escolher um local", mapHint: "Clique com o botão direito ou toque e segure para adicionar um lugar", loadingMap: "Carregando mapa…", mapError: "Não foi possível carregar o mapa. Você ainda pode pesquisar.",
     north: "N", south: "S", east: "L", west: "O", compass: "N|NNE|NE|ENE|L|ESE|SE|SSE|S|SSO|SO|OSO|O|ONO|NO|NNO",
     condition: "Condição", timeOfDay: "Hora do dia", timeDawn: "Aurora", timeDay: "Dia", timeSunset: "Pôr do sol", timeNight: "Noite", showOnHome: "Mostrar no céu principal",
     scene_clear: "Ensolarado", scene_mostlyClear: "Predominantemente ensolarado", scene_partly: "Parcialmente nublado", scene_cloudy: "Nublado", scene_overcast: "Encoberto", scene_fog: "Neblina", scene_drizzle: "Garoa", scene_rain: "Chuva", scene_heavyRain: "Chuva forte", scene_snow: "Neve", scene_sleet: "Chuva com neve", scene_storm: "Tempestade",
@@ -310,10 +323,12 @@ window.GanetiosWeatherStrings = {
     fahrenheit: "Fahrenheit (°F)", celsius: "Celsius (°C)", inches: "Polegadas", millimeters: "Milímetros", miles: "Milhas", kilometers: "Quilômetros", knots: "Nós",
     unitKmh: "km/h", unitMph: "mph", unitMs: "m/s", unitKn: "nós", unitIn: "pol.", unitMm: "mm", unitCm: "cm", unitHpa: "hPa", unitInHg: "inHg", unitMmHg: "mmHg", unitKpa: "kPa", unitMi: "mi", unitKm: "km",
     offline: "Você está off-line. Mostrando a última previsão.", loadError: "Não foi possível carregar a previsão. Tente novamente em instantes.",
-    dataSources: "Fontes de dados", attrOpenMeteo: "Dados meteorológicos de", attrNws: "Alertas e previsões do Serviço Meteorológico Nacional dos EUA,", attrPhoton: "Pesquisa com", attrMap: "Mapa de", attrSun: "Os horários do sol e da lua são calculados no seu dispositivo.",
+    dataSources: "Fontes de dados", attrOpenMeteo: "Dados meteorológicos de", attrNws: "Alertas e previsões do Serviço Meteorológico Nacional dos EUA,", attrPhoton: "Busca com", attrMap: "Mapa de", attrSun: "Os horários do sol e da lua são calculados no seu dispositivo.",
   },
   "pt-PT": {
-    skipToForecast: "Saltar para a previsão", searchPlaceholder: "Pesquise cidades ou coordenadas", useMyLocation: "Utilizar a minha localização", myLocation: "A minha localização", rateLimited: "Demasiados pedidos de dados meteorológicos. Tente novamente daqui a alguns minutos.", skyPreviews: "Pré-visualizações do céu", settings: "Definições",
+    selectDate: "Selecionar data", previousMonth: "Mês anterior", nextMonth: "Mês seguinte",
+    mapMarker: "Marcador do mapa", zoomIn: "Ampliar", zoomOut: "Reduzir", mapCredits: "Mostrar ou ocultar os créditos do mapa",
+    skipToForecast: "Saltar para a previsão", searchPlaceholder: "Pesquisar cidades ou coordenadas", searchResults: "Resultados da pesquisa", clearSearch: "Limpar pesquisa", useMyLocation: "Utilizar a minha localização", myLocation: "A minha localização", rateLimited: "Demasiados pedidos de dados meteorológicos. Tente novamente daqui a alguns minutos.", skyPreviews: "Pré-visualizações do céu", settings: "Ajustes",
     noLocations: "Ainda não há locais. Pesquise uma cidade ou escolha-a no mapa.", alreadySaved: "{name} já está guardado", locationDenied: "Não foi possível obter a sua localização",
     welcomeTitle: "Bem-vindo ao Munetios Weather", backToLive: "Voltar ao céu em direto", previewing: "Pré-visualização: {name}", time: "Hora",
     chartPrecipChance: "Probabilidade de precipitação", chancePrecip: "Probabilidade de precipitação", humidity: "Humidade", feelsWarmer: "A humidade faz parecer mais quente", pressureRising: "A subir", pressureFalling: "A descer",
@@ -325,6 +340,8 @@ window.GanetiosWeatherStrings = {
     addToSeeForecast: "Adicione um local para ver a previsão horária.", hourlyForecast: "Previsão horária", copied: "Copiado",
   },
   ru: {
+    selectDate: "Выбрать дату", previousMonth: "Предыдущий месяц", nextMonth: "Следующий месяц",
+    mapMarker: "Метка на карте", zoomIn: "Приблизить", zoomOut: "Отдалить", mapCredits: "Показать или скрыть сведения об источниках карты",
     skipToForecast: "Перейти к прогнозу", toggleLocations: "Показать или скрыть места", searchPlaceholder: "Поиск городов или координат", searchResults: "Результаты поиска", clearSearch: "Очистить поиск",
     useMyLocation: "Моё местоположение", myLocation: "Моё местоположение", rateLimited: "Слишком много запросов погоды. Попробуйте снова через несколько минут.", pickOnMap: "Выбрать на карте", skyPreviews: "Виды неба", refresh: "Обновить", settings: "Настройки", locations: "Места", addLocation: "Добавить место",
     noLocations: "Мест пока нет. Найдите город или выберите его на карте.", locationOptions: "Параметры: {name}", moveUp: "Переместить вверх", moveDown: "Переместить вниз", remove: "Удалить", copyCoordinates: "Копировать координаты", copied: "Скопировано",
@@ -374,6 +391,8 @@ window.GanetiosWeatherStrings = {
     dataSources: "Источники данных", attrOpenMeteo: "Данные о погоде:", attrNws: "Предупреждения и прогнозы Национальной метеослужбы США,", attrPhoton: "Поиск:", attrMap: "Карта:", attrSun: "Время восхода и захода солнца и луны рассчитывается на вашем устройстве.",
   },
   zh: {
+    selectDate: "选择日期", previousMonth: "上个月", nextMonth: "下个月",
+    mapMarker: "地图标记", zoomIn: "放大", zoomOut: "缩小", mapCredits: "显示或隐藏地图来源",
     skipToForecast: "跳到天气预报", toggleLocations: "显示或隐藏地点", searchPlaceholder: "搜索城市或坐标", searchResults: "搜索结果", clearSearch: "清除搜索",
     useMyLocation: "使用我的位置", myLocation: "我的位置", rateLimited: "天气请求过多。请几分钟后重试。", pickOnMap: "在地图上选择", skyPreviews: "天空预览", refresh: "刷新", settings: "设置", locations: "地点", addLocation: "添加地点",
     noLocations: "还没有地点。搜索城市或在地图上选择。", locationOptions: "{name} 的选项", moveUp: "上移", moveDown: "下移", remove: "移除", copyCoordinates: "复制坐标", copied: "已复制",
@@ -423,6 +442,8 @@ window.GanetiosWeatherStrings = {
     dataSources: "数据来源", attrOpenMeteo: "天气数据来自", attrNws: "预警和预报来自美国国家气象局，", attrPhoton: "搜索服务：", attrMap: "地图：", attrSun: "日月时间在你的设备上计算。",
   },
   ja: {
+    selectDate: "日付を選択", previousMonth: "前の月", nextMonth: "次の月",
+    mapMarker: "地図のマーカー", zoomIn: "拡大", zoomOut: "縮小", mapCredits: "地図の出典を表示または非表示",
     skipToForecast: "予報へ移動", toggleLocations: "地点の表示/非表示", searchPlaceholder: "都市や座標を検索", searchResults: "検索結果", clearSearch: "検索をクリア",
     useMyLocation: "現在地を使用", myLocation: "現在地", rateLimited: "天気情報のリクエストが多すぎます。数分後にもう一度お試しください。", pickOnMap: "地図で選ぶ", skyPreviews: "空のプレビュー", refresh: "更新", settings: "設定", locations: "地点", addLocation: "地点を追加",
     noLocations: "地点はまだありません。都市を検索するか、地図で選んでください。", locationOptions: "{name} のオプション", moveUp: "上へ移動", moveDown: "下へ移動", remove: "削除", copyCoordinates: "座標をコピー", copied: "コピーしました",
@@ -472,6 +493,8 @@ window.GanetiosWeatherStrings = {
     dataSources: "データの出典", attrOpenMeteo: "気象データ:", attrNws: "警報と予報: 米国国立気象局", attrPhoton: "検索:", attrMap: "地図:", attrSun: "太陽と月の時刻はお使いのデバイスで計算しています。",
   },
   ko: {
+    selectDate: "날짜 선택", previousMonth: "이전 달", nextMonth: "다음 달",
+    mapMarker: "지도 마커", zoomIn: "확대", zoomOut: "축소", mapCredits: "지도 출처 표시 또는 숨기기",
     skipToForecast: "예보로 건너뛰기", toggleLocations: "위치 표시 또는 숨기기", searchPlaceholder: "도시 또는 좌표 검색", searchResults: "검색 결과", clearSearch: "검색어 지우기",
     useMyLocation: "내 위치 사용", myLocation: "내 위치", rateLimited: "날씨 요청이 너무 많습니다. 몇 분 후에 다시 시도하세요.", pickOnMap: "지도에서 선택", skyPreviews: "하늘 미리보기", refresh: "새로고침", settings: "설정", locations: "위치", addLocation: "위치 추가",
     noLocations: "아직 위치가 없습니다. 도시를 검색하거나 지도에서 선택하세요.", locationOptions: "{name} 옵션", moveUp: "위로 이동", moveDown: "아래로 이동", remove: "삭제", copyCoordinates: "좌표 복사", copied: "복사됨",
@@ -521,6 +544,8 @@ window.GanetiosWeatherStrings = {
     dataSources: "데이터 출처", attrOpenMeteo: "날씨 데이터:", attrNws: "경보 및 예보: 미국 국립기상청,", attrPhoton: "검색:", attrMap: "지도:", attrSun: "해와 달의 시간은 기기에서 계산됩니다.",
   },
   ar: {
+    selectDate: "اختيار التاريخ", previousMonth: "الشهر السابق", nextMonth: "الشهر التالي",
+    mapMarker: "علامة على الخريطة", zoomIn: "تكبير", zoomOut: "تصغير", mapCredits: "إظهار مصادر الخريطة أو إخفاؤها",
     skipToForecast: "الانتقال إلى التوقعات", toggleLocations: "إظهار المواقع أو إخفاؤها", searchPlaceholder: "ابحث عن مدن أو إحداثيات", searchResults: "نتائج البحث", clearSearch: "مسح البحث",
     useMyLocation: "استخدام موقعي", myLocation: "موقعي", rateLimited: "طلبات الطقس كثيرة جدًا. أعد المحاولة بعد بضع دقائق.", pickOnMap: "الاختيار من الخريطة", skyPreviews: "معاينات السماء", refresh: "تحديث", settings: "الإعدادات", locations: "المواقع", addLocation: "إضافة موقع",
     noLocations: "لا توجد مواقع بعد. ابحث عن مدينة أو اخترها من الخريطة.", locationOptions: "خيارات {name}", moveUp: "نقل لأعلى", moveDown: "نقل لأسفل", remove: "إزالة", copyCoordinates: "نسخ الإحداثيات", copied: "تم النسخ",
@@ -570,6 +595,8 @@ window.GanetiosWeatherStrings = {
     dataSources: "مصادر البيانات", attrOpenMeteo: "بيانات الطقس من", attrNws: "التنبيهات والتوقعات من هيئة الأرصاد الجوية الوطنية الأمريكية،", attrPhoton: "البحث بواسطة", attrMap: "الخريطة من", attrSun: "تُحسب أوقات الشمس والقمر على جهازك.",
   },
   hi: {
+    selectDate: "तारीख चुनें", previousMonth: "पिछला महीना", nextMonth: "अगला महीना",
+    mapMarker: "मानचित्र चिह्न", zoomIn: "ज़ूम इन करें", zoomOut: "ज़ूम आउट करें", mapCredits: "मानचित्र के स्रोत दिखाएँ या छिपाएँ",
     skipToForecast: "पूर्वानुमान पर जाएं", toggleLocations: "स्थान दिखाएं या छिपाएं", searchPlaceholder: "शहर या निर्देशांक खोजें", searchResults: "खोज परिणाम", clearSearch: "खोज साफ़ करें",
     useMyLocation: "मेरा स्थान इस्तेमाल करें", myLocation: "मेरा स्थान", rateLimited: "मौसम की जानकारी के लिए बहुत ज़्यादा अनुरोध किए गए हैं। कुछ मिनट बाद फिर कोशिश करें।", pickOnMap: "मानचित्र पर चुनें", skyPreviews: "आसमान के पूर्वावलोकन", refresh: "रीफ़्रेश करें", settings: "सेटिंग", locations: "स्थान", addLocation: "स्थान जोड़ें",
     noLocations: "अभी कोई स्थान नहीं है। कोई शहर खोजें या मानचित्र पर चुनें।", locationOptions: "{name} के विकल्प", moveUp: "ऊपर ले जाएं", moveDown: "नीचे ले जाएं", remove: "हटाएं", copyCoordinates: "निर्देशांक कॉपी करें", copied: "कॉपी हो गया",
