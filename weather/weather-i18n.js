@@ -6,6 +6,7 @@
  */
 window.GanetiosWeatherStrings = {
   en: {
+    useDeviceTimezone: "Use my time zone", useDeviceTimezoneHelp: "Show weather and sun times for all locations in your device’s time zone.",
     selectDate: "Select date", previousMonth: "Previous month", nextMonth: "Next month",
     mapMarker: "Map marker", zoomIn: "Zoom in", zoomOut: "Zoom out", mapCredits: "Show or hide map credits",
     skipToForecast: "Skip to forecast", toggleLocations: "Show or hide locations", searchPlaceholder: "Search cities or coordinates", searchResults: "Search results", clearSearch: "Clear search",
@@ -60,6 +61,7 @@ window.GanetiosWeatherStrings = {
     millimeters: "Millimetres", kilometers: "Kilometres", vsYesterday: "{v} vs yesterday", searchHint: "Search for a city or type coordinates such as 51.5072, -0.1276.",
   },
   "es-419": {
+    useDeviceTimezone: "Usar mi zona horaria", useDeviceTimezoneHelp: "Muestra el pronóstico, el amanecer y el atardecer de todas las ubicaciones en la zona horaria de tu dispositivo.",
     selectDate: "Elegir fecha", previousMonth: "Mes anterior", nextMonth: "Mes siguiente",
     mapMarker: "Marcador del mapa", zoomIn: "Acercar", zoomOut: "Alejar", mapCredits: "Mostrar u ocultar los créditos del mapa",
     skipToForecast: "Ir al pronóstico", toggleLocations: "Mostrar u ocultar ubicaciones", searchPlaceholder: "Busca ciudades o coordenadas", searchResults: "Resultados de búsqueda", clearSearch: "Borrar búsqueda",
@@ -111,6 +113,7 @@ window.GanetiosWeatherStrings = {
     dataSources: "Fuentes de datos", attrOpenMeteo: "Datos meteorológicos de", attrNws: "Alertas y pronósticos del Servicio Meteorológico Nacional,", attrPhoton: "Búsqueda con", attrMap: "Mapa de", attrSun: "Los horarios del sol y la luna se calculan en tu dispositivo.",
   },
   "es-ES": {
+    useDeviceTimezone: "Usar mi zona horaria", useDeviceTimezoneHelp: "Muestra la previsión y las horas de salida y puesta del sol de todas las ubicaciones en la zona horaria de tu dispositivo.",
     rateLimited: "Demasiadas solicitudes de información meteorológica. Vuelve a intentarlo en unos minutos.",
     attrNws: "Avisos y previsiones del Servicio Meteorológico Nacional,",
     settings: "Ajustes", addLocation: "Añadir ubicación", locationAdded: "Se ha añadido {name}", locationRemoved: "Se ha quitado {name}",
@@ -122,6 +125,7 @@ window.GanetiosWeatherStrings = {
     unitIn: "in",
   },
   fr: {
+    useDeviceTimezone: "Utiliser mon fuseau horaire", useDeviceTimezoneHelp: "Affiche la météo et les heures de lever et de coucher du soleil de tous les lieux dans le fuseau horaire de votre appareil.",
     selectDate: "Choisir une date", previousMonth: "Mois précédent", nextMonth: "Mois suivant",
     mapMarker: "Repère sur la carte", zoomIn: "Zoom avant", zoomOut: "Zoom arrière", mapCredits: "Afficher ou masquer les crédits de la carte",
     skipToForecast: "Aller aux prévisions", toggleLocations: "Afficher ou masquer les lieux", searchPlaceholder: "Rechercher des villes ou des coordonnées", searchResults: "Résultats de recherche", clearSearch: "Effacer la recherche",
@@ -173,6 +177,7 @@ window.GanetiosWeatherStrings = {
     dataSources: "Sources des données", attrOpenMeteo: "Données météo fournies par", attrNws: "Alertes et prévisions du Service météorologique national des États-Unis,", attrPhoton: "Recherche par", attrMap: "Carte par", attrSun: "Les heures du soleil et de la lune sont calculées sur votre appareil.",
   },
   de: {
+    useDeviceTimezone: "Meine Zeitzone verwenden", useDeviceTimezoneHelp: "Zeigt Wetter, Sonnenaufgang und Sonnenuntergang für alle Orte in der Zeitzone deines Geräts an.",
     selectDate: "Datum auswählen", previousMonth: "Vorheriger Monat", nextMonth: "Nächster Monat",
     mapMarker: "Kartenmarkierung", zoomIn: "Vergrößern", zoomOut: "Verkleinern", mapCredits: "Kartenhinweise ein- oder ausblenden",
     skipToForecast: "Zur Vorhersage springen", toggleLocations: "Orte ein- oder ausblenden", searchPlaceholder: "Städte oder Koordinaten suchen", searchResults: "Suchergebnisse", clearSearch: "Suche löschen",
@@ -224,6 +229,7 @@ window.GanetiosWeatherStrings = {
     dataSources: "Datenquellen", attrOpenMeteo: "Wetterdaten von", attrNws: "Warnungen und Vorhersagen des US-Wetterdienstes,", attrPhoton: "Suche mit", attrMap: "Karte von", attrSun: "Sonnen- und Mondzeiten werden auf deinem Gerät berechnet.",
   },
   it: {
+    useDeviceTimezone: "Usa il mio fuso orario", useDeviceTimezoneHelp: "Mostra il meteo e gli orari di alba e tramonto di tutte le località nel fuso orario del tuo dispositivo.",
     selectDate: "Seleziona data", previousMonth: "Mese precedente", nextMonth: "Mese successivo",
     mapMarker: "Indicatore sulla mappa", zoomIn: "Ingrandisci", zoomOut: "Riduci", mapCredits: "Mostra o nascondi i crediti della mappa",
     skipToForecast: "Vai alle previsioni", toggleLocations: "Mostra o nascondi le località", searchPlaceholder: "Cerca città o coordinate", searchResults: "Risultati della ricerca", clearSearch: "Cancella ricerca",
@@ -275,6 +281,7 @@ window.GanetiosWeatherStrings = {
     dataSources: "Fonti dei dati", attrOpenMeteo: "Dati meteo di", attrNws: "Allerte e previsioni del servizio meteorologico nazionale statunitense,", attrPhoton: "Ricerca con", attrMap: "Mappa di", attrSun: "Gli orari di sole e luna sono calcolati sul tuo dispositivo.",
   },
   "pt-BR": {
+    useDeviceTimezone: "Usar meu fuso horário", useDeviceTimezoneHelp: "Mostra a previsão e os horários do nascer e do pôr do sol de todos os locais no fuso horário do seu dispositivo.",
     selectDate: "Selecionar data", previousMonth: "Mês anterior", nextMonth: "Próximo mês",
     mapMarker: "Marcador do mapa", zoomIn: "Aproximar", zoomOut: "Afastar", mapCredits: "Mostrar ou ocultar os créditos do mapa",
     skipToForecast: "Pular para a previsão", toggleLocations: "Mostrar ou ocultar locais", searchPlaceholder: "Buscar cidades ou coordenadas", searchResults: "Resultados da busca", clearSearch: "Limpar busca",
@@ -326,6 +333,7 @@ window.GanetiosWeatherStrings = {
     dataSources: "Fontes de dados", attrOpenMeteo: "Dados meteorológicos de", attrNws: "Alertas e previsões do Serviço Meteorológico Nacional dos EUA,", attrPhoton: "Busca com", attrMap: "Mapa de", attrSun: "Os horários do sol e da lua são calculados no seu dispositivo.",
   },
   "pt-PT": {
+    useDeviceTimezone: "Usar o meu fuso horário", useDeviceTimezoneHelp: "Apresenta a previsão e as horas do nascer e do pôr do sol de todos os locais no fuso horário do seu dispositivo.",
     selectDate: "Selecionar data", previousMonth: "Mês anterior", nextMonth: "Mês seguinte",
     mapMarker: "Marcador do mapa", zoomIn: "Ampliar", zoomOut: "Reduzir", mapCredits: "Mostrar ou ocultar os créditos do mapa",
     skipToForecast: "Saltar para a previsão", searchPlaceholder: "Pesquisar cidades ou coordenadas", searchResults: "Resultados da pesquisa", clearSearch: "Limpar pesquisa", useMyLocation: "Utilizar a minha localização", myLocation: "A minha localização", rateLimited: "Demasiados pedidos de dados meteorológicos. Tente novamente daqui a alguns minutos.", skyPreviews: "Pré-visualizações do céu", settings: "Ajustes",
@@ -340,6 +348,7 @@ window.GanetiosWeatherStrings = {
     addToSeeForecast: "Adicione um local para ver a previsão horária.", hourlyForecast: "Previsão horária", copied: "Copiado",
   },
   ru: {
+    useDeviceTimezone: "Использовать мой часовой пояс", useDeviceTimezoneHelp: "Показывает погоду и время восхода и заката для всех мест в часовом поясе вашего устройства.",
     selectDate: "Выбрать дату", previousMonth: "Предыдущий месяц", nextMonth: "Следующий месяц",
     mapMarker: "Метка на карте", zoomIn: "Приблизить", zoomOut: "Отдалить", mapCredits: "Показать или скрыть сведения об источниках карты",
     skipToForecast: "Перейти к прогнозу", toggleLocations: "Показать или скрыть места", searchPlaceholder: "Поиск городов или координат", searchResults: "Результаты поиска", clearSearch: "Очистить поиск",
@@ -391,6 +400,7 @@ window.GanetiosWeatherStrings = {
     dataSources: "Источники данных", attrOpenMeteo: "Данные о погоде:", attrNws: "Предупреждения и прогнозы Национальной метеослужбы США,", attrPhoton: "Поиск:", attrMap: "Карта:", attrSun: "Время восхода и захода солнца и луны рассчитывается на вашем устройстве.",
   },
   zh: {
+    useDeviceTimezone: "使用我的时区", useDeviceTimezoneHelp: "用设备的时区显示所有地点的天气以及日出和日落时间。",
     selectDate: "选择日期", previousMonth: "上个月", nextMonth: "下个月",
     mapMarker: "地图标记", zoomIn: "放大", zoomOut: "缩小", mapCredits: "显示或隐藏地图来源",
     skipToForecast: "跳到天气预报", toggleLocations: "显示或隐藏地点", searchPlaceholder: "搜索城市或坐标", searchResults: "搜索结果", clearSearch: "清除搜索",
@@ -442,6 +452,7 @@ window.GanetiosWeatherStrings = {
     dataSources: "数据来源", attrOpenMeteo: "天气数据来自", attrNws: "预警和预报来自美国国家气象局，", attrPhoton: "搜索服务：", attrMap: "地图：", attrSun: "日月时间在你的设备上计算。",
   },
   ja: {
+    useDeviceTimezone: "自分のタイムゾーンを使う", useDeviceTimezoneHelp: "すべての地点の天気と日の出・日の入り時刻を、端末のタイムゾーンで表示します。",
     selectDate: "日付を選択", previousMonth: "前の月", nextMonth: "次の月",
     mapMarker: "地図のマーカー", zoomIn: "拡大", zoomOut: "縮小", mapCredits: "地図の出典を表示または非表示",
     skipToForecast: "予報へ移動", toggleLocations: "地点の表示/非表示", searchPlaceholder: "都市や座標を検索", searchResults: "検索結果", clearSearch: "検索をクリア",
@@ -493,6 +504,7 @@ window.GanetiosWeatherStrings = {
     dataSources: "データの出典", attrOpenMeteo: "気象データ:", attrNws: "警報と予報: 米国国立気象局", attrPhoton: "検索:", attrMap: "地図:", attrSun: "太陽と月の時刻はお使いのデバイスで計算しています。",
   },
   ko: {
+    useDeviceTimezone: "내 시간대 사용", useDeviceTimezoneHelp: "모든 위치의 날씨와 일출·일몰 시각을 기기의 시간대로 표시합니다.",
     selectDate: "날짜 선택", previousMonth: "이전 달", nextMonth: "다음 달",
     mapMarker: "지도 마커", zoomIn: "확대", zoomOut: "축소", mapCredits: "지도 출처 표시 또는 숨기기",
     skipToForecast: "예보로 건너뛰기", toggleLocations: "위치 표시 또는 숨기기", searchPlaceholder: "도시 또는 좌표 검색", searchResults: "검색 결과", clearSearch: "검색어 지우기",
@@ -544,6 +556,7 @@ window.GanetiosWeatherStrings = {
     dataSources: "데이터 출처", attrOpenMeteo: "날씨 데이터:", attrNws: "경보 및 예보: 미국 국립기상청,", attrPhoton: "검색:", attrMap: "지도:", attrSun: "해와 달의 시간은 기기에서 계산됩니다.",
   },
   ar: {
+    useDeviceTimezone: "استخدام منطقتي الزمنية", useDeviceTimezoneHelp: "يعرض الطقس وأوقات الشروق والغروب لجميع المواقع حسب المنطقة الزمنية لجهازك.",
     selectDate: "اختيار التاريخ", previousMonth: "الشهر السابق", nextMonth: "الشهر التالي",
     mapMarker: "علامة على الخريطة", zoomIn: "تكبير", zoomOut: "تصغير", mapCredits: "إظهار مصادر الخريطة أو إخفاؤها",
     skipToForecast: "الانتقال إلى التوقعات", toggleLocations: "إظهار المواقع أو إخفاؤها", searchPlaceholder: "ابحث عن مدن أو إحداثيات", searchResults: "نتائج البحث", clearSearch: "مسح البحث",
@@ -595,6 +608,7 @@ window.GanetiosWeatherStrings = {
     dataSources: "مصادر البيانات", attrOpenMeteo: "بيانات الطقس من", attrNws: "التنبيهات والتوقعات من هيئة الأرصاد الجوية الوطنية الأمريكية،", attrPhoton: "البحث بواسطة", attrMap: "الخريطة من", attrSun: "تُحسب أوقات الشمس والقمر على جهازك.",
   },
   hi: {
+    useDeviceTimezone: "मेरा समय क्षेत्र इस्तेमाल करें", useDeviceTimezoneHelp: "सभी स्थानों का मौसम और सूर्योदय व सूर्यास्त का समय अपने डिवाइस के समय क्षेत्र में देखें।",
     selectDate: "तारीख चुनें", previousMonth: "पिछला महीना", nextMonth: "अगला महीना",
     mapMarker: "मानचित्र चिह्न", zoomIn: "ज़ूम इन करें", zoomOut: "ज़ूम आउट करें", mapCredits: "मानचित्र के स्रोत दिखाएँ या छिपाएँ",
     skipToForecast: "पूर्वानुमान पर जाएं", toggleLocations: "स्थान दिखाएं या छिपाएं", searchPlaceholder: "शहर या निर्देशांक खोजें", searchResults: "खोज परिणाम", clearSearch: "खोज साफ़ करें",

@@ -17,7 +17,6 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const HOUR = 3600000;
-  const DAY = 86400000;
   const US_CODES = new Set(["US", "PR", "GU", "VI", "AS", "MP", "UM"]);
 
   // ------------------------------------------------------------ storage
@@ -29,12 +28,15 @@
   const imperial = ["US", "LR", "MM", "PR"].includes(region);
   const settings = Object.assign({
     language: "system", temp: imperial ? "fahrenheit" : "celsius", wind: imperial || region === "GB" ? "mph" : "kmh",
-    precip: imperial ? "inch" : "mm", pressure: imperial ? "inHg" : "hPa", distance: imperial || region === "GB" ? "mi" : "km", clock: "auto", animate: true,
+    precip: imperial ? "inch" : "mm", pressure: imperial ? "inHg" : "hPa", distance: imperial || region === "GB" ? "mi" : "km", clock: "auto", useDeviceTimezone: false, animate: true,
   }, read(KEYS.settings, {}));
   let locations = read(KEYS.locations, []);
   let activeId = read(KEYS.active, null);
   const store = { data: {}, aq: {}, nws: {}, alerts: {}, summary: {} };
   const view = { metric: "temp", range: 48, table: false, sunDate: null, monthDay: 16, preview: null, previewAlt: 40 };
+  const deviceTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  let deviceZone = deviceTimezone();
+  let zoneRevision = 0;
 
   // ------------------------------------------------------------ language
   const LANGS = ["en", "en-GB", "es-419", "es-ES", "fr", "de", "it", "pt-BR", "pt-PT", "ru", "zh", "ja", "ko", "ar", "hi"];
@@ -87,14 +89,17 @@
     const hour = Number(new Intl.DateTimeFormat("en-US", { timeZone: o.timeZone, hour: "numeric", hourCycle: "h23" }).format(new Date(ms))) % 24;
     return parts.map((p) => (p.type === "dayPeriod" ? meridiem(hour) : p.value)).join("").replace(/\s+/g, " ").trim();
   }
-  const zoneOf = (loc) => loc?.tz || null;
+  const zoneOf = (loc) => (settings.useDeviceTimezone ? deviceZone : loc?.tz) || null;
   function timeStr(ms, loc) {
     if (ms == null) return "—";
-    if (loc && !loc.tz) return clockStr(new Date(ms + Sun.offsetMinutes(ms, null, loc.lon) * 60000).getUTCHours(), new Date(ms + Sun.offsetMinutes(ms, null, loc.lon) * 60000).getUTCMinutes());
+    if (loc && !zoneOf(loc)) {
+      const { hour, minute } = Sun.localParts(ms, null, loc.lon);
+      return clockStr(hour, minute);
+    }
     return formatParts(ms, zoneOf(loc), { hour: "numeric", minute: "2-digit" });
   }
   function hourStr(ms, loc) {
-    if (loc && !loc.tz) return clockStr(new Date(ms + Sun.offsetMinutes(ms, null, loc.lon) * 60000).getUTCHours(), null);
+    if (loc && !zoneOf(loc)) return clockStr(Sun.localParts(ms, null, loc.lon).hour, null);
     return formatParts(ms, zoneOf(loc), { hour: "numeric" });
   }
   /** A wall clock time with no date, e.g. 12:00 NM for polar day. */
@@ -102,8 +107,9 @@
     return formatParts(Date.UTC(2026, 0, 1, h, m ?? 0), "UTC", m == null ? { hour: "numeric" } : { hour: "numeric", minute: "2-digit" });
   }
   function dateStr(ms, loc, opts) {
-    const o = Object.assign({ timeZone: zoneOf(loc) || "UTC" }, opts);
-    if (!loc?.tz) { ms = ms + Sun.offsetMinutes(ms, null, loc?.lon) * 60000; o.timeZone = "UTC"; }
+    const zone = zoneOf(loc);
+    const o = Object.assign({ timeZone: zone || "UTC" }, opts);
+    if (!zone) ms += Sun.offsetMinutes(ms, null, loc?.lon) * 60000;
     try { return new Intl.DateTimeFormat(locale(), o).format(new Date(ms)); } catch (e) { return new Intl.DateTimeFormat(locale(), Object.assign(o, { timeZone: "UTC" })).format(new Date(ms)); }
   }
   function durationStr(ms) {
@@ -186,29 +192,54 @@
     if (!res.ok) throw Object.assign(new Error("HTTP " + res.status), { status: res.status });
     return res.json();
   }
-  function forecastURL(loc) {
+  function forecastURL(loc, timezone, includePast) {
     const p = new URLSearchParams({
-      latitude: loc.lat.toFixed(4), longitude: loc.lon.toFixed(4), timezone: "auto", timeformat: "unixtime", forecast_days: "16",
+      latitude: loc.lat.toFixed(4), longitude: loc.lon.toFixed(4), timezone, timeformat: "unixtime", forecast_days: "16",
       current: "temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m",
       hourly: "temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,precipitation_probability,precipitation,snowfall,weather_code,cloud_cover,pressure_msl,visibility,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index,is_day",
       daily: "weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,daylight_duration,sunshine_duration,uv_index_max,precipitation_sum,precipitation_probability_max,precipitation_hours,snowfall_sum,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant",
       minutely_15: "precipitation", forecast_minutely_15: "12",
       temperature_unit: settings.temp, wind_speed_unit: settings.wind, precipitation_unit: settings.precip,
     });
+    if (includePast) p.set("past_days", "1");
     return WEATHER_API + "/forecast?" + p;
   }
-  async function loadForecast(loc) {
-    const data = await getJSON(forecastURL(loc));
-    if (data.timezone && data.timezone !== "GMT" && loc.tz !== data.timezone) { loc.tz = data.timezone; saveLocations(); }
+  async function loadForecast(loc, revision) {
+    const timezone = settings.useDeviceTimezone ? deviceZone : "auto";
+    let data;
+    if (timezone !== "auto") {
+      try {
+        data = await getJSON(forecastURL(loc, timezone, true));
+        if (!data?.current || !data.hourly?.time?.length || !data.daily?.time?.length) data = null;
+      } catch (error) {
+        if (error.status === 429) throw error;
+      }
+    }
+    if (revision !== zoneRevision) return;
+    if (!data) data = await getJSON(forecastURL(loc, timezone, false));
+    if (revision !== zoneRevision) return;
+    if (timezone === "auto" && data.timezone && loc.tz !== data.timezone) { loc.tz = data.timezone; saveLocations(); }
+    if (timezone !== "auto") {
+      // Keep past hours for calculations and start the daily forecast on today's date.
+      const today = Sun.localParts(Date.now(), timezone, loc.lon);
+      const start = Sun.localMidnight(today.year, today.month, today.day, timezone, loc.lon);
+      const first = data.daily.time.findIndex(ts => ts * 1000 + 12 * HOUR >= start);
+      if (first > 0) {
+        for (const [key, values] of Object.entries(data.daily)) {
+          if (Array.isArray(values)) data.daily[key] = values.slice(first);
+        }
+      }
+    }
     // Visibility arrives in feet with imperial units; keep meters internally.
     if (data.hourly_units?.visibility === "ft") data.hourly.visibility = data.hourly.visibility.map((v) => (v == null ? v : v * 0.3048));
     data.fetchedAt = Date.now();
     store.data[loc.id] = data;
     return data;
   }
-  async function loadAirQuality(loc) {
-    const p = new URLSearchParams({ latitude: loc.lat.toFixed(4), longitude: loc.lon.toFixed(4), timezone: "auto", timeformat: "unixtime", current: "us_aqi,european_aqi,pm2_5,pm10,ozone,nitrogen_dioxide", hourly: "us_aqi,european_aqi", forecast_days: "7" });
-    store.aq[loc.id] = await getJSON(WEATHER_API + "/air-quality?" + p);
+  async function loadAirQuality(loc, revision) {
+    const p = new URLSearchParams({ latitude: loc.lat.toFixed(4), longitude: loc.lon.toFixed(4), timezone: settings.useDeviceTimezone ? deviceZone : "auto", timeformat: "unixtime", current: "us_aqi,european_aqi,pm2_5,pm10,ozone,nitrogen_dioxide", hourly: "us_aqi,european_aqi", forecast_days: "7" });
+    const data = await getJSON(WEATHER_API + "/air-quality?" + p);
+    if (revision === zoneRevision) store.aq[loc.id] = data;
   }
   const inUS = (loc) => (loc.countryCode ? US_CODES.has(loc.countryCode.toUpperCase()) : (loc.lat > 18 && loc.lat < 72 && loc.lon > -180 && loc.lon < -64) || (loc.lat > 13 && loc.lat < 21 && loc.lon > 144 && loc.lon < 146));
   async function loadNWS(loc) {
@@ -226,15 +257,18 @@
   async function loadSummaries() {
     const list = locations.filter((l) => l.id !== activeId);
     if (!list.length) return;
-    const p = new URLSearchParams({ latitude: list.map((l) => l.lat.toFixed(4)).join(","), longitude: list.map((l) => l.lon.toFixed(4)).join(","), timezone: "auto", timeformat: "unixtime", current: "temperature_2m,weather_code,is_day", daily: "temperature_2m_max,temperature_2m_min", forecast_days: "1", temperature_unit: settings.temp });
+    const revision = zoneRevision;
+    const timezone = settings.useDeviceTimezone ? list.map(() => deviceZone).join(",") : "auto";
+    const p = new URLSearchParams({ latitude: list.map((l) => l.lat.toFixed(4)).join(","), longitude: list.map((l) => l.lon.toFixed(4)).join(","), timezone, timeformat: "unixtime", current: "temperature_2m,weather_code,is_day", daily: "temperature_2m_max,temperature_2m_min", forecast_days: "1", temperature_unit: settings.temp });
     try {
       let res = await getJSON(WEATHER_API + "/forecast?" + p);
+      if (revision !== zoneRevision) return;
       if (!Array.isArray(res)) res = [res];
       res.forEach((r, i) => {
         const loc = list[i];
         if (!loc) return;
         store.summary[loc.id] = r;
-        if (r.timezone && r.timezone !== "GMT" && !loc.tz) loc.tz = r.timezone;
+        if (timezone === "auto" && r.timezone && !loc.tz) loc.tz = r.timezone;
       });
       saveLocations();
       renderLocations();
@@ -430,9 +464,8 @@
   function currentHourIndex(d) {
     const now = Date.now() / 1000;
     const times = d.hourly.time;
-    let i = times.findIndex((x) => x > now) - 1;
-    if (i < 0) i = 0;
-    return i;
+    const next = times.findIndex((x) => x > now);
+    return next < 0 ? Math.max(0, times.length - 1) : Math.max(0, next - 1);
   }
   function renderAll() {
     const loc = activeLocation();
@@ -519,9 +552,10 @@
     // Sunrise and sunset inside the next 24 hours (computed on the device).
     const start = items[0]?.t ?? Date.now();
     const end = start + 24 * HOUR;
-    for (let k = -1; k <= 1; k++) {
-      const lp = Sun.localParts(start + k * DAY, loc.tz, loc.lon);
-      const info = Sun.day(lp.year, lp.month, lp.day, loc.lat, loc.lon, loc.tz);
+    const zone = zoneOf(loc);
+    const lp = Sun.localParts(start, zone, loc.lon);
+    for (let k = 0; k <= 2; k++) {
+      const info = Sun.day(lp.year, lp.month, lp.day + k, loc.lat, loc.lon, zone);
       [["sunrise", info.sunrise], ["sunset", info.sunset]].forEach(([kind, ms]) => {
         if (ms && ms > Date.now() && ms < end && !items.some((x) => x.kind === kind && Math.abs(x.t - ms) < HOUR)) items.push({ kind, t: ms });
       });
@@ -536,7 +570,7 @@
       const code = h.weather_code[i];
       const pp = h.precipitation_probability[i];
       const icon = isDay ? iconHtml(condIcon(code, true), "mu-icon-filled") : nightIcon(code, it.t, loc.lat, 34);
-      const label = n === 0 ? t("now") : hourStr(it.t, loc);
+      const label = n === 0 && it.t <= Date.now() ? t("now") : hourStr(it.t, loc);
       return `<div class="gw-hour${isDay ? "" : " is-night"}" role="listitem" aria-label="${esc(label + ", " + condText(code) + ", " + deg(h.temperature_2m[i]))}">
         <span class="gw-hour-time">${esc(label)}</span>${icon}<span class="gw-hour-temp">${deg(h.temperature_2m[i])}</span>
         <span class="gw-hour-pop${pp >= 10 ? "" : " is-empty"}">${iconHtml("water_drop")}${pct(pp)}</span></div>`;
@@ -570,8 +604,8 @@
     const usAqi = inUS(loc);
     const aqiV = aq ? (usAqi ? aq.us_aqi : aq.european_aqi) : null;
     const moon = Sun.moon(Date.now());
-    const today = Sun.localParts(Date.now(), loc.tz, loc.lon);
-    const sunInfo = Sun.day(today.year, today.month, today.day, loc.lat, loc.lon, loc.tz);
+    const today = Sun.localParts(Date.now(), zoneOf(loc), loc.lon);
+    const sunInfo = Sun.day(today.year, today.month, today.day, loc.lat, loc.lon, zoneOf(loc));
     const tiles = [
       tile("device_thermostat", t("feelsLike"), deg(c.apparent_temperature), esc(c.apparent_temperature < c.temperature_2m - 1 ? t("feelsColder") : c.apparent_temperature > c.temperature_2m + 1 ? t("feelsWarmer") : t("feelsSame"))),
       tile("humidity_percentage", t("humidity"), pct(c.relative_humidity_2m), esc(t("dewPointValue", { v: deg(dew) }))),
@@ -665,7 +699,7 @@
     // X labels
     const lastLabelX = { v: -Infinity };
     times.forEach((ms, i) => {
-      const lp = Sun.localParts(ms, loc.tz, loc.lon);
+      const lp = Sun.localParts(ms, zoneOf(loc), loc.lon);
       let label = null;
       if (view.range <= 48) { if (lp.hour % (view.range <= 24 ? 3 : 6) === 0) label = lp.hour === 0 ? dateStr(ms, loc, { weekday: "short" }) : hourStr(ms, loc); }
       else if (lp.hour === 0) label = view.range <= 168 ? dateStr(ms, loc, { weekday: "short" }) : dateStr(ms, loc, { day: "numeric" });
@@ -775,8 +809,8 @@
     const d = store.data[loc.id];
     const dl = d.daily;
     const ms = dl.time[i] * 1000 + 12 * HOUR;
-    const lp = Sun.localParts(ms, loc.tz, loc.lon);
-    const info = Sun.day(lp.year, lp.month, lp.day, loc.lat, loc.lon, loc.tz);
+    const lp = Sun.localParts(ms, zoneOf(loc), loc.lon);
+    const info = Sun.day(lp.year, lp.month, lp.day, loc.lat, loc.lon, zoneOf(loc));
     const st = sunTimes(loc, info, lp.year, lp.month, lp.day);
     const rise = info.polarDay ? clockStr(0, 0) : info.polarNight ? clockStr(12, 0) : st.riseText;
     const set = info.polarDay ? clockStr(0, 0) : info.polarNight ? clockStr(12, 0) : st.setText;
@@ -849,8 +883,8 @@
 
   // ------------------------------------------------------------ sunrise & sunset
   function sunDay(loc) {
-    const lp = view.sunDate || Sun.localParts(Date.now(), loc.tz, loc.lon);
-    return { lp, info: Sun.day(lp.year, lp.month, lp.day, loc.lat, loc.lon, loc.tz) };
+    const lp = view.sunDate || Sun.localParts(Date.now(), zoneOf(loc), loc.lon);
+    return { lp, info: Sun.day(lp.year, lp.month, lp.day, loc.lat, loc.lon, zoneOf(loc)) };
   }
   /**
    * Sunrise and sunset for a local date, following them across midnight in white-night seasons:
@@ -861,13 +895,13 @@
     let set = info.sunset;
     let riseShift = 0;
     let setShift = 0;
-    if (!info.polarDay && !info.polarNight) {
+    if (!settings.useDeviceTimezone && !info.polarDay && !info.polarNight) {
       if (rise && (!set || set < rise)) {
-        const n = Sun.day(y, m, d + 1, loc.lat, loc.lon, loc.tz);
+        const n = Sun.day(y, m, d + 1, loc.lat, loc.lon, zoneOf(loc));
         if (n.sunset && (!n.sunrise || n.sunset < n.sunrise)) { set = n.sunset; setShift = 1; }
       }
       if (set && (!rise || rise > set) && !setShift) {
-        const p = Sun.day(y, m, d - 1, loc.lat, loc.lon, loc.tz);
+        const p = Sun.day(y, m, d - 1, loc.lat, loc.lon, zoneOf(loc));
         if (p.sunrise && (!p.sunset || p.sunrise > p.sunset)) { rise = p.sunrise; riseShift = -1; }
       }
     }
@@ -880,7 +914,7 @@
     card.hidden = !loc;
     if (!loc) return;
     const { lp, info } = sunDay(loc);
-    const isToday = (() => { const n = Sun.localParts(Date.now(), loc.tz, loc.lon); return n.year === lp.year && n.month === lp.month && n.day === lp.day; })();
+    const isToday = (() => { const n = Sun.localParts(Date.now(), zoneOf(loc), loc.lon); return n.year === lp.year && n.month === lp.month && n.day === lp.day; })();
     $("#sunDate").textContent = isToday ? t("today") + " · " + dateStr(info.start + 12 * HOUR, loc, { month: "short", day: "numeric" }) : dateStr(info.start + 12 * HOUR, loc, { weekday: "short", month: "short", day: "numeric", year: lp.year !== new Date().getFullYear() ? "numeric" : undefined });
     $("#sunToday").disabled = isToday;
     const polar = $("#sunPolar");
@@ -1013,7 +1047,7 @@
     svgEl.addEventListener("pointerleave", () => { hover.hidden = true; tip.hidden = true; });
   }
   function renderSunEvents(loc, info, lp) {
-    const prev = Sun.day(lp.year, lp.month, lp.day - 1, loc.lat, loc.lon, loc.tz);
+    const prev = Sun.day(lp.year, lp.month, lp.day - 1, loc.lat, loc.lon, zoneOf(loc));
     const polarRise = info.polarDay ? clockStr(0, 0) : info.polarNight ? clockStr(12, 0) : null;
     const tm = (ms, fallback) => (ms ? timeStr(ms, loc) : fallback);
     const none = t("doesNotOccur");
@@ -1036,11 +1070,11 @@
   function renderMonths(loc, year) {
     const host = $("#sunMonths");
     const fmt = new Intl.DateTimeFormat(locale(), { month: "short", timeZone: "UTC" });
-    const today = Sun.localParts(Date.now(), loc.tz, loc.lon);
+    const today = Sun.localParts(Date.now(), zoneOf(loc), loc.lon);
     host.innerHTML = Array.from({ length: 12 }, (_, m) => {
       const lastDay = new Date(Date.UTC(year, m + 1, 0)).getUTCDate();
       const dayN = Math.min(view.monthDay, lastDay);
-      const info = Sun.day(year, m, dayN, loc.lat, loc.lon, loc.tz);
+      const info = Sun.day(year, m, dayN, loc.lat, loc.lon, zoneOf(loc));
       const segs = Sun.daySegments(info);
       const bar = segs.map((s) => `<span class="${s.day ? "is-day" : "is-night"}" style="inset-inline-start:${(s.from * 100).toFixed(2)}%;inline-size:${((s.to - s.from) * 100).toFixed(2)}%"></span>`).join("");
       let times;
@@ -1287,6 +1321,7 @@
     fillSelect($("#setPressure"), [["inHg", t("unitInHg")], ["hPa", t("unitHpa")], ["mmHg", t("unitMmHg")], ["kPa", t("unitKpa")]], settings.pressure);
     fillSelect($("#setDistance"), [["mi", t("miles")], ["km", t("kilometers")]], settings.distance);
     fillSelect($("#setClock"), [["auto", t("clockAuto")], ["12", t("clock12", { t: clockStr(15, 30) })], ["24", t("clock24")]], settings.clock);
+    $("#setDeviceTimezone").checked = settings.useDeviceTimezone;
     $("#setAnimate").checked = settings.animate;
     const pref = UI.theme.get();
     $$("#themeSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themePref === pref)));
@@ -1307,9 +1342,16 @@
     if (reload) refresh(true);
     else { renderLocations(); renderAll(); }
   }
+  function onTimezoneChange() {
+    zoneRevision++;
+    store.data = {};
+    store.summary = {};
+    store.aq = {};
+    view.sunDate = null;
+    onSettingsChange(true);
+  }
 
   // ------------------------------------------------------------ refresh
-  let refreshing = null;
   async function refresh(force) {
     const loc = activeLocation();
     renderLocations();
@@ -1318,26 +1360,24 @@
     const cached = store.data[loc.id];
     if (cached && !force && Date.now() - cached.fetchedAt < 10 * 60000) { loadSummaries(); return; }
     const id = loc.id;
-    const job = (async () => {
-      $("#refreshBtn").classList.add("is-spinning");
-      try {
-        await Promise.all([
-          loadForecast(loc).then(() => { if (activeId === id) { renderLocations(); renderAll(); } }),
-          loadAirQuality(loc).catch(() => {}).then(() => { if (activeId === id && store.data[id]) renderDetails(loc, store.data[id]); }),
-          loadNWS(loc).then(() => { if (activeId === id) { renderAlerts(); if (store.data[id]) renderNWS(loc); } }),
-        ]);
-      } catch (e) {
-        if (e.status !== 429) {
-          console.error(e);
-          UI.toast(navigator.onLine === false ? t("offline") : t("loadError"), { type: "error" });
-        }
-      } finally {
-        $("#refreshBtn").classList.remove("is-spinning");
+    const revision = zoneRevision;
+    const isCurrent = () => revision === zoneRevision && activeId === id;
+    $("#refreshBtn").classList.add("is-spinning");
+    try {
+      await Promise.all([
+        loadForecast(loc, revision).then(() => { if (isCurrent()) { renderLocations(); renderAll(); } }),
+        loadAirQuality(loc, revision).catch(() => {}).then(() => { if (isCurrent() && store.data[id]) renderDetails(loc, store.data[id]); }),
+        loadNWS(loc).then(() => { if (isCurrent()) { renderAlerts(); if (store.data[id]) renderNWS(loc); } }),
+      ]);
+    } catch (e) {
+      if (isCurrent() && e.status !== 429) {
+        console.error(e);
+        UI.toast(navigator.onLine === false ? t("offline") : t("loadError"), { type: "error" });
       }
-      loadSummaries();
-    })();
-    refreshing = job;
-    return job;
+    } finally {
+      if (revision === zoneRevision) $("#refreshBtn").classList.remove("is-spinning");
+    }
+    if (revision === zoneRevision) loadSummaries();
   }
 
   // ------------------------------------------------------------ sidebar
@@ -1436,7 +1476,7 @@
     const shiftSun = (n) => {
       const loc = activeLocation();
       if (!loc) return;
-      const cur = view.sunDate || Sun.localParts(Date.now(), loc.tz, loc.lon);
+      const cur = view.sunDate || Sun.localParts(Date.now(), zoneOf(loc), loc.lon);
       const d = new Date(Date.UTC(cur.year, cur.month, cur.day + n));
       view.sunDate = { year: d.getUTCFullYear(), month: d.getUTCMonth(), day: d.getUTCDate() };
       renderSun();
@@ -1447,7 +1487,7 @@
     $("#sunDate").addEventListener("click", (e) => {
       const loc = activeLocation();
       if (!loc) return;
-      const cur = view.sunDate || Sun.localParts(Date.now(), loc.tz, loc.lon);
+      const cur = view.sunDate || Sun.localParts(Date.now(), zoneOf(loc), loc.lon);
       const iso = cur.year + "-" + String(cur.month + 1).padStart(2, "0") + "-" + String(cur.day).padStart(2, "0");
       UI.pickDate({ anchor: e.currentTarget, value: iso, locale: locale(), labels: {
         date: t("selectDate"), today: t("today"), previous: t("previousMonth"), next: t("nextMonth"),
@@ -1473,6 +1513,11 @@
     $("#setPressure").addEventListener("change", (e) => { settings.pressure = e.target.value; METRICS.pressure.digits = settings.pressure === "inHg" ? 2 : settings.pressure === "kPa" ? 1 : 0; onSettingsChange(false); });
     $("#setDistance").addEventListener("change", (e) => { settings.distance = e.target.value; onSettingsChange(false); });
     $("#setClock").addEventListener("change", (e) => { settings.clock = e.target.value; onSettingsChange(false); });
+    $("#setDeviceTimezone").addEventListener("change", (e) => {
+      deviceZone = deviceTimezone();
+      settings.useDeviceTimezone = e.target.checked;
+      onTimezoneChange();
+    });
     $("#setAnimate").addEventListener("change", (e) => { settings.animate = e.target.checked; write(KEYS.settings, settings); updateSky(); });
     METRICS.pressure.digits = settings.pressure === "inHg" ? 2 : settings.pressure === "kPa" ? 1 : 0;
     document.addEventListener("mu-theme", () => {
@@ -1493,7 +1538,7 @@
 
     // Redraw width-dependent charts on resize.
     let rz = null;
-    new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => { renderChart(); const loc = activeLocation(); if (loc) { const { info } = sunDay(loc); const lp = Sun.localParts(Date.now(), loc.tz, loc.lon); const today = !view.sunDate || (view.sunDate.year === lp.year && view.sunDate.month === lp.month && view.sunDate.day === lp.day); renderSunChart(loc, info, today ? Date.now() : null); } }, 120); }).observe($("#main"));
+    new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => { renderChart(); const loc = activeLocation(); if (loc) { const { info } = sunDay(loc); const lp = Sun.localParts(Date.now(), zoneOf(loc), loc.lon); const today = !view.sunDate || (view.sunDate.year === lp.year && view.sunDate.month === lp.month && view.sunDate.day === lp.day); renderSunChart(loc, info, today ? Date.now() : null); } }, 120); }).observe($("#main"));
 
     // Keep clocks, the sun, and the sky moving; refresh data every 15 minutes.
     setInterval(() => {
@@ -1507,7 +1552,16 @@
       if (d && Date.now() - d.fetchedAt > 15 * 60000) refresh(true);
       else if (d) { renderHourly(loc, d); $("#nowcast").textContent = nowcastText(d); }
     }, 60000);
-    document.addEventListener("visibilitychange", () => { if (!document.hidden) { const d = store.data[activeId]; if (d && Date.now() - d.fetchedAt > 15 * 60000) refresh(true); } });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) return;
+      const zone = deviceTimezone();
+      if (zone !== deviceZone) {
+        deviceZone = zone;
+        if (settings.useDeviceTimezone) { onTimezoneChange(); return; }
+      }
+      const d = store.data[activeId];
+      if (d && Date.now() - d.fetchedAt > 15 * 60000) refresh(true);
+    });
     window.addEventListener("online", () => refresh(true));
 
     renderLocations();

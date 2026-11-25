@@ -3,7 +3,7 @@ export const weatherWindowMs = 5 * 60 * 1000;
 const responseHeaders = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
 
 const providers = new Map([
-    ['/forecast', ['https://api.open-meteo.com/v1/forecast', 'latitude longitude timezone timeformat forecast_days current hourly daily minutely_15 forecast_minutely_15 temperature_unit wind_speed_unit precipitation_unit']],
+    ['/forecast', ['https://api.open-meteo.com/v1/forecast', 'latitude longitude timezone timeformat forecast_days past_days current hourly daily minutely_15 forecast_minutely_15 temperature_unit wind_speed_unit precipitation_unit']],
     ['/air-quality', ['https://air-quality-api.open-meteo.com/v1/air-quality', 'latitude longitude timezone timeformat current hourly forecast_days']],
     ['/search', ['https://photon.komoot.io/api/', 'q layer lang lat lon']],
     ['/reverse', ['https://photon.komoot.io/reverse', 'lat lon layer lang']],
