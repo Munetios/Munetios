@@ -204,19 +204,25 @@
     if (includePast) p.set("past_days", "1");
     return WEATHER_API + "/forecast?" + p;
   }
+  async function requestForecast(loc, timezone, includePast) {
+    const data = await getJSON(forecastURL(loc, timezone, includePast));
+    if (!data?.current || !data.hourly?.time?.length || !data.daily?.time?.length) {
+      throw new Error("Invalid weather data");
+    }
+    return data;
+  }
   async function loadForecast(loc, revision) {
     const timezone = settings.useDeviceTimezone ? deviceZone : "auto";
     let data;
     if (timezone !== "auto") {
       try {
-        data = await getJSON(forecastURL(loc, timezone, true));
-        if (!data?.current || !data.hourly?.time?.length || !data.daily?.time?.length) data = null;
+        data = await requestForecast(loc, timezone, true);
       } catch (error) {
         if (error.status === 429) throw error;
       }
     }
     if (revision !== zoneRevision) return;
-    if (!data) data = await getJSON(forecastURL(loc, timezone, false));
+    if (!data) data = await requestForecast(loc, timezone, false);
     if (revision !== zoneRevision) return;
     if (timezone === "auto" && data.timezone && loc.tz !== data.timezone) { loc.tz = data.timezone; saveLocations(); }
     if (timezone !== "auto") {
@@ -296,8 +302,9 @@
     const p = photonParams({ q });
     if (active) { p.set("lat", active.lat.toFixed(2)); p.set("lon", active.lon.toFixed(2)); }
     const res = await getJSON(WEATHER_API + "/search?" + p, { signal });
+    if (!Array.isArray(res?.features)) throw new Error("Invalid search results");
     const seen = new Set();
-    return (res.features || []).map(photonToPlace).filter((pl) => {
+    return res.features.map(photonToPlace).filter((pl) => {
       if (!isCity(pl) || !pl.name) return false;
       const key = pl.name + "|" + pl.admin + "|" + pl.country;
       if (seen.has(key)) return false;
@@ -1264,9 +1271,10 @@
           "AttributionControl.ToggleAttribution": t("mapCredits"),
         },
         onPick: (ll, point) => showMapMenu(ll, point),
+        onLoad: () => { status.hidden = true; },
+        onLoadError: () => { status.textContent = t("mapError"); },
       });
       pickerLanguage = language;
-      status.hidden = true;
       if (loc) picker.mark(loc.lon, loc.lat);
     } catch (e) {
       status.textContent = t("mapError");
@@ -1372,7 +1380,7 @@
     } catch (e) {
       if (isCurrent() && e.status !== 429) {
         console.error(e);
-        UI.toast(navigator.onLine === false ? t("offline") : t("loadError"), { type: "error" });
+        UI.toast(t("loadError"), { type: "error" });
       }
     } finally {
       if (revision === zoneRevision) $("#refreshBtn").classList.remove("is-spinning");

@@ -207,7 +207,7 @@
 
   /**
    * Create a picker map.
-   * opts: { container, center:[lon,lat], zoom, theme, lang, locale, attribution, onPick(lngLat, point) }
+   * opts: { container, center:[lon,lat], zoom, theme, lang, locale, attribution, onPick(lngLat, point), onLoad, onLoadError }
    * onPick fires on right click and on a long press (touch or pen).
    */
   async function create(opts) {
@@ -225,7 +225,15 @@
       cooperativeGestures: false,
     });
     map.touchZoomRotate.disableRotation();
-    map.on("error", (e) => console.warn("Ganetios map:", e && e.error ? e.error.message : e));
+    let ready = false;
+    map.once("load", () => {
+      ready = true;
+      opts.onLoad?.();
+    });
+    map.on("error", (e) => {
+      if (!ready) opts.onLoadError?.();
+      console.warn("Munetios Weather map:", e?.error?.message || e);
+    });
     map.addControl(new ml.NavigationControl({ showCompass: false }), "bottom-right");
     // OpenFreeMap's TileJSON supplies the OpenMapTiles and OpenStreetMap attribution.
     map.addControl(new ml.AttributionControl({ compact: true }), "bottom-left");
