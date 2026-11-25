@@ -67,6 +67,17 @@ app.use('/api/collab', require('./collab/router').createCollabRouter({
 
 app.get('/api/favicon',require('./favicon-proxy').createFaviconRoute({ lookup: dns.lookup }));
 
+const weatherApi = import('./developer-beta/weather-api.mjs').then(api => ({
+  response: api.weatherResponse,
+  take: api.createLocalWeatherLimit(),
+}));
+app.use('/api/weather', async (req, res) => {
+  const { response, take } = await weatherApi;
+  const url = new URL(req.originalUrl, 'http://localhost');
+  const result = await response(url, req.method, () => take(req.ip));
+  res.set(Object.fromEntries(result.headers)).status(result.status).send(Buffer.from(await result.arrayBuffer()));
+});
+
 // Keep server-side files out of the static site.
 const PRIVATE_PATHS = /^\/(server\.js|favicon-proxy\.js|package(-lock)?\.json|claude\.md|(?:auth|collab|youtube|webfilter-api|mail-worker|developer-beta)(\/|$)|node_modules(\/|$)|\.)/i;
 app.use((req, res, next) => {

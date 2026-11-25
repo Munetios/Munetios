@@ -1,4 +1,6 @@
+import { DurableObject } from 'cloudflare:workers';
 import photosRoutes from './assets/photos/routes.js';
+import { takeWeatherRequest, weatherApiPath, weatherResponse, weatherWindowMs } from './weather-api.mjs';
 
 const noStore = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
 const appRoots = new Map([
@@ -8,8 +10,29 @@ const appRoots = new Map([
     ['photos.munetios.com', '/photos'],
 ]);
 const sharedAssets = /^\/(?:signin|omniwrite|account|fonts|munetios-ui|shared|blocked|mail|calendar|photos|webfilter)(?:\/|$)|^\/(?:tone\.js|ganetios-logo-icon\.png|munetios-logo(?:-icon)?\.png|404(?:\.html|\.css|-i18n\.js)?)$/;
-const weatherAssets = /^\/(?:weather|fonts|munetios-ui)(?:\/|$)|^\/(?:munetios-logo-icon\.png|404(?:\.html|\.css|-i18n\.js)?)$/;
+const weatherAssets = /^\/(?:weather|fonts|munetios-ui)(?:\/|$)|^\/404(?:\.html|\.css|-i18n\.js)?$/;
 const siteFiles = new Set(['/sitemap.xml', '/robots.txt']);
+
+export class WeatherRateLimiter extends DurableObject {
+    async fetch() {
+        const storage = this.ctx.storage;
+        const timestamps = storage.kv.get('requests') || [];
+        const { recent, retryAfter } = takeWeatherRequest(timestamps, Date.now());
+        if (recent) {
+            storage.kv.put('requests', recent);
+            if (!timestamps.length) await storage.setAlarm(recent[0] + weatherWindowMs);
+        }
+        return Response.json({ retryAfter: retryAfter || 0 });
+    }
+
+    async alarm() {
+        const storage = this.ctx.storage;
+        const timestamps = storage.kv.get('requests') || [];
+        const expires = timestamps.at(-1) + weatherWindowMs;
+        if (expires > Date.now()) await storage.setAlarm(expires);
+        else storage.kv.delete('requests');
+    }
+}
 
 function unavailable(isApi) {
     if (isApi) return Response.json({ error: 'unavailable' }, { status: 503, headers: noStore });
@@ -29,6 +52,16 @@ export default {
         }
         const isWeather = url.hostname === 'weather.munetios.com';
         const isWebFilter = url.hostname === 'webfilter.munetios.com';
+        if ((isWeather || url.hostname === 'beta.munetios.com') && weatherApiPath.test(pathname)) {
+            url.pathname = pathname;
+            return weatherResponse(url, request.method, async () => {
+                const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+                const limiter = env.WEATHER_RATE_LIMITER.getByName(ip);
+                const result = await limiter.fetch('https://weather-limiter/take', { method: 'POST' });
+                if (!result.ok) throw new Error('Weather rate limiter is unavailable');
+                return (await result.json()).retryAfter;
+            });
+        }
         if ((isWeather || isWebFilter) && (pathname === '/index.html' || (isWeather && /^\/weather(?:\/index\.html|\/)?$/.test(pathname)))) {
             url.pathname = '/';
             return Response.redirect(url.href, 308);

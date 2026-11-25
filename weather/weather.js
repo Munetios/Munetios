@@ -168,8 +168,17 @@
   }
 
   // ------------------------------------------------------------ network
+  const WEATHER_API = "/api/weather";
+  let retryWeatherAt = 0;
   async function getJSON(url, opts) {
+    if (Date.now() < retryWeatherAt) throw Object.assign(new Error("HTTP 429"), { status: 429 });
     const res = await fetch(url, Object.assign({ referrerPolicy: "no-referrer", credentials: "omit" }, opts));
+    if (res.status === 429) {
+      const now = Date.now();
+      if (now >= retryWeatherAt) UI.toast(t("rateLimited"), { type: "error" });
+      const seconds = Number(res.headers.get("Retry-After")) || 60;
+      retryWeatherAt = Math.max(retryWeatherAt, now + seconds * 1000);
+    }
     if (!res.ok) throw Object.assign(new Error("HTTP " + res.status), { status: res.status });
     return res.json();
   }
@@ -182,7 +191,7 @@
       minutely_15: "precipitation", forecast_minutely_15: "12",
       temperature_unit: settings.temp, wind_speed_unit: settings.wind, precipitation_unit: settings.precip,
     });
-    return "https://api.open-meteo.com/v1/forecast?" + p;
+    return WEATHER_API + "/forecast?" + p;
   }
   async function loadForecast(loc) {
     const data = await getJSON(forecastURL(loc));
@@ -195,18 +204,17 @@
   }
   async function loadAirQuality(loc) {
     const p = new URLSearchParams({ latitude: loc.lat.toFixed(4), longitude: loc.lon.toFixed(4), timezone: "auto", timeformat: "unixtime", current: "us_aqi,european_aqi,pm2_5,pm10,ozone,nitrogen_dioxide", hourly: "us_aqi,european_aqi", forecast_days: "7" });
-    store.aq[loc.id] = await getJSON("https://air-quality-api.open-meteo.com/v1/air-quality?" + p);
+    store.aq[loc.id] = await getJSON(WEATHER_API + "/air-quality?" + p);
   }
   const inUS = (loc) => (loc.countryCode ? US_CODES.has(loc.countryCode.toUpperCase()) : (loc.lat > 18 && loc.lat < 72 && loc.lon > -180 && loc.lon < -64) || (loc.lat > 13 && loc.lat < 21 && loc.lon > 144 && loc.lon < 146));
   async function loadNWS(loc) {
     if (!inUS(loc)) { store.alerts[loc.id] = { supported: false, features: [] }; store.nws[loc.id] = null; return; }
     const pt = loc.lat.toFixed(4) + "," + loc.lon.toFixed(4);
-    const headers = { Accept: "application/geo+json" };
-    const alertsP = getJSON("https://api.weather.gov/alerts/active?point=" + pt, { headers })
+    const alertsP = getJSON(WEATHER_API + "/nws/alerts?point=" + pt)
       .then((a) => { store.alerts[loc.id] = { supported: true, features: a.features || [] }; })
       .catch(() => { store.alerts[loc.id] = { supported: true, error: true, features: [] }; });
-    const forecastP = getJSON("https://api.weather.gov/points/" + pt, { headers })
-      .then((p) => (p.properties?.forecast ? getJSON(p.properties.forecast, { headers }) : null))
+    const forecastP = getJSON(WEATHER_API + "/nws/points/" + pt)
+      .then((p) => p.properties?.forecast ? getJSON(WEATHER_API + "/nws" + new URL(p.properties.forecast).pathname) : null)
       .then((f) => { store.nws[loc.id] = f?.properties?.periods || null; })
       .catch(() => { store.nws[loc.id] = null; });
     await Promise.all([alertsP, forecastP]);
@@ -216,7 +224,7 @@
     if (!list.length) return;
     const p = new URLSearchParams({ latitude: list.map((l) => l.lat.toFixed(4)).join(","), longitude: list.map((l) => l.lon.toFixed(4)).join(","), timezone: "auto", timeformat: "unixtime", current: "temperature_2m,weather_code,is_day", daily: "temperature_2m_max,temperature_2m_min", forecast_days: "1", temperature_unit: settings.temp });
     try {
-      let res = await getJSON("https://api.open-meteo.com/v1/forecast?" + p);
+      let res = await getJSON(WEATHER_API + "/forecast?" + p);
       if (!Array.isArray(res)) res = [res];
       res.forEach((r, i) => {
         const loc = list[i];
@@ -249,7 +257,7 @@
     const active = activeLocation();
     const p = photonParams({ q });
     if (active) { p.set("lat", active.lat.toFixed(2)); p.set("lon", active.lon.toFixed(2)); }
-    const res = await getJSON("https://photon.komoot.io/api/?" + p, { signal });
+    const res = await getJSON(WEATHER_API + "/search?" + p, { signal });
     const seen = new Set();
     return (res.features || []).map(photonToPlace).filter((pl) => {
       if (!isCity(pl) || !pl.name) return false;
@@ -261,13 +269,13 @@
   }
   async function reversePlace(lat, lon, signal) {
     try {
-      const res = await getJSON("https://photon.komoot.io/reverse?" + photonParams({ lat: lat.toFixed(5), lon: lon.toFixed(5) }), { signal });
+      const res = await getJSON(WEATHER_API + "/reverse?" + photonParams({ lat: lat.toFixed(5), lon: lon.toFixed(5) }), { signal });
       const f = (res.features || [])[0];
       if (f) {
         const pl = photonToPlace(f);
         return Object.assign(pl, { lat, lon });
       }
-      const res2 = await getJSON("https://photon.komoot.io/reverse?" + new URLSearchParams({ lat: lat.toFixed(5), lon: lon.toFixed(5) }), { signal });
+      const res2 = await getJSON(WEATHER_API + "/reverse?" + new URLSearchParams({ lat: lat.toFixed(5), lon: lon.toFixed(5) }), { signal });
       const g = (res2.features || [])[0];
       if (g) {
         const pr = g.properties || {};
@@ -1149,7 +1157,7 @@
         if (!results.length) render(t("noCities"));
         else render();
       } catch (e) {
-        if (e.name !== "AbortError") render(t("searchError"));
+        if (e.name !== "AbortError") render(t(e.status === 429 ? "rateLimited" : "searchError"));
       }
     };
     input.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(run, 280); });
@@ -1304,8 +1312,10 @@
           loadNWS(loc).then(() => { if (activeId === id) { renderAlerts(); if (store.data[id]) renderNWS(loc); } }),
         ]);
       } catch (e) {
-        console.error(e);
-        UI.toast(navigator.onLine === false ? t("offline") : t("loadError"), { type: "error" });
+        if (e.status !== 429) {
+          console.error(e);
+          UI.toast(navigator.onLine === false ? t("offline") : t("loadError"), { type: "error" });
+        }
       } finally {
         $("#refreshBtn").classList.remove("is-spinning");
       }

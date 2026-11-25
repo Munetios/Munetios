@@ -42,6 +42,6 @@ if (statSync(music).size > maxAssetBytes) {
     copyAsset('music.mp3');
 }
 
-for (const file of ['wrangler.toml', 'worker.mjs']) copyFileSync(path.join(__dirname, file), path.join(stage, file));
+for (const file of ['wrangler.toml', 'worker.mjs', 'weather-api.mjs']) copyFileSync(path.join(__dirname, file), path.join(stage, file));
 copyFileSync(path.join(__dirname, '_headers'), path.join(assets, '_headers'));
 process.stdout.write(path.join(stage, 'wrangler.toml') + '\n');
