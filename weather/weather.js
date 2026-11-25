@@ -1,5 +1,5 @@
 /*!
- * Ganetios Weather
+ * Munetios Weather
  * Forecasts from Open-Meteo, alerts and text forecasts from weather.gov (United States),
  * city search from Photon, and a purple OpenMapTiles map for picking places.
  * Sun and moon data are computed on the device. Saved places stay in this browser.
@@ -21,7 +21,7 @@
   const US_CODES = new Set(["US", "PR", "GU", "VI", "AS", "MP", "UM"]);
 
   // ------------------------------------------------------------ storage
-  const KEYS = { settings: "ganetios-weather-settings", locations: "ganetios-weather-locations", active: "ganetios-weather-active", cache: "ganetios-weather-cache" };
+  const KEYS = { settings: "ganetios-weather-settings", locations: "ganetios-weather-locations", active: "ganetios-weather-active", skipMyLocation: "munetios-weather-skip-my-location" };
   const read = (k, fallback) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } };
   const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } };
 
@@ -259,15 +259,15 @@
       return true;
     });
   }
-  async function reversePlace(lat, lon) {
+  async function reversePlace(lat, lon, signal) {
     try {
-      const res = await getJSON("https://photon.komoot.io/reverse?" + photonParams({ lat: lat.toFixed(5), lon: lon.toFixed(5) }));
+      const res = await getJSON("https://photon.komoot.io/reverse?" + photonParams({ lat: lat.toFixed(5), lon: lon.toFixed(5) }), { signal });
       const f = (res.features || [])[0];
       if (f) {
         const pl = photonToPlace(f);
         return Object.assign(pl, { lat, lon });
       }
-      const res2 = await getJSON("https://photon.komoot.io/reverse?" + new URLSearchParams({ lat: lat.toFixed(5), lon: lon.toFixed(5) }));
+      const res2 = await getJSON("https://photon.komoot.io/reverse?" + new URLSearchParams({ lat: lat.toFixed(5), lon: lon.toFixed(5) }), { signal });
       const g = (res2.features || [])[0];
       if (g) {
         const pr = g.properties || {};
@@ -305,26 +305,42 @@
 
   // ------------------------------------------------------------ locations
   const activeLocation = () => locations.find((l) => l.id === activeId) || null;
+  const locationName = (loc) => loc.isCurrent ? t("myLocation") : loc.name;
   function saveLocations() { write(KEYS.locations, locations); write(KEYS.active, activeId); }
-  function addLocation(pl) {
-    const existing = locations.find((l) => Math.abs(l.lat - pl.lat) < 0.01 && Math.abs(l.lon - pl.lon) < 0.01);
-    if (existing) { setActive(existing.id); UI.toast(t("alreadySaved", { name: existing.name })); return existing; }
+  function addLocation(pl, { current = false, select = true } = {}) {
+    const existing = locations.find((l) => Boolean(l.isCurrent) === current && Math.abs(l.lat - pl.lat) < 0.01 && Math.abs(l.lon - pl.lon) < 0.01);
+    if (existing) {
+      if (select) setActive(existing.id);
+      if (!current) UI.toast(t("alreadySaved", { name: existing.name }));
+      return existing;
+    }
     const loc = { id: "loc-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: pl.name, admin: pl.admin || "", country: pl.country || "", countryCode: pl.countryCode || "", lat: Number(pl.lat), lon: Number(pl.lon), tz: pl.tz || null };
-    locations.push(loc);
-    saveLocations();
-    setActive(loc.id);
-    UI.toast(t("locationAdded", { name: loc.name }), { type: "success" });
+    if (current) {
+      loc.isCurrent = true;
+      const index = locations.findIndex((l) => l.isCurrent);
+      if (index < 0) locations.unshift(loc);
+      else {
+        const previousId = locations[index].id;
+        locations[index] = loc;
+        for (const entries of Object.values(store)) delete entries[previousId];
+        if (activeId === previousId) select = true;
+      }
+    } else locations.push(loc);
+    if (select) setActive(loc.id);
+    else { saveLocations(); loadSummaries(); renderLocations(); }
+    if (!current) UI.toast(t("locationAdded", { name: loc.name }), { type: "success" });
     return loc;
   }
   function removeLocation(id) {
     const loc = locations.find((l) => l.id === id);
+    if (loc?.isCurrent) write(KEYS.skipMyLocation, true);
     locations = locations.filter((l) => l.id !== id);
     delete store.data[id];
     if (activeId === id) activeId = locations[0]?.id || null;
     saveLocations();
     renderLocations();
     refresh();
-    if (loc) UI.toast(t("locationRemoved", { name: loc.name }));
+    if (loc) UI.toast(t("locationRemoved", { name: locationName(loc) }));
   }
   function moveLocation(id, dir) {
     const i = locations.findIndex((l) => l.id === id);
@@ -350,6 +366,8 @@
       return;
     }
     list.innerHTML = locations.map((loc) => {
+      const name = locationName(loc);
+      const place = loc.isCurrent ? loc.name : loc.country;
       const d = loc.id === activeId ? store.data[loc.id] : store.summary[loc.id];
       const cur = d?.current;
       const now = Date.now();
@@ -359,10 +377,10 @@
       const lo = d?.daily ? deg(d.daily.temperature_2m_min[0]) : "";
       return `<li class="gw-loc${loc.id === activeId ? " is-active" : ""}">
         <button type="button" class="gw-loc-main" data-id="${loc.id}" ${loc.id === activeId ? 'aria-current="true"' : ""}>
-          <span class="gw-loc-text"><span class="gw-loc-name">${esc(loc.name)}</span><span class="gw-loc-sub">${esc(timeStr(now, loc))}${loc.country ? " · " + esc(loc.country) : ""}</span>${cur ? `<span class="gw-loc-sub">${esc(condText(cur.weather_code))}</span>` : ""}</span>
+          <span class="gw-loc-text"><span class="gw-loc-name">${esc(name)}</span><span class="gw-loc-sub">${esc(timeStr(now, loc))}${place ? " · " + esc(place) : ""}</span>${cur ? `<span class="gw-loc-sub">${esc(condText(cur.weather_code))}</span>` : ""}</span>
           <span class="gw-loc-wx">${icon}<span class="gw-loc-temp">${temp}</span>${hi ? `<span class="gw-loc-sub">${esc(t("hiLoShort", { hi, lo }))}</span>` : ""}</span>
         </button>
-        <button type="button" class="mu-icon-btn mu-icon-btn-sm gw-loc-more" data-more="${loc.id}" aria-label="${esc(t("locationOptions", { name: loc.name }))}" title="${esc(t("locationOptions", { name: loc.name }))}"><span class="mu-icon" aria-hidden="true">more_vert</span></button>
+        <button type="button" class="mu-icon-btn mu-icon-btn-sm gw-loc-more" data-more="${loc.id}" aria-label="${esc(t("locationOptions", { name }))}" title="${esc(t("locationOptions", { name }))}"><span class="mu-icon" aria-hidden="true">more_vert</span></button>
       </li>`;
     }).join("");
   }
@@ -409,7 +427,7 @@
     const d = loc && store.data[loc.id];
     $("#main").setAttribute("aria-busy", d ? "false" : "true");
     if (!loc) { renderEmpty(); return; }
-    $("#placeName").textContent = loc.name;
+    $("#placeName").textContent = locationName(loc);
     $("#placeSub").textContent = placeSubtitle(loc);
     renderSun();
     renderAlerts();
@@ -431,7 +449,8 @@
     renderNWS(loc);
   }
   function placeSubtitle(loc) {
-    return [[loc.admin, loc.country].filter(Boolean).join(", "), dateStr(Date.now(), loc, { weekday: "long", month: "long", day: "numeric" }), timeStr(Date.now(), loc)].filter(Boolean).join(" · ");
+    const place = [loc.isCurrent ? loc.name : "", loc.admin, loc.country].filter(Boolean);
+    return [[...new Set(place)].join(", "), dateStr(Date.now(), loc, { weekday: "long", month: "long", day: "numeric" }), timeStr(Date.now(), loc)].filter(Boolean).join(" · ");
   }
   function renderEmpty() {
     $("#placeName").textContent = t("welcomeTitle");
@@ -1304,17 +1323,35 @@
   }
 
   // ------------------------------------------------------------ geolocation
-  function locate() {
-    if (!navigator.geolocation) { UI.toast(t("locationUnavailable"), { type: "error" }); return; }
-    $("#locateBtn").classList.add("is-spinning");
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const pl = await reversePlace(pos.coords.latitude, pos.coords.longitude);
-      $("#locateBtn").classList.remove("is-spinning");
-      addLocation(pl);
-    }, () => {
-      $("#locateBtn").classList.remove("is-spinning");
-      UI.toast(t("locationDenied"), { type: "error" });
-    }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+  let locating = false;
+  let selectMyLocation = false;
+  async function locate(automatic = false) {
+    if (automatic && read(KEYS.skipMyLocation, false)) return;
+    if (!navigator.geolocation) {
+      if (!automatic) UI.toast(t("locationUnavailable"), { type: "error" });
+      return;
+    }
+    if (!automatic) selectMyLocation = true;
+    if (locating) return;
+    locating = true;
+    const button = $("#locateBtn");
+    button.classList.add("is-spinning");
+    try {
+      const { coords } = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+      });
+      const pl = await reversePlace(coords.latitude, coords.longitude, AbortSignal.timeout?.(5000));
+      if (selectMyLocation || !read(KEYS.skipMyLocation, false)) {
+        if (selectMyLocation) write(KEYS.skipMyLocation, false);
+        addLocation(pl, { current: true, select: selectMyLocation || !activeId });
+      }
+    } catch (e) {
+      if (selectMyLocation) UI.toast(t("locationDenied"), { type: "error" });
+    } finally {
+      locating = false;
+      selectMyLocation = false;
+      button.classList.remove("is-spinning");
+    }
   }
 
   // ------------------------------------------------------------ wire up
@@ -1336,7 +1373,7 @@
     $("#addLocationBtn").addEventListener("click", openLocationModal);
     $("#addLocationMain").addEventListener("click", openLocationModal);
     $("#mapBtn").addEventListener("click", openLocationModal);
-    $("#locateBtn").addEventListener("click", locate);
+    $("#locateBtn").addEventListener("click", () => locate());
     $("#refreshBtn").addEventListener("click", () => refresh(true));
     $("#settingsBtn").addEventListener("click", () => { renderSettings(); UI.openModal("settingsModal"); });
     $("#skyBtn").addEventListener("click", openSkyPreviews);
@@ -1444,7 +1481,10 @@
 
     renderLocations();
     refresh();
-    if (!locations.length) setTimeout(() => $("#searchInput").focus(), 300);
+    locate(true);
+    if (!locations.length) setTimeout(() => {
+      if (!locations.length && !locating && document.activeElement === document.body) $("#searchInput").focus();
+    }, 300);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

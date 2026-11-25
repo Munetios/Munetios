@@ -8,7 +8,7 @@ const appRoots = new Map([
     ['photos.munetios.com', '/photos'],
 ]);
 const sharedAssets = /^\/(?:signin|omniwrite|account|fonts|munetios-ui|shared|blocked|mail|calendar|photos|webfilter)(?:\/|$)|^\/(?:tone\.js|ganetios-logo-icon\.png|munetios-logo(?:-icon)?\.png|404(?:\.html|\.css|-i18n\.js)?)$/;
-const weatherAssets = /^\/(?:weather|fonts|munetios-ui)(?:\/|$)|^\/(?:favicon-ganetios\.ico|ganetios-logo-icon\.png|404(?:\.html|\.css|-i18n\.js)?)$/;
+const weatherAssets = /^\/(?:weather|fonts|munetios-ui)(?:\/|$)|^\/(?:munetios-logo-icon\.png|404(?:\.html|\.css|-i18n\.js)?)$/;
 const siteFiles = new Set(['/sitemap.xml', '/robots.txt']);
 
 function unavailable(isApi) {

@@ -1,5 +1,5 @@
 /*!
- * Ganetios Weather strings.
+ * Munetios Weather strings.
  * "es" is Latin American Spanish (es-US, es-MX, es-419) and "es-ES" holds the differences for Spain.
  * "compass" lists the 16 compass points separated by "|".
  * Alert text from weather.gov stays in English because the National Weather Service publishes it in English.
@@ -7,10 +7,10 @@
 window.GanetiosWeatherStrings = {
   en: {
     skipToForecast: "Skip to forecast", toggleLocations: "Show or hide locations", searchPlaceholder: "Search cities or coordinates", searchResults: "Search results", clearSearch: "Clear search",
-    useMyLocation: "Use my location", pickOnMap: "Pick on map", skyPreviews: "Sky previews", refresh: "Refresh", settings: "Settings", locations: "Locations", addLocation: "Add location",
+    useMyLocation: "Use my location", myLocation: "My Location", pickOnMap: "Pick on map", skyPreviews: "Sky previews", refresh: "Refresh", settings: "Settings", locations: "Locations", addLocation: "Add location",
     noLocations: "No locations yet. Search for a city or pick one on the map.", locationOptions: "Options for {name}", moveUp: "Move up", moveDown: "Move down", remove: "Remove", copyCoordinates: "Copy coordinates", copied: "Copied",
     alreadySaved: "{name} is already saved", locationAdded: "Added {name}", locationRemoved: "Removed {name}", locationUnavailable: "Location isn't available on this device", locationDenied: "Couldn't get your location",
-    welcomeTitle: "Welcome to Ganetios Weather", welcomeText: "Add a city to see its forecast, alerts, and sun times.", addToSeeForecast: "Add a location to see the hourly forecast.",
+    welcomeTitle: "Welcome to Munetios Weather", welcomeText: "Add a city to see its forecast, alerts, and sun times.", addToSeeForecast: "Add a location to see the hourly forecast.",
     backToLive: "Back to live sky", previewing: "Previewing {name}", now: "Now", today: "Today", tomorrow: "Tomorrow",
     hourlyForecast: "Hourly forecast", next24Hours: "Next 24 hours", currentConditions: "Current conditions", forecastCharts: "Forecast charts", dailyForecast: "16-day forecast", dailyForecastN: "{n}-day forecast",
     chartMetric: "Chart", chartRange: "Time range", range24h: "24 h", range48h: "48 h", range7d: "7 days", range16d: "16 days", showTable: "Show as table", time: "Time",
@@ -59,10 +59,10 @@ window.GanetiosWeatherStrings = {
   },
   es: {
     skipToForecast: "Ir al pronóstico", toggleLocations: "Mostrar u ocultar ubicaciones", searchPlaceholder: "Busca ciudades o coordenadas", searchResults: "Resultados de búsqueda", clearSearch: "Borrar búsqueda",
-    useMyLocation: "Usar mi ubicación", pickOnMap: "Elegir en el mapa", skyPreviews: "Vistas del cielo", refresh: "Actualizar", settings: "Configuración", locations: "Ubicaciones", addLocation: "Agregar ubicación",
+    useMyLocation: "Usar mi ubicación", myLocation: "Mi ubicación", pickOnMap: "Elegir en el mapa", skyPreviews: "Vistas del cielo", refresh: "Actualizar", settings: "Configuración", locations: "Ubicaciones", addLocation: "Agregar ubicación",
     noLocations: "Todavía no hay ubicaciones. Busca una ciudad o elígela en el mapa.", locationOptions: "Opciones de {name}", moveUp: "Subir", moveDown: "Bajar", remove: "Quitar", copyCoordinates: "Copiar coordenadas", copied: "Copiado",
     alreadySaved: "{name} ya está guardada", locationAdded: "Se agregó {name}", locationRemoved: "Se quitó {name}", locationUnavailable: "La ubicación no está disponible en este dispositivo", locationDenied: "No se pudo obtener tu ubicación",
-    welcomeTitle: "Te damos la bienvenida a Ganetios Weather", welcomeText: "Agrega una ciudad para ver su pronóstico, alertas y horarios del sol.", addToSeeForecast: "Agrega una ubicación para ver el pronóstico por hora.",
+    welcomeTitle: "Te damos la bienvenida a Munetios Weather", welcomeText: "Agrega una ciudad para ver su pronóstico, alertas y horarios del sol.", addToSeeForecast: "Agrega una ubicación para ver el pronóstico por hora.",
     backToLive: "Volver al cielo en vivo", previewing: "Vista previa: {name}", now: "Ahora", today: "Hoy", tomorrow: "Mañana",
     hourlyForecast: "Pronóstico por hora", next24Hours: "Próximas 24 horas", currentConditions: "Condiciones actuales", forecastCharts: "Gráficos del pronóstico", dailyForecast: "Pronóstico de 16 días", dailyForecastN: "Pronóstico de {n} días",
     chartMetric: "Gráfico", chartRange: "Período", range24h: "24 h", range48h: "48 h", range7d: "7 días", range16d: "16 días", showTable: "Ver como tabla", time: "Hora",
@@ -108,7 +108,7 @@ window.GanetiosWeatherStrings = {
   },
   "es-ES": {
     settings: "Ajustes", addLocation: "Añadir ubicación", locationAdded: "Se ha añadido {name}", locationRemoved: "Se ha quitado {name}",
-    noLocations: "Aún no hay ubicaciones. Busca una ciudad o elígela en el mapa.", welcomeTitle: "Te damos la bienvenida a Ganetios Weather", welcomeText: "Añade una ciudad para ver su previsión, avisos y horarios del sol.", addToSeeForecast: "Añade una ubicación para ver la previsión por horas.",
+    noLocations: "Aún no hay ubicaciones. Busca una ciudad o elígela en el mapa.", welcomeTitle: "Te damos la bienvenida a Munetios Weather", welcomeText: "Añade una ciudad para ver su previsión, avisos y horarios del sol.", addToSeeForecast: "Añade una ubicación para ver la previsión por horas.",
     hourlyForecast: "Previsión por horas", forecastCharts: "Gráficos de la previsión", dailyForecast: "Previsión de 16 días", dailyForecastN: "Previsión de {n} días", nwsForecast: "Previsión del Servicio Meteorológico Nacional",
     alerts: "Avisos", noAlerts: "No hay avisos activos en esta zona", alertsUnsupported: "Los avisos de weather.gov cubren Estados Unidos y sus territorios.", alertsError: "No se han podido cargar los avisos de weather.gov", alertsNoLocation: "Añade una ubicación para ver avisos.", viewAlerts: "Ver avisos",
     mapHint: "Haz clic derecho o mantén pulsado para añadir un lugar", searchHint: "Busca una ciudad o escribe coordenadas como 40.4168, -3.7038.", done: "Hecho",
@@ -117,10 +117,10 @@ window.GanetiosWeatherStrings = {
   },
   fr: {
     skipToForecast: "Aller aux prévisions", toggleLocations: "Afficher ou masquer les lieux", searchPlaceholder: "Rechercher des villes ou des coordonnées", searchResults: "Résultats de recherche", clearSearch: "Effacer la recherche",
-    useMyLocation: "Utiliser ma position", pickOnMap: "Choisir sur la carte", skyPreviews: "Aperçus du ciel", refresh: "Actualiser", settings: "Paramètres", locations: "Lieux", addLocation: "Ajouter un lieu",
+    useMyLocation: "Utiliser ma position", myLocation: "Ma position", pickOnMap: "Choisir sur la carte", skyPreviews: "Aperçus du ciel", refresh: "Actualiser", settings: "Paramètres", locations: "Lieux", addLocation: "Ajouter un lieu",
     noLocations: "Aucun lieu pour l’instant. Recherchez une ville ou choisissez-la sur la carte.", locationOptions: "Options pour {name}", moveUp: "Monter", moveDown: "Descendre", remove: "Retirer", copyCoordinates: "Copier les coordonnées", copied: "Copié",
     alreadySaved: "{name} est déjà enregistré", locationAdded: "{name} ajouté", locationRemoved: "{name} retiré", locationUnavailable: "La localisation n’est pas disponible sur cet appareil", locationDenied: "Impossible d’obtenir votre position",
-    welcomeTitle: "Bienvenue dans Ganetios Weather", welcomeText: "Ajoutez une ville pour voir ses prévisions, ses alertes et les heures du soleil.", addToSeeForecast: "Ajoutez un lieu pour voir les prévisions heure par heure.",
+    welcomeTitle: "Bienvenue dans Munetios Weather", welcomeText: "Ajoutez une ville pour voir ses prévisions, ses alertes et les heures du soleil.", addToSeeForecast: "Ajoutez un lieu pour voir les prévisions heure par heure.",
     backToLive: "Revenir au ciel en direct", previewing: "Aperçu : {name}", now: "Maintenant", today: "Aujourd’hui", tomorrow: "Demain",
     hourlyForecast: "Prévisions heure par heure", next24Hours: "24 prochaines heures", currentConditions: "Conditions actuelles", forecastCharts: "Graphiques des prévisions", dailyForecast: "Prévisions sur 16 jours", dailyForecastN: "Prévisions sur {n} jours",
     chartMetric: "Graphique", chartRange: "Période", range24h: "24 h", range48h: "48 h", range7d: "7 jours", range16d: "16 jours", showTable: "Afficher sous forme de tableau", time: "Heure",
@@ -166,10 +166,10 @@ window.GanetiosWeatherStrings = {
   },
   de: {
     skipToForecast: "Zur Vorhersage springen", toggleLocations: "Orte ein- oder ausblenden", searchPlaceholder: "Städte oder Koordinaten suchen", searchResults: "Suchergebnisse", clearSearch: "Suche löschen",
-    useMyLocation: "Meinen Standort verwenden", pickOnMap: "Auf der Karte wählen", skyPreviews: "Himmelsvorschau", refresh: "Aktualisieren", settings: "Einstellungen", locations: "Orte", addLocation: "Ort hinzufügen",
+    useMyLocation: "Meinen Standort verwenden", myLocation: "Mein Standort", pickOnMap: "Auf der Karte wählen", skyPreviews: "Himmelsvorschau", refresh: "Aktualisieren", settings: "Einstellungen", locations: "Orte", addLocation: "Ort hinzufügen",
     noLocations: "Noch keine Orte. Suche nach einer Stadt oder wähle sie auf der Karte.", locationOptions: "Optionen für {name}", moveUp: "Nach oben", moveDown: "Nach unten", remove: "Entfernen", copyCoordinates: "Koordinaten kopieren", copied: "Kopiert",
     alreadySaved: "{name} ist bereits gespeichert", locationAdded: "{name} hinzugefügt", locationRemoved: "{name} entfernt", locationUnavailable: "Standort ist auf diesem Gerät nicht verfügbar", locationDenied: "Dein Standort konnte nicht ermittelt werden",
-    welcomeTitle: "Willkommen bei Ganetios Weather", welcomeText: "Füge eine Stadt hinzu, um Vorhersage, Warnungen und Sonnenzeiten zu sehen.", addToSeeForecast: "Füge einen Ort hinzu, um die stündliche Vorhersage zu sehen.",
+    welcomeTitle: "Willkommen bei Munetios Weather", welcomeText: "Füge eine Stadt hinzu, um Vorhersage, Warnungen und Sonnenzeiten zu sehen.", addToSeeForecast: "Füge einen Ort hinzu, um die stündliche Vorhersage zu sehen.",
     backToLive: "Zurück zum Live-Himmel", previewing: "Vorschau: {name}", now: "Jetzt", today: "Heute", tomorrow: "Morgen",
     hourlyForecast: "Stündliche Vorhersage", next24Hours: "Nächste 24 Stunden", currentConditions: "Aktuelle Bedingungen", forecastCharts: "Vorhersagediagramme", dailyForecast: "16-Tage-Vorhersage", dailyForecastN: "{n}-Tage-Vorhersage",
     chartMetric: "Diagramm", chartRange: "Zeitraum", range24h: "24 Std.", range48h: "48 Std.", range7d: "7 Tage", range16d: "16 Tage", showTable: "Als Tabelle anzeigen", time: "Uhrzeit",
@@ -215,10 +215,10 @@ window.GanetiosWeatherStrings = {
   },
   it: {
     skipToForecast: "Vai alle previsioni", toggleLocations: "Mostra o nascondi le località", searchPlaceholder: "Cerca città o coordinate", searchResults: "Risultati della ricerca", clearSearch: "Cancella ricerca",
-    useMyLocation: "Usa la mia posizione", pickOnMap: "Scegli sulla mappa", skyPreviews: "Anteprime del cielo", refresh: "Aggiorna", settings: "Impostazioni", locations: "Località", addLocation: "Aggiungi località",
+    useMyLocation: "Usa la mia posizione", myLocation: "La mia posizione", pickOnMap: "Scegli sulla mappa", skyPreviews: "Anteprime del cielo", refresh: "Aggiorna", settings: "Impostazioni", locations: "Località", addLocation: "Aggiungi località",
     noLocations: "Nessuna località. Cerca una città o sceglila sulla mappa.", locationOptions: "Opzioni per {name}", moveUp: "Sposta su", moveDown: "Sposta giù", remove: "Rimuovi", copyCoordinates: "Copia coordinate", copied: "Copiato",
     alreadySaved: "{name} è già salvata", locationAdded: "{name} aggiunta", locationRemoved: "{name} rimossa", locationUnavailable: "La posizione non è disponibile su questo dispositivo", locationDenied: "Impossibile ottenere la tua posizione",
-    welcomeTitle: "Ti diamo il benvenuto in Ganetios Weather", welcomeText: "Aggiungi una città per vedere previsioni, allerte e orari del sole.", addToSeeForecast: "Aggiungi una località per vedere le previsioni orarie.",
+    welcomeTitle: "Ti diamo il benvenuto in Munetios Weather", welcomeText: "Aggiungi una città per vedere previsioni, allerte e orari del sole.", addToSeeForecast: "Aggiungi una località per vedere le previsioni orarie.",
     backToLive: "Torna al cielo in diretta", previewing: "Anteprima: {name}", now: "Ora", today: "Oggi", tomorrow: "Domani",
     hourlyForecast: "Previsioni orarie", next24Hours: "Prossime 24 ore", currentConditions: "Condizioni attuali", forecastCharts: "Grafici delle previsioni", dailyForecast: "Previsioni a 16 giorni", dailyForecastN: "Previsioni a {n} giorni",
     chartMetric: "Grafico", chartRange: "Periodo", range24h: "24 h", range48h: "48 h", range7d: "7 giorni", range16d: "16 giorni", showTable: "Mostra come tabella", time: "Ora",
@@ -264,10 +264,10 @@ window.GanetiosWeatherStrings = {
   },
   pt: {
     skipToForecast: "Pular para a previsão", toggleLocations: "Mostrar ou ocultar locais", searchPlaceholder: "Pesquise cidades ou coordenadas", searchResults: "Resultados da pesquisa", clearSearch: "Limpar pesquisa",
-    useMyLocation: "Usar minha localização", pickOnMap: "Escolher no mapa", skyPreviews: "Prévias do céu", refresh: "Atualizar", settings: "Configurações", locations: "Locais", addLocation: "Adicionar local",
+    useMyLocation: "Usar minha localização", myLocation: "Minha localização", pickOnMap: "Escolher no mapa", skyPreviews: "Prévias do céu", refresh: "Atualizar", settings: "Configurações", locations: "Locais", addLocation: "Adicionar local",
     noLocations: "Nenhum local ainda. Pesquise uma cidade ou escolha no mapa.", locationOptions: "Opções de {name}", moveUp: "Mover para cima", moveDown: "Mover para baixo", remove: "Remover", copyCoordinates: "Copiar coordenadas", copied: "Copiado",
     alreadySaved: "{name} já está salvo", locationAdded: "{name} adicionado", locationRemoved: "{name} removido", locationUnavailable: "A localização não está disponível neste dispositivo", locationDenied: "Não foi possível obter sua localização",
-    welcomeTitle: "Boas-vindas ao Ganetios Weather", welcomeText: "Adicione uma cidade para ver a previsão, os alertas e os horários do sol.", addToSeeForecast: "Adicione um local para ver a previsão por hora.",
+    welcomeTitle: "Boas-vindas ao Munetios Weather", welcomeText: "Adicione uma cidade para ver a previsão, os alertas e os horários do sol.", addToSeeForecast: "Adicione um local para ver a previsão por hora.",
     backToLive: "Voltar ao céu ao vivo", previewing: "Prévia: {name}", now: "Agora", today: "Hoje", tomorrow: "Amanhã",
     hourlyForecast: "Previsão por hora", next24Hours: "Próximas 24 horas", currentConditions: "Condições atuais", forecastCharts: "Gráficos da previsão", dailyForecast: "Previsão de 16 dias", dailyForecastN: "Previsão de {n} dias",
     chartMetric: "Gráfico", chartRange: "Período", range24h: "24 h", range48h: "48 h", range7d: "7 dias", range16d: "16 dias", showTable: "Mostrar como tabela", time: "Horário",
@@ -312,9 +312,9 @@ window.GanetiosWeatherStrings = {
     dataSources: "Fontes de dados", attrOpenMeteo: "Dados meteorológicos de", attrNws: "Alertas e previsões do Serviço Meteorológico Nacional dos EUA,", attrPhoton: "Pesquisa com", attrMap: "Mapa de", attrSun: "Os horários do sol e da lua são calculados no seu dispositivo.",
   },
   "pt-PT": {
-    skipToForecast: "Saltar para a previsão", searchPlaceholder: "Pesquise cidades ou coordenadas", useMyLocation: "Utilizar a minha localização", skyPreviews: "Pré-visualizações do céu", settings: "Definições",
+    skipToForecast: "Saltar para a previsão", searchPlaceholder: "Pesquise cidades ou coordenadas", useMyLocation: "Utilizar a minha localização", myLocation: "A minha localização", skyPreviews: "Pré-visualizações do céu", settings: "Definições",
     noLocations: "Ainda não há locais. Pesquise uma cidade ou escolha-a no mapa.", alreadySaved: "{name} já está guardado", locationDenied: "Não foi possível obter a sua localização",
-    welcomeTitle: "Bem-vindo ao Ganetios Weather", backToLive: "Voltar ao céu em direto", previewing: "Pré-visualização: {name}", time: "Hora",
+    welcomeTitle: "Bem-vindo ao Munetios Weather", backToLive: "Voltar ao céu em direto", previewing: "Pré-visualização: {name}", time: "Hora",
     chartPrecipChance: "Probabilidade de precipitação", chancePrecip: "Probabilidade de precipitação", humidity: "Humidade", feelsWarmer: "A humidade faz parecer mais quente", pressureRising: "A subir", pressureFalling: "A descer",
     nowcastStarting: "Precipitação a começar dentro de cerca de {min} minutos", nowcastStopping: "Precipitação a terminar dentro de cerca de {min} minutos",
     loading: "A carregar", searching: "A pesquisar…", lookingUp: "A procurar este lugar…", loadingMap: "A carregar o mapa…", mapHint: "Clique com o botão direito ou mantenha premido para adicionar um lugar", mapError: "Não foi possível carregar o mapa. Ainda pode pesquisar.",
@@ -325,10 +325,10 @@ window.GanetiosWeatherStrings = {
   },
   ru: {
     skipToForecast: "Перейти к прогнозу", toggleLocations: "Показать или скрыть места", searchPlaceholder: "Поиск городов или координат", searchResults: "Результаты поиска", clearSearch: "Очистить поиск",
-    useMyLocation: "Моё местоположение", pickOnMap: "Выбрать на карте", skyPreviews: "Виды неба", refresh: "Обновить", settings: "Настройки", locations: "Места", addLocation: "Добавить место",
+    useMyLocation: "Моё местоположение", myLocation: "Моё местоположение", pickOnMap: "Выбрать на карте", skyPreviews: "Виды неба", refresh: "Обновить", settings: "Настройки", locations: "Места", addLocation: "Добавить место",
     noLocations: "Мест пока нет. Найдите город или выберите его на карте.", locationOptions: "Параметры: {name}", moveUp: "Переместить вверх", moveDown: "Переместить вниз", remove: "Удалить", copyCoordinates: "Копировать координаты", copied: "Скопировано",
     alreadySaved: "{name} уже сохранено", locationAdded: "Добавлено: {name}", locationRemoved: "Удалено: {name}", locationUnavailable: "Геолокация недоступна на этом устройстве", locationDenied: "Не удалось определить ваше местоположение",
-    welcomeTitle: "Добро пожаловать в Ganetios Weather", welcomeText: "Добавьте город, чтобы видеть прогноз, предупреждения и время восхода и заката.", addToSeeForecast: "Добавьте место, чтобы увидеть почасовой прогноз.",
+    welcomeTitle: "Добро пожаловать в Munetios Weather", welcomeText: "Добавьте город, чтобы видеть прогноз, предупреждения и время восхода и заката.", addToSeeForecast: "Добавьте место, чтобы увидеть почасовой прогноз.",
     backToLive: "Вернуться к реальному небу", previewing: "Просмотр: {name}", now: "Сейчас", today: "Сегодня", tomorrow: "Завтра",
     hourlyForecast: "Почасовой прогноз", next24Hours: "Ближайшие 24 часа", currentConditions: "Текущая погода", forecastCharts: "Графики прогноза", dailyForecast: "Прогноз на 16 дней", dailyForecastN: "Прогноз на {n} дн.",
     chartMetric: "График", chartRange: "Период", range24h: "24 ч", range48h: "48 ч", range7d: "7 дней", range16d: "16 дней", showTable: "Показать таблицей", time: "Время",
@@ -374,10 +374,10 @@ window.GanetiosWeatherStrings = {
   },
   zh: {
     skipToForecast: "跳到天气预报", toggleLocations: "显示或隐藏地点", searchPlaceholder: "搜索城市或坐标", searchResults: "搜索结果", clearSearch: "清除搜索",
-    useMyLocation: "使用我的位置", pickOnMap: "在地图上选择", skyPreviews: "天空预览", refresh: "刷新", settings: "设置", locations: "地点", addLocation: "添加地点",
+    useMyLocation: "使用我的位置", myLocation: "我的位置", pickOnMap: "在地图上选择", skyPreviews: "天空预览", refresh: "刷新", settings: "设置", locations: "地点", addLocation: "添加地点",
     noLocations: "还没有地点。搜索城市或在地图上选择。", locationOptions: "{name} 的选项", moveUp: "上移", moveDown: "下移", remove: "移除", copyCoordinates: "复制坐标", copied: "已复制",
     alreadySaved: "{name} 已保存", locationAdded: "已添加 {name}", locationRemoved: "已移除 {name}", locationUnavailable: "此设备无法使用定位", locationDenied: "无法获取你的位置",
-    welcomeTitle: "欢迎使用 Ganetios Weather", welcomeText: "添加城市即可查看天气预报、预警和日出日落时间。", addToSeeForecast: "添加地点以查看逐小时预报。",
+    welcomeTitle: "欢迎使用 Munetios Weather", welcomeText: "添加城市即可查看天气预报、预警和日出日落时间。", addToSeeForecast: "添加地点以查看逐小时预报。",
     backToLive: "返回实时天空", previewing: "正在预览：{name}", now: "现在", today: "今天", tomorrow: "明天",
     hourlyForecast: "逐小时预报", next24Hours: "未来 24 小时", currentConditions: "当前天气", forecastCharts: "预报图表", dailyForecast: "16 天预报", dailyForecastN: "{n} 天预报",
     chartMetric: "图表", chartRange: "时间范围", range24h: "24 小时", range48h: "48 小时", range7d: "7 天", range16d: "16 天", showTable: "以表格显示", time: "时间",
@@ -423,10 +423,10 @@ window.GanetiosWeatherStrings = {
   },
   ja: {
     skipToForecast: "予報へ移動", toggleLocations: "地点の表示/非表示", searchPlaceholder: "都市や座標を検索", searchResults: "検索結果", clearSearch: "検索をクリア",
-    useMyLocation: "現在地を使用", pickOnMap: "地図で選ぶ", skyPreviews: "空のプレビュー", refresh: "更新", settings: "設定", locations: "地点", addLocation: "地点を追加",
+    useMyLocation: "現在地を使用", myLocation: "現在地", pickOnMap: "地図で選ぶ", skyPreviews: "空のプレビュー", refresh: "更新", settings: "設定", locations: "地点", addLocation: "地点を追加",
     noLocations: "地点はまだありません。都市を検索するか、地図で選んでください。", locationOptions: "{name} のオプション", moveUp: "上へ移動", moveDown: "下へ移動", remove: "削除", copyCoordinates: "座標をコピー", copied: "コピーしました",
     alreadySaved: "{name} はすでに保存されています", locationAdded: "{name} を追加しました", locationRemoved: "{name} を削除しました", locationUnavailable: "このデバイスでは位置情報を利用できません", locationDenied: "現在地を取得できませんでした",
-    welcomeTitle: "Ganetios Weather へようこそ", welcomeText: "都市を追加すると、予報、警報、日の出・日の入り時刻を確認できます。", addToSeeForecast: "地点を追加すると 1 時間ごとの予報が表示されます。",
+    welcomeTitle: "Munetios Weather へようこそ", welcomeText: "都市を追加すると、予報、警報、日の出・日の入り時刻を確認できます。", addToSeeForecast: "地点を追加すると 1 時間ごとの予報が表示されます。",
     backToLive: "現在の空に戻る", previewing: "プレビュー中: {name}", now: "現在", today: "今日", tomorrow: "明日",
     hourlyForecast: "1 時間ごとの予報", next24Hours: "今後 24 時間", currentConditions: "現在の天気", forecastCharts: "予報グラフ", dailyForecast: "16 日間の予報", dailyForecastN: "{n} 日間の予報",
     chartMetric: "グラフ", chartRange: "期間", range24h: "24 時間", range48h: "48 時間", range7d: "7 日間", range16d: "16 日間", showTable: "表で表示", time: "時刻",
@@ -472,10 +472,10 @@ window.GanetiosWeatherStrings = {
   },
   ko: {
     skipToForecast: "예보로 건너뛰기", toggleLocations: "위치 표시 또는 숨기기", searchPlaceholder: "도시 또는 좌표 검색", searchResults: "검색 결과", clearSearch: "검색어 지우기",
-    useMyLocation: "내 위치 사용", pickOnMap: "지도에서 선택", skyPreviews: "하늘 미리보기", refresh: "새로고침", settings: "설정", locations: "위치", addLocation: "위치 추가",
+    useMyLocation: "내 위치 사용", myLocation: "내 위치", pickOnMap: "지도에서 선택", skyPreviews: "하늘 미리보기", refresh: "새로고침", settings: "설정", locations: "위치", addLocation: "위치 추가",
     noLocations: "아직 위치가 없습니다. 도시를 검색하거나 지도에서 선택하세요.", locationOptions: "{name} 옵션", moveUp: "위로 이동", moveDown: "아래로 이동", remove: "삭제", copyCoordinates: "좌표 복사", copied: "복사됨",
     alreadySaved: "{name}은(는) 이미 저장되어 있습니다", locationAdded: "{name} 추가됨", locationRemoved: "{name} 삭제됨", locationUnavailable: "이 기기에서는 위치를 사용할 수 없습니다", locationDenied: "위치를 가져올 수 없습니다",
-    welcomeTitle: "Ganetios Weather에 오신 것을 환영합니다", welcomeText: "도시를 추가하면 예보, 경보, 일출·일몰 시간을 볼 수 있습니다.", addToSeeForecast: "시간별 예보를 보려면 위치를 추가하세요.",
+    welcomeTitle: "Munetios Weather에 오신 것을 환영합니다", welcomeText: "도시를 추가하면 예보, 경보, 일출·일몰 시간을 볼 수 있습니다.", addToSeeForecast: "시간별 예보를 보려면 위치를 추가하세요.",
     backToLive: "실시간 하늘로 돌아가기", previewing: "미리보기: {name}", now: "지금", today: "오늘", tomorrow: "내일",
     hourlyForecast: "시간별 예보", next24Hours: "앞으로 24시간", currentConditions: "현재 날씨", forecastCharts: "예보 차트", dailyForecast: "16일 예보", dailyForecastN: "{n}일 예보",
     chartMetric: "차트", chartRange: "기간", range24h: "24시간", range48h: "48시간", range7d: "7일", range16d: "16일", showTable: "표로 보기", time: "시간",
@@ -521,10 +521,10 @@ window.GanetiosWeatherStrings = {
   },
   ar: {
     skipToForecast: "الانتقال إلى التوقعات", toggleLocations: "إظهار المواقع أو إخفاؤها", searchPlaceholder: "ابحث عن مدن أو إحداثيات", searchResults: "نتائج البحث", clearSearch: "مسح البحث",
-    useMyLocation: "استخدام موقعي", pickOnMap: "الاختيار من الخريطة", skyPreviews: "معاينات السماء", refresh: "تحديث", settings: "الإعدادات", locations: "المواقع", addLocation: "إضافة موقع",
+    useMyLocation: "استخدام موقعي", myLocation: "موقعي", pickOnMap: "الاختيار من الخريطة", skyPreviews: "معاينات السماء", refresh: "تحديث", settings: "الإعدادات", locations: "المواقع", addLocation: "إضافة موقع",
     noLocations: "لا توجد مواقع بعد. ابحث عن مدينة أو اخترها من الخريطة.", locationOptions: "خيارات {name}", moveUp: "نقل لأعلى", moveDown: "نقل لأسفل", remove: "إزالة", copyCoordinates: "نسخ الإحداثيات", copied: "تم النسخ",
     alreadySaved: "{name} محفوظ بالفعل", locationAdded: "تمت إضافة {name}", locationRemoved: "تمت إزالة {name}", locationUnavailable: "تحديد الموقع غير متاح على هذا الجهاز", locationDenied: "تعذّر تحديد موقعك",
-    welcomeTitle: "مرحبًا بك في Ganetios Weather", welcomeText: "أضف مدينة لعرض توقعاتها وتنبيهاتها وأوقات الشمس.", addToSeeForecast: "أضف موقعًا لعرض التوقعات كل ساعة.",
+    welcomeTitle: "مرحبًا بك في Munetios Weather", welcomeText: "أضف مدينة لعرض توقعاتها وتنبيهاتها وأوقات الشمس.", addToSeeForecast: "أضف موقعًا لعرض التوقعات كل ساعة.",
     backToLive: "العودة إلى السماء المباشرة", previewing: "معاينة: {name}", now: "الآن", today: "اليوم", tomorrow: "غدًا",
     hourlyForecast: "التوقعات كل ساعة", next24Hours: "الساعات الـ 24 القادمة", currentConditions: "الأحوال الحالية", forecastCharts: "رسوم التوقعات", dailyForecast: "توقعات 16 يومًا", dailyForecastN: "توقعات {n} يومًا",
     chartMetric: "الرسم", chartRange: "الفترة", range24h: "24 ساعة", range48h: "48 ساعة", range7d: "7 أيام", range16d: "16 يومًا", showTable: "العرض كجدول", time: "الوقت",
@@ -570,10 +570,10 @@ window.GanetiosWeatherStrings = {
   },
   hi: {
     skipToForecast: "पूर्वानुमान पर जाएं", toggleLocations: "स्थान दिखाएं या छिपाएं", searchPlaceholder: "शहर या निर्देशांक खोजें", searchResults: "खोज परिणाम", clearSearch: "खोज साफ़ करें",
-    useMyLocation: "मेरा स्थान इस्तेमाल करें", pickOnMap: "मानचित्र पर चुनें", skyPreviews: "आसमान के पूर्वावलोकन", refresh: "रीफ़्रेश करें", settings: "सेटिंग", locations: "स्थान", addLocation: "स्थान जोड़ें",
+    useMyLocation: "मेरा स्थान इस्तेमाल करें", myLocation: "मेरा स्थान", pickOnMap: "मानचित्र पर चुनें", skyPreviews: "आसमान के पूर्वावलोकन", refresh: "रीफ़्रेश करें", settings: "सेटिंग", locations: "स्थान", addLocation: "स्थान जोड़ें",
     noLocations: "अभी कोई स्थान नहीं है। कोई शहर खोजें या मानचित्र पर चुनें।", locationOptions: "{name} के विकल्प", moveUp: "ऊपर ले जाएं", moveDown: "नीचे ले जाएं", remove: "हटाएं", copyCoordinates: "निर्देशांक कॉपी करें", copied: "कॉपी हो गया",
     alreadySaved: "{name} पहले से सहेजा गया है", locationAdded: "{name} जोड़ा गया", locationRemoved: "{name} हटाया गया", locationUnavailable: "इस डिवाइस पर स्थान उपलब्ध नहीं है", locationDenied: "आपका स्थान नहीं मिल सका",
-    welcomeTitle: "Ganetios Weather में आपका स्वागत है", welcomeText: "पूर्वानुमान, चेतावनियां और सूर्य के समय देखने के लिए कोई शहर जोड़ें।", addToSeeForecast: "घंटेवार पूर्वानुमान देखने के लिए कोई स्थान जोड़ें।",
+    welcomeTitle: "Munetios Weather में आपका स्वागत है", welcomeText: "पूर्वानुमान, चेतावनियां और सूर्य के समय देखने के लिए कोई शहर जोड़ें।", addToSeeForecast: "घंटेवार पूर्वानुमान देखने के लिए कोई स्थान जोड़ें।",
     backToLive: "लाइव आसमान पर लौटें", previewing: "पूर्वावलोकन: {name}", now: "अभी", today: "आज", tomorrow: "कल",
     hourlyForecast: "घंटेवार पूर्वानुमान", next24Hours: "अगले 24 घंटे", currentConditions: "मौजूदा मौसम", forecastCharts: "पूर्वानुमान चार्ट", dailyForecast: "16 दिनों का पूर्वानुमान", dailyForecastN: "{n} दिनों का पूर्वानुमान",
     chartMetric: "चार्ट", chartRange: "समय सीमा", range24h: "24 घंटे", range48h: "48 घंटे", range7d: "7 दिन", range16d: "16 दिन", showTable: "तालिका के रूप में दिखाएं", time: "समय",
