@@ -7357,7 +7357,7 @@ Q4: 22</textarea>
                         URL.revokeObjectURL(audio.src);
                         return;
                     }
-                    upgradeAudioPlayers();
+                    window.OmniAudioPlayer?.upgrade(audio);
                     closeMediaModal();
                     showToast(_t('music_inserted'), { type: 'success' });
                 } catch (error) {
@@ -7370,14 +7370,6 @@ Q4: 22</textarea>
             };
         }
 
-        function upgradeAudioPlayers() {
-            window.OmniAudioPlayer?.upgrade();
-        }
-
-        // Upgrade audio players on document open and after insert
-        upgradeAudioPlayers();
-        // Note: editorArea event listeners for audio/video are set up once below
-        
         // --- Insert Video Functionality ---
         const insertVideoBtn = document.getElementById('insertVideoBtn');
         let videoInsertModal = null;
@@ -7506,228 +7498,10 @@ Q4: 22</textarea>
             video.title = file.name;
             if (captions) video.dataset.omniCaptions = JSON.stringify(captions);
             if (!insertMediaNode(video, target)) { URL.revokeObjectURL(url); return false; }
-            upgradeVideoPlayers();
+            window.OmniVideoPlayer?.upgrade(video);
             return true;
         }
 
-        // --- Custom Video Controls ---
-        function upgradeVideoPlayers() {
-            if (window.OmniVideoPlayer) { window.OmniVideoPlayer.upgrade(document); return; }
-            const editorArea = document.getElementById('editorArea');
-            editorArea.querySelectorAll('video').forEach(video => {
-            // Skip if already upgraded
-            if (video.nextSibling && video.nextSibling.classList && video.nextSibling.classList.contains('custom-video-controls')) return;
-
-            video.style.display = 'block';
-            video.style.maxWidth = '100%';
-            video.style.borderRadius = '8px';
-            video.style.margin = '8px 0';
-            // Controls container
-            const controls = document.createElement('div');
-            controls.className = 'custom-video-controls';
-            controls.style.display = 'flex';
-            controls.style.alignItems = 'center';
-            controls.style.gap = '12px';
-            controls.style.background = 'rgba(255,255,255,0.07)';
-            controls.style.borderRadius = '8px';
-            controls.style.padding = '8px 12px';
-            controls.style.margin = '8px 0';
-            controls.style.userSelect = 'none';
-            controls.style.width = '100%';
-
-            // Play/Pause button
-            const playBtn = document.createElement('button');
-            playBtn.innerHTML = '<icon>play_arrow</icon>';
-            playBtn.style.background = 'transparent';
-            playBtn.style.border = 'none';
-            playBtn.style.color = '#fff';
-            playBtn.style.fontSize = '24px';
-            playBtn.style.cursor = 'pointer';
-
-            // Timestamp
-            const timeDisplay = document.createElement('span');
-            timeDisplay.textContent = '0:00 / 0:00';
-            timeDisplay.style.fontFamily = 'monospace';
-            timeDisplay.style.fontSize = '15px';
-            timeDisplay.style.minWidth = '90px';
-
-            // Slider
-            const slider = document.createElement('input');
-            slider.type = 'range';
-            slider.min = 0;
-            slider.max = 1000;
-            slider.value = 0;
-            slider.style.flex = '1';
-            slider.style.margin = '0 8px';
-            slider.style.height = '3px';
-            slider.style.background = '#ffe066';
-
-            // Volume icon
-            const volumeBtn = document.createElement('button');
-            volumeBtn.innerHTML = '<icon>volume_up</icon>';
-            volumeBtn.style.background = 'transparent';
-            volumeBtn.style.border = 'none';
-            volumeBtn.style.color = '#fff';
-            volumeBtn.style.fontSize = '22px';
-            volumeBtn.style.cursor = 'pointer';
-
-            // Volume slider (hidden by default)
-            const volumeSlider = document.createElement('input');
-            volumeSlider.type = 'range';
-            volumeSlider.min = 0;
-            volumeSlider.max = 100;
-            volumeSlider.value = 100;
-            volumeSlider.style.width = '70px';
-            volumeSlider.style.marginLeft = '6px';
-            volumeSlider.style.display = 'none';
-
-            // More icon (speed)
-            const moreBtn = document.createElement('button');
-            moreBtn.innerHTML = '<icon>more_vert</icon>';
-            moreBtn.style.background = 'transparent';
-            moreBtn.style.border = 'none';
-            moreBtn.style.color = '#fff';
-            moreBtn.style.fontSize = '22px';
-            moreBtn.style.cursor = 'pointer';
-
-            // Speed dropdown
-            const speedDropdown = document.createElement('div');
-            speedDropdown.className = 'dropdown-wrapper liquid-glass';
-            speedDropdown.style.position = 'absolute';
-            speedDropdown.style.minWidth = '90px';
-            speedDropdown.style.display = 'none';
-            speedDropdown.style.zIndex = '1000000';
-            [
-                0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 5, 10, 16
-            ].forEach(spd => {
-                const item = document.createElement('div');
-                item.className = 'dropdown-item';
-                item.innerHTML = `<div class="menu-text">${spd}x</div>`;
-                item.addEventListener('mousedown', function(e) {
-                e.preventDefault();
-                video.playbackRate = spd;
-                moreBtn.title = `Speed: ${spd}x`;
-                speedDropdown.style.display = 'none';
-                });
-                speedDropdown.appendChild(item);
-            });
-
-            // Play/Pause logic
-            playBtn.onclick = () => {
-                if (video.paused) {
-                video.play();
-                } else {
-                video.pause();
-                }
-            };
-            video.addEventListener('play', () => {
-                playBtn.innerHTML = '<icon>pause</icon>';
-            });
-            video.addEventListener('pause', () => {
-                playBtn.innerHTML = '<icon>play_arrow</icon>';
-            });
-
-            // Timestamp update
-            function formatTime(sec) {
-                sec = Math.floor(sec);
-                const m = Math.floor(sec / 60);
-                const s = sec % 60;
-                return `${m}:${s.toString().padStart(2, '0')}`;
-            }
-            function updateTime() {
-                timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration || 0)}`;
-                slider.value = video.duration ? Math.floor((video.currentTime / video.duration) * 1000) : 0;
-            }
-            video.addEventListener('timeupdate', updateTime);
-            video.addEventListener('loadedmetadata', updateTime);
-            slider.oninput = function() {
-                if (video.duration) {
-                video.currentTime = (slider.value / 1000) * video.duration;
-                }
-            };
-
-            // Volume logic
-            volumeBtn.onclick = function() {
-                volumeSlider.style.display = volumeSlider.style.display === 'none' ? 'inline-block' : 'none';
-            };
-            volumeSlider.oninput = function() {
-                video.volume = volumeSlider.value / 100;
-                volumeBtn.innerHTML = video.volume === 0 ? '<icon>volume_off</icon>' : '<icon>volume_up</icon>';
-            };
-            video.addEventListener('volumechange', function() {
-                volumeSlider.value = Math.round(video.volume * 100);
-                volumeBtn.innerHTML = video.volume === 0 ? '<icon>volume_off</icon>' : '<icon>volume_up</icon>';
-            });
-
-            // More (speed) logic
-            moreBtn.onclick = function(e) {
-                e.preventDefault();
-                // Position dropdown below button
-                const rect = moreBtn.getBoundingClientRect();
-                speedDropdown.style.top = (rect.bottom + window.scrollY + 2) + 'px';
-                speedDropdown.style.left = (rect.left + window.scrollX - 30) + 'px';
-                speedDropdown.style.display = speedDropdown.style.display === 'block' ? 'none' : 'block';
-            };
-            document.addEventListener('mousedown', function(e) {
-                if (speedDropdown.style.display === 'block' && !speedDropdown.contains(e.target) && !moreBtn.contains(e.target)) {
-                speedDropdown.style.display = 'none';
-                }
-            });
-
-            // Fullscreen button
-            const fullscreenBtn = document.createElement('button');
-            fullscreenBtn.innerHTML = '<icon>fullscreen</icon>';
-            fullscreenBtn.style.background = 'transparent';
-            fullscreenBtn.style.border = 'none';
-            fullscreenBtn.style.color = '#fff';
-            fullscreenBtn.style.fontSize = '22px';
-            fullscreenBtn.style.cursor = 'pointer';
-            fullscreenBtn.onclick = function() {
-                if (video.requestFullscreen) {
-                video.requestFullscreen();
-                } else if (video.webkitRequestFullscreen) {
-                video.webkitRequestFullscreen();
-                }
-            };
-
-            // Assemble controls
-            controls.appendChild(playBtn);
-            controls.appendChild(timeDisplay);
-            controls.appendChild(slider);
-            controls.appendChild(volumeBtn);
-            controls.appendChild(volumeSlider);
-            controls.appendChild(moreBtn);
-            controls.appendChild(fullscreenBtn);
-            document.body.appendChild(speedDropdown);
-
-            // Insert controls after video
-            video.parentNode.insertBefore(controls, video.nextSibling);
-
-            // Remove controls on video removal
-            const observer = new MutationObserver(function(muts) {
-                muts.forEach(mut => {
-                mut.removedNodes.forEach(node => {
-                    if (node === video) {
-                    controls.remove();
-                    speedDropdown.remove();
-                    observer.disconnect();
-                    }
-                });
-                });
-            });
-            observer.observe(video.parentNode, { childList: true });
-
-            // Initial state
-            updateTime();
-            volumeSlider.value = Math.round(video.volume * 100);
-            moreBtn.title = `Speed: ${video.playbackRate}x`;
-            });
-        }
-
-        // Upgrade video players on document open and after insert
-        upgradeVideoPlayers();
-        // Note: editorArea event listeners for audio/video are set up once below
-        
         // --- Insert Image Functionality ---
         const insertImageBtn = document.getElementById('insertImageBtn');
         let imageInsertModal = null;
@@ -8806,27 +8580,10 @@ Q4: 22</textarea>
             else window.openLegacyDocumentShare();
         });
         
-        // Set up global event listeners for editorArea media upgrades (once only)
-        const editorElement = document.getElementById('editorArea');
-        editorElement.addEventListener('input', function() {
-            if (typeof upgradeAudioPlayers === 'function') upgradeAudioPlayers();
-            if (typeof upgradeVideoPlayers === 'function') upgradeVideoPlayers();
-        });
-        editorElement.addEventListener('DOMNodeInserted', function(e) {
-            if (e.target.nodeName === 'AUDIO' || e.target.nodeName === 'VIDEO') {
-                setTimeout(() => {
-                    if (typeof upgradeAudioPlayers === 'function') upgradeAudioPlayers();
-                    if (typeof upgradeVideoPlayers === 'function') upgradeVideoPlayers();
-                }, 10);
-            }
-        });
-        
         } // End of toolbarListenersInitialized check
         
         // Always run on document switch: Call upgrade functions if they exist
         // editorArea already declared above
-        if (typeof upgradeAudioPlayers === 'function') upgradeAudioPlayers();
-        if (typeof upgradeVideoPlayers === 'function') upgradeVideoPlayers();
         
         // Set title
         const titleDiv = document.getElementById('documentTitle');
@@ -9940,10 +9697,6 @@ try {
                 };
             }
         });
-
-        // Upgrade video and audio players with custom controls
-        if (typeof upgradeVideoPlayers === 'function') upgradeVideoPlayers();
-        if (typeof upgradeAudioPlayers === 'function') upgradeAudioPlayers();
 
         // Close button handler
         document.getElementById('closeSplitBtn').onclick = exitSplitView;
@@ -14867,38 +14620,40 @@ try {
             const currentHelpModal = document.createElement('div');
             helpModal = currentHelpModal;
             helpModal.className = 'modal';
+            helpModal.setAttribute('role', 'dialog');
+            helpModal.setAttribute('aria-labelledby', 'omniHelpTitle');
+            const path = (...keys) => keys.map(key => escapeHtml(_t(key))).join(' &rsaquo; ');
             helpModal.innerHTML = `
             <div class="modal-content" style="position:relative;max-width:600px;">
-                <span class="modal-content-close" id="closeHelpModal" style="position:absolute;top:18px;right:24px;cursor:pointer;font-size:28px;z-index:2;">&times;</span>
-                <h2>${_t('help')}</h2>
-                <div style="margin:18px 0;">
-                    <h3>How To</h3>
-                    <ul>
-                        <li>Create a new document: Click the <b>+</b> button or "New Document".</li>
-                        <li>Edit your document: Use the toolbar for formatting, images, tables, and more.</li>
-                        <li>Switch tabs: Use the sidebar for Images, Tasks, and Templates.</li>
-                        <li>Save: All changes are saved automatically and encrypted locally.</li>
-                        <li>Export/Import: Use Settings &gt; Backup & Restore to export or import your data.</li>
-                        <li>Pin documents: Click the pin icon to keep important docs at the top.</li>
-                        <li>Use split view: Open two documents side by side via the split view option.</li>
-                        <li>Lock documents: Use the lock icon to make a document view-only and require a passphrase to edit.</li>
-                    </ul>
-                    <h3>FAQ</h3>
-                    <ul>
-                        <li><b>Where are my documents stored?</b><br>All data is stored locally in your browser using encrypted IndexedDB.</li>
-                        <li><b>Can I use this offline?</b><br>Yes, OmniWrite works offline after the first load.</li>
-                        <li><b>How do I restore a backup?</b><br>Go to Settings &gt; Import Backup and select your backup file.</li>
-                        <li><b>How do I change the language or theme?</b><br>Go to Settings and select your preferred language or theme.</li>
-                        <li><b>How do I lock or unlock a document?</b><br>Click the lock icon in the document toolbar to set or remove a passphrase.</li>
-                        <li><b>How do I use split view?</b><br>Click the split view icon in the toolbar to open two documents side by side.</li>
-                    </ul>
-                    <h3>Changelog</h3>
+                <button type="button" class="modal-content-close mu-icon-btn mu-btn-ghost" id="closeHelpModal" aria-label="${escapeHtml(_t('close'))}"><span class="mu-icon" aria-hidden="true">close</span></button>
+                <h2 id="omniHelpTitle">${escapeHtml(_t('help'))}</h2>
+                <ul>
+                    <li>${path('create_new', 'new_document')} / ${path('create_new', 'sheets_new')}</li>
+                    <li>${path('create_new', 'import_file')} / ${path('create_new', 'import_spreadsheet')}</li>
+                    <li>${path('insert', 'insert_image', 'insert_from_munetios_photos')}</li>
+                    <li>${path('insert', 'insert_video')} &middot; ${escapeHtml(_t('help_resize_media_hint'))}</li>
+                    <li>${escapeHtml(_t('video_picture_in_picture'))}</li>
+                    <li>${path('share', 'collab_add_people')} &middot; ${escapeHtml(_t('collab_sign_in_required'))}</li>
+                    <li>${path('more_options', 'document_info', 'sync_local_document')}</li>
+                    <li>${path('more_options', 'version_history')} / ${path('more_options', 'split_screen')}</li>
+                    <li>${path('settings', 'settings_nav_backup', 'import_backup')} / ${path('settings', 'settings_nav_backup', 'export_backup')}</li>
+                </ul>
+                <h3>${escapeHtml(_t('help_changelog'))}</h3>
+                <h4>v2</h4>
+                <ul>
+                    <li>Munetios UI v4</li>
+                    <li>${escapeHtml(_t('collab_intro_title'))} &middot; ${['collab_role_view', 'collab_role_suggest', 'collab_role_edit'].map(key => escapeHtml(_t(key))).join(' / ')}</li>
+                    <li>${escapeHtml(_t('insert_from_munetios_photos'))}</li>
+                    <li>${escapeHtml(_t('download_as_mwrite'))} (.mwrite) &middot; ${escapeHtml(_t('download_as_msheet'))} (.msheet)</li>
+                    <li>${escapeHtml(_t('import_spreadsheet'))} (.msheet, .xlsx, .csv, .tsv)</li>
+                    <li>Munetios Sheets &middot; ${escapeHtml(_t('help_sheets_canvas'))}</li>
+                    <li>${escapeHtml(_t('video_picture_in_picture'))}</li>
+                </ul>
+                <h4>v1</h4>
+                <div>
                     <ul>
                         <li>v1.15.2 - Added resizable local and YouTube video embeds, a persistent custom mini-player, document resize handles, and improved Spanish (Mexico and United States) labels.</li>
-                        <li>v1.15.1 - Fixed some bugs when greeting title keeps reverting workspace name to Personal, Fixed performance issues.</li>
                         <li>v1.15.0 - Redesigned the sidebar, improved translations and added more right click context menus.</li>
-                        <li>v1.14.13 - Improved mobile support </li>
-                    <li>v1.14.12 - Fixed some bugs when going to document background color won't open the wrapper. Disabled the crop feature if a image was inserted from a URL</li>
                         <li>v1.14.11 - Some of the toolbar items are grouped or moved to reduce clutter for the editor toolbar, Renamed folders to projects, added editor topbar customization, added font styles and more.</li>
                      <li>v1.14.10 - Added insert dropdown feature, Added sidebar customization.</li>
                           <li>v1.14.4 - Added watermark feature, improved font family/size, added zoom, and added move to workspace feature.</li>
@@ -14906,8 +14661,6 @@ try {
                         <li>v1.14.2 - Improved version history, redesigned the font picker, improved languages and more</li>
                                <li>v1.14.1 - Replaced the document search bar with a modal, Reduced clutter in small screens, you can click more for Apps, help, tasks, trash, etc.</li>
                                 <li>v1.14.0 - Munetios June 4 redesign.</li>
-                          <li>v1.13.2 - Fixed a performance bug when delayed typing.</li>
-                    <li>v1.13.1 - Fixed a bug that font family is keep reverting to Google Sans Flex</li>
                         <li>v1.13.0 - MAJOR UPDATE: Added document background colors, handwriting insertion, Notes, Trash, image page improvements, native video controls, expanded translations, find and replace, keyboard shortcuts, and improved responsive layouts.</li>
                         <li>v1.12.4 - Added workspaces, toolbar customization, stacked toasts, print font loading, responsive mini sidebar, and improved collapsed sidebar layout.</li>
                         <li> v1.12.3 - Added Move to folder and improved UI</li>
@@ -14915,23 +14668,17 @@ try {
                         <li>v1.12.1 - Added Virtual keyboard and tooltips and more.</li>
                         <li>v1.12.0 - MAJOR UPDATE: Added Businesses Support, Added more formatting, Added bunch of features</li>
                         <li>v1.11.21 - Added Folders support for Firefox & Safari</li>
-                        <li>v1.11.20 - Improved the lock document feature.</li>
                         <li>v1.11.13 - Added Apps, added custom fonts, added lock feature for documents, more language support and more.</li>
-                        <li>v1.11.12 - Fixed a bug when creating documents did not work when used a hash</li>
                         <li>v1.11.11 - You can create documents using a hash at end for e.g #/create?name=DocumentName&content=DocumentContent, Added right click context menu, Fixed performance bugs, Images in documents now have actions.</li>
                         <li>v1.11.10 - Added Print Feature, new templates experience, added more formatting, added default document font, and more.</li>
                         <li>v1.11.1 - New Reading Mode, cloud voices show a warning modal now.</li>
                         <li>v1.11.0 - Added Unsupported Browser if in Firefox or Safari because their are strict. and also some Improvements.</li>
                         <li>v1.10.0 - Added Folders support, Added Reader Mode, Improved Split Screen.</li>
                         <li>v1.0.9 - Added Try Beta button with warning modal, UI Improvements and redesigned showToast.</li>
-                        <li>v1.0.8 - UI Improvements.</li>
                         <li>v1.0.7 - Added Pin Documents feature, Removed the Voice To Text because it can send voice data to Google or Microsoft or Apple.</li>
                         <li>v1.0.6 - Added download formats, Share includes Share with Gmail, facebook, whatsapp, reddit. Fix a bug when switching documents and editing or creating too quickly overwrites content. and added more fonts in font family picker</li>
                         <li>v1.0.5 - Add Split Screen functionality, Add sidebar position settings, Add reduce transparency and compact mode settings</li>
-                        <li>v1.0.4 - Fix the font family bug</li>
                         <li>v1.0.3 - Added voice-to-text writing and split screen for enhanced productivity.</li>
-                        <li>v1.0.2 - Improvements and fixed a bug when text color picker wasn't opening after switching documents.</li>
-                        <li>v1.0.1 - Fixed a bug when font family/font size wasn't opening after switching documents.</li>
                         <li>v1.0.0 - Initial release of OmniWrite.</li>
                     </ul>
                     <h3>Copyright</h3>
@@ -14939,7 +14686,7 @@ try {
                         &copy; 2025-2026 Munetios. <br>
                         OmniWrite&trade; is a trademark of Munetios.<br>
                         Website <a href="https://munetios.com" target="_self" style="color:#ffe066;">munetios.com</a>
-                    <br>OmniWrite is open source. See <a href="https://github.com/munetios/omniwrite" target="_self" style="color:#ffe066;">github.com/munetios/omniwrite</a><br> <br>
+                    <br>OmniWrite is open source. See <a href="https://github.com/Munetios/Munetios" target="_self" style="color:#ffe066;">github.com/Munetios/Munetios</a><br> <br>
                     <a href="/omniwrite" target="_self" translate="no" style="color:#ffe066;">OmniWrite</a> ·
                     <a href="/webfilter" target="_self" translate="no" style="color:#ffe066;">Munetios WebFilter</a> ·
                     <a href="/omniwrite/sheets" target="_self" translate="no" style="color:#ffe066;">OmniWrite Sheets</a>
@@ -20500,7 +20247,6 @@ try {
                     const opened = documents.find(d => d.id === docId);
                     applyDocumentVisuals(opened);
                     applyDocumentLanguage(localStorage.getItem('omniwrite-lang') || opened?.language || 'en');
-                    if (typeof upgradeVideoPlayers === 'function') upgradeVideoPlayers(document);
                     syncLockedDocumentControls(opened);
                 }, 0);
             };
@@ -20512,7 +20258,6 @@ try {
                 const first = originalRenderDocumentPages(doc);
                 applyDocumentVisuals(doc);
                 applyDocumentLanguage(localStorage.getItem('omniwrite-lang') || doc?.language || 'en');
-                if (typeof upgradeVideoPlayers === 'function') upgradeVideoPlayers(document);
                 syncLockedDocumentControls(doc);
                 return first;
             };
@@ -21393,29 +21138,16 @@ try {
             });
         }
 
-        function setupResizableMediaAndMiniPlayer() {
+        function setupMediaResize() {
             if (window.omniResizableMediaReady) return;
             window.omniResizableMediaReady = true;
             let selectedFrame = null;
             let resizeHandle = null;
-            let lastMedia = null;
-            let dismissedMediaSource = '';
-
             const editorSelector = '.editor-surface, .document-page-editor, .split-editor, #editorArea';
-            const mediaSelector = 'video, munetios-youtube-player, iframe[src*="youtube.com"], iframe[src*="youtu.be"], .youtube-nocookie-placeholder';
-            const isYouTube = element => element && (element.matches('.youtube-nocookie-placeholder, munetios-youtube-player') || /youtube(?:-nocookie)?\.com|youtu\.be/i.test(element.getAttribute('src') || ''));
             const getEditor = element => element && element.closest(editorSelector);
             const saveFrame = frame => {
                 const editor = getEditor(frame);
                 if (editor && typeof saveEditorSurfaceContent === 'function') saveEditorSurfaceContent(editor);
-            };
-            const frameFor = media => media && media.closest('.omni-video-frame, .omni-embed-frame');
-            const trackMedia = (media, wasPlaying = false) => {
-                if (!media || !getEditor(media)) return;
-                const source = media.currentSrc || media.src || media.getAttribute('data-omni-embed-src') || (media.localName === 'munetios-youtube-player' ? 'https://www.youtube-nocookie.com/embed/' + media.getAttribute('video-id') : '');
-                if (!source) return;
-                if (source !== dismissedMediaSource) dismissedMediaSource = '';
-                lastMedia = { element: media, type: media.matches('video') ? 'video' : 'youtube', source, wasPlaying };
             };
             const clearSelection = () => {
                 selectedFrame?.classList.remove('omni-media-selected');
@@ -21425,12 +21157,13 @@ try {
             };
             const positionHandle = () => {
                 if (!selectedFrame || !resizeHandle) return;
+                if (!selectedFrame.isConnected || !selectedFrame.getClientRects().length) { clearSelection(); return; }
                 const rect = selectedFrame.getBoundingClientRect();
                 resizeHandle.style.left = (rect.right - 8) + 'px';
                 resizeHandle.style.top = (rect.bottom - 8) + 'px';
             };
             const selectFrame = frame => {
-                if (!frame) return;
+                if (selectedFrame === frame) return;
                 clearSelection();
                 selectedFrame = frame;
                 frame.classList.add('omni-media-selected');
@@ -21441,64 +21174,11 @@ try {
                 document.body.appendChild(resizeHandle);
                 positionHandle();
             };
-            const prepareMedia = scope => {
-                const root = scope && scope.querySelectorAll ? scope : document;
-                root.querySelectorAll(mediaSelector).forEach(media => {
-                    if (!getEditor(media)) return;
-                    let frame = frameFor(media);
-                    if (frame?.localName === 'omni-video-player' && frame.shadowRoot) return;
-                    if (!frame) {
-                        frame = document.createElement('figure');
-                        frame.className = media.matches('video') ? 'omni-video-frame liquid-glass' : 'omni-embed-frame liquid-glass';
-                        frame.contentEditable = 'false';
-                        media.parentNode.insertBefore(frame, media);
-                        frame.appendChild(media);
-                    }
-                    if (frame.contentEditable !== 'false') frame.contentEditable = 'false';
-                    if (media.matches('video')) {
-                        media.style.width = '100%';
-                        if (!frame.style.width) {
-                            const measuredWidth = media.getBoundingClientRect().width || media.videoWidth || 640;
-                            frame.style.width = Math.min(measuredWidth, getEditor(frame).clientWidth || 760) + 'px';
-                        }
-                    } else {
-                        frame.classList.add('omni-embed-frame');
-                        media.setAttribute('title', media.getAttribute('title') || 'YouTube video');
-                    }
-                    // Attach interaction listeners for iframes (YouTube) — clicks inside iframe won't bubble, so
-                    // listen to pointerenter/focus/load to consider the iframe as the last interacted media.
-                    try {
-                        if (media.matches && media.matches('iframe')) {
-                            media.addEventListener('pointerenter', () => trackMedia(media, true));
-                            media.addEventListener('mouseenter', () => trackMedia(media, true));
-                            media.addEventListener('focus', () => trackMedia(media, true));
-                            media.addEventListener('load', () => trackMedia(media, false));
-                        }
-                    } catch (e) {}
-                });
-            };
-
             document.addEventListener('pointerdown', event => {
-                const media = event.target.closest?.(mediaSelector);
-                if (!media) {
-                    if (event.target !== resizeHandle) clearSelection();
-                    return;
-                }
-                const frame = frameFor(media);
-                if (frame) selectFrame(frame);
-                if (getEditor(media)) dismissedMediaSource = '';
-                trackMedia(media, media.matches('video') ? !media.paused : true);
-            }, true);
-            document.addEventListener('focusin', event => {
-                const media = event.target.closest?.(mediaSelector);
-                trackMedia(media, media?.matches('video') ? !media.paused : true);
-            }, true);
-            document.addEventListener('play', event => {
-                if (!event.target.matches?.('video')) return;
-                trackMedia(event.target, true);
-            }, true);
-            document.addEventListener('pause', event => {
-                if (lastMedia?.element === event.target && event.target.isConnected && getEditor(event.target) && !event.target.ended) lastMedia.wasPlaying = false;
+                if (event.target === resizeHandle) return;
+                const frame = event.target.closest?.('.omni-video-frame, .omni-embed-frame');
+                if (frame && getEditor(frame)) selectFrame(frame);
+                else clearSelection();
             }, true);
             document.addEventListener('pointerdown', event => {
                 if (event.target !== resizeHandle || !selectedFrame) return;
@@ -21507,9 +21187,10 @@ try {
                 const editor = getEditor(frame);
                 const startX = event.clientX;
                 const startWidth = frame.getBoundingClientRect().width;
-                const maxWidth = () => Math.max(190, (editor?.getBoundingClientRect().width || window.innerWidth) - 16);
+                const maxWidth = Math.max(1, (editor?.getBoundingClientRect().width || window.innerWidth) - 16);
+                const minWidth = Math.min(180, maxWidth);
                 const move = moveEvent => {
-                    const width = Math.max(180, Math.min(maxWidth(), startWidth + moveEvent.clientX - startX));
+                    const width = Math.max(minWidth, Math.min(maxWidth, startWidth + moveEvent.clientX - startX));
                     frame.style.width = Math.round(width) + 'px';
                     frame.style.maxWidth = '100%';
                     positionHandle();
@@ -21517,221 +21198,16 @@ try {
                 const up = () => {
                     document.removeEventListener('pointermove', move);
                     document.removeEventListener('pointerup', up);
+                    document.removeEventListener('pointercancel', up);
                     saveFrame(frame);
                 };
                 document.addEventListener('pointermove', move);
                 document.addEventListener('pointerup', up, { once: true });
+                document.addEventListener('pointercancel', up, { once: true });
             }, true);
             window.addEventListener('resize', positionHandle);
             window.addEventListener('scroll', positionHandle, true);
-
-            const closeMiniPlayer = () => {
-                const mini = document.getElementById('omniMediaMiniPlayer');
-                if (!mini || mini.classList.contains('is-dismissing')) return;
-                if (lastMedia) lastMedia.dismissed = true;
-                dismissedMediaSource = lastMedia?.source || dismissedMediaSource;
-                mini.classList.add('is-dismissing');
-                setTimeout(() => {
-                    // If we moved an original iframe into the mini player, restore it back to its placeholder
-                    try {
-                        const iframe = mini.querySelector('iframe');
-                        if (iframe && iframe.dataset && iframe.dataset.omniOriginalPlaceholder) {
-                            // Find placeholder element (the node we inserted where the iframe originally was)
-                            const placeholder = document.querySelector('.youtube-iframe-placeholder[data-omni-id="' + (iframe.dataset.omniPlaceholderId || '') + '"]');
-                            if (placeholder && placeholder.parentNode) {
-                                placeholder.parentNode.replaceChild(iframe, placeholder);
-                                // cleanup markers
-                                delete iframe.dataset.omniOriginalPlaceholder;
-                                delete iframe.dataset.omniPlaceholderId;
-                            }
-                        }
-                    } catch (e) {}
-                    const youtubePlayer = mini.querySelector('munetios-youtube-player');
-                    const youtubeState = youtubePlayer?.playbackSnapshot?.();
-                    if (youtubeState && lastMedia?.element?.ready) lastMedia.element.restorePlayback({ ...youtubeState, playing: false });
-                    mini.querySelector('video')?.pause();
-                    mini.remove();
-                }, 220);
-            };
-            const isStillVisible = media => !!(media && media.isConnected && getEditor(media) && media.getClientRects().length && getEditor(media).getClientRects().length);
-            const capturePlaybackState = () => {
-                if (lastMedia?.type === 'video' && lastMedia.element?.matches('video')) lastMedia.wasPlaying = !lastMedia.element.paused;
-            };
-            const showMiniPlayer = () => {
-                if (document.querySelector('video[data-omni-mini-active="true"]')) return;
-                if (!lastMedia || lastMedia.dismissed || isStillVisible(lastMedia.element) || document.getElementById('omniMediaMiniPlayer')) return;
-                const source = lastMedia.source;
-                if (!source || source === dismissedMediaSource) return;
-                const original = lastMedia.element;
-                if (lastMedia.type === 'video' && !lastMedia.wasPlaying) return;
-                const mini = document.createElement('section');
-                mini.id = 'omniMediaMiniPlayer';
-                mini.className = 'omni-mini-player liquid-glass';
-                mini.setAttribute('aria-label', _t('mini_player') || 'Mini player');
-                const mediaBox = document.createElement('div');
-                mediaBox.className = 'omni-mini-player-media';
-                const bar = document.createElement('div');
-                bar.className = 'omni-mini-player-bar';
-                const title = document.createElement('span');
-                title.className = 'omni-mini-player-title';
-                title.textContent = original?.getAttribute('title') || (lastMedia.type === 'youtube' ? 'YouTube' : _t('video') || 'Video');
-                if (lastMedia.type === 'video') {
-                    // Native fallback; the shadow player upgrades this video after insertion.
-                    const video = document.createElement('video');
-                    video.src = source;
-                    for (const [key, value] of Object.entries(original.dataset)) if (key.startsWith('omni') && key !== 'omniMiniActive') video.dataset[key] = value;
-                    video.loop = original.loop;
-                    video.playsInline = true;
-                    video.volume = original.volume;
-                    video.muted = original.muted;
-                    video.controls = true;
-                    video.setAttribute('controls', '');
-                    // Defer seeking until metadata is available to avoid exceptions on some browsers
-                    video.addEventListener('loadedmetadata', () => {
-                        try { if (original.currentTime) video.currentTime = original.currentTime || 0; } catch (e) {}
-                        // Try playing after metadata; respect autoplay policies
-                        video.play().catch(() => {});
-                    }, { once: true });
-                    mediaBox.appendChild(video);
-                    // Only show the title bar (native controls handle play/pause)
-                    bar.append(title);
-                } else {
-                    mini.style.height = 'auto';
-                    mini.style.maxHeight = 'calc(100dvh - 32px)';
-                    mini.style.overflow = 'auto';
-                    mediaBox.style.aspectRatio = 'auto';
-                    const player = document.createElement('munetios-youtube-player');
-                    const id = original?.getAttribute('video-id') || window.MunetiosYouTube.videoId(source);
-                    player.setAttribute('video-id', id);
-                    player.setAttribute('video-title', title.textContent);
-                    if (original?.hasAttribute('caption-text')) player.setAttribute('caption-text', original.getAttribute('caption-text'));
-                    const state = original?.playbackSnapshot?.();
-                    if (state) {
-                        player.pendingPlayback = state;
-                        original.player?.pauseVideo();
-                    }
-                    mediaBox.appendChild(player);
-                    if (state || original?.loaded) queueMicrotask(() => player.load());
-                    bar.append(title);
-                }
-                // Bar: media icon, title, close button
-                const kindIcon = document.createElement('icon');
-                kindIcon.className = 'omni-mini-player-kind';
-                kindIcon.setAttribute('aria-hidden', 'true');
-                kindIcon.textContent = lastMedia.type === 'youtube' ? 'smart_display' : 'play_circle';
-                bar.prepend(kindIcon);
-                const closeBtn = document.createElement('button');
-                closeBtn.type = 'button';
-                closeBtn.className = 'omni-mini-player-close';
-                closeBtn.setAttribute('aria-label', _t('close') || 'Close');
-                closeBtn.innerHTML = '<icon aria-hidden="true">close</icon>';
-                // Keep the swipe/hold gestures from treating this as a drag.
-                closeBtn.addEventListener('pointerdown', event => event.stopPropagation());
-                closeBtn.addEventListener('click', event => { event.stopPropagation(); closeMiniPlayer(); });
-                bar.append(closeBtn);
-                mini.append(mediaBox, bar);
-                ['n', 'e', 's', 'w', 'nw', 'ne', 'sw', 'se'].forEach(edge => {
-                    const handle = document.createElement('div');
-                    handle.className = 'omni-mini-resize-handle';
-                    handle.dataset.edge = edge;
-                    handle.setAttribute('aria-hidden', 'true');
-                    handle.addEventListener('pointerdown', event => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        const start = mini.getBoundingClientRect();
-                        const startX = event.clientX;
-                        const startY = event.clientY;
-                        mini.style.left = start.left + 'px';
-                        mini.style.top = start.top + 'px';
-                        mini.style.right = 'auto';
-                        mini.style.bottom = 'auto';
-                        const move = moveEvent => {
-                            const dx = moveEvent.clientX - startX;
-                            const dy = moveEvent.clientY - startY;
-                            let width = start.width, height = start.height, left = start.left, top = start.top;
-                            if (edge.includes('e')) width += dx;
-                            if (edge.includes('s')) height += dy;
-                            if (edge.includes('w')) { width -= dx; left += dx; }
-                            if (edge.includes('n')) { height -= dy; top += dy; }
-                            const minWidth = 190, minHeight = 128, margin = 12;
-                            width = Math.max(minWidth, Math.min(width, window.innerWidth - margin - Math.max(margin, left)));
-                            height = Math.max(minHeight, Math.min(height, window.innerHeight - margin - Math.max(margin, top)));
-                            if (edge.includes('w')) left = start.right - width;
-                            if (edge.includes('n')) top = start.bottom - height;
-                            left = Math.max(margin, Math.min(left, window.innerWidth - width - margin));
-                            top = Math.max(margin, Math.min(top, window.innerHeight - height - margin));
-                            mini.style.width = Math.round(width) + 'px';
-                            mini.style.height = Math.round(height) + 'px';
-                            mini.style.left = Math.round(left) + 'px';
-                            mini.style.top = Math.round(top) + 'px';
-                        };
-                        const up = () => { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); };
-                        document.addEventListener('pointermove', move);
-                        document.addEventListener('pointerup', up, { once: true });
-                    });
-                    mini.appendChild(handle);
-                });
-                let swipeStartX = 0;
-                let holdDismissTimer = 0;
-                let holdReady = false;
-                const resetSwipe = () => {
-                    clearTimeout(holdDismissTimer);
-                    holdReady = false;
-                    mini.classList.remove('is-swiping');
-                    mini.classList.remove('is-hold-ready');
-                    mini.style.transform = '';
-                    mini.style.opacity = '';
-                };
-                mini.addEventListener('pointerdown', event => {
-                    if (event.target.closest('.omni-mini-resize-handle')) return;
-                    swipeStartX = event.clientX;
-                    mini.setPointerCapture?.(event.pointerId);
-                    holdDismissTimer = setTimeout(() => { holdReady = true; mini.classList.add('is-hold-ready'); }, 520);
-                });
-                mini.addEventListener('pointermove', event => {
-                    if (!holdReady) return;
-                    const distance = Math.max(0, event.clientX - swipeStartX);
-                    if (!distance) return;
-                    mini.classList.add('is-swiping');
-                    mini.style.transform = 'translateX(' + distance + 'px)';
-                    mini.style.opacity = String(Math.max(0.28, 1 - distance / Math.max(220, mini.offsetWidth)));
-                });
-                mini.addEventListener('pointerup', event => {
-                    const distance = event.clientX - swipeStartX;
-                    if (holdReady && distance > 72) closeMiniPlayer();
-                    else resetSwipe();
-                });
-                mini.addEventListener('pointercancel', resetSwipe);
-                document.body.appendChild(mini);
-            };
-            const queueMiniPlayer = () => setTimeout(showMiniPlayer, 120);
-            const scheduleMiniPlayer = () => { capturePlaybackState(); queueMiniPlayer(); };
-            window.addEventListener('hashchange', scheduleMiniPlayer);
-            window.addEventListener('popstate', scheduleMiniPlayer);
-            document.addEventListener('keydown', event => { if (event.key === 'Escape') closeMiniPlayer(); });
-            document.addEventListener('click', () => { capturePlaybackState(); setTimeout(() => { prepareMedia(document); showMiniPlayer(); }, 160); }, true);
-            // Throttle mutation handling to avoid heavy synchronous layout reads when many DOM changes occur
-            let _mediaMutationScheduled = false;
-            const mediaMutationHandler = (mutations) => {
-                let added = false;
-                for (let i = 0; i < mutations.length; i++) {
-                    const m = mutations[i];
-                    if (m.addedNodes && m.addedNodes.length) { added = true; break; }
-                }
-                if (!_mediaMutationScheduled) {
-                    _mediaMutationScheduled = true;
-                    requestAnimationFrame(() => {
-                        try {
-                            if (added) prepareMedia(document);
-                        } catch (e) {}
-                        try { queueMiniPlayer(); } catch (e) {}
-                        _mediaMutationScheduled = false;
-                    });
-                }
-            };
-            const observer = new MutationObserver(mediaMutationHandler);
-            observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
-            prepareMedia(document);
+            window.addEventListener('hashchange', clearSelection);
         }
 
         function setupDocumentResizeHandle() {
@@ -22081,64 +21557,6 @@ try {
             }, 10000);
         }
 
-        if (typeof upgradeVideoPlayers === 'function') {
-            upgradeVideoPlayers = function(scope) {
-                if (window.OmniVideoPlayer) { window.OmniVideoPlayer.upgrade(scope || document); return; }
-                const root = scope && scope.querySelectorAll ? scope : document;
-                root.querySelectorAll('.editor-surface video, #editorArea video, .split-editor video').forEach(video => {
-                    if (video.nextElementSibling && video.nextElementSibling.classList.contains('custom-video-controls')) {
-                        video.nextElementSibling.remove();
-                    }
-                    video.controls = true;
-                    video.setAttribute('controls', '');
-                    video.contentEditable = 'false';
-                    video.classList.add('omni-native-video');
-                    video.setAttribute('playsinline', '');
-                    let frame = video.closest('.omni-video-frame');
-                    if (!frame) {
-                        frame = document.createElement('figure');
-                        frame.className = 'omni-video-frame liquid-glass';
-                        frame.contentEditable = 'false';
-                        frame.setAttribute('data-omni-video-frame', 'true');
-                        video.parentNode.insertBefore(frame, video);
-                        frame.appendChild(video);
-                    }
-                    frame.classList.add('liquid-glass');
-                    frame.contentEditable = 'false';
-                    frame.setAttribute('data-omni-video-frame', 'true');
-                    video.style.display = 'block';
-                    if (video.style.width === '100%') video.style.width = '';
-                    video.style.maxWidth = '100%';
-                    video.style.borderRadius = 'inherit';
-                    video.style.margin = '0';
-                    frame.querySelectorAll('.custom-video-controls, .omni-video-speed-menu').forEach(node => node.remove());
-                });
-                root.querySelectorAll('.editor-surface > .custom-video-controls, #editorArea > .custom-video-controls, .split-editor > .custom-video-controls').forEach(node => {
-                    if (!node.closest('.omni-video-frame')) node.remove();
-                });
-            };
-        }
-
-        function setupVideoUpgradeObserver() {
-            const upgradeAll = () => {
-                if (typeof upgradeVideoPlayers === 'function') upgradeVideoPlayers(document);
-            };
-            upgradeAll();
-            const observer = new MutationObserver(mutations => {
-                let shouldUpgrade = false;
-                mutations.forEach(mutation => {
-                    mutation.addedNodes.forEach(node => {
-                        if (node.nodeType !== 1) return;
-                        if ((node.matches && node.matches('video')) || (node.querySelector && node.querySelector('video'))) {
-                            shouldUpgrade = true;
-                        }
-                    });
-                });
-                if (shouldUpgrade) requestAnimationFrame(upgradeAll);
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
-        }
-
         function setupDesktopMiniSidebar() {
             if (typeof toggleSidebar === 'function') {
                 toggleSidebar = function() {
@@ -22223,9 +21641,8 @@ try {
         setupFindReplace();
         setupCustomContextMenu();
         setupImageResize();
-        setupResizableMediaAndMiniPlayer();
+        setupMediaResize();
         setupDocumentResizeHandle();
-        setupVideoUpgradeObserver();
         setupOmniUiTranslationObserver();
         function renderOmniRetryState(containerId, messageKey, retryHandler) {
             const container = document.getElementById(containerId);
