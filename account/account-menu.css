@@ -11,7 +11,7 @@
 .mu-account-avatar {
     display: inline-grid; place-items: center; flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%;
     background: linear-gradient(135deg, var(--mu-accent), color-mix(in srgb, var(--mu-accent) 45%, #4d8bff));
-    color: #ffffff; font-family: 'Google Sans Flex', system-ui, sans-serif; font-feature-settings: 'ss01' 1;
+    color: #ffffff; font-family: 'Munetios UI v4 Font', system-ui, sans-serif; font-feature-settings: normal;
     font-size: 18px; font-weight: 400; line-height: 1;
 }
 .mu-account-avatar.is-lg { width: 56px; height: 56px; font-size: 26px; }
@@ -23,11 +23,11 @@ body.omni-account-signed-in .navbar [data-munetios-account] { display: none !imp
 #omniAccountProfileSlot { grid-column: 1 / -1; width: 100%; min-width: 0; order: 1000; }
 #omniAccountProfileSlot .mu-account-trigger { display: flex; justify-content: flex-start; gap: 12px; width: 100%; min-width: 0; height: auto; min-height: 58px; padding: 8px 12px; border-radius: var(--mu-radius-pill); }
 #omniAccountProfileSlot .mu-account-trigger > .mu-icon { flex: 0 0 22px; width: 22px; overflow: hidden; }
-.mu-account-sidebar-name { flex: 1; min-width: 0; white-space: normal; overflow-wrap: anywhere; text-align: start; font: 400 18px/1.4 'Google Sans Flex',sans-serif; font-feature-settings: 'ss01' 1; }
+.mu-account-sidebar-name { flex: 1; min-width: 0; white-space: normal; overflow-wrap: anywhere; text-align: start; font: 400 18px/1.4 'Munetios UI v4 Font',sans-serif; font-feature-settings: normal; }
 body.omni-sidebar-collapsed #omniAccountProfileSlot .mu-account-trigger { justify-content: center; min-height: 48px; padding: 4px; gap: 0; }
 body.omni-sidebar-collapsed #omniAccountProfileSlot :is(.mu-account-sidebar-name, .mu-account-trigger > .mu-icon) { display: none; }
 
-.mu-account-menu { z-index: 2147482000; padding: 10px; font-family: 'Google Sans Flex', system-ui, sans-serif; font-feature-settings: 'ss01' 1; font-size: 18px; font-weight: 400; }
+.mu-account-menu { z-index: 2147482000; padding: 10px; font-family: 'Munetios UI v4 Font', system-ui, sans-serif; font-feature-settings: normal; font-size: 18px; font-weight: 400; }
 .mu-account-menu .mu-icon { font-family: 'Material Symbols Rounded' !important; }
 .mu-account-head { display: grid; grid-template-columns: 56px minmax(0, 1fr); align-items: center; gap: 14px; padding: 8px 10px 14px; }
 .mu-account-who { display: grid; min-width: 0; }

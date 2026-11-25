@@ -31,7 +31,7 @@ body.mwf-editor { min-height: 100vh; }
 .mwf-option { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 8px 14px; border-radius: 16px; cursor: pointer; font-family: "Google Sans Mono", ui-monospace, monospace; }
 .mwf-option.is-active { background: rgba(143, 92, 255, 0.28); }
 .mwf-option.is-blocked { opacity: 0.6; cursor: not-allowed; }
-.mwf-option small { font-family: "Google Sans Flex", system-ui, sans-serif; font-size: 18px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--mwf-border); white-space: nowrap; }
+.mwf-option small { font-family: "Munetios UI v4 Font", system-ui, sans-serif; font-size: 18px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--mwf-border); white-space: nowrap; }
 .mwf-option small.is-bad { color: var(--mwf-danger); }
 .mwf-option small.is-good { color: var(--mwf-success); }
 #mwfPick[aria-pressed="true"] { background: var(--mwf-accent); color: #fff; border-color: transparent; }

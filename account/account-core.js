@@ -106,12 +106,12 @@
   }
   const displayEmail = account => getAccountSetting('maskEmail') ? `•••@${String(account?.email || '').split('@').pop()}` : account?.email || '';
   const providerSetting = { 'ls:search-history': 'syncHistory', 'ls:appearance': 'syncAppearance', 'ls:settings': 'syncSearchSettings', 'ls:shortcuts': 'syncShortcuts', 'ls:workspaces': 'syncWorkspaces', 'omniwrite': 'syncDocuments', 'omniwrite-media': 'syncDocuments', 'omniwrite-sheets': 'syncDocuments' };
-  const providerEnabled = provider => !providerSetting[provider.id] || getAccountSetting(providerSetting[provider.id]);
+  const providerEnabled = provider => (!providerSetting[provider.id] || getAccountSetting(providerSetting[provider.id])) && (provider.enabled?.() ?? true);
   function checkProvider(provider) {
     if (!providerEnabled(provider)) throw Object.assign(new Error('syncCategoryDisabled'), { code: 'syncCategoryDisabled' });
   }
   function automaticSyncAllowed() {
-    return Boolean(state.account && (document.visibilityState === 'visible' || getAccountSetting('syncInBackground')) && (!navigator.connection?.saveData || getAccountSetting('syncOnDataSaver')));
+    return Boolean(navigator.onLine !== false && state.account && (document.visibilityState === 'visible' || getAccountSetting('syncInBackground')) && (!navigator.connection?.saveData || getAccountSetting('syncOnDataSaver')));
   }
   window.addEventListener('storage', event => {
     if (event.key === settingsKey() || event.key === null) { document.dispatchEvent(new CustomEvent('munetios-account-settings-changed')); emit(); }
@@ -212,6 +212,10 @@
   const state = { ready: false, account: null, accounts: [], status: "signed-out", lastSynced: null, offline: false, syncEnabled: true, storage: null, revocation: store.json(revokedKey, null) };
   const listeners = new Set();
   let sessionRequest = 0;
+  function cacheAccount(account) {
+    const { id, email, displayName, picture, showProfilePictureToEveryone } = account;
+    store.set(accountCacheKey, JSON.stringify({ id, email, displayName, picture, showProfilePictureToEveryone }));
+  }
   function emit() {
     for (const listener of listeners) { try { listener(state); } catch {} }
     document.dispatchEvent(new CustomEvent("munetios-account", { detail: state }));
@@ -227,13 +231,32 @@
     else if (state.status === "signed-out" || state.status === "locked" || state.status === "paused") state.status = "idle";
     state.lastSynced = Number(store.get(`munetios-last-synced:${state.account.id}`)) || null;
   }
+  // Google-only accounts have no password, so their data key is protected by a server-derived secret.
+  // This runs whenever such an account has no key on this device, so sync is on right after Google sign-in.
+  const notGoogleOnly = new Set();
+  async function provisionGoogleKey() {
+    const account = state.account;
+    if (!account || notGoogleOnly.has(account.id)) return false;
+    try {
+      const { secret } = await api("/google/sync-secret");
+      const { keys: material } = await api("/keys");
+      if (state.account?.id !== account.id) return false;
+      if (!material) await storeNewKeys(account.id, secret);
+      else await keys.put(account.id, await unwrapKeys(secret, material));
+      return true;
+    } catch (error) {
+      if (error.status === 404 || error.status === 401) notGoogleOnly.add(account.id);
+      return false;
+    }
+  }
   async function refresh({ deliberate = false, enableSyncFor = null, scheduleSync = true } = {}) {
     const request = ++sessionRequest;
     try {
+      if (navigator.onLine === false) throw new Error("offline");
       const data = await api("/session");
       if (request !== sessionRequest) return state;
       const previous = state.account || store.json(accountCacheKey, null);
-      const sharedHost = ['accounts.munetios.com', 'write.munetios.com'].includes(window.location?.hostname);
+      const sharedHost = ['accounts.munetios.com', 'write.munetios.com', 'calendar.munetios.com', 'photos.munetios.com'].includes(window.location?.hostname);
       const googleCookie = sharedHost ? 'munetios-shared-google-sync' : 'munetios-google-sync';
       const googleSync = String(document.cookie || '').split(';').map(part => part.trim())
         .find(part => part.startsWith(googleCookie + '='))?.slice(googleCookie.length + 1);
@@ -251,7 +274,7 @@
         store.remove(`munetios-sync-disabled:${state.account.id}`);
       }
       if (googleSync) document.cookie = `${googleCookie}=; Max-Age=0; Path=/; SameSite=Lax${sharedHost ? '; Domain=munetios.com; Secure' : ''}`;
-      if (state.account) store.set(accountCacheKey, JSON.stringify({ id: state.account.id, email: state.account.email, displayName: state.account.displayName, picture: state.account.picture }));
+      if (state.account) cacheAccount(state.account);
       else store.remove(accountCacheKey);
     } catch {
       if (request !== sessionRequest) return state;
@@ -261,6 +284,7 @@
     }
     state.ready = true;
     await updateLock();
+    if (state.status === "locked" && !state.offline && await provisionGoogleKey()) await updateLock();
     if (!state.revocation && state.offline && state.account && state.syncEnabled && state.status !== "locked") state.status = "error";
     emit();
     if (scheduleSync && config.autoSync && state.account && !state.offline && !state.revocation) schedule(300);
@@ -348,16 +372,26 @@
   async function updateProfile(displayName) {
     const result = await api("/profile", { displayName });
     state.account = result.account;
-    store.set("munetios-account-cache", JSON.stringify({ id: state.account.id, email: state.account.email, displayName: state.account.displayName, picture: state.account.picture }));
+    cacheAccount(state.account);
     emit();
     return result.account;
   }
   async function updateProfilePicture(picture) {
     const result = await api('/profile-picture', { picture });
     state.account = result.account;
-    store.set('munetios-account-cache', JSON.stringify({ id: state.account.id, email: state.account.email, displayName: state.account.displayName, picture: state.account.picture }));
+    cacheAccount(state.account);
     emit();
     return result.account;
+  }
+  async function updateProfilePicturePrivacy(showProfilePictureToEveryone) {
+    const accountId = state.account?.id;
+    const result = await api('/profile-picture/privacy', { showProfilePictureToEveryone });
+    if (result.showProfilePictureToEveryone !== showProfilePictureToEveryone) throw new Error('invalidResponse');
+    if (accountId && state.account?.id === accountId) {
+      state.account = { ...state.account, showProfilePictureToEveryone };
+      cacheAccount(state.account);
+      emit();
+    }
   }
   async function signOut() {
     const account = state.account;
@@ -462,20 +496,25 @@
 
   let running = null, rerun = false, timer = null;
   const SYNC_BATCH_BYTES = 4 * 1024 * 1024;
-  function schedule(delay = 1500) { if (!config.autoSync || !state.syncEnabled) return; clearTimeout(timer); timer = setTimeout(() => { if (automaticSyncAllowed()) sync().catch(() => {}); }, delay); }
+  // After the server says "rateLimited", no sync runs until its Retry-After time has passed.
+  let rateLimitedUntil = 0;
+  function schedule(delay = 1500) { if (!config.autoSync || !state.syncEnabled) return; clearTimeout(timer); timer = setTimeout(() => { if (automaticSyncAllowed()) sync().catch(() => {}); }, Math.max(delay, rateLimitedUntil - Date.now())); }
   function register(provider) { providers.set(provider.id, provider); schedule(400); }
   const syncStateKey = id => `munetios-sync:${id}`;
-  async function syncProvider(provider, account, dataKey, syncState, owners, applied) {
+  async function syncProvider(provider, account, dataKey, syncState, owners, applied, { unchanged = false } = {}) {
     checkProvider(provider);
     if (!state.syncEnabled || state.revocation) throw Object.assign(new Error("syncDisabled"), { code: "syncDisabled" });
     const hashData = data => provider.hash ? provider.hash(data) : digest(data);
     const replace = !provider.preserveLocal && Boolean(owners[provider.id]) && owners[provider.id] !== account.id;
     const getItems = cursor => api(`/sync/items?prefix=${encodeURIComponent(provider.prefix)}&since=${cursor}${provider.paginated ? "&paged=1" : ""}`);
     let since = replace ? "0" : (syncState.cursor[provider.prefix] || "0");
-    let remote = await getItems(since);
-    if (BigInt(remote.seq) < BigInt(syncState.seq || "0")) {
+    // Nothing changed on the server since the last sync: skip the pull and only push local changes.
+    syncState.pulled = syncState.pulled || {};
+    const skipPull = unchanged && !replace && syncState.pulled[provider.prefix] === true;
+    let remote = skipPull ? { seq: syncState.seq || "0", items: [] } : await getItems(since);
+    if (!skipPull && BigInt(remote.seq) < BigInt(syncState.seq || "0")) {
       // The account's synced data was deleted: upload everything again.
-      syncState.items = {}; syncState.cursor = {}; syncState.seq = "0";
+      syncState.items = {}; syncState.cursor = {}; syncState.seq = "0"; syncState.pulled = {};
       if (since !== "0") remote = await getItems("0");
     }
     if (replace && remote.hasMore) {
@@ -542,6 +581,7 @@
     }
     if (cursor > 0n) syncState.cursor[provider.prefix] = cursor.toString();
     if (BigInt(remote.seq) > BigInt(syncState.seq || "0")) syncState.seq = remote.seq;
+    if (!skipPull && !remote.hasMore) syncState.pulled[provider.prefix] = true;
 
     if (remote.hasMore) return { more: true, conflicts: 0, full: false, blocked: false };
     const pushes = [];
@@ -559,6 +599,7 @@
       if (!provider.retainMissing && key.startsWith(provider.prefix) && !present.has(key) && previous.h !== null && !provider.retainMissingItem?.(key)) pushes.push({ key, baseVersion: previous.v, deleted: true, hash: null });
     }
     let conflicts = 0, full = deferred, blocked = false;
+    const pushedVersions = [];
     const batchSize = provider.batchSize || 20;
     const upload = async (items, chunk) => {
       if (!state.syncEnabled || state.revocation || state.account?.id !== account.id) throw Object.assign(new Error("syncDisabled"), { code: "syncDisabled" });
@@ -578,6 +619,7 @@
       for (const result of results) {
         const sent = chunk.find(item => item.key === result.key);
         if (result.status === "ok") {
+          pushedVersions.push(result.version);
           syncState.items[result.key] = { v: result.version, h: sent.hash, ...(provider.mergeable && sent.data ? { d: sent.data } : {}) };
           if (!sent.deleted) {
             provider.onPushed?.(result.key, account.id);
@@ -604,14 +646,22 @@
       bytes += size;
     }
     if (items.length) await upload(items, chunk);
+    // If our writes were the only ones (versions follow the last seen sequence with no gaps),
+    // the device is still up to date, so the next sync can skip pulling again.
+    if (pushedVersions.length) {
+      const start = BigInt(syncState.seq || "0");
+      const sorted = pushedVersions.map(BigInt).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+      if (sorted.every((version, index) => version === start + BigInt(index + 1))) syncState.seq = (start + BigInt(sorted.length)).toString();
+    }
     owners[provider.id] = account.id;
-    return { conflicts, full, blocked };
+    return { conflicts, full, blocked, pushed: pushedVersions.length };
   }
   async function runSync() {
     const account = state.account;
     if (state.revocation) { setStatus("paused"); return false; }
     if (!account) { setStatus("signed-out"); return false; }
     if (!state.syncEnabled) { setStatus("paused"); return false; }
+    if (navigator.onLine === false) return false;
     const dataKey = await keys.get(account.id);
     if (!dataKey) { setStatus("locked"); return false; }
     setStatus("syncing");
@@ -619,15 +669,23 @@
       const syncState = store.json(syncStateKey(account.id), { cursor: {}, items: {}, seq: "0" });
       const owners = store.json("munetios-sync-owner", {});
       const applied = new Set();
-      let conflicts = 0, blocked = false, full = false;
+      let conflicts = 0, blocked = false, full = false, pushed = 0;
+      // One request tells whether anything changed on the server since this device last synced.
+      // Servers without this route (or any failure other than a rate limit) fall back to a full sync.
+      let unchanged = false;
+      try {
+        const { seq } = await api("/sync/state");
+        unchanged = /^\d{1,19}$/.test(String(seq)) && BigInt(seq) === BigInt(syncState.seq || "0");
+      } catch (error) { if (!error.status || error.status === 401 || error.status === 429) throw error; }
       for (const provider of providers.values()) {
         if (!providerEnabled(provider)) continue;
         let result;
         do {
           const beforeProvider = structuredClone(syncState);
-          try { result = await syncProvider(provider, account, dataKey, syncState, owners, applied); }
+          try { result = await syncProvider(provider, account, dataKey, syncState, owners, applied, { unchanged }); }
           catch (error) { if (error.code === 'syncCategoryDisabled') { Object.assign(syncState, beforeProvider); break; } throw error; }
           full = full || result.full;
+          pushed += result.pushed || 0;
           conflicts += result.conflicts; blocked = blocked || result.blocked;
           store.set(syncStateKey(account.id), JSON.stringify(syncState));
           store.set("munetios-sync-owner", JSON.stringify(owners));
@@ -638,12 +696,20 @@
       if (blocked) { setStatus("error"); return false; } // "Couldn't sync. Saved locally instead"
       state.lastSynced = Date.now();
       store.set(`munetios-last-synced:${account.id}`, String(state.lastSynced));
-      await storage().catch(() => {});
+      if (pushed || !state.storage) await storage().catch(() => {});
       setStatus(!state.syncEnabled || state.revocation ? "paused" : full ? "full" : "synced");
       if (conflicts) rerun = true;
       return !full;
     } catch (error) {
       if (error.code === "syncDisabled") { setStatus("paused"); return false; }
+      if (error.status === 429) {
+        // Too many sync requests from this session: wait as long as the server asks, then continue.
+        rateLimitedUntil = Date.now() + Math.max(5, Number(error.data?.retryAfter) || 60) * 1000;
+        setStatus("idle");
+        clearTimeout(timer);
+        timer = setTimeout(() => { if (automaticSyncAllowed()) sync().catch(() => {}); }, rateLimitedUntil - Date.now() + 500);
+        return false;
+      }
       if (error.status === 401) await refresh();
       if (state.revocation) { setStatus("paused"); return false; }
       setStatus("error");
@@ -745,18 +811,26 @@
     setInterval(() => {
       if (Date.now() < nextSync) return;
       nextSync = Date.now() + Number(getAccountSetting('syncInterval'));
+      if (Date.now() < rateLimitedUntil) return;
       if (automaticSyncAllowed() && !running) sync().catch(() => {});
     }, 1000);
     document.addEventListener('munetios-account-settings-changed', () => { nextSync = Date.now() + Number(getAccountSetting('syncInterval')); });
-    window.addEventListener("online", () => { if (getAccountSetting('syncOnReconnect')) schedule(500); });
     document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") schedule(700); });
   }
+  window.addEventListener("online", () => {
+    const scheduleSync = config.autoSync && getAccountSetting('syncOnReconnect');
+    if (state.offline) void refresh({ scheduleSync });
+    else if (scheduleSync) schedule(500);
+  });
+  window.addEventListener("offline", () => {
+    if (!state.offline) { state.offline = true; emit(); }
+  });
 
   window.MunetiosAccount = {
     settings: { definitions: accountSettingDefinitions, get: getAccountSetting, set: setAccountSetting }, displayEmail,
     t, locale, formatDate, formatTime, setLocaleSource(fn) { localeSource = fn; emit(); },
     state, on(listener) { listeners.add(listener); return () => listeners.delete(listener); },
-    refresh, signIn, signUp, requestEmailCode: email => api("/email-code", { email }), unlock, signOut, switchAccount, changePassword, deleteAccount, updateProfile, updateProfilePicture,
+    refresh, signIn, signUp, requestEmailCode: email => api("/email-code", { email }), unlock, signOut, switchAccount, changePassword, deleteAccount, updateProfile, updateProfilePicture, updateProfilePicturePrivacy,
     cloudOwner(provider) { return store.json("munetios-sync-owner", {})[provider]; },
     cloudItems(prefix, provider) {
       const owner = state.revocation?.accountId || store.json("munetios-sync-owner", {})[provider];
@@ -780,9 +854,9 @@
     google: { connection: () => api('/google/connection'), async disconnect(password) {
       return api('/google/disconnect', { password: await authSecret(password, state.account.email) });
     } },
-    security: { get: () => api("/security"), action: securityAction },
-    photos: { readLibrary: readPhotosLibrary },
+    security: { get: () => api("/security"), action: securityAction, googleFactor: code => api("/google/factor", { code }) },
     sync: { storage, setEnabled: setSyncEnabled, register, now: sync, schedule, exportLocal, reset: resetSynced, remoteWorkspaceCounts },
+    photos: { readLibrary: readPhotosLibrary },
     workspaces
   };
   if (config.autoRefresh !== false) {

@@ -1534,8 +1534,10 @@
   "dictionary": "พจนานุกรม",
   "dictionary_custom_words": "คำที่เพิ่มเอง",
   "dictionary_autocorrect": "แก้ไขอัตโนมัติ",
-  "dictionary_english_words": "รายการคำภาษาอังกฤษ",
   "dictionary_word": "คำ",
   "dictionary_invalid_word": "ป้อนคำหนึ่งคำโดยใช้ตัวอักษรและอะพอสทรอฟี",
-  "dictionary_load_failed": "โหลดรายการคำภาษาอังกฤษไม่ได้"
+  "overview_page": "ภาพรวม OmniWrite",
+  "overview_heading": "เขียน จัดระเบียบ และทำงานร่วมกัน",
+  "overview_intro": "สร้างเอกสารและสเปรดชีตในพื้นที่ทำงานเดียว",
+  "overview_open": "เปิด OmniWrite"
 }

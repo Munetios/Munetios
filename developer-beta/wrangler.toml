@@ -8,6 +8,22 @@ preview_urls = false
 pattern = "beta.munetios.com"
 custom_domain = true
 
+[[routes]]
+pattern = "accounts.munetios.com/*"
+zone_name = "munetios.com"
+
+[[routes]]
+pattern = "write.munetios.com/*"
+zone_name = "munetios.com"
+
+[[routes]]
+pattern = "calendar.munetios.com/*"
+zone_name = "munetios.com"
+
+[[routes]]
+pattern = "photos.munetios.com/*"
+zone_name = "munetios.com"
+
 [observability]
 enabled = false
 

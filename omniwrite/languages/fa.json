@@ -1431,7 +1431,7 @@
   "collab_restricted": "محدود",
   "collab_restricted_desc": "فقط افرادی که اضافه می‌کنید می‌توانند آن را باز کنند.",
   "collab_anyone_link": "هر کسی که پیوند را دارد",
-  "collab_anyone_link_desc": "هر کسی که پیوند را دارد می‌تواند آن را حتی بدون حساب باز کند. بازدیدکنندگانی که وارد نشده‌اند فقط می‌توانند ببینند.",
+  "collab_anyone_link_desc": "هر کسی که پیوند را دارد می‌تواند آن را حتی بدون حساب باز کند.",
   "collab_role": "نقش",
   "collab_role_owner": "مالک",
   "collab_role_edit": "ویرایشگر",
@@ -1534,8 +1534,10 @@
   "dictionary": "واژه‌نامه",
   "dictionary_custom_words": "واژه‌های سفارشی",
   "dictionary_autocorrect": "اصلاح خودکار",
-  "dictionary_english_words": "فهرست واژه‌های انگلیسی",
   "dictionary_word": "واژه",
   "dictionary_invalid_word": "یک واژه با حروف و آپاستروف وارد کنید.",
-  "dictionary_load_failed": "فهرست واژه‌های انگلیسی بارگیری نشد."
+  "overview_page": "معرفی OmniWrite",
+  "overview_heading": "بنویسید، سامان‌دهی کنید و همکاری کنید.",
+  "overview_intro": "سندها و صفحه‌گسترده‌ها را در یک فضای کاری بسازید.",
+  "overview_open": "باز کردن OmniWrite"
 }

@@ -1530,8 +1530,10 @@
   "dictionary": "辞書",
   "dictionary_custom_words": "登録単語",
   "dictionary_autocorrect": "自動修正",
-  "dictionary_english_words": "英単語一覧",
   "dictionary_word": "単語",
   "dictionary_invalid_word": "文字とアポストロフィで単語を1つ入力してください。",
-  "dictionary_load_failed": "英単語一覧を読み込めませんでした。"
+  "overview_page": "OmniWrite の概要",
+  "overview_heading": "書く、整理する、共同で作業する。",
+  "overview_intro": "文書とスプレッドシートをひとつのワークスペースで作成できます。",
+  "overview_open": "OmniWrite を開く"
 }

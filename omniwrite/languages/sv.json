@@ -1431,7 +1431,7 @@
   "collab_restricted": "Begränsad",
   "collab_restricted_desc": "Bara personer du lägger till kan öppna den.",
   "collab_anyone_link": "Alla som har länken",
-  "collab_anyone_link_desc": "Alla som har länken kan öppna den, även utan konto. Utloggade besökare kan bara visa.",
+  "collab_anyone_link_desc": "Alla som har länken kan öppna den, även utan konto.",
   "collab_role": "Roll",
   "collab_role_owner": "Ägare",
   "collab_role_edit": "Redigerare",
@@ -1534,8 +1534,10 @@
   "dictionary": "Ordbok",
   "dictionary_custom_words": "Egna ord",
   "dictionary_autocorrect": "Autokorrigering",
-  "dictionary_english_words": "Engelsk ordlista",
   "dictionary_word": "Ord",
   "dictionary_invalid_word": "Ange ett ord med bokstäver och apostrofer.",
-  "dictionary_load_failed": "Det gick inte att läsa in den engelska ordlistan."
+  "overview_page": "Översikt över OmniWrite",
+  "overview_heading": "Skriv, organisera och samarbeta.",
+  "overview_intro": "Skapa dokument och kalkylblad i en enda arbetsyta.",
+  "overview_open": "Öppna OmniWrite"
 }

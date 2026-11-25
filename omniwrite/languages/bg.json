@@ -1431,7 +1431,7 @@
   "collab_restricted": "Ограничен",
   "collab_restricted_desc": "Само хората, които добавите, могат да го отворят.",
   "collab_anyone_link": "Всеки с линка",
-  "collab_anyone_link_desc": "Всеки с линка може да го отвори, дори без профил. Невлезлите посетители могат само да преглеждат.",
+  "collab_anyone_link_desc": "Всеки с линка може да го отвори, дори без профил.",
   "collab_role": "Роля",
   "collab_role_owner": "Собственик",
   "collab_role_edit": "Редактор",
@@ -1534,8 +1534,10 @@
   "dictionary": "Речник",
   "dictionary_custom_words": "Думи по избор",
   "dictionary_autocorrect": "Автокорекция",
-  "dictionary_english_words": "Списък с английски думи",
   "dictionary_word": "Дума",
   "dictionary_invalid_word": "Въведете една дума само с букви и апострофи.",
-  "dictionary_load_failed": "Списъкът с английски думи не се зареди."
+  "overview_page": "Преглед на OmniWrite",
+  "overview_heading": "Пишете, организирайте и работете заедно.",
+  "overview_intro": "Създавайте документи и електронни таблици в едно работно пространство.",
+  "overview_open": "Отворете OmniWrite"
 }

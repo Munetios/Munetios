@@ -1431,7 +1431,7 @@
   "collab_restricted": "Ograniczony",
   "collab_restricted_desc": "Otworzyć mogą tylko osoby, które dodasz.",
   "collab_anyone_link": "Każdy, kto ma link",
-  "collab_anyone_link_desc": "Każdy, kto ma link, może otworzyć plik nawet bez konta. Niezalogowani goście mogą tylko wyświetlać.",
+  "collab_anyone_link_desc": "Każdy, kto ma link, może otworzyć plik nawet bez konta.",
   "collab_role": "Rola",
   "collab_role_owner": "Właściciel",
   "collab_role_edit": "Edytor",
@@ -1534,8 +1534,10 @@
   "dictionary": "Słownik",
   "dictionary_custom_words": "Własne słowa",
   "dictionary_autocorrect": "Autokorekta",
-  "dictionary_english_words": "Lista angielskich słów",
   "dictionary_word": "Słowo",
   "dictionary_invalid_word": "Wpisz jedno słowo złożone z liter i apostrofów.",
-  "dictionary_load_failed": "Nie udało się wczytać listy angielskich słów."
+  "overview_page": "Przegląd OmniWrite",
+  "overview_heading": "Pisz, porządkuj i współpracuj.",
+  "overview_intro": "Twórz dokumenty i arkusze kalkulacyjne w jednym obszarze roboczym.",
+  "overview_open": "Otwórz OmniWrite"
 }

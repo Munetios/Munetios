@@ -93,11 +93,26 @@
   function item(action, icon, label, extra = "") {
     return `<button type="button" class="mu-menu-item" role="menuitem" data-action="${action}" ${extra}><span class="mu-icon" aria-hidden="true">${icon}</span><span class="mu-account-item-label">${esc(label)}</span></button>`;
   }
+  // Google-only accounts (no password) get an "Add password" shortcut while sync is paused.
+  let passwordless = { id: null, value: false };
+  async function checkPasswordless() {
+    const account = A.state.account;
+    if (!account || passwordless.id === account.id || !["locked", "paused"].includes(A.state.status)) return;
+    passwordless = { id: account.id, value: false };
+    try {
+      const google = await A.google.connection();
+      if (A.state.account?.id !== account.id) return;
+      passwordless.value = Boolean(google.linked && !google.hasPassword);
+      if (passwordless.value) renderMenu();
+    } catch {}
+  }
   function renderMenu() {
     if (!menu) return;
     const account = A.state.account;
     if (!account) { closeMenu(false); return; }
     const s = status();
+    checkPasswordless();
+    const addPassword = passwordless.id === account.id && passwordless.value && ["locked", "paused"].includes(A.state.status);
     const list = A.workspaces.list();
     const active = A.workspaces.active();
     const others = A.state.accounts || [];
@@ -107,6 +122,7 @@
         <span class="mu-icon mu-icon-filled" aria-hidden="true">${s.icon}</span>
         <span class="mu-account-status-text"><span>${esc(s.text)}</span>${s.sub ? `<span class="mu-account-status-sub"><span class="mu-icon" aria-hidden="true">lock</span>${esc(s.sub)}</span>` : ""}</span>
         ${s.action ? `<button type="button" class="mu-btn mu-btn-primary mu-account-unlock" data-action="unlock">${esc(t("unlockSync"))}</button>` : ""}
+        ${addPassword ? `<button type="button" class="mu-btn mu-account-unlock" data-action="add-password"><span class="mu-icon" aria-hidden="true">password</span><span>${esc(t("addPassword"))}</span></button>` : ""}
       </div>
       <div class="mu-menu-sep"></div>
       ${item("toggle-workspaces", "workspaces", t("workspaces"), `aria-expanded="${expanded.workspaces}"`).replace("</button>", `<span class="mu-icon mu-account-chevron" aria-hidden="true">${expanded.workspaces ? "expand_less" : "expand_more"}</span></button>`)}
@@ -178,6 +194,7 @@
       return;
     }
     if (action === "settings") { location.href = `/account/?from=${encodeURIComponent(here())}`; return; }
+    if (action === "add-password") { location.assign("/signin/?forgot=1"); return; }
     if (action === "unlock") { closeMenu(false); openUnlock(); return; }
     if (action === "switch") {
       button.disabled = true;

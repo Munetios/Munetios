@@ -289,7 +289,8 @@ body.ph-viewer-open {
 }
 .ph-picker[hidden], [data-ph-embedded] .ph-app > :not(.ph-picker) { display: none !important; }
 [data-ph-embedded], [data-ph-embedded] .ph-app { min-height: 0; height: auto; margin: 0; background: transparent; }
-.ph-picker { max-height: 600px; overflow: auto; --tile: 112px; align-content: start; }
+[data-ph-embedded] { color-scheme: only light; }
+.ph-picker { max-height: 600px; overflow: auto; --tile: 112px; align-content: start; background: transparent; }
 .ph-picker .ph-tile-open { cursor: pointer; }
 .ph-picker .ph-tile-open:focus-visible { outline-offset: -4px; }
 .ph-tile {

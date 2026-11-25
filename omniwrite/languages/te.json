@@ -1431,7 +1431,7 @@
   "collab_restricted": "పరిమితం",
   "collab_restricted_desc": "మీరు జోడించిన వ్యక్తులు మాత్రమే దీన్ని తెరవగలరు.",
   "collab_anyone_link": "లింక్ ఉన్న ఎవరైనా",
-  "collab_anyone_link_desc": "లింక్ ఉన్న ఎవరైనా ఖాతా లేకపోయినా దీన్ని తెరవగలరు. సైన్ ఇన్ చేయని సందర్శకులు చూడటం మాత్రమే చేయగలరు.",
+  "collab_anyone_link_desc": "లింక్ ఉన్న ఎవరైనా ఖాతా లేకపోయినా దీన్ని తెరవగలరు.",
   "collab_role": "పాత్ర",
   "collab_role_owner": "యజమాని",
   "collab_role_edit": "ఎడిటర్",
@@ -1534,8 +1534,10 @@
   "dictionary": "నిఘంటువు",
   "dictionary_custom_words": "సొంత పదాలు",
   "dictionary_autocorrect": "స్వయంచాలక సవరణ",
-  "dictionary_english_words": "ఆంగ్ల పదాల జాబితా",
   "dictionary_word": "పదం",
   "dictionary_invalid_word": "అక్షరాలు, అపాస్ట్రఫీలతో ఒక పదాన్ని నమోదు చేయండి.",
-  "dictionary_load_failed": "ఆంగ్ల పదాల జాబితాను లోడ్ చేయలేకపోయాం."
+  "overview_page": "OmniWrite పరిచయం",
+  "overview_heading": "రాయండి, క్రమబద్ధీకరించండి, కలిసి పనిచేయండి.",
+  "overview_intro": "ఒకే కార్యస్థలంలో పత్రాలు, స్ప్రెడ్‌షీట్లు సృష్టించండి.",
+  "overview_open": "OmniWrite తెరవండి"
 }

@@ -35,6 +35,7 @@
     const sessionGoogle = document.getElementById('sessionGoogleSignIn');
     let googleEnabled = false;
     const params = new URLSearchParams(location.search);
+    const googleFactor = params.get('google') === 'factor';
     const adding = params.get('add') === '1';
     // Only same-site paths are allowed as a return destination.
     const rawContinue = params.get('continue') || '';
@@ -64,10 +65,10 @@
         root.style.colorScheme = light ? 'light' : 'dark';
     }
     function renderLanguage() {
-        google.hidden = !googleEnabled || Boolean(resetStep) || verifying;
+        google.hidden = googleFactor || !googleEnabled || Boolean(resetStep) || verifying;
         if (googleDivider) googleDivider.hidden = google.hidden;
         sessionGoogle.hidden = !googleEnabled;
-        document.querySelector("#authCodeField label").textContent = Account.t("authCode");
+        document.querySelector("#authCodeField label").textContent = Account.t("factorOrRecovery");
         root.lang = locale;
         root.dir = locale === 'ar' ? 'rtl' : 'ltr';
         document.querySelectorAll('[data-i18n]').forEach(element => { element.textContent = t(element.dataset.i18n); });
@@ -78,8 +79,8 @@
             document.getElementById('resetInstructions').textContent = resetStep === 'lookup' ? t('forgotEmailPrompt') : resetStep === 'email' ? t('resetEmailPrompt') : resetStep === 'code' ? t('emailCodeSent') : '';
             resetSubmit.textContent = t(resetStep === 'lookup' ? 'continue' : resetStep === 'email' ? 'sendEmailCode' : resetStep === 'code' ? 'continue' : 'resetPasswordTitle');
             document.querySelector('label[for="resetEmail"]').textContent = t(resetStep === 'lookup' ? 'recoveryEmail' : 'email');
-            resetError.textContent = resetErrorKey === 'twoFactorRequired' ? Account.t(resetErrorKey) : t(resetErrorKey) || '';
-            document.querySelector('label[for="resetFactor"]').textContent = Account.t('authCode');
+            resetError.textContent = resetErrorKey === 'twoFactorRequired' ? Account.t('factorOrRecovery') : t(resetErrorKey) || '';
+            document.querySelector('label[for="resetFactor"]').textContent = Account.t('factorOrRecovery');
         }
         submit.querySelector('[data-i18n]').textContent = t(busy ? 'working' : verifying ? 'continue' : creating ? 'createAccount' : 'signIn');
         submit.querySelector('.signin-spinner').hidden = !busy;
@@ -87,7 +88,7 @@
         signinModeButton.setAttribute('aria-pressed', String(!creating));
         document.getElementById('modeGroup').setAttribute('aria-label', t('modeLabel'));
         toggle.setAttribute('aria-label', t(password.type === 'password' ? 'showPassword' : 'hidePassword'));
-        if (statusKey) document.getElementById('statusMessage').textContent = statusKey === 'twoFactorRequired' ? Account.t(statusKey) : t(statusKey);
+        if (statusKey) document.getElementById('statusMessage').textContent = statusKey === 'twoFactorRequired' ? Account.t('factorOrRecovery') : t(statusKey);
         document.querySelectorAll('.signin-error[data-error-key]').forEach(element => { element.textContent = t(element.dataset.errorKey); });
         document.getElementById('backLink').setAttribute('aria-label', t('back'));
         updateTheme();
@@ -110,7 +111,7 @@
     }
     function message(key) {
         statusKey = key;
-        document.getElementById('statusMessage').textContent = key === 'twoFactorRequired' ? Account.t(key) : key ? t(key) : '';
+        document.getElementById('statusMessage').textContent = key === 'twoFactorRequired' ? Account.t('factorOrRecovery') : key ? t(key) : '';
         status.hidden = !key;
     }
     function showSession(account) {
@@ -286,7 +287,7 @@
     form.addEventListener('submit', async event => {
         event.preventDefault();
         if (busy) return;
-        const fields = creating ? [email, password, confirmation] : [email, password];
+        const fields = googleFactor ? [] : creating ? [email, password, confirmation] : [email, password];
         const valid = fields.map(validate);
         if (valid.includes(false)) { fields[valid.indexOf(false)].focus(); return; }
         if (verifying && !/^\d{6}$/.test(emailCode.value.trim())) { message('emailCodeRequired'); emailCode.focus(); return; }
@@ -296,6 +297,11 @@
         form.setAttribute('aria-busy', 'true');
         message(''); renderLanguage();
         try {
+            if (googleFactor) {
+                const { continueTo } = await Account.security.googleFactor(document.getElementById('authCode').value.trim());
+                location.assign(continueTo);
+                return;
+            }
             if (creating && !isInternal() && !verifying) {
                 try { await Account.requestEmailCode(email.value.trim()); }
                 catch (failure) { if (failure.code !== 'emailCodeCooldown') throw failure; }
@@ -345,7 +351,10 @@
     if (continueTo) {
         document.getElementById('backLink').href = continueTo;
         document.getElementById('continueLink').href = continueTo;
-        if (/^\/webfilter(?:[/?#]|$)/.test(continueTo)) {
+        if (/^\/apps\/supervidplayer(?:[/?#]|$)/.test(continueTo)) {
+            document.getElementById('backBrand').textContent = 'SuperVidPlayer';
+            document.getElementById('backLogo').src = '/apps/supervidplayer/assets/SuperVidPlayer.png';
+        } else if (/^\/webfilter(?:[/?#]|$)/.test(continueTo)) {
             document.getElementById('backBrand').textContent = 'Munetios WebFilter';
             document.getElementById('backLogo').src = '/webfilter/icons/icon-32.png';
         } else if (/^\/mail(?:[/?#]|$)/.test(continueTo)) {
@@ -362,7 +371,7 @@
         logo.src = '/omniwrite/favicon-32x32.png';
         logo.hidden = false;
         document.querySelector('link[rel="icon"]').href = logo.src;
-        document.getElementById('signinGanetiosBadge').hidden = true;
+        document.getElementById('signinSearchBadge').hidden = true;
         document.getElementById('signinProducts').setAttribute('aria-label', 'OmniWrite');
     }
     renderLanguage();
@@ -395,9 +404,15 @@
         renderLanguage();
     }).catch(() => {});
     if (params.get('google') === 'failed') message('googleSignInFailed');
+    if (googleFactor) {
+        for (const field of [email, password]) field.closest('.mu-field').hidden = true;
+        for (const element of [document.getElementById('modeGroup'), forgot, forgotEmail]) element.hidden = true;
+        document.getElementById('authCodeField').hidden = false;
+        document.getElementById('authCode').focus();
+    }
     // Already signed in: show the session panel, unless an additional account is being added.
     Account.refresh().then(state => {
         if (state.account && params.get('forgot') === '1' && resetStep === 'email' && !resetEmail.value) resetEmail.value = state.account.email;
-        if (state.account && !adding && !busy && !resetStep && !email.value && !password.value) showSession(state.account);
+        if (state.account && !googleFactor && !adding && !busy && !resetStep && !email.value && !password.value) showSession(state.account);
     }).catch(() => {});
 })();

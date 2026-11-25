@@ -79,8 +79,6 @@
   "dictionary": "Diccionario",
   "dictionary_custom_words": "Palabras personalizadas",
   "dictionary_autocorrect": "Autocorrección",
-  "dictionary_english_words": "Lista de palabras en inglés",
   "dictionary_word": "Palabra",
-  "dictionary_invalid_word": "Introduce una sola palabra con letras y apóstrofos.",
-  "dictionary_load_failed": "No se ha podido cargar la lista de palabras en inglés."
+  "dictionary_invalid_word": "Introduce una sola palabra con letras y apóstrofos."
 }

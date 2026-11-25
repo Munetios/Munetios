@@ -1431,7 +1431,7 @@
   "collab_restricted": "கட்டுப்படுத்தப்பட்டது",
   "collab_restricted_desc": "நீங்கள் சேர்க்கும் நபர்கள் மட்டுமே இதைத் திறக்க முடியும்.",
   "collab_anyone_link": "இணைப்பு உள்ள எவரும்",
-  "collab_anyone_link_desc": "இணைப்பு உள்ள எவரும் கணக்கு இல்லாமலும் இதைத் திறக்கலாம். உள்நுழையாத பார்வையாளர்கள் பார்க்க மட்டுமே முடியும்.",
+  "collab_anyone_link_desc": "இணைப்பு உள்ள எவரும் கணக்கு இல்லாமலும் இதைத் திறக்கலாம்.",
   "collab_role": "பங்கு",
   "collab_role_owner": "உரிமையாளர்",
   "collab_role_edit": "திருத்துபவர்",
@@ -1534,8 +1534,10 @@
   "dictionary": "அகராதி",
   "dictionary_custom_words": "சொந்தச் சொற்கள்",
   "dictionary_autocorrect": "தானியக்கத் திருத்தம்",
-  "dictionary_english_words": "ஆங்கிலச் சொற்களின் பட்டியல்",
   "dictionary_word": "சொல்",
   "dictionary_invalid_word": "எழுத்துகளையும் மேல் காற்புள்ளிகளையும் பயன்படுத்தி ஒரு சொல்லை உள்ளிடவும்.",
-  "dictionary_load_failed": "ஆங்கிலச் சொற்களின் பட்டியலை ஏற்ற முடியவில்லை."
+  "overview_page": "OmniWrite அறிமுகம்",
+  "overview_heading": "எழுதுங்கள், ஒழுங்கமைக்குங்கள், இணைந்து பணியாற்றுங்கள்.",
+  "overview_intro": "ஒரே பணியிடத்தில் ஆவணங்களையும் விரிதாள்களையும் உருவாக்குங்கள்.",
+  "overview_open": "OmniWrite-ஐத் திற"
 }

@@ -1048,7 +1048,7 @@ body.ganetios-v4 .music-url-controls .mu-btn {
   white-space: nowrap;
 }
 
-/* Google Sans Flex stylistic-set toggles: v4 rows (their labels carry inline white 14px) */
+/* Munetios UI v4 Font stylistic-set toggles: v4 rows (their labels carry inline white 14px) */
 body.ganetios-v4 #fontFeatures {
   display: grid;
   gap: 12px;
@@ -1115,8 +1115,8 @@ body.ganetios-v4 .video-player-dialog .video-player-panel {
   backdrop-filter: var(--mu-blur) !important;
   -webkit-backdrop-filter: var(--mu-blur) !important;
   color: var(--mu-text);
-  font-family: "Google Sans Flex", system-ui, sans-serif;
-  font-feature-settings: "ss01" 1;
+  font-family: "Munetios UI v4 Font", system-ui, sans-serif;
+  font-feature-settings: normal;
 }
 body.ganetios-v4 .video-player-header {
   display: flex;
@@ -1378,12 +1378,12 @@ body.ganetios-v4 .home-page .logo-container img {
 }
 [data-mu-theme="dark"]
   body.ganetios-v4
-  #canChangeLogoinDoodles[src$="ganetios-logo.png"] {
+  #canChangeLogoinDoodles[src$="munetios-logo.png"] {
   mix-blend-mode: lighten;
 }
 [data-mu-theme="light"]
   body.ganetios-v4
-  #canChangeLogoinDoodles[src$="ganetios-logo.png"] {
+  #canChangeLogoinDoodles[src$="munetios-logo.png"] {
   border-radius: var(--mu-radius-lg);
 }
 

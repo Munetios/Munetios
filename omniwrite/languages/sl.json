@@ -1431,7 +1431,7 @@
   "collab_restricted": "Omejeno",
   "collab_restricted_desc": "Odprejo ga lahko samo osebe, ki jih dodate.",
   "collab_anyone_link": "Vsi, ki imajo povezavo",
-  "collab_anyone_link_desc": "Vsak, ki ima povezavo, ga lahko odpre, tudi brez računa. Neprijavljeni obiskovalci si ga lahko samo ogledajo.",
+  "collab_anyone_link_desc": "Vsak, ki ima povezavo, ga lahko odpre, tudi brez računa.",
   "collab_role": "Vloga",
   "collab_role_owner": "Lastnik",
   "collab_role_edit": "Urejevalec",
@@ -1534,8 +1534,10 @@
   "dictionary": "Slovar",
   "dictionary_custom_words": "Lastne besede",
   "dictionary_autocorrect": "Samodejno popravljanje",
-  "dictionary_english_words": "Seznam angleških besed",
   "dictionary_word": "Beseda",
   "dictionary_invalid_word": "Vnesite eno besedo, sestavljeno iz črk in opuščajev.",
-  "dictionary_load_failed": "Seznama angleških besed ni bilo mogoče naložiti."
+  "overview_page": "Pregled aplikacije OmniWrite",
+  "overview_heading": "Pišite, urejajte in sodelujte.",
+  "overview_intro": "Ustvarjajte dokumente in preglednice v enem delovnem prostoru.",
+  "overview_open": "Odpri OmniWrite"
 }

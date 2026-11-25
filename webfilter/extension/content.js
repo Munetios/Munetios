@@ -2,10 +2,8 @@
  * Munetios WebFilter extension: content script (document_start, top frame)
  * - Asks the service worker to apply the font + sanitized UserCSS for this page.
  *   Restricted pages are never styled.
- * - The bundled font is the ss01 build of Google Sans Flex: no font-feature-settings
- *   is ever added to the page.
  * - Local font fallback: if the page CSP stops the injected @font-face, the bundled
- *   munetios-sans.ttf is loaded as an ArrayBuffer through the FontFace API, which
+ *   font is loaded as an ArrayBuffer through the FontFace API, which
  *   never touches the network or the page's font-src.
  * - Blocked text: removes blocked words or phrases as students type or paste them,
  *   and stops forms that still contain them. Password fields are never read, and
@@ -18,21 +16,23 @@
   if (window.top !== window || window.__munetiosWebFilter) return;
   window.__munetiosWebFilter = true;
 
-  const FAMILY = "Google Sans Flex";
-  let fontPromise = null;
+  const FAMILY = "Munetios UI v4 Font";
+  const fontPromises = new Map();
 
-  function loadBundledFont() {
-    if (fontPromise) return fontPromise;
-    fontPromise = (async () => {
+  function loadBundledFont(family = FAMILY) {
+    if (fontPromises.has(family)) return fontPromises.get(family);
+    const fontPath = Engine.BUNDLED_FONTS[family];
+    if (!fontPath) return Promise.resolve(false);
+    const promise = (async () => {
       try {
-        const ready = await document.fonts.load('400 18px "' + FAMILY + '"');
+        const ready = await document.fonts.load('400 18px "' + family + '"');
         if (ready && ready.length) return true;
       } catch (error) {
         // Fall through to the ArrayBuffer path.
       }
       try {
-        const response = await fetch(chrome.runtime.getURL("fonts/munetios-sans.ttf"));
-        const face = new FontFace(FAMILY, await response.arrayBuffer(), {
+        const response = await fetch(chrome.runtime.getURL(fontPath));
+        const face = new FontFace(family, await response.arrayBuffer(), {
           weight: "1 1000",
           stretch: "25% 151%",
           style: "normal",
@@ -45,7 +45,8 @@
         return false;
       }
     })();
-    return fontPromise;
+    fontPromises.set(family, promise);
+    return promise;
   }
 
   async function applyPage() {
@@ -57,7 +58,7 @@
     }
     if (!result || result.restricted) return;
     setPhrases(result.phrases);
-    if (result.usesGoogleSansFlex) loadBundledFont();
+    for (const family of result.fonts || []) loadBundledFont(family);
   }
 
   /* ---------------------------------------------------------- blocked text */
@@ -163,7 +164,7 @@
           background: linear-gradient(180deg, rgba(46, 16, 96, 0.50), rgba(20, 8, 52, 0.48)); color: #f6f3ff;
           border: 1px solid rgba(255, 255, 255, 0.24); box-shadow: 0 18px 48px rgba(8, 3, 26, 0.32);
           -webkit-backdrop-filter: blur(2px) saturate(160%); backdrop-filter: blur(2px) saturate(160%);
-          font-family: "Google Sans Flex", system-ui, sans-serif; font-size: 18px; font-weight: 400; line-height: 1.45; }
+          font-family: "Munetios UI v4 Font", system-ui, sans-serif; font-size: 18px; font-weight: 400; line-height: 1.45; }
         img { width: 48px; height: 48px; flex: none; }
         .body { flex: 1; min-width: 0; }
         h2 { margin: 0 0 4px; font-size: 22px; font-weight: 300; }

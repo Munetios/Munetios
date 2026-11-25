@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title data-i18n="overview_page">OmniWrite overview</title>
+    <meta name="description" content="Create documents and spreadsheets in one workspace with Munetios OmniWrite.">
+    <meta name="theme-color" content="#110736">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Munetios OmniWrite">
+    <meta property="og:description" content="Create documents and spreadsheets in one workspace with Munetios OmniWrite.">
+    <meta property="og:image" content="https://write.munetios.com/overview-editor.png">
+    <meta property="og:url" content="https://write.munetios.com/overview">
+    <link rel="canonical" href="https://write.munetios.com/overview">
+    <link rel="icon" href="/omniwrite/favicon-32x32.png" sizes="32x32" type="image/png">
+    <link rel="stylesheet" href="https://api.munetios.com/beautiful-css/beautiful.css">
+    <link rel="stylesheet" href="/munetios-ui/munetios-ui-v4.css">
+    <link rel="stylesheet" href="/omniwrite/overview.css">
+    <script src="/munetios-ui/munetios-ui-v4.js" defer></script>
+    <script src="/omniwrite/overview.js" defer></script>
+</head>
+<body class="mu-root omni-overview">
+    <header class="overview-topbar">
+        <a class="mu-glass liquid-glass overview-brand" href="./" aria-label="OmniWrite">
+            <img src="/omniwrite/android-chrome-192x192.png" width="32" height="32" alt="">
+            <span>OmniWrite</span>
+        </a>
+        <a class="mu-btn mu-btn-ghost" id="overviewSignIn" href="/signin?continue=%2F" data-i18n="auth_sign_in">Sign in</a>
+    </header>
+    <main class="overview-main">
+        <section class="overview-hero" aria-labelledby="overview-title">
+            <div class="overview-intro">
+                <h1 id="overview-title" data-i18n="overview_heading">Write, organize, and collaborate.</h1>
+                <p class="mu-muted" data-i18n="overview_intro">Create documents and spreadsheets in one workspace.</p>
+                <div class="overview-actions">
+                    <a class="mu-btn mu-btn-primary" href="./">
+                        <span data-i18n="overview_open">Open OmniWrite</span>
+                        <span class="mu-icon overview-directional" aria-hidden="true">arrow_forward</span>
+                    </a>
+                    <a class="mu-btn mu-btn-ghost" href="./#/templates" data-i18n="browse_templates">Browse Templates</a>
+                </div>
+            </div>
+            <div class="overview-preview mu-glass liquid-glass">
+                <img src="/omniwrite/overview-editor.png" width="1320" height="730" alt="" fetchpriority="high">
+            </div>
+        </section>
+        <div class="overview-features">
+            <section class="mu-glass mu-panel liquid-glass">
+                <span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">description</span></span>
+                <h2 class="mu-h-title" data-i18n="documents_section">Documents</h2>
+                <p class="mu-muted" data-i18n="highlight_formatting_desc">Use charts, code blocks, tables, and page layouts in one editor.</p>
+            </section>
+            <section class="mu-glass mu-panel liquid-glass">
+                <span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">table_view</span></span>
+                <h2 class="mu-h-title" data-i18n="sheets_spreadsheets">Spreadsheets</h2>
+                <p class="mu-muted" data-i18n="sheets_highlight_charts_desc">Turn any range into a column, line, pie, or scatter chart that updates live.</p>
+            </section>
+            <section class="mu-glass mu-panel liquid-glass">
+                <span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">group</span></span>
+                <h2 class="mu-h-title" data-i18n="collab_intro_title">Collaborate in real time</h2>
+                <p class="mu-muted" data-i18n="collab_intro_desc">Edit together and see who is here.</p>
+            </section>
+        </div>
+        <section class="overview-privacy" aria-labelledby="overview-privacy-title">
+            <span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">lock</span></span>
+            <div>
+                <h2 class="mu-h-title" id="overview-privacy-title" data-i18n="highlight_privacy">Privacy</h2>
+                <p class="mu-muted" data-i18n="highlight_privacy_desc">End-to-end encrypted local documents with optional locking and recovery flows.</p>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

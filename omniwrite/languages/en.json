@@ -1407,12 +1407,12 @@
   "collab_restricted": "Restricted",
   "collab_restricted_desc": "Only people you add can open it.",
   "collab_anyone_link": "Anyone with the link",
-  "collab_anyone_link_desc": "Anyone with the link can open it, even without an account. Signed-out visitors can only view.",
+  "collab_anyone_link_desc": "Anyone with the link can open it, even without an account.",
   "collab_role": "Role",
   "collab_role_owner": "Owner",
   "collab_role_edit": "Editor",
-  "collab_role_suggest": "Suggest",
-  "collab_role_view": "View only",
+  "collab_role_suggest": "Suggester",
+  "collab_role_view": "Viewer",
   "collab_suggesting": "Suggesting",
   "collab_remove": "Remove access",
   "collab_copy_link": "Copy link",
@@ -1510,8 +1510,10 @@
   "dictionary": "Dictionary",
   "dictionary_custom_words": "Custom words",
   "dictionary_autocorrect": "Autocorrect",
-  "dictionary_english_words": "English word list",
   "dictionary_word": "Word",
   "dictionary_invalid_word": "Enter one word using letters and apostrophes.",
-  "dictionary_load_failed": "Couldn't load the English word list."
+  "overview_page": "OmniWrite overview",
+  "overview_heading": "Write, organize, and collaborate.",
+  "overview_intro": "Create documents and spreadsheets in one workspace.",
+  "overview_open": "Open OmniWrite"
 }

@@ -21,16 +21,16 @@
     <section class="mu-glass mu-panel mwf-blocked-card" aria-labelledby="mwfTitle">
       <span class="mu-icon-circle mwf-blocked-lock" aria-hidden="true"><span class="mu-icon">lock</span></span>
       <div class="mwf-blocked-text">
-        <h1 class="mu-h-display" id="mwfTitle">This website has been blocked by your administrator</h1>
-        <p class="mu-muted" id="mwfBody">Your school's Munetios WebFilter blocked this page.</p>
+        <h1 class="mu-h-display" id="mwfTitle">Munetios WebFilter</h1>
+        <p class="mu-muted" id="mwfBody"></p>
       </div>
 
       <p class="mwf-blocked-message" id="mwfMessage" hidden></p>
 
       <div class="mwf-blocked-facts" id="mwfFacts" hidden>
-        <div class="mwf-fact"><span class="mu-icon" aria-hidden="true">link</span><div><span class="mu-muted" id="mwfUrlLabel">Address</span><span class="mwf-fact-value" id="mwfUrl" dir="ltr"></span></div></div>
+        <div class="mwf-fact" id="mwfUrlRow" hidden><span class="mu-icon" aria-hidden="true">link</span><div><span class="mu-muted" id="mwfUrlLabel">URL</span><span class="mwf-fact-value" id="mwfUrl" dir="ltr"></span></div></div>
         <div class="mwf-fact"><span class="mu-icon" aria-hidden="true">info</span><div><span class="mu-muted" id="mwfReasonLabel">Reason</span><span class="mwf-fact-value" id="mwfReason"></span></div></div>
-        <div class="mwf-fact" id="mwfRuleRow"><span class="mu-icon" aria-hidden="true">rule</span><div><span class="mu-muted" id="mwfRuleLabel">Blocked website ID</span><span class="mwf-fact-value" id="mwfRule" dir="ltr"></span></div></div>
+        <div class="mwf-fact" id="mwfRuleRow" hidden><span class="mu-icon" aria-hidden="true">rule</span><div><span class="mu-muted" id="mwfRuleLabel">Pattern</span><span class="mwf-fact-value" id="mwfRule" dir="ltr"></span></div></div>
       </div>
 
       <div class="mwf-blocked-actions" id="mwfActions">
@@ -63,7 +63,6 @@
     </section>
   </main>
   <script src="/webfilter/webfilter-i18n.js"></script>
-  <script src="/webfilter/webfilter-engine.js"></script>
   <script src="/blocked/blocked.js"></script>
 </body>
 </html>

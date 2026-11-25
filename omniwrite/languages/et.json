@@ -1431,7 +1431,7 @@
   "collab_restricted": "Piiratud",
   "collab_restricted_desc": "Avada saavad ainult teie lisatud inimesed.",
   "collab_anyone_link": "Kõik, kellel on link",
-  "collab_anyone_link_desc": "Kõik, kellel on link, saavad selle avada ka ilma kontota. Sisselogimata külastajad saavad ainult vaadata.",
+  "collab_anyone_link_desc": "Kõik, kellel on link, saavad selle avada ka ilma kontota.",
   "collab_role": "Roll",
   "collab_role_owner": "Omanik",
   "collab_role_edit": "Toimetaja",
@@ -1534,8 +1534,10 @@
   "dictionary": "Sõnastik",
   "dictionary_custom_words": "Oma sõnad",
   "dictionary_autocorrect": "Automaatparandus",
-  "dictionary_english_words": "Ingliskeelsete sõnade loend",
   "dictionary_word": "Sõna",
   "dictionary_invalid_word": "Sisesta üks sõna, kasutades tähti ja ülakomasid.",
-  "dictionary_load_failed": "Ingliskeelsete sõnade loendit ei õnnestunud laadida."
+  "overview_page": "OmniWrite’i ülevaade",
+  "overview_heading": "Kirjuta, korralda ja tee koostööd.",
+  "overview_intro": "Loo dokumente ja arvutustabeleid ühes tööruumis.",
+  "overview_open": "Ava OmniWrite"
 }

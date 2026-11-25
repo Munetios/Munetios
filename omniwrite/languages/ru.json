@@ -1427,7 +1427,7 @@
   "collab_restricted": "Ограниченный",
   "collab_restricted_desc": "Открыть могут только добавленные вами люди.",
   "collab_anyone_link": "Все, у кого есть ссылка",
-  "collab_anyone_link_desc": "Открыть может любой, у кого есть ссылка, даже без аккаунта. Посетители без входа могут только просматривать.",
+  "collab_anyone_link_desc": "Открыть может любой, у кого есть ссылка, даже без аккаунта.",
   "collab_role": "Роль",
   "collab_role_owner": "Владелец",
   "collab_role_edit": "Редактор",
@@ -1530,8 +1530,10 @@
   "dictionary": "Словарь",
   "dictionary_custom_words": "Свои слова",
   "dictionary_autocorrect": "Автоисправление",
-  "dictionary_english_words": "Список английских слов",
   "dictionary_word": "Слово",
   "dictionary_invalid_word": "Введите одно слово, используя буквы и апострофы.",
-  "dictionary_load_failed": "Не удалось загрузить список английских слов."
+  "overview_page": "Обзор OmniWrite",
+  "overview_heading": "Пишите, упорядочивайте и работайте вместе.",
+  "overview_intro": "Создавайте документы и электронные таблицы в одном рабочем пространстве.",
+  "overview_open": "Открыть OmniWrite"
 }

@@ -479,7 +479,10 @@
         const light = document.body.classList.contains('omni-light-mode');
         if (light === lastLightMode) return;
         lastLightMode = light;
-        if (editor.book) refreshCharts(true);
+        if (editor.book) {
+            refreshCharts(true);
+            scheduleRender();
+        }
     }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
     let lastLightMode = document.body.classList.contains('omni-light-mode');
     window.addEventListener('resize', () => { if (isSheetPageActive()) { layoutEditorHeight(); scheduleRender(); } });
@@ -705,9 +708,9 @@
         Object.assign(sheet, extras);
         return sheet;
     }
-    const H = (v, more = {}) => ({ v, s: Object.assign({ b: true, bg: '#ede7fb' }, more) });
+    const H = (v, more = {}) => ({ v, s: { bg: '#ede7fb', ...more } });
     const money = v => ({ v: String(v), s: { fmt: { t: 'currency', d: 2 } } });
-    const moneyF = v => ({ v, s: { fmt: { t: 'currency', d: 2 }, b: true } });
+    const moneyF = v => ({ v, s: { fmt: { t: 'currency', d: 2 } } });
     const TEMPLATES = [
         {
             id: 'budget', icon: 'savings', title: 'sheets_tpl_budget', desc: 'sheets_tpl_budget_desc', build() {
@@ -719,7 +722,7 @@
                     ['Utilities', money(220), money(204.75), { v: '=B5-C5', s: { fmt: { t: 'currency', d: 2 } } }],
                     ['Savings', money(600), money(600), { v: '=B6-C6', s: { fmt: { t: 'currency', d: 2 } } }],
                     ['Fun', money(200), money(246.1), { v: '=B7-C7', s: { fmt: { t: 'currency', d: 2 } } }],
-                    [{ v: 'Total', s: { b: true } }, moneyF('=SUM(B2:B7)'), moneyF('=SUM(C2:C7)'), moneyF('=B8-C8')]
+                    ['Total', moneyF('=SUM(B2:B7)'), moneyF('=SUM(C2:C7)'), moneyF('=B8-C8')]
                 ], { colWidths: { 0: 180, 1: 150, 2: 150, 3: 150 } });
                 s.charts.push({ id: makeId(10), type: 'column', range: 'A1:C7', title: 'Planned vs actual', headers: true, labels: true, legend: true, x: 640, y: 20, w: 560, h: 340 });
                 return { title: t('sheets_tpl_budget'), sheets: [s] };
@@ -739,7 +742,7 @@
                     ['', '', { v: 'Subtotal', s: { ha: 'right' } }, moneyF('=SUM(D5:D7)')],
                     ['', '', { v: 'Tax rate', s: { ha: 'right' } }, '8%'],
                     ['', '', { v: 'Tax', s: { ha: 'right' } }, moneyF('=ROUND(D9*D10,2)')],
-                    ['', '', { v: 'Total', s: { ha: 'right', b: true } }, moneyF('=D9+D11')]
+                    ['', '', { v: 'Total', s: { ha: 'right' } }, moneyF('=D9+D11')]
                 ], { colWidths: { 0: 220, 1: 120, 2: 140, 3: 150 }, rowHeights: { 0: 48 } });
                 return { title: t('sheets_tpl_invoice'), sheets: [s] };
             }
@@ -755,7 +758,7 @@
                     row(false, 'Book venue', 'Jordan', '2026-11-20', 'Not started'),
                     row(false, 'Send invitations', 'Alex', '2026-11-24', 'Blocked'),
                     [],
-                    [{ v: 'Completed', s: { b: true } }, { v: '=COUNTIF(A2:A5,TRUE)&" of "&COUNTA(B2:B5)' }]
+                    ['Completed', { v: '=COUNTIF(A2:A5,TRUE)&" of "&COUNTA(B2:B5)' }]
                 ], { colWidths: { 0: 90, 1: 240, 2: 130, 3: 140, 4: 170 } });
                 return { title: t('sheets_tpl_tasks'), sheets: [s] };
             }
@@ -768,7 +771,7 @@
                     [H('Student'), H('Test 1'), H('Test 2'), H('Project'), H('Average'), H('Grade')],
                     st(2, 'Ana', 92, 88, 95), st(3, 'Ben', 78, 84, 80), st(4, 'Chen', 85, 91, 89), st(5, 'Dara', 64, 72, 70), st(6, 'Eli', 98, 94, 97),
                     [],
-                    [{ v: 'Class average', s: { b: true } }, '=ROUND(AVERAGE(B2:B6),1)', '=ROUND(AVERAGE(C2:C6),1)', '=ROUND(AVERAGE(D2:D6),1)', '=ROUND(AVERAGE(E2:E6),1)']
+                    ['Class average', '=ROUND(AVERAGE(B2:B6),1)', '=ROUND(AVERAGE(C2:C6),1)', '=ROUND(AVERAGE(D2:D6),1)', '=ROUND(AVERAGE(E2:E6),1)']
                 ], { colWidths: { 0: 180 } });
                 return { title: t('sheets_tpl_grades'), sheets: [s] };
             }
@@ -782,7 +785,7 @@
                     r(3, 'South', [38500, 36900, 40100, 43600]),
                     r(4, 'East', [29800, 33400, 35900, 38200]),
                     r(5, 'West', [46200, 48900, 47700, 52400]),
-                    [{ v: 'Total', s: { b: true } }, moneyF('=SUM(B2:B5)'), moneyF('=SUM(C2:C5)'), moneyF('=SUM(D2:D5)'), moneyF('=SUM(E2:E5)'), moneyF('=SUM(F2:F5)'), { v: '=IFERROR(E6/B6-1,0)', s: { fmt: { t: 'percent', d: 1 }, b: true } }]
+                    ['Total', moneyF('=SUM(B2:B5)'), moneyF('=SUM(C2:C5)'), moneyF('=SUM(D2:D5)'), moneyF('=SUM(E2:E5)'), moneyF('=SUM(F2:F5)'), { v: '=IFERROR(E6/B6-1,0)', s: { fmt: { t: 'percent', d: 1 } } }]
                 ], { colWidths: { 0: 150, 1: 130, 2: 130, 3: 130, 4: 130, 5: 150, 6: 120 } });
                 s.charts.push({ id: makeId(10), type: 'line', range: 'A1:E5', title: 'Quarterly sales by region', headers: true, labels: true, legend: true, seriesInRows: true, x: 40, y: 280, w: 620, h: 360 });
                 return { title: t('sheets_tpl_sales'), sheets: [s] };
@@ -1193,6 +1196,8 @@
         });
         hideCellEditor();
         destroyCharts();
+        clearGridCanvases();
+        viewport.removeAttribute('aria-activedescendant');
         editor.book = null; editor.sheet = null;
     }
     function switchSheet(id) {
@@ -1338,7 +1343,7 @@
     const ptToPx = pt => pt * 96 / 72;
     function fontCss(s, zoom = 1) {
         const size = ptToPx(s.fs || DEFAULT_PT) * zoom;
-        return `${s.i ? 'italic ' : ''}${s.b ? 700 : 400} ${size}px ${s.ff || "'Google Sans Flex'"}, system-ui, sans-serif`;
+        return `${s.i ? 'italic ' : ''}${s.b ? 700 : 400} ${size}px ${s.ff || "'Munetios UI v4 Font'"}, system-ui, sans-serif`;
     }
     const measureCtx = document.createElement('canvas').getContext('2d');
     const measureCache = new Map();
@@ -1359,20 +1364,84 @@
     let renderQueued = false;
     let conditionalFormatLayout = -1;
     const renderedWindows = new WeakMap();
+    const renderedCanvases = new WeakMap();
+    const gridFonts = new Set();
+    const GRID_TILE_STEP = 128;
+    let gridFontVersion = 0;
     function renderWindow(element, key, build) {
         const versionedKey = layoutVersion + ':' + key;
         if (renderedWindows.get(element) === versionedKey) return;
         element.innerHTML = build();
         renderedWindows.set(element, versionedKey);
     }
-    function renderCellWindow(element, rows, cols) {
-        renderWindow(element, [...rows, ...cols].join(':'), () =>
-            rows[1] < rows[0] || cols[1] < cols[0] ? '' : renderRegion(...rows, ...cols));
-    }
     function scheduleRender() {
         if (renderQueued || !editor.sheet) return;
         renderQueued = true;
         requestAnimationFrame(() => { renderQueued = false; render(); });
+    }
+    document.fonts?.addEventListener('loadingdone', () => {
+        measureCache.clear();
+        gridFontVersion++;
+        scheduleRender();
+    });
+
+    function clearGridCanvases() {
+        for (const layer of $('sheetsGridCard').querySelectorAll('.sheets-cells')) {
+            const [canvas, controls] = layer.children;
+            canvas.width = canvas.height = 0;
+            if (controls.firstChild) controls.replaceChildren();
+            renderedCanvases.delete(canvas);
+            renderedWindows.delete(controls);
+        }
+    }
+
+    function gridTile(start, length, end) {
+        if (length <= 0) return [0, 0];
+        const origin = Math.floor(start / GRID_TILE_STEP) * GRID_TILE_STEP;
+        const farEdge = Math.ceil((start + length) / GRID_TILE_STEP) * GRID_TILE_STEP;
+        return [origin, Math.max(0, Math.min(end, farEdge) - origin)];
+    }
+
+    function renderCellWindow(element, [x, width], [y, height], rowBounds, colBounds, palette) {
+        const [canvas, controls] = element.children;
+        const ratio = window.devicePixelRatio || 1;
+        const key = [layoutVersion, gridFontVersion, ratio, x, y, width, height, ...rowBounds, ...colBounds, ...Object.values(palette)].join(':');
+        if (renderedCanvases.get(canvas) === key) return;
+        renderedCanvases.set(canvas, key);
+
+        const pixelWidth = Math.ceil(width * ratio), pixelHeight = Math.ceil(height * ratio);
+        if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+        if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
+        Object.assign(canvas.style, { left: x + 'px', top: y + 'px', width: width + 'px', height: height + 'px' });
+        const ctx = canvas.getContext('2d');
+        if (ctx && width && height) {
+            ctx.setTransform(ratio, 0, 0, ratio, -x * ratio, -y * ratio);
+            ctx.clearRect(x, y, width, height);
+            ctx.fillStyle = palette.grid;
+        }
+
+        const r0 = Math.max(rowBounds[0], rowAt(y));
+        const r1 = Math.min(rowBounds[1], rowAt(y + height - 1));
+        // Include possible spill sources to the left of the raster tile.
+        const c0 = Math.max(colBounds[0], colAt(x) - 6);
+        const c1 = Math.min(colBounds[1], colAt(x + width - 1));
+        let html = '';
+        if (width && height && r0 <= r1 && c0 <= c1) {
+            visitRegion(r0, r1, c0, c1, (r, c, rect, merged, spill) => {
+                const cell = getCell(r, c);
+                const { filter } = editor.sheet;
+                const hasFilter = filter && r === filter.r1 && c >= filter.c1 && c <= filter.c2;
+                const s = cellStyle(cell);
+                const hasValue = cell?.v !== undefined && cell.v !== null && cell.v !== '';
+                const value = hasValue ? editor.evaluator.value(editor.sheet, r, c) : null;
+                if (!ctx || hasFilter || cell?.chk || cell?.dd || cell?.note || value === E.ERR.CYCLE || s.ffs || s.fvs || s.bd) {
+                    html += cellHtml(r, c, rect, merged, spill);
+                } else {
+                    paintGridCell(ctx, r, c, rect, merged, spill, cell, value, palette);
+                }
+            });
+        }
+        renderWindow(controls, [r0, r1, c0, c1, !!(width && height)].join(':'), () => html);
     }
     function isEmptyForSpill(cell) {
         if (!cell) return true;
@@ -1404,27 +1473,37 @@
             prepareConditionalFormats();
             conditionalFormatLayout = layoutVersion;
         }
-        renderCellWindow(cellsEl, rows, cols);
-        renderPanes(rows, cols, frozenRows, frozenCols, frozenWidth, frozenHeight, left, top, vw, vh, range);
+        const style = getComputedStyle($('sheetsGridCard'));
+        const palette = {
+            paper: style.getPropertyValue('--sh-paper').trim(),
+            ink: style.getPropertyValue('--sh-ink').trim(),
+            grid: style.getPropertyValue('--sh-grid').trim()
+        };
+        const scrollX = gridTile(left + frozenWidth, vw - frozenWidth, colX[sheet.cols]);
+        const scrollY = gridTile(top + frozenHeight, vh - frozenHeight, rowY[sheet.rows]);
+        const unfrozenRows = [fr, sheet.rows - 1], unfrozenCols = [fc, sheet.cols - 1];
+        renderCellWindow(cellsEl, scrollX, scrollY, unfrozenRows, unfrozenCols, palette);
+        renderPanes({ scrollX, scrollY, unfrozenRows, unfrozenCols, frozenRows, frozenCols, w: frozenWidth, h: frozenHeight, left, top, vw, vh, range, palette });
         renderHeaders(rows, cols, frozenRows, frozenCols, frozenWidth, frozenHeight, range);
+        updateGridAccessibility(sheet);
         positionOverlays();
     }
-    // Frozen panes: copies of the frozen rows/columns drawn above the scrolling grid.
-    function renderPanes(rows, cols, frozenRows, frozenCols, w, h, left, top, vw, vh, range) {
-        const show = (id, paneRows, paneCols, x, y, width, height, transform) => {
+    function renderPanes({ scrollX, scrollY, unfrozenRows, unfrozenCols, frozenRows, frozenCols, w, h, left, top, vw, vh, range, palette }) {
+        const show = (id, paneRows, paneCols, tileX, tileY, x, y, width, height, transform) => {
             const pane = $(id);
             const inner = pane.firstElementChild;
             const visible = paneRows[1] >= paneRows[0] && paneCols[1] >= paneCols[0];
             pane.style.display = visible ? 'block' : 'none';
-            renderCellWindow(inner.firstElementChild, paneRows, paneCols);
+            renderCellWindow(inner.firstElementChild, visible ? tileX : [0, 0], visible ? tileY : [0, 0], paneRows, paneCols, palette);
             if (!visible) return;
             Object.assign(pane.style, { width: width + 'px', height: height + 'px' });
             inner.style.transform = transform;
-            inner.lastElementChild.innerHTML = paneSelectionHtml(range, x, y, width, height);
+            const selection = paneSelectionHtml(range, x, y, width, height);
+            renderWindow(inner.lastElementChild, selection, () => selection);
         };
-        show('sheetsPaneTop', frozenRows, cols, left, 0, vw, h, `translateX(${-left}px)`);
-        show('sheetsPaneLeft', rows, frozenCols, 0, top, w, vh, `translateY(${-top}px)`);
-        show('sheetsPaneCorner', frozenRows, frozenCols, 0, 0, w, h, 'none');
+        show('sheetsPaneTop', frozenRows, unfrozenCols, scrollX, [0, h], left, 0, vw, h, `translateX(${-left}px)`);
+        show('sheetsPaneLeft', unfrozenRows, frozenCols, [0, w], scrollY, 0, top, w, vh, `translateY(${-top}px)`);
+        show('sheetsPaneCorner', frozenRows, frozenCols, [0, w], [0, h], 0, 0, w, h, 'none');
     }
     function visibleSelectionRect(range, x, y, width, height) {
         if ((range.r1 === range.r2 && range.c1 === range.c2) || isWholeMerge(range)) return null;
@@ -1447,17 +1526,16 @@
         }
         return html;
     }
-    function renderRegion(r0, r1, c0, c1) {
+    function visitRegion(r0, r1, c0, c1, visitCell) {
         const sheet = editor.sheet;
         const covered = new Set();
-        let html = '';
         // Merged regions that touch the region render as one cell.
         for (const m of sheet.merges) {
             if (m.r2 < r0 || m.r1 > r1 || m.c2 < c0 || m.c1 > c1) continue;
             for (const r of visibleRowsBetween(Math.max(m.r1, r0), Math.min(m.r2, r1))) {
                 for (let c = Math.max(m.c1, c0); c <= Math.min(m.c2, c1); c++) covered.add(r + ':' + c);
             }
-            html += cellHtml(m.r1, m.c1, cellRect(m.r1, m.c1), true, 0);
+            visitCell(m.r1, m.c1, cellRect(m.r1, m.c1), true, 0);
         }
         for (const r of visibleRowsBetween(r0, r1)) {
             for (let c = c0; c <= c1; c++) {
@@ -1477,10 +1555,9 @@
                         }
                     }
                 }
-                html += cellHtml(r, c, { x: colX[c], y: rowY[r], w, h: rowY[r + 1] - rowY[r] }, false, spill);
+                visitCell(r, c, { x: colX[c], y: rowY[r], w, h: rowY[r + 1] - rowY[r] }, false, spill);
             }
         }
-        return html;
     }
 
     /* ================================================================ conditional formatting */
@@ -1557,6 +1634,90 @@
         }
         return out;
     }
+
+    const gridGraphemes = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
+    function gridTextLines(ctx, text, width, wrap) {
+        const paragraphs = text.split('\n');
+        if (!wrap) return paragraphs;
+        const lines = [];
+        for (const paragraph of paragraphs) {
+            let line = '';
+            for (const word of paragraph.match(/\S+|\s+/gu) || []) {
+                if (line && ctx.measureText(line + word).width > width) {
+                    lines.push(line);
+                    line = '';
+                }
+                if (ctx.measureText(word).width <= width) {
+                    line += word;
+                    continue;
+                }
+                const characters = gridGraphemes ? Array.from(gridGraphemes.segment(word), entry => entry.segment) : Array.from(word);
+                for (const character of characters) {
+                    if (line && ctx.measureText(line + character).width > width) {
+                        lines.push(line);
+                        line = '';
+                    }
+                    line += character;
+                }
+            }
+            lines.push(line);
+        }
+        return lines;
+    }
+
+    function paintGridCell(ctx, r, c, { x, y, w, h }, merged, spill, cell, value, palette) {
+        if (w <= 0 || h <= 0) return;
+        const s = cellStyle(cell);
+        const cf = cfRules.length ? conditionalStyle(r, c, value) : null;
+        const background = cf?.bg || s.bg;
+        if (background || merged) {
+            ctx.fillStyle = palette.paper;
+            if (background) ctx.fillStyle = background;
+            ctx.fillRect(x, y, w, h);
+            ctx.fillStyle = palette.grid;
+        }
+        ctx.fillRect(x, y + h - 1, w, 1);
+        if (!spill) ctx.fillRect(x + w - 1, y, 1, h - 1);
+        if (value === null) return;
+        const text = displayText(editor.sheet, r, c);
+        if (!text) return;
+
+        const paintStyle = cf?.bold ? { ...s, b: true } : s;
+        const font = fontCss(paintStyle, editor.zoom);
+        const fontFace = fontCss({ ff: s.ff, b: paintStyle.b, i: s.i });
+        if (document.fonts && !gridFonts.has(fontFace)) {
+            gridFonts.add(fontFace);
+            document.fonts.load(fontFace).catch(() => {});
+        }
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x + 8, y, Math.max(0, w - 16), h - 1);
+        ctx.clip();
+        ctx.font = font;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = s.ha || (typeof value === 'number' ? 'right' : typeof value === 'boolean' || E.isErr(value) ? 'center' : 'left');
+        ctx.fillStyle = palette.ink;
+        const foreground = E.isErr(value) ? '#c62828' : cell.link ? '#4c1fc7' : cf?.fc || s.fc;
+        if (foreground) ctx.fillStyle = foreground;
+        const textX = ctx.textAlign === 'right' ? x + w - 8 : ctx.textAlign === 'center' ? x + w / 2 : x + 8;
+        const size = ptToPx(s.fs || DEFAULT_PT) * editor.zoom;
+        const lineHeight = size * 1.25;
+        const lines = gridTextLines(ctx, text, Math.max(1, w - 16), s.wrap);
+        const blockHeight = lines.length * lineHeight;
+        const blockY = s.va === 'top' ? y + 6 : s.va === 'bottom' ? y + h - 6 - blockHeight : y + (h - blockHeight) / 2;
+        lines.forEach((line, index) => {
+            const textY = blockY + (index + 0.5) * lineHeight;
+            if (textY + lineHeight < y || textY - lineHeight > y + h) return;
+            ctx.fillText(line, textX, textY);
+            if (!s.u && !s.st && !cell.link) return;
+            const width = ctx.measureText(line).width;
+            const left = ctx.textAlign === 'right' ? textX - width : ctx.textAlign === 'center' ? textX - width / 2 : textX;
+            if (s.u || cell.link) ctx.fillRect(left, textY + size * 0.4, width, 1);
+            if (s.st) ctx.fillRect(left, textY, width, 1);
+        });
+        ctx.restore();
+    }
+
     function cellHtml(r, c, rect, merged, spill) {
         const sheet = editor.sheet;
         const cell = sheet.cells[r + ':' + c];
@@ -1746,6 +1907,19 @@
         const text = displayText(editor.sheet, editor.sel.r, editor.sel.c);
         live.textContent = E.refName(editor.sel.r, editor.sel.c) + (text ? ': ' + text : '');
         updateStats(range);
+    }
+    function updateGridAccessibility(sheet) {
+        const row = $('sheetsAccessibleRow'), cell = $('sheetsAccessibleCell');
+        const { r, c } = editor.sel;
+        const text = displayText(sheet, r, c);
+        if (cell.textContent !== text) cell.textContent = text;
+        for (const [element, attribute, value] of [
+            [viewport, 'aria-rowcount', sheet.rows], [viewport, 'aria-colcount', sheet.cols],
+            [row, 'aria-rowindex', r + 1], [cell, 'aria-colindex', c + 1], [cell, 'aria-selected', 'true'],
+            [viewport, 'aria-activedescendant', cell.id]
+        ]) {
+            if (element.getAttribute(attribute) !== String(value)) element.setAttribute(attribute, value);
+        }
     }
     function isWholeMerge(range) { const m = mergeAt(range.r1, range.c1); return !!m && m.r1 === range.r1 && m.c1 === range.c1 && m.r2 === range.r2 && m.c2 === range.c2; }
     let statsFrame = 0;
@@ -1948,9 +2122,8 @@
         const { r, c } = pointToCell(event);
         setSelection(r, c, { scroll: false });
         // Date and time cells open the Munetios UI v4 date/time picker; F2 still edits the text.
-        const kind = pickerKindFor(r, c);
-        const cellEl = event.target.closest('.sheets-cell');
-        if (kind && cellEl) { openCellPicker(kind, cellEl); return; }
+        const kind = pickerKindFor(editor.sel.r, editor.sel.c);
+        if (kind) { openCellPicker(kind); return; }
         startEdit(null);
     }
     viewport.addEventListener('dblclick', gridDblClick);
@@ -2936,7 +3109,7 @@
 
     /* ================================================================ toolbar */
     const FONTS = [
-        ['Google Sans Flex', "'Google Sans Flex'"], ['Google Sans', "'Google Sans'"], ['Google Sans Code', "'Google Sans Code'"], ['Inter', "'Inter'"], ['Roboto', "'Roboto'"],
+        ['Munetios UI v4 Font', "'Munetios UI v4 Font'"], ['Google Sans Flex', "'Google Sans Flex'"], ['Google Sans', "'Google Sans'"], ['Google Sans Code', "'Google Sans Code'"], ['Inter', "'Inter'"], ['Roboto', "'Roboto'"],
         ['Open Sans', "'Open Sans'"], ['Lexend', "'Lexend'"], ['Poppins', "'Poppins'"], ['System', 'system-ui'], ['Arial', 'Arial'], ['Verdana', 'Verdana'],
         ['Georgia', 'Georgia'], ['Times New Roman', "'Times New Roman'"], ['Courier New', "'Courier New'"]
     ];
@@ -2960,8 +3133,8 @@
         set('mergeBtn', !!mergeAt(editor.sel.r, editor.sel.c));
         $('numberFormatLabel').textContent = t((NUMBER_FORMATS.find(f => f.t === fmt) || NUMBER_FORMATS[0]).key);
         const font = FONTS.find(f => f[1] === s.ff);
-        $('fontFamilyText').textContent = font ? font[0] : (primaryFamily(s.ff) || 'Google Sans Flex');
-        $('fontFamilyText').style.fontFamily = s.ff || "'Google Sans Flex'";
+        $('fontFamilyText').textContent = font ? font[0] : (primaryFamily(s.ff) || 'Munetios UI v4 Font');
+        $('fontFamilyText').style.fontFamily = s.ff || "'Munetios UI v4 Font'";
         if (document.activeElement !== $('fontSizeDisplay')) $('fontSizeDisplay').textContent = String(s.fs || DEFAULT_PT);
         $('textColorBar').style.background = s.fc || 'currentColor';
         $('fillColorBar').style.background = s.bg || 'transparent';
@@ -3011,7 +3184,7 @@
     sizeDisplay.addEventListener('blur', () => { const n = parseFloat(sizeDisplay.textContent); if (editor.sheet && Number.isFinite(n) && n !== (activeStyle().fs || DEFAULT_PT)) setFontSize(n); else updateToolbarState(); });
     sizeDisplay.addEventListener('focus', () => { const range = document.createRange(); range.selectNodeContents(sizeDisplay); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range); });
     /* -------- OmniWrite's font picker, font size list, and alignment group, applied to cells -------- */
-    const DEFAULT_FONT = "'Google Sans Flex'";
+    const DEFAULT_FONT = "'Munetios UI v4 Font'";
     const primaryFamily = value => String(value || '').split(',')[0].replace(/['"]/g, '').trim();
     const floatingPanels = new Set();
     function placeFloating(panel, anchor) {
@@ -3727,7 +3900,7 @@
     }
     function chartConfig(chart, data) {
         const ink = '#1d2433', muted = '#52514e', grid = 'rgba(29,36,51,0.08)';
-        const font = { family: "'Google Sans Flex', system-ui, sans-serif", size: 18, weight: 400 };
+        const font = { family: "'Munetios UI v4 Font', system-ui, sans-serif", size: 18, weight: 400 };
         const locale = numberLocale();
         const fmt = v => (typeof v === 'number' ? new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(v) : v);
         const type = chart.type;
@@ -4047,7 +4220,7 @@
     function workbookHtml(book, charset) {
         const tables = book.sheets.map(sheet => `<h2>${esc(sheet.name)}</h2>${sheetTableHtml(sheet)}`).join('\n');
         return `<!DOCTYPE html>\n<html lang="${esc(document.documentElement.lang || 'en')}"><head><meta charset="${charset}"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(book.title)}</title>
-<style>body{font-family:'Google Sans Flex',system-ui,sans-serif;font-feature-settings:'ss01';margin:32px;color:#1d2433}h1{font-weight:300}h2{font-weight:300;margin-top:32px}table{border-collapse:collapse}td{border:1px solid #e4def3;padding:6px 10px;white-space:pre-wrap}</style></head>
+<style>body{font-family:'Munetios UI v4 Font',system-ui,sans-serif;margin:32px;color:#1d2433}h1{font-weight:300}h2{font-weight:300;margin-top:32px}table{border-collapse:collapse}td{border:1px solid #e4def3;padding:6px 10px;white-space:pre-wrap}</style></head>
 <body><h1>${esc(book.title)}</h1>\n${tables}\n</body></html>\n`;
     }
     function workbookText(book) {
@@ -4939,7 +5112,13 @@
         return kind === 'date' ? date : kind === 'time' ? time : date + 'T' + time;
     }
     function activeCellAnchor() {
-        return document.querySelector(`.sheets-cell[data-r="${editor.sel.r}"][data-c="${editor.sel.c}"]`) || $('sheetsActiveCell');
+        const { r, c } = editor.sel;
+        return { getBoundingClientRect() {
+            const { x, y, w, h } = cellRect(r, c);
+            const grid = viewport.getBoundingClientRect();
+            const frozen = freezeDims();
+            return new DOMRect(grid.left + x - (c < frozen.fc ? 0 : viewport.scrollLeft), grid.top + y - (r < frozen.fr ? 0 : viewport.scrollTop), w, h);
+        } };
     }
     function openCellPicker(kind, anchor) {
         if (blockIfLocked()) return;

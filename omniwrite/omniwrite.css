@@ -1,25 +1,25 @@
 /* OmniWrite shared styles. Used by OmniWrite (index.html) and OmniWrite Sheets (sheets/index.html). */
-      /* Using Google Sans Flex for now, Munetios Sans is coming soon  */
+      /* Using Munetios UI v4 Font for now, Munetios Sans is coming soon  */
 
         * {
-              font-feature-settings: 'ss01' 1, 'liga' 0 !important; 
+              font-feature-settings: 'liga' 0 !important; 
         }
         html, button, input, select, textarea {
-            font-family: 'Google Sans Flex';
-            font-feature-settings: 'ss01' 1, 'liga' 0;
+            font-family: 'Munetios UI v4 Font';
+            font-feature-settings: 'liga' 0;
             box-sizing: border-box;
         }
         video::-webkit-media-controls-time-remaining-display{
-                        font-family: 'Google Sans Flex' !important;
+                        font-family: 'Munetios UI v4 Font' !important;
         }
         video::-internal-media-controls-overflow-menu-list-item {
-                                    font-family: 'Google Sans Flex' !important;
+                                    font-family: 'Munetios UI v4 Font' !important;
         }
         video::-webkit-media-controls-current-time-display  {
-                               font-family: 'Google Sans Flex' !important;
+                               font-family: 'Munetios UI v4 Font' !important;
         }
         video::-internal-media-controls-overflow-menu-list-item {
-                      font-family: 'Google Sans Flex' !important;
+                      font-family: 'Munetios UI v4 Font' !important;
         }
         audio .phase-ready,  audio::-webkit-media-controls-enclosure{
                    background-color: rgba(255, 255, 255, 0.356) !important;
@@ -36,15 +36,8 @@
         }
         /* to change the font for native video controls */
         @font-face {
-            font-family: 'Google Sans Flex';
-            src: url('https://api.munetios.com/fonts/google-sans-flex/googlesansflex.ttf') format('truetype');
-            font-weight: 1 1000;
-            font-style: normal;
-            font-display: block;
-        }
-        @font-face {
             font-family: Roboto-Regular;
-            src: url('https://api.munetios.com/fonts/google-sans-flex/googlesansflex.ttf') format('truetype');
+            src: url('/fonts/google-sans-flex/munetios-ui-v4-font.ttf') format('truetype');
             font-weight: 1 1000;
             font-style: normal;
             font-display: block;
@@ -74,8 +67,8 @@
         }
         
         body {
-            font-family: 'Google Sans Flex', system-ui, sans-serif;
-            font-feature-settings: 'ss01' 1, 'liga' 0;
+            font-family: 'Munetios UI v4 Font', system-ui, sans-serif;
+            font-feature-settings: 'liga' 0;
             margin: 0;
             padding: 0;
             background: linear-gradient(135deg, #0a031e 0%, #1a0324 100%);
@@ -102,17 +95,17 @@
         }
         h1, h2, h3, h4, h5, h6 {
             font-variation-settings: 'ROND' 90, 'wdth' 103;
-            font-feature-settings: "liga" 0, "ss01" 1 !important;
+            font-feature-settings: "liga" 0 !important;
         }
         p {
                      font-variation-settings: 'ROND' 60 !important;
-                           font-feature-settings: "liga" 0, "ss01" 1 !important;
+                           font-feature-settings: "liga" 0 !important;
         }
         i {
              font-variation-settings: 'ROND' 60, 'slnt' -10 ;  
         }
         .modal-content h1, h2, h3, h4, h5, h6, p, li, button, b, i, span {
-            font-feature-settings: "ss01" 1 !important;
+            font-feature-settings: normal !important;
         }
         .app {
             --workspace-rail-width: 0px;

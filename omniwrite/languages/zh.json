@@ -1530,8 +1530,10 @@
   "dictionary": "词典",
   "dictionary_custom_words": "自定义词语",
   "dictionary_autocorrect": "自动更正",
-  "dictionary_english_words": "英语词汇表",
   "dictionary_word": "词语",
   "dictionary_invalid_word": "请输入一个由字母和撇号组成的词。",
-  "dictionary_load_failed": "无法加载英语词汇表。"
+  "overview_page": "OmniWrite 概览",
+  "overview_heading": "撰写、整理与协作。",
+  "overview_intro": "在同一个工作区中创建文档和电子表格。",
+  "overview_open": "打开 OmniWrite"
 }

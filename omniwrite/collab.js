@@ -2,9 +2,7 @@
  * Munetios real-time collaboration for OmniWrite documents and spreadsheets.
  *
  *  - Share opens this dialog (Munetios UI v4). "More ways to share" opens the previous dialog.
- *  - Sharing needs a Munetios account. Files shared with "Anyone with the link" can be viewed
- *    by anyone, signed in or not; the owner chooses the link's role (View only, Suggest, Editor),
- *    and signed-out visitors always get View only.
+ *  - Sharing needs a Munetios account. The owner's link role applies to everyone with the link.
  *  - Content is encrypted with AES-GCM. The owner supplies the key to the server
  *    while anyone-with-the-link sharing is enabled.
  *  - Locked documents and spreadsheets cannot be used for collaboration.
@@ -33,8 +31,8 @@
         auth_sign_in: 'Sign in', collab_add_people: 'Add people', collab_email: 'Email address', collab_invite: 'Invite',
         collab_people: 'People with access', collab_here_now: 'Here now', collab_general_access: 'General access',
         collab_restricted: 'Restricted', collab_restricted_desc: 'Only people you add can open it.',
-        collab_anyone_link: 'Anyone with the link', collab_anyone_link_desc: 'Anyone with the link can open it, even without an account. Signed-out visitors can only view.',
-        collab_role: 'Role', collab_role_owner: 'Owner', collab_role_edit: 'Editor', collab_role_suggest: 'Suggest', collab_role_view: 'View only',
+        collab_anyone_link: 'Anyone with the link', collab_anyone_link_desc: 'Anyone with the link can open it, even without an account.',
+        collab_role: 'Role', collab_role_owner: 'Owner', collab_role_edit: 'Editor', collab_role_suggest: 'Suggester', collab_role_view: 'Viewer',
         collab_suggesting: 'Suggesting', collab_remove: 'Remove access', collab_copy_link: 'Copy link', collab_link_copied: 'Link copied.',
         collab_more_ways: 'More ways to share', collab_stop_sharing: 'Stop sharing',
         collab_add_to_documents: 'Add to my documents', collab_shared_empty: 'No shared files yet.',
@@ -125,7 +123,11 @@
     }
     async function unseal(keyText, kind, iv, ciphertext) {
         const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromBase64(iv), additionalData: aad(kind) }, await cryptoKey(keyText), fromBase64(ciphertext));
-        return JSON.parse(decoder.decode(plain)).value;
+        const value = JSON.parse(decoder.decode(plain)).value;
+        if (kind !== 'document' || !window.OmniCollabHost) return value;
+        const normalize = window.OmniCollabHost.migrateSnapshot;
+        if (value?.base && value?.proposed) return { ...value, base: normalize(value.base), proposed: normalize(value.proposed) };
+        return normalize(value);
     }
     // Small non-cryptographic hash: remembers which local state was last in sync.
     function hash(text) {
@@ -153,10 +155,11 @@
         if (!response.ok) throw Object.assign(new Error(data?.error || 'unavailable'), { status: response.status, code: data?.error || 'unavailable', data });
         return data;
     }
+    const suggestionApi = (method, path, body) => api(method, path, body, { 'X-Collab-Guest': guestToken() });
     const signedIn = () => !!(window.MunetiosAccount && window.MunetiosAccount.state && window.MunetiosAccount.state.account);
     const signInUrl = () => '/signin?continue=' + encodeURIComponent(location.pathname + location.search + location.hash);
     const shareLink = (id, key) => location.origin + location.pathname.replace(/index\.html$/, '') + '#/shared/' + id + '/' + key;
-    const pictureUrl = (docId, accountId) => `${API}/documents/${encodeURIComponent(docId)}/people/${encodeURIComponent(accountId)}/picture`;
+    const pictureUrl = (docId, accountId) => `${API}/documents/${encodeURIComponent(docId)}/people/${encodeURIComponent(accountId)}/picture?v=2`;
 
     /* ================================================================ adapters: documents and spreadsheets */
     const sheetsBridge = () => (window.OmniSheets && window.OmniSheets.collab) || null;
@@ -201,6 +204,11 @@
     document.addEventListener('compositionend', () => { window.__omniComposing = false; }, true);
     const titleOf = item => String(item?.title || '');
     const collabOf = item => (item && item.collab && item.collab.localId === item.id && item.collab.id ? item.collab : null);
+    const isLinkShared = item => {
+        const meta = collabOf(item);
+        const access = meta && (session?.item === item ? session.linkAccess : meta.linkAccess);
+        return ['view', 'suggest', 'edit'].includes(access);
+    };
     function activeItem() {
         for (const kind of ['document', 'spreadsheet']) {
             const item = adapters[kind].current();
@@ -297,7 +305,8 @@
         // Without a synced base (both sides changed while apart), the blocks they share act as the base.
         const b = base ? documentTokens(base.content) : { tokens: matches(m.tokens, th.tokens).map(([i]) => m.tokens[i]) };
         const tokens = merge3(b.tokens, m.tokens, th.tokens, blockConflict);
-        return { title: pick(base ? base.title : theirs.title, mine.title, theirs.title), content: documentContent(tokens, m.paged || th.paged) };
+        return { title: pick(base ? base.title : theirs.title, mine.title, theirs.title), content: documentContent(tokens, m.paged || th.paged),
+            fontFamilyVersion: mine.fontFamilyVersion || theirs.fontFamilyVersion };
     }
     const json = value => JSON.stringify(value === undefined ? null : value);
     function pickValue(b, m, th) {
@@ -430,15 +439,17 @@
             const remoteChanged = data.version !== meta.version;
             s.version = data.version;
             setBase(s, remote);
-            if (remoteChanged && !localChanged) {
+            if ((remoteChanged || localChanged) && (s.role === 'view' || !localChanged)) {
                 if (applyRemote(s, remote)) setBase(s, adapter.snapshot(item));
             } else if (remoteChanged && localChanged) {
                 applyRemote(s, merge(kind, null, local, remote));
             }
             s.ready = true;
             s.status = 'live';
+            adapter.setReadOnly(item, s.role === 'view');
             persist(s);
             connect(s);
+            if (s.role === 'owner') api('PUT', `/documents/${s.id}/invitation-key`, { key: s.key }).catch(() => {});
             detectLocal(s, true);
             renderChrome();
             refreshShareDialog();
@@ -452,6 +463,7 @@
         if (!s) return;
         session = null;
         clearTimeout(s.pushTimer); clearTimeout(s.suggestTimer); clearTimeout(s.reconnectTimer);
+        clearTimeout(s.cursorTimer);
         if (s.source) s.source.close();
         try { adapters[s.kind].setReadOnly(s.item, false); } catch {}
         s.cursors.clear();
@@ -498,15 +510,15 @@
         if (s.source) s.source.close();
         const source = new EventSource(`${API}/documents/${encodeURIComponent(s.id)}/events?client=${encodeURIComponent(clientId)}`, { withCredentials: true });
         s.source = source;
-        source.onopen = () => { if (session === s) { s.status = 'live'; renderChrome(); } };
+        source.onopen = () => { if (session === s && s.source === source) { s.status = 'live'; renderChrome(); } };
         source.onmessage = message => {
-            if (session !== s) return;
+            if (session !== s || s.source !== source) return;
             let event;
             try { event = JSON.parse(message.data); } catch { return; }
             onEvent(s, event);
         };
         source.onerror = () => {
-            if (session !== s) return;
+            if (session !== s || s.source !== source) return;
             s.status = 'offline';
             s.people = [];
             s.cursors.clear();
@@ -525,12 +537,27 @@
             }
         };
     }
+    function applyRole(s, role) {
+        if (!role || role === s.role) return false;
+        if (s.role === 'suggest') {
+            clearTimeout(s.suggestTimer);
+            applyRemote(s, s.base);
+        }
+        s.role = role;
+        adapters[s.kind].setReadOnly(s.item, role === 'view');
+        persist(s);
+        return true;
+    }
     function onEvent(s, event) {
         switch (event.type) {
             case 'hello':
                 s.status = 'live';
-                if (event.role) s.role = event.role;
-                if (event.linkAccess) s.linkAccess = event.linkAccess;
+                if (event.linkAccess && event.linkAccess !== s.linkAccess) {
+                    s.linkAccess = event.linkAccess;
+                    if (!applyRole(s, event.role)) persist(s);
+                } else {
+                    applyRole(s, event.role);
+                }
                 if (typeof event.canComment === 'boolean') s.canComment = event.canComment;
                 if (event.version > s.version) run(s, () => resync(s));
                 loadComments(s); // catch up on comments missed while disconnected
@@ -549,10 +576,8 @@
                 break;
             }
             case 'role': {
-                const changed = s.role !== event.role;
-                s.role = event.role;
+                const changed = applyRole(s, event.role);
                 if (typeof event.canComment === 'boolean') s.canComment = event.canComment;
-                persist(s);
                 if (changed) toast(t('collab_role_changed', { role: roleLabel(event.role) }));
                 renderComments();
                 break;
@@ -571,7 +596,8 @@
             }
             case 'cursor':
                 if (event.clientId === clientId) return;
-                if (event.cursor) s.cursors.set(event.clientId, event.cursor); else s.cursors.delete(event.clientId);
+                s.cursors.delete(event.clientId);
+                if (event.cursor) s.cursors.set(event.clientId, event.cursor);
                 scheduleCursorRender();
                 return;
             case 'settings':
@@ -579,7 +605,9 @@
                 persist(s);
                 break;
             case 'suggestions':
-                if (event.author && s.me && event.author === s.me.accountId && event.status && event.resolved !== s.lastResolved) {
+                if (event.status && event.resolved !== s.lastResolved &&
+                    (s.me ? event.author === s.me.accountId : event.resolved === s.pendingSuggestionId)) {
+                    s.pendingSuggestionId = null;
                     if (event.status === 'rejected') { applyRemote(s, s.base); toast(t('collab_suggestion_rejected')); }
                     else toast(t('collab_suggestion_accepted'), 'success');
                 }
@@ -594,7 +622,21 @@
     }
     async function resync(s) {
         const data = await api('GET', `/documents/${s.id}`);
+        if (session !== s) return;
+        if (data.locked) { handleAccessError(s, { status: 423 }); return; }
+        s.linkAccess = data.linkAccess;
+        s.canComment = !!data.canComment;
+        if (!applyRole(s, data.role)) persist(s);
         if (data.version > s.version) await receive(s, data);
+    }
+    async function recoverWriteAccess(s) {
+        try {
+            await resync(s);
+            refreshShareDialog(true);
+            renderComments();
+        } catch (error) {
+            if (session === s) handleAccessError(s, error);
+        }
     }
     async function receive(s, event) {
         if (session !== s || event.version <= s.version) return;
@@ -603,7 +645,7 @@
         const adapter = adapters[s.kind];
         const mine = adapter.snapshot(s.item);
         const unchanged = JSON.stringify(mine) === s.baseJson;
-        const next = unchanged ? theirs : merge(s.kind, s.base, mine, theirs);
+        const next = unchanged || s.role === 'view' ? theirs : merge(s.kind, s.base, mine, theirs);
         s.version = event.version;
         setBase(s, theirs);
         const applied = applyRemote(s, next);
@@ -639,6 +681,7 @@
         const text = JSON.stringify(snap);
         if (text === s.baseJson) return;
         const sealed = await seal(s.key, s.kind, snap);
+        if (session !== s || !canEdit(s)) return;
         try {
             const result = await api('PUT', `/documents/${s.id}/content`, { baseVersion: s.version, ...sealed });
             if (session !== s) return;
@@ -657,7 +700,9 @@
                 if (JSON.stringify(merged) !== JSON.stringify(mine)) applyRemote(s, merged);
                 persist(s);
                 schedulePush(s, 0);
-            } else if ([401, 403, 404, 423].includes(error.status)) {
+            } else if (error.status === 403) {
+                await recoverWriteAccess(s);
+            } else if ([401, 404, 423].includes(error.status)) {
                 handleAccessError(s, error);
             } else {
                 s.status = 'offline';
@@ -671,15 +716,21 @@
         s.suggestTimer = setTimeout(() => run(s, () => suggest(s)), SUGGEST_DELAY_MS);
     }
     async function suggest(s) {
-        if (session !== s || s.role !== 'suggest' || !signedIn()) return;
+        if (session !== s || s.role !== 'suggest') return;
         const proposed = adapters[s.kind].snapshot(s.item);
         if (JSON.stringify(proposed) === s.baseJson) return;
         try {
-            await api('POST', `/documents/${s.id}/suggestions`, { baseVersion: s.version, ...(await seal(s.key, s.kind, { base: s.base, proposed })) });
+            const sealed = await seal(s.key, s.kind, { base: s.base, proposed });
+            if (session !== s || s.role !== 'suggest') return;
+            const result = await suggestionApi('POST', `/documents/${s.id}/suggestions`, { baseVersion: s.version, ...sealed });
+            if (session !== s) return;
+            s.pendingSuggestionId = result.id;
             s.status = 'live';
             refreshShareDialog(true);
         } catch (error) {
-            if ([401, 403, 404, 423].includes(error.status)) handleAccessError(s, error);
+            if (session !== s) return;
+            if (error.status === 403) await recoverWriteAccess(s);
+            else if ([401, 404, 423].includes(error.status)) handleAccessError(s, error);
             else { s.status = 'offline'; scheduleSuggest(s); }
         }
         renderChrome();
@@ -735,51 +786,132 @@
     const initials = name => (String(name || '?').trim().split(/\s+/).map(part => part[0]).join('').slice(0, 2) || '?').toUpperCase();
     function avatarHtml(docId, person, extraClass = '') {
         const name = person.name || t('collab_anonymous');
-        const picture = person.hasPicture && person.accountId ? `<img src="${esc(pictureUrl(docId, person.accountId))}" alt="" loading="lazy" decoding="async">` : esc(initials(name));
+        const fallback = esc(initials(name));
+        const picture = person.hasPicture && person.accountId ? `<img src="${esc(pictureUrl(docId, person.accountId))}" alt="" loading="lazy" decoding="async" data-avatar-fallback="${fallback}">` : fallback;
         return `<span class="mu-avatar ${extraClass}" style="background:${colorFor(person.accountId || person.clientId || name)}" title="${esc(name)}" aria-hidden="true">${picture}</span>`;
     }
+    document.addEventListener('error', event => {
+        const image = event.target;
+        if (image instanceof HTMLImageElement && image.hasAttribute('data-avatar-fallback')) image.replaceWith(image.dataset.avatarFallback);
+    }, true);
     const otherParticipants = s => (s.people || []).filter(person =>
         person.clientId !== clientId && (!s.me?.accountId || String(person.accountId) !== String(s.me.accountId)));
+    const participantKey = person => person.accountId ? 'account:' + person.accountId : 'client:' + person.clientId;
+    const distinctParticipants = s => [...new Map(otherParticipants(s).map(person => [participantKey(person), person])).values()];
+    function activeCursors(s) {
+        const people = new Map(otherParticipants(s).map(person => [person.clientId, person]));
+        const active = new Map();
+        for (const [id, cursor] of s.cursors) {
+            const person = people.get(id);
+            if (person) active.set(participantKey(person), { person, cursor });
+        }
+        return active;
+    }
+    const presenceNarrow = matchMedia('(max-width: 760px)');
+    const presenceSmall = matchMedia('(max-width: 440px)');
+    const presencePanelId = 'omniCollabParticipants';
+    const presenceTitleId = presencePanelId + 'Title';
+    function renderPresence(group, s) {
+        const people = distinctParticipants(s);
+        const limit = presenceSmall.matches ? 1 : presenceNarrow.matches ? 2 : 3;
+        const visible = people.slice(0, limit);
+        const extra = people.length - visible.length;
+        const button = group.querySelector('button');
+        if (!extra && button.getAttribute('aria-expanded') === 'true') button.click();
+        button.hidden = !extra;
+        button.textContent = '+' + extra.toLocaleString(document.documentElement.lang || undefined);
+        group.hidden = !people.length;
+        const here = t('collab_here_now');
+        const names = visible.map(person => person.name || t('collab_anonymous'));
+        group.setAttribute('aria-label', [here, ...names].join(', '));
+        button.setAttribute('aria-label', `${here} (${(people.length + 1).toLocaleString(document.documentElement.lang || undefined)})`);
+        const avatars = visible.map(person => avatarHtml(s.id, person, 'is-live')).join('');
+        if (group.dataset.html !== avatars) {
+            group.querySelectorAll(':scope > span').forEach(avatar => avatar.remove());
+            button.insertAdjacentHTML('beforebegin', avatars);
+            group.dataset.html = avatars;
+        }
+        if (!extra) return;
+        let panel = document.getElementById(presencePanelId);
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.id = presencePanelId;
+            panel.className = 'mu-popover omni-collab-participants';
+            panel.hidden = true;
+            panel.tabIndex = -1;
+            panel.setAttribute('role', 'dialog');
+            panel.setAttribute('aria-labelledby', presenceTitleId);
+            panel.innerHTML = `<h2 id="${presenceTitleId}" class="mu-h-title"></h2><ul class="omni-collab-participant-list"></ul>`;
+            document.body.appendChild(panel);
+        }
+        panel.querySelector('h2').textContent = here;
+        const self = (s.people || []).find(person => person.clientId === clientId) || s.me || {};
+        const attendees = [{ ...self, name: t('collab_you') }, ...people];
+        const list = attendees.map(person => `<li class="mu-row">${avatarHtml(s.id, person, 'is-live')}<span class="mu-row-title">${esc(person.name || t('collab_anonymous'))}</span></li>`).join('');
+        if (panel.dataset.html !== list) {
+            panel.querySelector('ul').innerHTML = list;
+            panel.dataset.html = list;
+        }
+    }
     const roleLabel = role => t(role === 'owner' ? 'collab_role_owner' : role === 'edit' ? 'collab_role_edit' : role === 'suggest' ? 'collab_suggesting' : 'collab_role_view');
+    const shareIcon = item => isLinkShared(item) ? 'public' : collabOf(item) ? 'group' : 'share';
+    let documentLinkShared = false;
     function renderChrome() {
         const s = session;
         for (const kind of Object.keys(adapters)) {
-            const navbar = adapters[kind].navbar();
+            const adapter = adapters[kind];
+            const item = adapter.current();
+            const share = adapter.shareButton();
+            const icon = share?.querySelector('icon');
+            const iconName = shareIcon(item);
+            if (icon && icon.textContent !== iconName) icon.textContent = iconName;
+            const navbar = adapter.navbar();
             if (!navbar) continue;
             let chrome = navbar.querySelector(':scope > .omni-collab-chrome');
-            const show = s && s.kind === kind && adapters[kind].current() === s.item;
-            if (!show) { if (chrome) chrome.remove(); continue; }
+            const show = s && s.kind === kind && item === s.item;
+            if (!show) {
+                chrome?.querySelector('.omni-collab-overflow[aria-expanded="true"]')?.click();
+                chrome?.remove();
+                continue;
+            }
             if (!chrome) {
                 chrome = document.createElement('div');
                 chrome.className = 'omni-collab-chrome';
-                chrome.innerHTML = '<span class="mu-badge omni-collab-role"></span><div class="mu-avatar-group omni-collab-presence" role="group"></div>';
+                chrome.innerHTML = `<span class="mu-badge omni-collab-role"></span><div class="mu-avatar-group omni-collab-presence" role="group">
+                    <button type="button" class="mu-avatar is-more omni-collab-overflow" data-mu-popover="${presencePanelId}" aria-haspopup="dialog" aria-controls="${presencePanelId}" aria-expanded="false" hidden></button>
+                </div>`;
+                const button = chrome.querySelector('button');
+                button.addEventListener('click', () => queueMicrotask(() => {
+                    if (button.getAttribute('aria-expanded') === 'true') document.getElementById(presencePanelId)?.focus();
+                }));
             }
-            const share = adapters[kind].shareButton();
             if (share && share.parentElement === navbar && chrome.nextElementSibling !== share) navbar.insertBefore(chrome, share);
             else if (!chrome.isConnected) navbar.prepend(chrome);
             const badge = chrome.querySelector('.omni-collab-role');
             const offline = s.status === 'offline';
             const role = s.role === 'owner' ? '' : roleLabel(s.role);
+            badge.dataset.role = s.role;
             badge.hidden = !role && !offline;
             badge.classList.toggle('mu-badge-warning', offline);
-            badge.title = offline ? t('collab_offline') : t('collab_live');
+            badge.title = offline ? t('collab_offline') : role || t('collab_live');
             const badgeHtml = `<icon aria-hidden="true">${offline ? 'cloud_off' : s.role === 'view' ? 'visibility' : s.role === 'suggest' ? 'rate_review' : 'edit'}</icon><span>${esc(role || t('collab_offline'))}</span>`;
             if (badge.innerHTML !== badgeHtml) badge.innerHTML = badgeHtml;
             const group = chrome.querySelector('.omni-collab-presence');
-            const others = otherParticipants(s);
-            group.hidden = !others.length;
+            renderPresence(group, s);
             chrome.hidden = badge.hidden && group.hidden;
-            group.setAttribute('aria-label', t('collab_here_now') + ': ' + others.map(person => person.name || t('collab_anonymous')).join(', '));
-            const html = others.map(person => avatarHtml(s.id, person, 'is-live')).join('');
-            if (group.dataset.html !== html) { group.innerHTML = html; group.dataset.html = html; }
         }
         // Report in the document More menu, only for link-shared documents someone else owns.
+        const doc = adapters.document.current();
         const report = document.getElementById('reportMoreOptionsBtn');
-        if (report) {
-            const doc = adapters.document.current();
-            report.hidden = !canReport('document', doc);
+        if (report) report.hidden = !canReport('document', doc);
+        const linkShared = isLinkShared(doc);
+        if (linkShared !== documentLinkShared) {
+            documentLinkShared = linkShared;
+            document.dispatchEvent(new Event('omni-document-link-access'));
         }
     }
+    presenceNarrow.addEventListener('change', renderChrome);
+    presenceSmall.addEventListener('change', renderChrome);
 
     /* ================================================================ dialogs */
     function modalShell(id, icon, titleHtml, bodyHtml, { large = false } = {}) {
@@ -857,9 +989,10 @@
         const meta = state && collabOf(state.item);
         if (!meta) return;
         try {
+            const s = session?.item === state.item ? session : null;
             const [people, suggestions] = await Promise.all([
                 api('GET', `/documents/${meta.id}/members`),
-                ['owner', 'edit', 'suggest'].includes(session?.role || meta.role) && signedIn() ? api('GET', `/documents/${meta.id}/suggestions`) : Promise.resolve({ suggestions: [] })
+                ['owner', 'edit', 'suggest'].includes(s?.role || meta.role) ? suggestionApi('GET', `/documents/${meta.id}/suggestions`) : Promise.resolve({ suggestions: [] })
             ]);
             if (shareState !== state) return;
             state.people = people.people;
@@ -902,7 +1035,7 @@
                     <button type="button" class="mu-btn mu-btn-primary" data-action="copy"><span class="mu-icon" aria-hidden="true">link</span>${esc(t('collab_copy_link'))}</button>
                 </div>`;
         }
-        const modal = modalShell(SHARE_ID, 'share', esc(title), body, { large: true });
+        const modal = modalShell(SHARE_ID, shareIcon(item), esc(title), body, { large: true });
         modal.dataset.kind = kind;
         renderShareSections();
     }
@@ -914,12 +1047,13 @@
         if (!modal || !shareState) return;
         const meta = collabOf(shareState.item);
         if (!meta) return;
+        modal.querySelector('.mu-dialog-heading .mu-icon').textContent = shareIcon(shareState.item);
         const s = session && session.item === shareState.item ? session : null;
         const owner = meta.role === 'owner';
         const myId = s?.me?.accountId || window.MunetiosAccount?.state?.account?.id || null;
         const set = (name, html) => { const el = modal.querySelector(`[data-section="${name}"]`); if (el && el.dataset.html !== html) { el.innerHTML = html; el.dataset.html = html; } };
 
-        const here = s ? otherParticipants(s) : [];
+        const here = s ? distinctParticipants(s) : [];
         set('here', here.length ? sectionHtml(t('collab_here_now'), `<div class="omni-collab-here">${here.map(person => `<span class="omni-collab-here-person">${avatarHtml(meta.id, person, 'is-live')}<span>${esc(person.clientId === clientId ? t('collab_you') : person.name || t('collab_anonymous'))}</span></span>`).join('')}</div>`) : '');
 
         const people = shareState.people || [];
@@ -940,7 +1074,7 @@
         const linkAccess = s ? s.linkAccess : meta.linkAccess || 'off';
         const shared = linkAccess !== 'off';
         set('general', sectionHtml(t('collab_general_access'), `<div class="mu-group"><div class="mu-row">
-            <span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">${shared ? 'public' : 'lock'}</span></span>
+            <span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">${shared ? 'public' : 'group'}</span></span>
             <div class="mu-row-info"><span class="mu-row-title">${esc(t(shared ? 'collab_anyone_link' : 'collab_restricted'))}</span><span class="mu-row-subtitle">${esc(t(shared ? 'collab_anyone_link_desc' : 'collab_restricted_desc'))}</span></div>
             ${owner ? `<div class="omni-collab-row-controls"><select data-general="scope" aria-label="${esc(t('collab_general_access'))}">
                     <option value="off"${shared ? '' : ' selected'}>${esc(t('collab_restricted'))}</option><option value="link"${shared ? ' selected' : ''}>${esc(t('collab_anyone_link'))}</option></select>
@@ -953,8 +1087,8 @@
         let suggestionHtml = '';
         if (role === 'owner' || role === 'edit') {
             suggestionHtml = sectionHtml(t('collab_suggestions'), suggestions.length ? `<div class="mu-group">${suggestions.map(item => `
-                <div class="mu-row omni-collab-suggestion">${avatarHtml(meta.id, item.author)}
-                    <div class="mu-row-info"><span class="mu-row-title">${esc(t('collab_suggestion_from', { name: item.author.name }))}</span><span class="mu-row-subtitle">${esc(formatTime(item.updatedAt))}</span></div>
+                <div class="mu-row omni-collab-suggestion">${avatarHtml(meta.id, item.author || { clientId: item.id })}
+                    <div class="mu-row-info"><span class="mu-row-title">${esc(t('collab_suggestion_from', { name: item.author?.name || t('collab_anonymous') }))}</span><span class="mu-row-subtitle">${esc(formatTime(item.updatedAt))}</span></div>
                     <div class="omni-collab-row-controls">
                         <button type="button" class="mu-btn mu-btn-ghost" data-preview="${esc(item.id)}" aria-expanded="${shareState.expanded.has(item.id)}">${esc(t('collab_show_changes'))}</button>
                         <button type="button" class="mu-btn" data-resolve="rejected" data-suggestion="${esc(item.id)}">${esc(t('collab_reject'))}</button>
@@ -976,7 +1110,7 @@
         if (reload) loadShareData(); else renderShareSections();
     }
     async function suggestionPayload(meta, id) {
-        const data = await api('GET', `/documents/${meta.id}/suggestions/${id}`);
+        const data = await suggestionApi('GET', `/documents/${meta.id}/suggestions/${id}`);
         return unseal(meta.key, shareState.kind, data.iv, data.ciphertext);
     }
     async function fillChanges(id) {
@@ -1085,7 +1219,7 @@
                 await push(s);
             });
         }
-        await api('POST', `/documents/${meta.id}/suggestions/${id}/resolve`, { status });
+        await suggestionApi('POST', `/documents/${meta.id}/suggestions/${id}/resolve`, { status });
         if (status === 'rejected' && s && s.role === 'suggest') applyRemote(s, s.base);
         toast(t(status === 'accepted' ? 'collab_suggestion_accepted' : 'collab_suggestion_rejected'), status === 'accepted' ? 'success' : 'info');
         shareState.expanded.delete(id);
@@ -1130,7 +1264,7 @@
         const submit = form.querySelector('button[type="submit"]');
         submit.disabled = true;
         try {
-            await api('POST', `/documents/${meta.id}/members`, { email, role: form.elements.role.value });
+            await api('POST', `/documents/${meta.id}/members`, { email, role: form.elements.role.value, key: meta.key });
             form.elements.email.value = '';
             toast(t('collab_invited', { email }), 'success');
             loadShareData();
@@ -1148,8 +1282,7 @@
     function canReport(kind, item) {
         const meta = collabOf(item);
         if (!meta || meta.role === 'owner') return false;
-        const linkAccess = session && session.item === item ? session.linkAccess : meta.linkAccess;
-        return !!linkAccess && linkAccess !== 'off';
+        return isLinkShared(item);
     }
     const REPORT_ID = 'omniCollabReportModal';
     function openReport(kind) {
@@ -1221,12 +1354,9 @@
         const grid = document.getElementById('sharedFilesGrid');
         const status = document.getElementById('sharedFilesStatus');
         if (!grid || !status) return;
-        // The Shared tab is an invitation inbox, not a history of links opened locally.
-        // Only server-confirmed invitations for the signed-in account belong here.
-        const invited = sharedViewer === viewerId() && viewerId() ? sharedFiles : [];
-        const files = new Map(invited.map(file => [file.id, file]));
+        const files = new Map((sharedViewer === viewerId() ? sharedFiles : []).map(file => [file.id, file]));
         for (const local of storedShares()) {
-            if (files.has(local.id)) files.set(local.id, { ...files.get(local.id), ...local });
+            if (!local.item.collab.inaccessible || files.has(local.id)) files.set(local.id, { ...files.get(local.id), ...local });
         }
         status.hidden = files.size > 0 && !sharedError;
         status.textContent = t(sharedError ? 'collab_shared_load_failed' : sharedLoading ? 'loading' : 'collab_shared_empty');
@@ -1331,7 +1461,9 @@
             }
             const collab = { id, key, role: data.role, version: data.version, linkAccess: data.linkAccess, viewerAccountId: viewer,
                 savedToDocuments: add || data.role === 'owner', syncedHash: hash(JSON.stringify(snap)) };
-            const item = await adapters[data.kind].create({ title: snap.title, sheets: snap.sheets, content: snap.content, collab, open: !add });
+            const item = await adapters[data.kind].create({
+                title: snap.title, sheets: snap.sheets, content: snap.content, fontFamilyVersion: snap.fontFamilyVersion, collab, open: !add
+            });
             if (item && add) adapters[data.kind].refreshLibrary();
         } catch (error) {
             if (error.status === 401) messageDialog('login', t('collab_link_sign_in'), { signIn: true });
@@ -1356,10 +1488,13 @@
         get(key) { try { return localStorage.getItem(key); } catch { return null; } },
         set(key, value) { try { localStorage.setItem(key, value); } catch {} }
     };
+    let transientGuestToken;
     function guestToken() {
-        let token = local.get(COMMENT_TOKEN_KEY);
-        if (!/^[A-Za-z0-9_-]{32,64}$/.test(token || '')) { token = randomId(32); local.set(COMMENT_TOKEN_KEY, token); }
-        return token;
+        const stored = local.get(COMMENT_TOKEN_KEY);
+        if (/^[A-Za-z0-9_-]{32,64}$/.test(stored || '')) return stored;
+        transientGuestToken ||= randomId(32);
+        local.set(COMMENT_TOKEN_KEY, transientGuestToken);
+        return transientGuestToken;
     }
     function mineIds() { try { return new Set(JSON.parse(local.get(COMMENT_MINE_KEY) || '[]')); } catch { return new Set(); } }
     function rememberMine(id) { const ids = mineIds(); ids.add(id); local.set(COMMENT_MINE_KEY, JSON.stringify([...ids])); }
@@ -1549,7 +1684,8 @@
         const pages = window.OmniCollabHost.pages(doc);
         const page = pages.findIndex(editor => editor.contains(range.startContainer));
         if (page < 0 || !pages[page].contains(range.endContainer)) return null;
-        return { range, page, editor: pages[page], collapsed: selection.isCollapsed };
+        return { range, page, editor: pages[page], collapsed: selection.isCollapsed,
+            backward: selection.focusNode === range.startContainer && selection.focusOffset === range.startOffset };
     }
     function selectionAnchor() {
         const active = activeItem();
@@ -2017,7 +2153,7 @@
     /* ================================================================ live cursors
        Everyone in a shared file sees where the others are: a named caret and selection in
        documents, and a named outline around the selected cells in spreadsheets. */
-    let cursorFrame = 0, cursorTimer = 0, cursorInFlight = false, cursorPending = false, lastCursorJson = '';
+    let cursorFrame = 0;
     function scheduleCursorRender() { if (!cursorFrame) cursorFrame = requestAnimationFrame(() => { cursorFrame = 0; renderCursors(); }); }
     function cursorLayer() {
         let layer = document.getElementById('omniCursorLayer');
@@ -2030,12 +2166,12 @@
         }
         return layer;
     }
-    function cursorElement(container, clientId, className) {
-        let el = container.querySelector(`:scope > .${className}[data-client="${CSS.escape(clientId)}"]`);
+    function cursorElement(container, key, className) {
+        let el = container.querySelector(`:scope > .${className}[data-participant="${CSS.escape(key)}"]`);
         if (!el) {
             el = document.createElement('div');
             el.className = className;
-            el.dataset.client = clientId;
+            el.dataset.participant = key;
             el.innerHTML = '<span class="omni-cursor-label"></span>';
             container.appendChild(el);
         }
@@ -2050,20 +2186,20 @@
             const pages = window.OmniCollabHost.pages(s.item);
             const area = pages[0] && (pages[0].closest('.editor-content-editor') || document.getElementById('editorContent'));
             const clip = area ? area.getBoundingClientRect() : null;
-            for (const person of otherParticipants(s)) {
-                const { clientId } = person;
-                const cursor = s.cursors.get(clientId);
-                const editor = cursor && cursor.kind === 'text' ? pages[cursor.page] : null;
+            for (const [key, { person, cursor }] of activeCursors(s)) {
+                const editor = cursor.kind === 'text' && Number.isSafeInteger(cursor.page) ? pages[cursor.page] : null;
                 if (!editor) continue;
+                if (!Number.isSafeInteger(cursor.start) || !Number.isSafeInteger(cursor.end) || cursor.start < 0 || cursor.end < cursor.start) continue;
                 const index = colorIndexFor(person.accountId || person.clientId || person.name);
-                const caret = rangeAt(editor, cursor.end, cursor.end);
+                const offset = cursor.backward ? cursor.start : cursor.end;
+                const caret = rangeAt(editor, offset, offset);
                 let rect = caret.getClientRects()[0] || caret.getBoundingClientRect();
                 if (!rect || (!rect.top && !rect.left && !rect.height)) {
                     const box = editor.getBoundingClientRect();
                     rect = { left: box.left + 4, top: box.top + 4, height: 24 };
                 }
-                const el = cursorElement(layer, clientId, 'omni-cursor');
-                used.add(clientId);
+                const el = cursorElement(layer, key, 'omni-cursor');
+                used.add(key);
                 el.hidden = !!clip && (rect.top < clip.top - 2 || rect.top > clip.bottom || rect.left < clip.left || rect.left > clip.right);
                 el.style.setProperty('--omni-cursor-color', COLORS[index]);
                 el.style.transform = `translate(${Math.round(rect.left)}px, ${Math.round(rect.top)}px)`;
@@ -2075,7 +2211,7 @@
                 }
             }
         }
-        layer.querySelectorAll(':scope > .omni-cursor').forEach(el => { if (!used.has(el.dataset.client)) el.remove(); });
+        layer.querySelectorAll(':scope > .omni-cursor').forEach(el => { if (!used.has(el.dataset.participant)) el.remove(); });
         if (highlightSupported()) {
             for (let i = 0; i < COLORS.length; i++) {
                 const ranges = selections.get(i);
@@ -2091,55 +2227,63 @@
         if (!s || !layer) return;
         const sheetId = bridge.activeSheetId();
         const used = new Set();
-        for (const person of otherParticipants(s)) {
-            const { clientId } = person;
-            const cursor = s.cursors.get(clientId);
-            if (!cursor || cursor.kind !== 'cell' || cursor.sheetId !== sheetId) continue;
+        for (const [key, { person, cursor }] of activeCursors(s)) {
+            if (cursor.kind !== 'cell' || cursor.sheetId !== sheetId) continue;
+            if (![cursor.r1, cursor.c1, cursor.r2, cursor.c2].every(value => Number.isSafeInteger(value) && value >= 0)) continue;
             const a = bridge.cellBox(cursor.r1, cursor.c1), b = bridge.cellBox(cursor.r2, cursor.c2);
             if (!a || !b) continue;
-            const el = cursorElement(layer, clientId, 'omni-sheet-cursor');
-            used.add(clientId);
+            const el = cursorElement(layer, key, 'omni-sheet-cursor');
+            used.add(key);
             el.style.setProperty('--omni-cursor-color', colorFor(person.accountId || person.clientId || person.name));
             Object.assign(el.style, { left: a.x + 'px', top: a.y + 'px', width: Math.max(0, b.x + b.w - a.x) + 'px', height: Math.max(0, b.y + b.h - a.y) + 'px' });
             el.firstChild.textContent = person.name || t('collab_anonymous');
         }
-        layer.querySelectorAll(':scope > .omni-sheet-cursor').forEach(el => { if (!used.has(el.dataset.client)) el.remove(); });
+        layer.querySelectorAll(':scope > .omni-sheet-cursor').forEach(el => { if (!used.has(el.dataset.participant)) el.remove(); });
     }
-    // Where this person is working: undefined means "nothing to report".
-    function currentCursor() {
-        const s = session;
-        if (!s || !s.ready) return undefined;
+    function currentCursor(s) {
+        if (document.hidden || !document.hasFocus()) return null;
         if (s.kind === 'document') {
-            if (adapters.document.current() !== s.item) return undefined;
+            if (adapters.document.current() !== s.item) return null;
             const picked = pageSelection(s.item);
-            if (!picked) return undefined;
+            if (!picked) return null;
             const { start, end } = offsetsOf(picked.editor, picked.range);
-            return { kind: 'text', page: picked.page, start, end };
+            return { kind: 'text', page: picked.page, start, end, backward: picked.backward };
         }
         const selection = adapters.spreadsheet.current() === s.item && sheetsBridge() ? sheetsBridge().selection() : null;
-        return selection ? { kind: 'cell', sheetId: selection.sheetId, r1: selection.r1, c1: selection.c1, r2: selection.r2, c2: selection.c2 } : undefined;
+        return selection ? { kind: 'cell', sheetId: selection.sheetId, r1: selection.r1, c1: selection.c1, r2: selection.r2, c2: selection.c2 } : null;
     }
-    function sendCursorSoon(force) {
-        clearTimeout(cursorTimer);
-        cursorTimer = setTimeout(() => sendCursor(force), 120);
-    }
-    async function sendCursor(force) {
+    function sendCursorSoon(force = false) {
         const s = session;
-        const cursor = currentCursor();
-        if (!s || !otherParticipants(s).length || cursor === undefined) return;
+        if (!s) return;
+        s.forceCursor ||= force;
+        clearTimeout(s.cursorTimer);
+        s.cursorTimer = setTimeout(() => {
+            const sendRegardless = s.forceCursor;
+            s.forceCursor = false;
+            sendCursor(s, sendRegardless);
+        }, 120);
+    }
+    async function sendCursor(s, force = false) {
+        if (!s?.ready || s !== session) return;
+        const cursor = currentCursor(s);
+        if (cursor && !otherParticipants(s).length) return;
+        if (!cursor && s.lastCursorJson === undefined && !force) return;
         const text = JSON.stringify(cursor);
-        if (!force && text === lastCursorJson) return;
-        if (cursorInFlight) { cursorPending = true; return; }
-        lastCursorJson = text;
-        cursorInFlight = true;
+        if (!force && text === s.lastCursorJson) return;
+        if (s.cursorInFlight) { s.cursorPending = true; s.forceCursor ||= force; return; }
+        s.lastCursorJson = text;
+        s.cursorInFlight = true;
         try { await api('POST', `/documents/${s.id}/cursor`, { cursor }); }
-        catch { lastCursorJson = ''; }
+        catch { s.lastCursorJson = undefined; }
         finally {
-            cursorInFlight = false;
-            if (cursorPending) { cursorPending = false; sendCursor(); }
+            s.cursorInFlight = false;
+            if (s.cursorPending) { s.cursorPending = false; if (session === s) sendCursorSoon(); }
         }
     }
     document.addEventListener('selectionchange', () => { if (session && session.kind === 'document') sendCursorSoon(); scheduleFloat(); });
+    window.addEventListener('blur', () => sendCursorSoon());
+    window.addEventListener('focus', () => sendCursorSoon());
+    document.addEventListener('visibilitychange', () => sendCursorSoon());
     document.addEventListener('scroll', () => { scheduleCursorRender(); scheduleFloat(); }, true);
     window.addEventListener('resize', scheduleCursorRender);
 
@@ -2153,11 +2297,11 @@
         refreshHighlights(false);
         renderSheetMarks(ctx);
         scheduleCursorRender();
-        if (session && session.kind === 'spreadsheet') sendCursor();
+        if (session && session.kind === 'spreadsheet') sendCursor(session);
     }
     setInterval(commentsTick, TICK_MS);
 
-    window.OmniCollab = Object.freeze({ openShare, openReport, openLink, canReport, merge, describeChanges, openComments, closeComments,
+    window.OmniCollab = Object.freeze({ openShare, openReport, openLink, canReport, isLinkShared, merge, describeChanges, openComments, closeComments,
         renderSharedFiles, get session() { return session; } });
     if (document.getElementById('sharedApp')?.classList.contains('active')) renderSharedFiles();
     setInterval(tick, TICK_MS);

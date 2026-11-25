@@ -11,7 +11,7 @@
     width: 7.2in;
     color: #1d2433;
     background: #fff;
-    font: 18px/1.9 'Google Sans Flex', sans-serif;
+    font: 18px/1.9 'Munetios UI v4 Font', sans-serif;
     pointer-events: none;
 }
 .omni-document-print-area img,
@@ -425,6 +425,16 @@
 #editorContent .omni-collab-chrome .mu-avatar-group[hidden] { display: none; }
 #editorContent .omni-collab-presence { max-width: 40vw; overflow-x: auto; scrollbar-width: none; padding: 3px 3px 3px 12px; }
 #editorContent .omni-collab-presence .mu-avatar { flex: 0 0 auto; }
+.omni-collab-presence .omni-collab-overflow {
+    appearance: none;
+    cursor: pointer;
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    padding: 0;
+}
+.omni-collab-presence .omni-collab-overflow[hidden] { display: none; }
+.omni-collab-participant-list { display: grid; gap: 4px; list-style: none; margin: 8px 0 0; padding: 0; }
+.omni-collab-participant-list .mu-row-title { overflow-wrap: anywhere; }
 /* View only: the toolbar is unavailable */
 #editorContent.omni-collab-readonly .toolbar { opacity: 0.35; pointer-events: none; }
 #reportMoreOptionsBtn[hidden] { display: none !important; }
@@ -473,8 +483,8 @@
     border-radius: 999px;
     background: var(--ow-accent, #8f5cff);
     color: #ffffff;
-    font: 400 18px/26px 'Google Sans Flex', system-ui, sans-serif;
-    font-feature-settings: 'ss01' 1;
+    font: 400 18px/26px 'Munetios UI v4 Font', system-ui, sans-serif;
+    font-feature-settings: normal;
     font-variation-settings: normal;
     text-align: center;
     pointer-events: none;
@@ -487,15 +497,23 @@
 .omni-shared-file h2 { margin: 0; font: inherit; }
 .omni-shared-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 :is(#editorContent, #sheetEditorApp) .navbar__right > .omni-collab-chrome[hidden] { display: none; }
+@media (width < 1190px) {
+    .omni-collab-role[data-role="view"] > span {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+}
 @media (max-width: 760px) {
-    :is(#editorContent, #sheetEditorApp) .navbar__right > .omni-collab-chrome:not(:has(.omni-collab-presence:not([hidden]))) { display: none; }
-    .omni-collab-chrome .omni-collab-role { display: none; }
+    :is(#editorContent, #sheetEditorApp) .navbar__right > .omni-collab-chrome:not(:has(.omni-collab-presence:not([hidden]), .omni-collab-role[data-role="view"]:not([hidden]))) { display: none; }
+    .omni-collab-chrome .omni-collab-role:not([data-role="view"]) { display: none; }
     .omni-collab-presence .mu-avatar { width: 30px; height: 30px; }
-    .omni-collab-presence .mu-avatar:nth-child(n + 3) { display: none; }
     .omni-comments-btn[data-count]::after { display: none; }
 }
 @media (max-width: 440px) {
-    .omni-collab-presence .mu-avatar:nth-child(n + 2) { display: none; }
     :is(#editorContent, #sheetEditorApp) .navbar__right .account-sign-in {
         min-height: 40px;
         padding-inline: 10px;
@@ -506,7 +524,7 @@
 #foldersPageEditFolderBtn[hidden] { display: none; }
 
 .omni-comments-panel { box-sizing: border-box; z-index: 1001; }
-@media (width > 760px) {
+@media (width >= 900px) {
     body.omni-comments-open { --omni-comments-width: min(420px, 34vw); }
     body.omni-comments-open .omni-comments-panel {
         position: absolute;
@@ -524,7 +542,7 @@
         margin-inline: 0;
     }
 }
-@media (width <= 760px) {
+@media (width < 900px) {
     .editor-content-editor > .omni-comments-panel {
         position: relative;
         inset: auto;
@@ -595,8 +613,8 @@
     border-radius: 999px 999px 999px 4px;
     background: var(--omni-cursor-color);
     color: #ffffff;
-    font: 400 18px/1.4 'Google Sans Flex', system-ui, sans-serif;
-    font-feature-settings: 'ss01' 1;
+    font: 400 18px/1.4 'Munetios UI v4 Font', system-ui, sans-serif;
+    font-feature-settings: normal;
     white-space: nowrap;
 }
 /* ...and a named outline around the selected cells in spreadsheets */

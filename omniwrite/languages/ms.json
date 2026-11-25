@@ -1431,7 +1431,7 @@
   "collab_restricted": "Terhad",
   "collab_restricted_desc": "Hanya orang yang anda tambah boleh membukanya.",
   "collab_anyone_link": "Sesiapa yang mempunyai pautan",
-  "collab_anyone_link_desc": "Sesiapa yang mempunyai pautan boleh membukanya, walaupun tanpa akaun. Pelawat yang tidak log masuk hanya boleh melihat.",
+  "collab_anyone_link_desc": "Sesiapa yang mempunyai pautan boleh membukanya, walaupun tanpa akaun.",
   "collab_role": "Peranan",
   "collab_role_owner": "Pemilik",
   "collab_role_edit": "Editor",
@@ -1534,8 +1534,10 @@
   "dictionary": "Kamus",
   "dictionary_custom_words": "Perkataan tersuai",
   "dictionary_autocorrect": "Pembetulan automatik",
-  "dictionary_english_words": "Senarai perkataan bahasa Inggeris",
   "dictionary_word": "Perkataan",
   "dictionary_invalid_word": "Masukkan satu perkataan yang terdiri daripada huruf dan apostrof.",
-  "dictionary_load_failed": "Senarai perkataan bahasa Inggeris tidak dapat dimuatkan."
+  "overview_page": "Gambaran keseluruhan OmniWrite",
+  "overview_heading": "Tulis, susun dan bekerjasama.",
+  "overview_intro": "Cipta dokumen dan hamparan dalam satu ruang kerja.",
+  "overview_open": "Buka OmniWrite"
 }

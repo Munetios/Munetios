@@ -1530,8 +1530,10 @@
   "dictionary": "शब्दकोश",
   "dictionary_custom_words": "अपने शब्द",
   "dictionary_autocorrect": "स्वतः सुधार",
-  "dictionary_english_words": "अंग्रेज़ी शब्दों की सूची",
   "dictionary_word": "शब्द",
   "dictionary_invalid_word": "अक्षरों और अपॉस्ट्रॉफ़ी का इस्तेमाल करके एक शब्द लिखें।",
-  "dictionary_load_failed": "अंग्रेज़ी शब्दों की सूची लोड नहीं हो सकी।"
+  "overview_page": "OmniWrite का परिचय",
+  "overview_heading": "लिखें, व्यवस्थित करें और साथ काम करें।",
+  "overview_intro": "एक ही वर्कस्पेस में दस्तावेज़ और स्प्रेडशीट बनाएँ।",
+  "overview_open": "OmniWrite खोलें"
 }

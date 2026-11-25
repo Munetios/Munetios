@@ -1,0 +1,17 @@
+User-Agent: *
+Allow: /
+
+User-Agent: Googlebot
+Allow: /
+
+User-Agent: Bingbot
+Allow: /
+
+User-Agent: MunetiosSearchBot
+Allow: /
+
+User-Agent: Applebot
+Allow: /
+
+User-Agent: DuckDuckBot
+Allow: /

@@ -1431,7 +1431,7 @@
   "collab_restricted": "प्रतिबंधित",
   "collab_restricted_desc": "फक्त तुम्ही जोडलेले लोक ते उघडू शकतात.",
   "collab_anyone_link": "लिंक असलेली कोणतीही व्यक्ती",
-  "collab_anyone_link_desc": "लिंक असलेली कोणतीही व्यक्ती खात्याशिवायही ते उघडू शकते. साइन इन न केलेले अभ्यागत फक्त पाहू शकतात.",
+  "collab_anyone_link_desc": "लिंक असलेली कोणतीही व्यक्ती खात्याशिवायही ते उघडू शकते.",
   "collab_role": "भूमिका",
   "collab_role_owner": "मालक",
   "collab_role_edit": "संपादक",
@@ -1534,8 +1534,10 @@
   "dictionary": "शब्दकोश",
   "dictionary_custom_words": "स्वतःचे शब्द",
   "dictionary_autocorrect": "स्वयंचलित दुरुस्ती",
-  "dictionary_english_words": "इंग्रजी शब्दांची यादी",
   "dictionary_word": "शब्द",
   "dictionary_invalid_word": "अक्षरे आणि अपॉस्ट्रॉफी वापरून एक शब्द लिहा.",
-  "dictionary_load_failed": "इंग्रजी शब्दांची यादी लोड करता आली नाही."
+  "overview_page": "OmniWrite ची ओळख",
+  "overview_heading": "लिहा, मांडणी करा आणि एकत्र काम करा.",
+  "overview_intro": "एकाच कार्यक्षेत्रात दस्तऐवज आणि स्प्रेडशीट तयार करा.",
+  "overview_open": "OmniWrite उघडा"
 }

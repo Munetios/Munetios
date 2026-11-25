@@ -1427,7 +1427,7 @@
   "collab_restricted": "제한됨",
   "collab_restricted_desc": "내가 추가한 사용자만 열 수 있습니다.",
   "collab_anyone_link": "링크가 있는 모든 사용자",
-  "collab_anyone_link_desc": "링크가 있는 사람은 계정이 없어도 열 수 있습니다. 로그인하지 않은 방문자는 보기만 가능합니다.",
+  "collab_anyone_link_desc": "링크가 있는 사람은 계정이 없어도 열 수 있습니다.",
   "collab_role": "역할",
   "collab_role_owner": "소유자",
   "collab_role_edit": "편집자",
@@ -1530,8 +1530,10 @@
   "dictionary": "사전",
   "dictionary_custom_words": "사용자 단어",
   "dictionary_autocorrect": "자동 교정",
-  "dictionary_english_words": "영어 단어 목록",
   "dictionary_word": "단어",
   "dictionary_invalid_word": "글자와 아포스트로피로 이루어진 단어 하나를 입력하세요.",
-  "dictionary_load_failed": "영어 단어 목록을 불러오지 못했습니다."
+  "overview_page": "OmniWrite 개요",
+  "overview_heading": "쓰고, 정리하고, 함께 작업하세요.",
+  "overview_intro": "하나의 작업공간에서 문서와 스프레드시트를 만드세요.",
+  "overview_open": "OmniWrite 열기"
 }

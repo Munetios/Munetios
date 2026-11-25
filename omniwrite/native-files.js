@@ -81,6 +81,7 @@
     function documentData(data) {
         if (typeof data.title !== 'string' || typeof data.content !== 'string') throw new Error('Invalid document file');
         const doc = { title: data.title, content: sanitizeDocumentHtml(data.content) };
+        if (data.fontFamilyVersion === 1) doc.fontFamilyVersion = 1;
         for (const key of ['headerHtml', 'footerHtml']) {
             if (typeof data[key] === 'string') doc[key] = sanitizeDocumentHtml(data[key]);
         }

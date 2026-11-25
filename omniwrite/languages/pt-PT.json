@@ -306,7 +306,7 @@
   "collab_link_server_access": "O Munetios pode ler ficheiros partilhados com qualquer pessoa que tenha a ligação.",
   "collab_sign_in_required": "Inicie sessão na sua conta Munetios para partilhar e colaborar.",
   "collab_restricted_desc": "Apenas as pessoas que adicionar podem abri-lo.",
-  "collab_anyone_link_desc": "Qualquer pessoa com o link pode abri-lo, mesmo sem conta. Os visitantes sem sessão iniciada só podem ver.",
+  "collab_anyone_link_desc": "Qualquer pessoa com o link pode abri-lo, mesmo sem conta.",
   "collab_more_ways": "Mais formas de partilhar",
   "collab_stop_sharing": "Parar de partilhar",
   "collab_stop_confirm": "Parar de partilhar? Os colaboradores perdem o acesso e a sua cópia fica neste dispositivo.",
@@ -344,8 +344,10 @@
   "dictionary": "Dicionário",
   "dictionary_custom_words": "Palavras personalizadas",
   "dictionary_autocorrect": "Correção automática",
-  "dictionary_english_words": "Lista de palavras em inglês",
   "dictionary_word": "Palavra",
   "dictionary_invalid_word": "Escreva uma palavra com letras e apóstrofos.",
-  "dictionary_load_failed": "Não foi possível carregar a lista de palavras em inglês."
+  "overview_page": "Descrição geral do OmniWrite",
+  "overview_heading": "Escreva, organize e colabore.",
+  "overview_intro": "Crie documentos e folhas de cálculo num único espaço de trabalho.",
+  "overview_open": "Abrir o OmniWrite"
 }

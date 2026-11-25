@@ -21,6 +21,11 @@
   const from = new URLSearchParams(location.search).get("from") || "";
   $("backLink").href = /^\/(?!\/)[^\s\\]*$/.test(from) && !from.startsWith("/account") && !from.startsWith("/signin") ? from : "/";
 
+  if (/^\/apps\/supervidplayer(?:[/?#]|$)/.test(from) && $("backLink").getAttribute("href") === from) {
+    $("superVidPlayerLink").href = from;
+    $("superVidPlayerLink").hidden = false;
+  }
+
   function applyTheme() {
     const light = read("munetiosTheme") === "light-mode";
     if (root.dataset.muTheme !== (light ? "light" : "dark")) root.dataset.muTheme = light ? "light" : "dark";
@@ -76,7 +81,7 @@
   window.addEventListener("hashchange", () => showSection(location.hash.slice(1)));
 
   /* ---------------------------------------------------------- dialog */
-  function dialog({ icon, title, body, input, fields = [], confirm, danger = false, action }) {
+  function dialog({ icon, title, body, details = '', input, fields = [], confirm, danger = false, action }) {
     let modal = $("accountDialog");
     if (!modal) { modal = document.createElement("div"); modal.className = "mu-modal"; modal.id = "accountDialog"; modal.hidden = true; document.body.append(modal); }
     if (!modal.hidden) UI.closeModal(modal);
@@ -85,6 +90,7 @@
         <div class="mu-dialog-header"><div class="mu-dialog-heading"><span class="mu-icon-circle${danger ? " mu-icon-circle-danger" : ""}"><span class="mu-icon" aria-hidden="true">${icon}</span></span><h2 id="accountDialogTitle">${esc(title)}</h2></div>
           <button type="button" class="mu-icon-btn mu-icon-btn-soft" data-mu-close aria-label="${esc(t("close"))}"><span class="mu-icon" aria-hidden="true">close</span></button></div>
         ${body ? `<p class="mu-muted account-dialog-text">${esc(body)}</p>` : ""}
+        ${details}
         ${input ? `<label class="mu-field"><span class="mu-field-label">${esc(input.label)}</span><input class="mu-input" name="value" type="${input.type || "text"}" ${input.autocomplete ? `autocomplete="${input.autocomplete}"` : ""} value="${esc(input.value || "")}" maxlength="${input.maxlength || 1024}" dir="auto"></label>` : ""}
         ${fields.map(field => `<label class="mu-field"><span class="mu-field-label">${esc(field.label)}</span><input class="mu-input" name="${esc(field.name)}" type="${field.type || 'text'}" autocomplete="${field.autocomplete || 'off'}" ${field.numeric ? 'inputmode="numeric" pattern="[0-9]{6}" maxlength="6"' : 'maxlength="254"'} required></label>`).join('')}
         <p class="account-dialog-error" role="alert" hidden></p>
@@ -115,6 +121,7 @@
       $("profileAvatar").append(image);
     } else $("profileAvatar").textContent = initial(account);
     $("removePicture").hidden = !account.picture;
+    if (!$("picturePrivacy").disabled) $("picturePrivacy").checked = account.showProfilePictureToEveryone !== false;
     $("profileName").textContent = account.displayName || account.email;
     $("profileEmail").textContent = account.displayName ? account.email : "";
     $("emailValue").textContent = account.email;
@@ -215,6 +222,7 @@
     $("passwordForm").hidden = passwordless;
     $("addPasswordActions").hidden = !passwordless;
     $('googleConnection').hidden = !connection?.linked;
+    renderSync();
     if (!connection) return;
     $('googleConnectionLabel').textContent = t('usedGoogle');
     $('disconnectGoogle').hidden = !connection.linked || !connection.hasPassword;
@@ -235,6 +243,7 @@
   async function loadSecurity() {
     try {
       security = await A.security.get();
+      $('recoveryCodesRow').hidden = !security.twoFactor;
       $('twoFactorStatus').textContent = t(security.twoFactor ? 'enabled' : 'disabled');
       $('twoFactorButton').textContent = t(security.twoFactor ? 'disable2fa' : 'enable2fa');
       $('recoveryValue').textContent = security.recoveryEmail ? `${security.recoveryEmail} \u00b7 ${t(security.recoveryVerified ? 'recoveryVerified' : 'unverified')}` : t('notSet');
@@ -242,18 +251,50 @@
   }
   const passwordField = () => ({ name: 'password', label: t('password'), type: 'password', autocomplete: 'current-password' });
   const codeField = () => ({ name: 'code', label: t('authCode'), numeric: true, autocomplete: 'one-time-code' });
+  function showRecoveryCodes(codes) {
+    const contents = codes.join('\n');
+    dialog({ icon: 'key', title: t('recoveryCodes'), body: t('recoveryCodesHelp'),
+      details: `<pre class="account-recovery-codes" dir="ltr">${esc(contents)}</pre>`,
+      confirm: t('downloadRecoveryCodes'),
+      action() {
+        const url = URL.createObjectURL(new Blob([contents + '\n'], { type: 'text/plain' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'munetios-recovery-codes.txt';
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    });
+  }
+  $('recoveryCodesButton').addEventListener('click', () => dialog({
+    icon: 'key', title: t('newRecoveryCodes'), body: t('replaceRecoveryCodes'),
+    fields: [passwordField(), { ...codeField(), label: t('factorOrRecovery'), numeric: false }], confirm: t('continue'),
+    async action(_, data) {
+      const result = await A.security.action('recovery-codes', data.get('password'), { code: data.get('code') }).catch(() => failWith('securityFailed'));
+      showRecoveryCodes(result.recoveryCodes);
+    }
+  }));
   $('twoFactorButton').addEventListener('click', () => {
     if (security.twoFactor) return dialog({ icon: 'shield_lock', title: t('disable2fa'), fields: [passwordField(), codeField()], confirm: t('disable2fa'), danger: true,
       async action(_, data) { await A.security.action('disable', data.get('password'), { code: data.get('code') }).catch(() => failWith('securityFailed')); await loadSecurity(); }
     });
-    dialog({ icon: 'shield_lock', title: t('enable2fa'), body: t('authHelp'), fields: [passwordField()], confirm: t('continue'),
+    dialog({ icon: 'shield_lock', title: t('enable2fa'), fields: [passwordField()], confirm: t('continue'),
       async action(_, data) {
         const password = data.get('password');
         const setup = await A.security.action('setup', password).catch(() => failWith('securityFailed'));
-        dialog({ icon: 'key', title: t('enable2fa'), body: `${t('authHelp')}
-
-${setup.secret}`, fields: [codeField()], confirm: t('enable2fa'),
-          async action(_, code) { await A.security.action('enable', password, { code: code.get('code') }).catch(() => failWith('securityFailed')); await loadSecurity(); loadDevices(); }
+        const qr = /^data:image\/gif;base64,[A-Za-z0-9+/]+=*$/.test(setup.qr || '')
+          ? `<img class="account-auth-qr" src="${esc(setup.qr)}" alt="${esc(t('scanAuthenticatorQr'))}">` : '';
+        dialog({ icon: 'key', title: t('enable2fa'), body: t('scanAuthenticatorQr'),
+          details: `${qr}<label class="mu-field"><span class="mu-field-label">${esc(t('orSetupKey'))}</span><input class="mu-input" dir="ltr" readonly value="${esc(setup.secret)}"></label>`,
+          fields: [codeField()], confirm: t('enable2fa'),
+          async action(_, code) {
+            const result = await A.security.action('enable', password, { code: code.get('code') }).catch(() => failWith('securityFailed'));
+            showRecoveryCodes(result.recoveryCodes);
+            void loadSecurity();
+            void loadDevices();
+          }
         });
       }
     });
@@ -320,6 +361,7 @@ ${setup.secret}`, fields: [codeField()], confirm: t('enable2fa'),
     button.querySelector(".mu-icon").textContent = status === "locked" ? "lock_open" : "sync";
     button.disabled = status === "syncing" || status === "paused";
     $('toggleSync').textContent = t(A.state.syncEnabled ? 'turnOffSync' : 'turnOnSync');
+    $('syncAddPassword').hidden = !(googleConnection?.linked && !googleConnection.hasPassword && (status === 'locked' || status === 'paused'));
     renderStorage();
   }
   const byteText = n => new Intl.NumberFormat(A.locale(), { style: 'unit', unit: n >= 1e9 ? 'gigabyte' : n >= 1e6 ? 'megabyte' : 'kilobyte', maximumFractionDigits: 2 }).format(n / (n >= 1e9 ? 1e9 : n >= 1e6 ? 1e6 : 1000));
@@ -427,6 +469,16 @@ ${setup.secret}`, fields: [codeField()], confirm: t('enable2fa'),
   document.addEventListener("munetios-sync-applied", event => { if (event.detail.providers.includes("ls:workspaces")) renderWorkspaces(); });
 
   /* ---------------------------------------------------------- data & privacy */
+  $("picturePrivacy").addEventListener("change", async event => {
+    const control = event.currentTarget;
+    control.disabled = true;
+    try { await A.updateProfilePicturePrivacy(control.checked); }
+    catch { notify(t("picturePrivacyFailed"), "error"); }
+    finally {
+      control.checked = A.state.account?.showProfilePictureToEveryone !== false;
+      control.disabled = false;
+    }
+  });
   $("exportData").addEventListener("click", async () => {
     try {
       const data = await A.sync.exportLocal();
@@ -501,7 +553,7 @@ ${setup.secret}`, fields: [codeField()], confirm: t('enable2fa'),
         $("accountMain").hidden = true;
         return;
       }
-      if (!A.state.offline) location.replace(`/signin?continue=${encodeURIComponent(`/account/${location.hash}`)}`);
+      if (!A.state.offline) location.replace(`/signin?continue=${encodeURIComponent("/account/" + location.search + location.hash)}`);
       else notify(t("loadFailed"), "error");
       return;
     }

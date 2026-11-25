@@ -1431,7 +1431,7 @@
   "collab_restricted": "Ierobežota",
   "collab_restricted_desc": "To var atvērt tikai jūsu pievienotās personas.",
   "collab_anyone_link": "Ikviens, kam ir saite",
-  "collab_anyone_link_desc": "Ikviens, kam ir saite, var to atvērt pat bez konta. Nepierakstījušies apmeklētāji var tikai skatīt.",
+  "collab_anyone_link_desc": "Ikviens, kam ir saite, var to atvērt pat bez konta.",
   "collab_role": "Loma",
   "collab_role_owner": "Īpašnieks",
   "collab_role_edit": "Redaktors",
@@ -1534,8 +1534,10 @@
   "dictionary": "Vārdnīca",
   "dictionary_custom_words": "Mani vārdi",
   "dictionary_autocorrect": "Automātiskā labošana",
-  "dictionary_english_words": "Angļu vārdu saraksts",
   "dictionary_word": "Vārds",
   "dictionary_invalid_word": "Ievadiet vienu vārdu, izmantojot burtus un apostrofus.",
-  "dictionary_load_failed": "Neizdevās ielādēt angļu vārdu sarakstu."
+  "overview_page": "OmniWrite pārskats",
+  "overview_heading": "Rakstiet, kārtojiet un sadarbojieties.",
+  "overview_intro": "Veidojiet dokumentus un izklājlapas vienā darbvietā.",
+  "overview_open": "Atvērt OmniWrite"
 }

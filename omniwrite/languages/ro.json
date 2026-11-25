@@ -1431,7 +1431,7 @@
   "collab_restricted": "Restricționat",
   "collab_restricted_desc": "Doar persoanele pe care le adaugi îl pot deschide.",
   "collab_anyone_link": "Oricine are linkul",
-  "collab_anyone_link_desc": "Oricine are linkul îl poate deschide, chiar și fără cont. Vizitatorii neconectați pot doar vizualiza.",
+  "collab_anyone_link_desc": "Oricine are linkul îl poate deschide, chiar și fără cont.",
   "collab_role": "Rol",
   "collab_role_owner": "Proprietar",
   "collab_role_edit": "Editor",
@@ -1534,8 +1534,10 @@
   "dictionary": "Dicționar",
   "dictionary_custom_words": "Cuvinte personalizate",
   "dictionary_autocorrect": "Corectare automată",
-  "dictionary_english_words": "Listă de cuvinte în engleză",
   "dictionary_word": "Cuvânt",
   "dictionary_invalid_word": "Introdu un singur cuvânt format din litere și apostrofuri.",
-  "dictionary_load_failed": "Lista de cuvinte în engleză nu a putut fi încărcată."
+  "overview_page": "Prezentare generală OmniWrite",
+  "overview_heading": "Scrie, organizează și colaborează.",
+  "overview_intro": "Creează documente și foi de calcul într-un singur spațiu de lucru.",
+  "overview_open": "Deschide OmniWrite"
 }

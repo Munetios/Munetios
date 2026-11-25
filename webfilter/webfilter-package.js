@@ -4,7 +4,7 @@
  * - ZIP writer (deflate-raw via CompressionStream, stored when that isn't smaller)
  * - CRX3 signer for the self-hosted update URL
  * - Icons: icon.svg is rasterized to 16/32/48/128 px PNGs on a canvas
- * - Bundles fonts/munetios-sans.ttf (Munetios Sans) as a
+ * - Bundles Munetios UI v4 Font and Google Sans Flex as
  *   web_accessible_resource so Chromebooks render it locally under any CSP.
  * No third-party libraries, no network requests except same-origin file reads.
  */
@@ -213,10 +213,11 @@
    * Returns the list of files in the extension bundle.
    */
   async function extensionFiles(options) {
-    const [engine, categories, background, content, youtubePolicy, pagesCss, popupHtml, popupJs, editorHtml, editorJs, editorCss, font, license, iconList, localeFiles] = await Promise.all([
+    const [engine, categories, background, screenPrivacy, content, youtubePolicy, pagesCss, popupHtml, popupJs, editorHtml, editorJs, editorCss, font, googleFont, license, iconList, localeFiles] = await Promise.all([
       readText(BASE + "webfilter-engine.js"),
       readText(BASE + "webfilter-categories.js"),
       readText(BASE + "extension/background.js"),
+      readText(BASE + "extension/screen-privacy.js"),
       readText(BASE + "extension/content.js"),
       readText(BASE + "extension/youtube-policy.js"),
       readText(BASE + "extension/pages.css"),
@@ -225,7 +226,8 @@
       readText(BASE + "extension/editor.html"),
       readText(BASE + "extension/editor.js"),
       readText(BASE + "extension/editor.css"),
-      readBytes(ROOT + "fonts/google-sans-flex/munetios-sans.ttf"),
+      readBytes(ROOT + "fonts/google-sans-flex/munetios-ui-v4-font.ttf"),
+      readBytes(ROOT + "fonts/google-sans-flex/googlesansflex.ttf"),
       readText(ROOT + "fonts/google-sans-flex/OFL.txt"),
       icons(),
       locales(),
@@ -243,17 +245,18 @@
       icons: iconMap,
       action: { default_title: "Munetios WebFilter", default_popup: "popup.html", default_icon: iconMap },
       background: { service_worker: "background.js" },
-      permissions: ["storage", "tabs", "webNavigation", "alarms", "scripting", "identity", "identity.email", "sidePanel", "declarativeNetRequest", "enterprise.deviceAttributes"],
+      permissions: ["storage", "tabs", "webNavigation", "webRequest", "alarms", "scripting", "identity", "identity.email", "sidePanel", "declarativeNetRequest", "enterprise.deviceAttributes"],
       side_panel: { default_path: "editor.html" },
       host_permissions: ["<all_urls>"],
       content_scripts: [
+        { matches: ["http://*/*", "https://*/*"], js: ["screen-privacy.js"], run_at: "document_start", all_frames: true, match_origin_as_fallback: true },
         { matches: ["<all_urls>"], js: ["policy-engine.js", "content.js"], run_at: "document_start", all_frames: false },
         {
           matches: ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*", "*://*.youtubeeducation.com/*", "*://youtu.be/*"],
           js: ["policy-engine.js", "youtube-policy.js"], run_at: "document_start", all_frames: true,
         },
       ],
-      web_accessible_resources: [{ resources: ["fonts/munetios-sans.ttf", "icons/icon-48.png"], matches: ["<all_urls>"] }],
+      web_accessible_resources: [{ resources: ["fonts/munetios-ui-v4-font.ttf", "fonts/googlesansflex.ttf", "icons/icon-48.png"], matches: ["<all_urls>"] }],
       storage: { managed_schema: "schema.json" },
     };
     if (options.key && options.key.spki) manifest.key = options.key.spki;
@@ -267,6 +270,7 @@
       { name: "policy-engine.js", data: engine },
       { name: "categories.js", data: categories },
       { name: "background.js", data: background },
+      { name: "screen-privacy.js", data: screenPrivacy },
       { name: "content.js", data: content },
       { name: "youtube-policy.js", data: youtubePolicy },
       { name: "pages.css", data: pagesCss },
@@ -275,7 +279,8 @@
       { name: "editor.html", data: editorHtml },
       { name: "editor.js", data: editorJs },
       { name: "editor.css", data: editorCss },
-      { name: "fonts/munetios-sans.ttf", data: font },
+      { name: "fonts/munetios-ui-v4-font.ttf", data: font },
+      { name: "fonts/googlesansflex.ttf", data: googleFont },
       { name: "fonts/OFL.txt", data: license },
     ].concat(iconList.map(icon => ({ name: "icons/icon-" + icon.size + ".png", data: icon.data })), localeFiles);
   }

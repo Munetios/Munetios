@@ -1431,7 +1431,7 @@
   "collab_restricted": "Bị hạn chế",
   "collab_restricted_desc": "Chỉ những người bạn thêm mới có thể mở.",
   "collab_anyone_link": "Bất kỳ ai có đường liên kết",
-  "collab_anyone_link_desc": "Bất kỳ ai có đường liên kết đều có thể mở, kể cả khi không có tài khoản. Khách chưa đăng nhập chỉ có thể xem.",
+  "collab_anyone_link_desc": "Bất kỳ ai có đường liên kết đều có thể mở, kể cả khi không có tài khoản.",
   "collab_role": "Vai trò",
   "collab_role_owner": "Chủ sở hữu",
   "collab_role_edit": "Người chỉnh sửa",
@@ -1534,8 +1534,10 @@
   "dictionary": "Từ điển",
   "dictionary_custom_words": "Từ tự thêm",
   "dictionary_autocorrect": "Tự động sửa",
-  "dictionary_english_words": "Danh sách từ tiếng Anh",
   "dictionary_word": "Từ",
   "dictionary_invalid_word": "Nhập một từ chỉ gồm chữ cái và dấu nháy đơn.",
-  "dictionary_load_failed": "Không thể tải danh sách từ tiếng Anh."
+  "overview_page": "Tổng quan về OmniWrite",
+  "overview_heading": "Viết, sắp xếp và cộng tác.",
+  "overview_intro": "Tạo tài liệu và bảng tính trong cùng một không gian làm việc.",
+  "overview_open": "Mở OmniWrite"
 }

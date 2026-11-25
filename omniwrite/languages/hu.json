@@ -1431,7 +1431,7 @@
   "collab_restricted": "Korlátozott",
   "collab_restricted_desc": "Csak az Ön által hozzáadott személyek nyithatják meg.",
   "collab_anyone_link": "Bárki, akinél megvan a link",
-  "collab_anyone_link_desc": "Bárki megnyithatja, akinél megvan a link, fiók nélkül is. A be nem jelentkezett látogatók csak megtekinthetik.",
+  "collab_anyone_link_desc": "Bárki megnyithatja, akinél megvan a link, fiók nélkül is.",
   "collab_role": "Szerepkör",
   "collab_role_owner": "Tulajdonos",
   "collab_role_edit": "Szerkesztő",
@@ -1534,8 +1534,10 @@
   "dictionary": "Szótár",
   "dictionary_custom_words": "Saját szavak",
   "dictionary_autocorrect": "Automatikus javítás",
-  "dictionary_english_words": "Angol szavak listája",
   "dictionary_word": "Szó",
   "dictionary_invalid_word": "Adj meg egy betűkből és aposztrófokból álló szót.",
-  "dictionary_load_failed": "Nem sikerült betölteni az angol szavak listáját."
+  "overview_page": "Az OmniWrite áttekintése",
+  "overview_heading": "Írj, rendszerezz és dolgozz együtt másokkal.",
+  "overview_intro": "Hozz létre dokumentumokat és táblázatokat egyetlen munkaterületen.",
+  "overview_open": "OmniWrite megnyitása"
 }

@@ -4,9 +4,10 @@ const noStore = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosnif
 const appRoots = new Map([
     ['write.munetios.com', '/omniwrite'],
     ['accounts.munetios.com', '/signin'],
+    ['calendar.munetios.com', '/calendar'],
     ['photos.munetios.com', '/photos'],
 ]);
-const sharedAssets = /^\/(?:signin|omniwrite|account|fonts|munetios-ui|shared|blocked|mail|photos|webfilter)(?:\/|$)|^\/(?:tone\.js|ganetios-logo-icon\.png|404(?:\.html|\.css|-i18n\.js)?)$/;
+const sharedAssets = /^\/(?:signin|omniwrite|account|fonts|munetios-ui|shared|blocked|mail|calendar|photos|webfilter)(?:\/|$)|^\/(?:tone\.js|ganetios-logo-icon\.png|munetios-logo(?:-icon)?\.png|404(?:\.html|\.css|-i18n\.js)?)$/;
 
 function unavailable(isApi) {
     if (isApi) return Response.json({ error: 'unavailable' }, { status: 503, headers: noStore });
@@ -23,6 +24,14 @@ export default {
             pathname = canonical.pathname;
         } catch {
             return new Response('Bad request', { status: 400, headers: noStore });
+        }
+        if (url.hostname === 'calendar.munetios.com' && (pathname === '/new' || pathname === '/new/')) {
+            url.pathname = '/';
+            return Response.redirect(url.href, 308);
+        }
+        if (url.hostname === 'write.munetios.com' && (pathname === '/overview/' || pathname === '/overview.html')) {
+            url.pathname = '/overview';
+            return Response.redirect(url.href, 308);
         }
         const isApi = /^\/api(?:\/|$)/i.test(pathname);
         const isProtectedPage = /^\/(?:account|mail|webfilter)(?:\/index\.html|\/)?$/i.test(pathname);

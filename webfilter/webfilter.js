@@ -15,7 +15,7 @@
   const I18n = window.MunetiosWebFilterI18n;
   const Account = window.MunetiosAccount;
   const t = (key, vars) => I18n.t(key, vars);
-  const EXTENSION_VERSION = "1.4.0";
+  const EXTENSION_VERSION = "1.4.6";
 
   /* ================================================================ helpers */
 
@@ -257,7 +257,7 @@
         ws.policyDirty = false;
       }
       ws.server.policyVersion = status.policyVersion;
-      if (status.extension) ws.extension.published = { version: status.extension.version, at: status.extension.publishedAt };
+      ws.extension.published = status.extension ? { appId: status.extension.appId, version: status.extension.version, at: status.extension.publishedAt } : null;
       saveWorkspace({ push: false });
       server.status = "online";
       server.message = "";
@@ -271,6 +271,10 @@
     }
     if (ws !== workspace) return;
     renderAll();
+    if (!$("#wfExtensionModal").hidden) {
+      renderExtensionModal();
+      preparePackage();
+    }
     refreshDevices(true);
     refreshRequests();
     loadBypass();
@@ -362,7 +366,12 @@
     const openForm = $("#wfFormModal:not([hidden])");
     if (route.page === "devices" && !openForm) renderPage();
     else if (route.page === "classes" || route.page === "requests") renderPage();
-    if (openForm) loadScreens(openForm);
+    if (openForm) {
+      const list = $("[data-wf-device-tabs]", openForm);
+      const device = list && devices.list.find(item => item.id === list.dataset.wfDeviceTabs);
+      if (device) updateRemoteTabs(list, device);
+      loadScreens(openForm);
+    }
     if (!devices.error) watchDeviceChanges();
   }
 
@@ -425,6 +434,7 @@
     { id: "devices", icon: "devices", label: "nav_devices" },
     { id: "requests", icon: "mark_email_unread", label: "nav_requests" },
     { id: "collaborators", icon: "group", label: "nav_collaborators" },
+    { id: "compare", icon: "compare_arrows", label: "nav_compare" },
     { id: "settings", icon: "settings", label: "nav_settings" },
   ];
   const SIDEBAR_ITEMS = PAGES.map(page => page.id).concat("extension");
@@ -756,7 +766,7 @@
         const exceptions = exceptionsFor(klass);
         if (!exceptions.rules.includes(source.id)) exceptions.rules.push(source.id);
         if (!klass.rules.some(item => item.type === pattern.type && item.value === pattern.value && item.action === values.action)) {
-          klass.rules.push({ id: Engine.createId("rule"), action: values.action, type: pattern.type, value: pattern.value, note: values.note.trim(), enabled: true, createdBy: actor().id, createdAt: Date.now(), replaces: source.id });
+          klass.rules.push({ id: Engine.createId("rule"), action: values.action, type: pattern.type, value: pattern.value, note: values.note.trim(), enabled: true, createdBy: actor().id, createdByRole: actor().role, createdAt: Date.now(), replaces: source.id });
         }
         saveWorkspace();
         renderPage();
@@ -797,7 +807,7 @@
           entries.map(toPattern).forEach(pattern => {
             const exists = scope.rules.some(item => item.type === pattern.type && item.value === pattern.value && item.action === values.action);
             if (exists) { skipped++; return; }
-            scope.rules.push({ id: Engine.createId("rule"), action: values.action, type: pattern.type, value: pattern.value, note: values.note.trim(), enabled: true, createdBy: actor().id, createdAt: Date.now() });
+            scope.rules.push({ id: Engine.createId("rule"), action: values.action, type: pattern.type, value: pattern.value, note: values.note.trim(), enabled: true, createdBy: actor().id, createdByRole: actor().role, createdAt: Date.now() });
             added++;
           });
           if (!added) return { field: "value", message: t("duplicate_rule") };
@@ -810,8 +820,8 @@
         if (!pattern) return { field: "value", message: t("invalid_pattern") };
         const duplicate = scope.rules.find(item => item.id !== ruleId && item.type === pattern.type && item.value === pattern.value && item.action === values.action);
         if (duplicate) return { field: "value", message: t("duplicate_rule") };
-        if (rule) Object.assign(rule, { action: values.action, type: pattern.type, value: pattern.value, note: values.note.trim(), updatedAt: Date.now() });
-        else scope.rules.push({ id: Engine.createId("rule"), action: values.action, type: pattern.type, value: pattern.value, note: values.note.trim(), enabled: true, createdBy: actor().id, createdAt: Date.now() });
+        if (rule.action !== values.action || rule.type !== pattern.type || rule.value !== pattern.value) rule.updatedByRole = actor().role;
+        Object.assign(rule, { action: values.action, type: pattern.type, value: pattern.value, note: values.note.trim(), updatedAt: Date.now() });
         saveWorkspace();
         renderPage();
         toast(t(rule ? "toast_rule_saved" : "toast_rule_added"), "success");
@@ -1066,6 +1076,20 @@
     </section>`;
   }
 
+  function renderImportUrls() {
+    if (!isAdmin()) return "";
+    const urls = ws.policy.global.userCss.importUrls || [];
+    const entries = urls.map(url => `<span class="mu-tag" dir="ltr">${esc(url)}<button type="button" data-wf-action="remove-import-url" data-value="${esc(url)}" aria-label="${esc(t("remove_item", { item: url }))}">${icon("close")}</button></span>`).join("");
+    return `<section class="mu-glass mu-panel wf-card" aria-labelledby="wfCssImportTitle">
+      <div class="wf-policy-head"><span class="mu-icon-circle" aria-hidden="true">${icon("link")}</span><div><h2 class="mu-h-title" id="wfCssImportTitle">${esc(t("usercss_import_title"))}</h2><p class="mu-muted">${esc(t("usercss_import_desc"))}</p></div></div>
+      <form class="wf-inline-form" data-wf-form="add-import-url">
+        <label class="mu-field wf-grow"><span class="wf-visually-hidden">${esc(t("usercss_import_add"))}</span><input class="mu-input" name="url" dir="ltr" inputmode="url" autocomplete="off" placeholder="https://example.org/theme.css" required></label>
+        <button type="submit" class="mu-btn mu-btn-primary">${icon("add")}${esc(t("usercss_import_add"))}</button>
+      </form>
+      <div class="mu-tags">${entries || `<span class="mu-muted">${esc(t("list_empty"))}</span>`}</div>
+    </section>`;
+  }
+
   function renderUserCssPage() {
     const scopeId = cssScope();
     const scope = scopeData(scopeId);
@@ -1098,6 +1122,7 @@
         ${inheritedLists}
       </section>
 
+      ${renderImportUrls()}
       <section class="mu-glass mu-panel wf-card" aria-labelledby="wfCssCheckTitle">
         <h2 class="mu-h-title" id="wfCssCheckTitle">${esc(t("usercss_check_title"))}</h2>
         <form class="wf-inline-form" data-wf-form="check-usercss">
@@ -1279,9 +1304,40 @@
     });
   }
 
-  function openDeviceView(device) {
+  function remoteTabTitle(tab, device) {
+    const title = tab.title || tab.url;
+    if (!device.classId || device.locked || !findClass(device.classId)) return title;
+    const decision = Engine.evaluateAccess(tab.url, ws.policy, { classId: device.classId, tempBlocks: device.tempBlocks, blockPageUrl: BLOCK_PAGE });
+    if (decision.reason !== "allow-rule" || decision.scope !== device.classId) return title;
+    const rule = decision.rule;
+    const role = rule.updatedByRole || rule.createdByRole || ws.collaborators.find(member => member.id === rule.createdBy)?.role;
+    if (role !== "teacher" || !Engine.evaluateAccess(tab.url, ws.policy, { blockPageUrl: BLOCK_PAGE }).blocked) return title;
+    return `${title} [${t("remote_tab_teacher_allowed")}]`;
+  }
+
+  const remoteTabsMarkup = new WeakMap();
+  function updateRemoteTabs(list, device) {
     const allowed = canActOnDevice(device);
     const tabs = device.tabs || [];
+    const markup = tabs.length ? tabs.map(tab => {
+      const title = esc(remoteTabTitle(tab, device));
+      return `<div class="mu-row wf-tab-row">
+        ${favicon(tab.url)}
+        <div class="mu-row-info"><span class="mu-row-title">${title}</span><span class="mu-row-subtitle" dir="ltr">${esc(tab.url)}</span></div>
+        ${tab.active ? `<span class="mu-badge mu-badge-success">${esc(t("active_tab"))}</span>` : ""}
+        <button type="button" class="mu-icon-btn mu-icon-btn-soft" data-wf-action="device-close-tab-id" data-id="${esc(device.id)}" data-tab="${esc(String(tab.id))}" aria-label="${esc(t("close_tab_named", { tab: tab.title || tab.url }))}"${allowed ? ` data-tooltip="${esc(t("close_tab"))}"` : lock(false, "locked_device")}>${icon("close")}</button>
+      </div>`;
+    }).join("") : `<p class="mu-muted">${esc(t("no_tabs"))}</p>`;
+    if (remoteTabsMarkup.get(list) === markup) return;
+    const focusedTab = list.contains(document.activeElement) ? document.activeElement.dataset.tab : null;
+    remoteTabsMarkup.set(list, markup);
+    list.innerHTML = markup;
+    wireFavicons(list);
+    if (focusedTab != null) [...list.querySelectorAll("[data-tab]")].find(button => button.dataset.tab === focusedTab)?.focus({ preventScroll: true });
+  }
+
+  function openDeviceView(device) {
+    const allowed = canActOnDevice(device);
     openForm({
       title: deviceLabel(device), icon: "desktop_windows", submit: t("close"), cancel: false, wide: true,
       html: `<div class="wf-view-screen">
@@ -1290,18 +1346,13 @@
         </div>
         <p class="mu-muted" data-wf-screen-status>${esc(t("screen_waiting"))}</p>
         <div class="wf-card-head"><h3 class="mu-h-title">${esc(t("open_tabs"))}</h3><button type="button" class="mu-btn" data-wf-action="device-open-tab" data-id="${esc(device.id)}"${lock(allowed, "locked_device")}>${icon("open_in_new")}${esc(t("open_tab"))}</button></div>
-        <div class="wf-list">${tabs.length ? tabs.map(tab => `<div class="mu-row wf-tab-row">
-            ${favicon(tab.url)}
-            <div class="mu-row-info"><span class="mu-row-title">${esc(tab.title || tab.url)}</span><span class="mu-row-subtitle" dir="ltr">${esc(tab.url)}</span></div>
-            ${tab.active ? `<span class="mu-badge mu-badge-success">${esc(t("active_tab"))}</span>` : ""}
-            <button type="button" class="mu-icon-btn mu-icon-btn-soft" data-wf-action="device-close-tab-id" data-id="${esc(device.id)}" data-tab="${esc(String(tab.id))}" aria-label="${esc(t("close_tab_named", { tab: tab.title || tab.url }))}"${allowed ? ` data-tooltip="${esc(t("close_tab"))}"` : lock(false, "locked_device")}>${icon("close")}</button>
-          </div>`).join("") : `<p class="mu-muted">${esc(t("no_tabs"))}</p>`}</div>`,
+        <div class="wf-list" data-wf-device-tabs="${esc(device.id)}"></div>`,
       onSubmit: () => null,
     });
     const form = $("#wfForm");
     form.querySelector("[data-mu-close]").focus({ preventScroll: true });
     form.scrollTop = 0;
-    wireFavicons(form);
+    updateRemoteTabs($("[data-wf-device-tabs]", form), device);
     loadScreens(form);
   }
 
@@ -1516,7 +1567,7 @@
         if (!pattern || !scope) return;
         const classId = item.classId;
         if (Engine.evaluateAccess(item.url, ws.policy, { classId }).blocked) {
-          const rule = { id: Engine.createId("rule"), action: "allow", type: "domain", value: pattern.value, note: t("from_request"), enabled: true, createdBy: actor().id, createdAt: Date.now() };
+          const rule = { id: Engine.createId("rule"), action: "allow", type: "domain", value: pattern.value, note: t("from_request"), enabled: true, createdBy: actor().id, createdByRole: actor().role, createdAt: Date.now() };
           scope.rules.push(rule);
           if (Engine.evaluateAccess(item.url, ws.policy, { classId }).blocked) {
             scope.rules = scope.rules.filter(entry => entry !== rule);
@@ -1675,6 +1726,33 @@
     });
   }
 
+  function renderComparisonPage() {
+    const features = ["sites", "categories", "class_rules", "keywords", "safesearch", "restricted_mode", "video_rules", "screens", "tabs", "lock", "requests", "temporary", "usercss", "school_mode"];
+    const products = [
+      { name: "Munetios WebFilter", supported: features },
+      { name: "GoGuardian", url: "https://www.goguardian.com/admin", supported: ["sites", "categories", "class_rules", "keywords", "video_rules", "screens", "tabs", "lock", "temporary"] },
+      { name: "Securly", url: "https://www.securly.com/filter", supported: ["sites", "categories", "class_rules", "keywords", "safesearch", "restricted_mode", "video_rules", "screens", "tabs", "lock", "requests", "temporary"] },
+      { name: "Lightspeed", url: "https://www.lightspeedsystems.com/products/", supported: ["sites", "categories", "class_rules", "safesearch", "video_rules", "screens", "tabs", "lock"] },
+    ];
+    const mark = supported => `<span class="wf-compare-mark${supported ? " is-supported" : ""}">${icon(supported ? "check" : "close")}<span class="wf-visually-hidden">${esc(t(supported ? "compare_supported" : "compare_unconfirmed"))}</span></span>`;
+    const headings = products.map(({ name, url }) => `<th scope="col" translate="no">${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(name)}</a>` : esc(name)}</th>`).join("");
+    const rows = features.map(feature => `<tr>
+      <th scope="row">${esc(t(`compare_feature_${feature}`))}</th>
+      ${products.map(({ supported }) => `<td>${mark(supported.includes(feature))}</td>`).join("")}
+    </tr>`).join("");
+    return hero("compare_arrows", "nav_compare", "compare_desc") + `
+      <div class="wf-compare-legend mu-muted" id="wfCompareLegend">
+        <span>${icon("check")}${esc(t("compare_supported"))}</span>
+        <span>${icon("close")}${esc(t("compare_unconfirmed"))}</span>
+        <span>${esc(t("compare_availability"))}</span>
+      </div>
+      <div class="mu-table-wrap wf-compare-table" tabindex="0" role="region" aria-label="${esc(t("nav_compare"))}" aria-describedby="wfCompareLegend">
+        <table class="mu-table"><thead><tr>
+          <th scope="col">${esc(t("compare_feature"))}</th>${headings}
+        </tr></thead><tbody>${rows}</tbody></table>
+      </div>`;
+  }
+
   /* ========================================================= settings page */
 
   function renderSettingsPage() {
@@ -1714,7 +1792,10 @@
   // The workspace keeps one signing key so every downloaded folder installs as the same extension.
   async function ensureKey() {
     if (ws.key && ws.key.extensionId) return ws.key;
-    ws.key = await Pack.createSigningKey();
+    const workspace = ws;
+    const key = await Pack.createSigningKey();
+    if (ws !== workspace) return null;
+    ws.key = key;
     saveWorkspace({ push: false });
     return ws.key;
   }
@@ -1725,28 +1806,37 @@
     return ws.server.orgId ? API + "/orgs/" + encodeURIComponent(ws.server.orgId) + "/update.xml" : "";
   }
 
+  function canBuildExtension() {
+    const published = ws.extension.published;
+    return !!ws.server.enrollToken && (!published || (!!ws.key?.extensionId && published.appId === ws.key.extensionId));
+  }
+
   // The install URL serves a signed package. It is prepared automatically the first time an
   // Admin opens this dialog, so nobody has to publish anything by hand.
   const publishing = { busy: false, error: "" };
   async function preparePackage() {
-    if (publishing.busy || !isAdmin() || server.status !== "online" || ws.extension.published?.version === EXTENSION_VERSION) return;
+    if (publishing.busy || !isAdmin() || server.status !== "online" || !canBuildExtension() || ws.extension.published?.version === EXTENSION_VERSION) return;
+    const workspace = ws;
     publishing.busy = true;
     publishing.error = "";
     renderExtensionModal();
     try {
       const key = await ensureKey();
+      if (!key || ws !== workspace) return;
       const version = EXTENSION_VERSION;
       const bytes = await Pack.buildCrx({ version, key, config: managedConfig(), policy: Object.assign(exportPolicy(), { version: ws.server.policyVersion }), updateUrl: installUrl() });
-      await request("/orgs/" + encodeURIComponent(ws.server.orgId) + "/extension?appId=" + key.extensionId + "&version=" + encodeURIComponent(version), {
+      if (ws !== workspace) return;
+      const { extension } = await request("/orgs/" + encodeURIComponent(workspace.server.orgId) + "/extension?appId=" + key.extensionId + "&version=" + encodeURIComponent(version), {
         method: "PUT", body: bytes, headers: { "Content-Type": "application/x-chrome-extension" },
       });
-      ws.extension.published = { version, at: Date.now() };
-      saveWorkspace({ push: false });
+      workspace.extension.published = { appId: extension.appId, version: extension.version, at: extension.publishedAt };
+      if (ws === workspace) saveWorkspace({ push: false });
     } catch (error) {
-      publishing.error = error.message;
+      if (ws === workspace) publishing.error = error.message;
+    } finally {
+      publishing.busy = false;
+      if (!$("#wfExtensionModal").hidden) renderExtensionModal();
     }
-    publishing.busy = false;
-    if (!$("#wfExtensionModal").hidden) renderExtensionModal();
   }
 
   function copyField(label, value) {
@@ -1756,29 +1846,33 @@
 
   function renderUrlInstall() {
     if (!isAdmin()) return "";
-    if (server.status !== "online") {
-      return `<div class="mu-alert is-warning" role="status">${icon("cloud_off")}<div class="mu-alert-body"><span class="mu-alert-title">${esc(t("server_offline_title"))}</span><span class="mu-muted">${esc(t("extension_offline_note"))}</span></div><button type="button" class="mu-btn" data-wf-action="reconnect">${icon("refresh")}${esc(t("reconnect"))}</button></div>`;
-    }
     const provider = INSTALL_PROVIDERS.includes(ws.extension.provider) ? ws.extension.provider : "google";
-    let body;
-    if (publishing.error) {
-      body = `<div class="mu-alert is-danger" role="alert">${icon("error")}<div class="mu-alert-body"><span class="mu-alert-title">${esc(t("link_failed"))}</span><span class="mu-muted">${esc(publishing.error)}</span></div><button type="button" class="mu-btn" data-wf-action="retry-install-link">${icon("refresh")}${esc(t("try_again"))}</button></div>`;
-    } else if (ws.extension.published?.version !== EXTENSION_VERSION || !ws.key) {
-      body = `<div class="mu-alert" role="status">${icon("hourglass_top")}<div class="mu-alert-body"><span class="mu-alert-title">${esc(t("preparing_link"))}</span></div></div>`;
-    } else {
-      const id = ws.key.extensionId;
-      const url = installUrl();
+    const id = ws.extension.published?.appId;
+    const url = installUrl();
+    let status = "";
+    if (server.status === "connecting" || publishing.busy) {
+      status = `<div class="mu-alert" role="status">${icon("hourglass_top")}<span>${esc(t("preparing_link"))}</span></div>`;
+    } else if (server.status !== "online") {
+      status = `<div class="mu-alert is-warning" role="status">${icon("cloud_off")}<span>${esc(t("server_offline_title"))}</span><button type="button" class="mu-btn" data-wf-action="reconnect">${icon("refresh")}${esc(t("reconnect"))}</button></div>`;
+    } else if (publishing.error) {
+      status = `<div class="mu-alert is-danger" role="alert">${icon("error")}<div class="mu-alert-body"><span class="mu-alert-title">${esc(t("link_failed"))}</span><span class="mu-muted">${esc(publishing.error)}</span></div><button type="button" class="mu-btn" data-wf-action="retry-install-link">${icon("refresh")}${esc(t("try_again"))}</button></div>`;
+    } else if (!id && !canBuildExtension()) {
+      status = `<div class="mu-alert" role="status">${icon("info")}<span>${esc(t("extension_install_unavailable"))}</span></div>`;
+    }
+    let body = "";
+    if (id && url) {
       const steps = [1, 2, 3, 4].map(n => `<li>${esc(t("install_" + provider + "_" + n))}</li>`).join("");
       body = `${copyField(t("extension_id"), id)}
         ${copyField(t("install_url"), url)}
         ${provider === "m365" ? copyField(t("intune_value"), id + ";" + url) : ""}
-        <ol class="wf-steps">${steps}</ol>`;
+        <ol class="wf-steps">${steps}</ol>
+        <div class="wf-actions"><a class="mu-btn" href="${esc(url.replace(/update\.xml$/, "extension.crx"))}" download="munetios-webfilter.crx">${icon("download")}${esc(t("extension_download_signed"))}</a></div>`;
     }
     return `<section class="wf-deploy-section" aria-labelledby="wfInstallUrlTitle">
       <h3 class="mu-h-title" id="wfInstallUrlTitle">${icon("domain")} ${esc(t("install_whole_school"))}</h3>
       <p class="mu-muted">${esc(t("install_whole_school_desc"))}</p>
       <div class="mu-segmented wf-providers" role="group" aria-label="${esc(t("provider"))}">${INSTALL_PROVIDERS.map(item => `<button type="button" data-wf-action="set-provider" data-id="${item}" aria-pressed="${item === provider}">${esc(t("provider_" + item))}</button>`).join("")}</div>
-      ${body}
+      ${status}${body}
     </section>`;
   }
 
@@ -1787,7 +1881,7 @@
       <div class="mu-dialog-header"><div class="mu-dialog-heading"><img src="icons/icon-48.png" width="48" height="48" alt=""><h2 id="wfExtensionTitle">${esc(t("extension_title"))}</h2></div><button type="button" class="mu-icon-btn mu-icon-btn-soft" data-mu-close aria-label="${esc(t("close"))}">${icon("close")}</button></div>
       <p class="mu-muted">${esc(t("extension_desc"))}</p>
       ${renderUrlInstall()}
-      <section class="wf-deploy-section" aria-labelledby="wfInstallFolderTitle">
+      ${canBuildExtension() ? `<section class="wf-deploy-section" aria-labelledby="wfInstallFolderTitle">
         <h3 class="mu-h-title" id="wfInstallFolderTitle">${icon("folder")} ${esc(t("install_folder"))}</h3>
         <ol class="wf-steps wf-install-steps">
           <li>${esc(t("install_step_1"))}</li>
@@ -1796,33 +1890,33 @@
           <li>${esc(t("install_step_4"))}</li>
         </ol>
         <div class="wf-actions"><button type="button" class="mu-btn mu-btn-primary" data-wf-action="download-zip">${icon("download")}${esc(t("download_extension"))}</button></div>
-      </section>`;
+      </section>` : ""}`;
   }
 
   function openExtension() {
     if (!guard(isAdmin())) return;
-    if (!ws.server.enrollToken || (ws.extension.published && !ws.key)) {
-      toast(t("extension_original_browser"), "warning");
-      return;
-    }
     if (!$("#wfExtensionModal").hidden) return;
+    publishing.error = "";
     renderExtensionModal();
     window.MunetiosUI.openModal("wfExtensionModal");
     preparePackage();
   }
 
   async function downloadZip(button) {
+    if (!guard(isAdmin()) || !canBuildExtension()) return;
     button.disabled = true;
     try {
       const key = await ensureKey();
+      if (!key) return;
       const version = EXTENSION_VERSION;
       const bytes = await Pack.buildZip({ version, key, config: ws.server.orgId ? managedConfig() : {}, policy: Object.assign(exportPolicy(), { version: ws.server.policyVersion }), updateUrl: "" });
       Pack.download(bytes, "munetios-webfilter.zip", "application/zip");
       toast(t("toast_zip_ready"), "success", "download");
     } catch (error) {
       toast(t("toast_zip_failed", { error: error.message }), "error");
+    } finally {
+      button.disabled = false;
     }
-    button.disabled = false;
   }
 
   /* ================================================================ dialogs */
@@ -1967,7 +2061,7 @@
     const content = $("#wfContent");
     const scrollY = window.scrollY;
     const focusId = document.activeElement && document.activeElement.id;
-    const renderers = { rules: renderRulesPage, categories: renderCategoriesPage, classes: renderClassesPage, usercss: renderUserCssPage, devices: renderDevicesPage, requests: renderRequestsPage, collaborators: renderCollaboratorsPage, settings: renderSettingsPage };
+    const renderers = { rules: renderRulesPage, categories: renderCategoriesPage, classes: renderClassesPage, usercss: renderUserCssPage, devices: renderDevicesPage, requests: renderRequestsPage, collaborators: renderCollaboratorsPage, compare: renderComparisonPage, settings: renderSettingsPage };
     content.innerHTML = `<div class="wf-page" data-page="${route.page}">${renderers[route.page]()}</div>`;
     wireFavicons(content);
     if (route.page === "devices") loadScreens(content);
@@ -2035,6 +2129,14 @@
         if (!guard(canEditScope(scope), scope === "global" ? "locked_global" : "locked_class")) return;
         const data = scopeData(scope);
         data.userCss[target.dataset.list] = data.userCss[target.dataset.list].filter(item => item !== target.dataset.value);
+        saveWorkspace();
+        renderPage();
+        break;
+      }
+      case "remove-import-url": {
+        if (!guard(isAdmin())) return;
+        const lists = ws.policy.global.userCss;
+        lists.importUrls = (lists.importUrls || []).filter(url => url !== target.dataset.value);
         saveWorkspace();
         renderPage();
         break;
@@ -2252,6 +2354,15 @@
       toast(t("toast_text_added"), "success");
       const again = $(`[data-wf-form="add-text"][data-scope="${scopeId}"] input`);
       if (again) again.focus();
+    } else if (form.dataset.wfForm === "add-import-url") {
+      if (!guard(isAdmin())) return;
+      const url = Engine.normalizeImportUrl(form.elements.url.value);
+      if (!url) { toast(t("usercss_import_invalid"), "error"); return; }
+      const lists = ws.policy.global.userCss;
+      lists.importUrls = [...new Set([...(lists.importUrls || []), url])];
+      saveWorkspace();
+      renderPage();
+      $('[data-wf-form="add-import-url"] input')?.focus();
     } else if (form.dataset.wfForm === "add-list-entry") {
       const scopeId = form.dataset.scope;
       if (!guard(canEditScope(scopeId), scopeId === "global" ? "locked_global" : "locked_class")) return;

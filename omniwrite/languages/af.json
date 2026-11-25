@@ -1431,7 +1431,7 @@
   "collab_restricted": "Beperk",
   "collab_restricted_desc": "Net mense wat jy byvoeg, kan dit oopmaak.",
   "collab_anyone_link": "Enigiemand met die skakel",
-  "collab_anyone_link_desc": "Enigiemand met die skakel kan dit oopmaak, selfs sonder ’n rekening. Besoekers wat nie aangemeld is nie, kan net bekyk.",
+  "collab_anyone_link_desc": "Enigiemand met die skakel kan dit oopmaak, selfs sonder ’n rekening.",
   "collab_role": "Rol",
   "collab_role_owner": "Eienaar",
   "collab_role_edit": "Redigeerder",
@@ -1534,8 +1534,10 @@
   "dictionary": "Woordeboek",
   "dictionary_custom_words": "Eie woorde",
   "dictionary_autocorrect": "Outokorreksie",
-  "dictionary_english_words": "Engelse woordelys",
   "dictionary_word": "Woord",
   "dictionary_invalid_word": "Voer een woord met letters en afkappingstekens in.",
-  "dictionary_load_failed": "Kon nie die Engelse woordelys laai nie."
+  "overview_page": "OmniWrite-oorsig",
+  "overview_heading": "Skryf, organiseer en werk saam.",
+  "overview_intro": "Skep dokumente en sigblaaie in een werkruimte.",
+  "overview_open": "Maak OmniWrite oop"
 }

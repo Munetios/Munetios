@@ -1427,7 +1427,7 @@
   "collab_restricted": "مقيّد",
   "collab_restricted_desc": "يمكن فتحه فقط للأشخاص الذين تضيفهم.",
   "collab_anyone_link": "أي شخص لديه الرابط",
-  "collab_anyone_link_desc": "يمكن لأي شخص لديه الرابط فتحه حتى بدون حساب. يمكن للزوار غير المسجّلين العرض فقط.",
+  "collab_anyone_link_desc": "يمكن لأي شخص لديه الرابط فتحه حتى بدون حساب.",
   "collab_role": "الدور",
   "collab_role_owner": "المالك",
   "collab_role_edit": "محرّر",
@@ -1530,8 +1530,10 @@
   "dictionary": "القاموس",
   "dictionary_custom_words": "الكلمات المخصصة",
   "dictionary_autocorrect": "التصحيح التلقائي",
-  "dictionary_english_words": "قائمة الكلمات الإنجليزية",
   "dictionary_word": "الكلمة",
   "dictionary_invalid_word": "أدخل كلمة واحدة باستخدام الحروف والفواصل العليا.",
-  "dictionary_load_failed": "تعذر تحميل قائمة الكلمات الإنجليزية."
+  "overview_page": "نظرة عامة على OmniWrite",
+  "overview_heading": "اكتب ونظّم وتعاون.",
+  "overview_intro": "أنشئ المستندات وجداول البيانات في مساحة عمل واحدة.",
+  "overview_open": "فتح OmniWrite"
 }

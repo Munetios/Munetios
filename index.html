@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title translate="no">Ganetios</title>
+    <title translate="no">Munetios Search</title>
     <script>
       // Hidden panels and pages stay out of the live DOM until opened, and leave it again after closing.
       window.OmniLazyDomConfig = {
@@ -23,38 +23,37 @@
       rel="stylesheet"
       href="https://api.munetios.com/beautiful-css/beautiful.css"
     />
-<meta name="description" content="Ganetios is a privacy focused search engine, maps and more." />
+<meta name="description" content="Munetios Search is a privacy-focused search engine with maps and more." />
     
     <script
       type="module"
       src="https://cdn.jsdelivr.net/npm/@material/web@2.4.1/all.js/+esm"
     ></script>
-    <link rel="apple-touch-icon" href="apple-touch-icon-ganetios.png" />
-    <!-- Do favicon 16, 32-->
-    <link
-      rel="icon"
-      sizes="16x16"
-      href="favicon-16x16.png"
-      type="image/x-icon"
-    />
-    <link
-      rel="icon"
-      sizes="32x32"
-      href="favicon-32x32.png"
-      type="image/x-icon"
-    />
+    <link rel="apple-touch-icon" href="munetios-logo-icon.png" />
     <link rel="canonical" href="https://www.munetios.com/">
-    <link rel="icon" href="favicon-ganetios.ico" type="image/x-icon" />
+    <link rel="icon" href="munetios-logo-icon.png" type="image/png" />
     <meta http-equiv="X-Frame-Options" content="DENY" />
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self' 'unsafe-inline' https://*.munetios.com https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self' https://*.munetios.com https://api.munetios.com https://cdn.jsdelivr.net 'unsafe-inline'; img-src * data:; font-src 'self' https://api.munetios.com https://cdn.jsdelivr.net; frame-src 'self' https://www.munetios.com https://games.munetios.com https://tetris.munetios.com https://www.youtube-nocookie.com; connect-src 'self' data: https://*.munetios.com https://api.munetios.com https://munetios.com https://proxy.munetios.com https://cdn.jsdelivr.net https://photon.komoot.io https://hn.algolia.com https://*.wikipedia.org https://openlibrary.org https://*.openlibrary.org https://*.openfreemap.org https://tiles.openfreemap.org https://server.arcgisonline.com https://api.openverse.org https://commons.wikimedia.org; object-src 'none'; base-uri 'self'; form-action 'self' https://*.munetios.com; worker-src 'self' blob:; media-src 'self' https: blob: data:;"
     />
     <script>
-      try {
-        // The double-story preference uses the doubleStoryA key.
-        localStorage.removeItem('munetiosFont_Google Sans Flex_ss01');
-      } catch (error) {}
+      window.munetiosSearchFont = function () {
+        const fallback = "Munetios UI v4 Font";
+        try {
+          const saved = localStorage.getItem("munetiosFontFamily");
+          const migrationKey = "munetiosFont_uiV4Migration";
+          if (saved !== "Google Sans Flex" || localStorage.getItem(migrationKey)) return saved || fallback;
+          if (localStorage.getItem("munetiosFont_Google Sans Flex_doubleStoryA") === "true" &&
+              localStorage.getItem("munetiosFont_Munetios UI v4 Font_ss02") === null) {
+            localStorage.setItem("munetiosFont_Munetios UI v4 Font_ss02", "true");
+          }
+          localStorage.setItem(migrationKey, "1");
+          localStorage.setItem("munetiosFontFamily", fallback);
+        } catch (error) {}
+        return fallback;
+      };
+      window.munetiosSearchFont();
     </script>
     <script>
       // Local letter icon: replaces third-party favicon lookups so no site list ever leaves the device.
@@ -67,7 +66,7 @@
         var svg =
           '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">' +
           '<rect width="64" height="64" rx="16" fill="hsl(' + hue + ',55%,45%)"/>' +
-          '<text x="32" y="43" text-anchor="middle" font-family="Google Sans Flex,Arial,sans-serif" font-size="32" font-weight="600" fill="#fff">' +
+          '<text x="32" y="43" text-anchor="middle" font-family="Munetios UI v4 Font,Arial,sans-serif" font-size="32" font-weight="600" fill="#fff">' +
           safe + "</text></svg>";
         return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
       };
@@ -136,14 +135,14 @@
     </script>
     <meta
       name="keywords"
-      content="privacy search engine, google alternative, private search, no tracking search engine, ganetios search"
+      content="privacy search engine, google alternative, private search, no tracking search engine, munetios search"
     />
     <meta name="theme-color" content="#7c4dff" />
 
     <meta name="robots" content="index, follow" />
     <meta
       property="og:title"
-      content="Ganetios Search — Search Without Google Watching"
+      content="Munetios Search — Search Without Google Watching"
     />
 
     <meta
@@ -153,12 +152,13 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.munetios.com" />
+    <meta property="og:image" content="https://www.munetios.com/munetios-logo.png" />
     <meta name="googlebot" content="index, follow" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
-        "name": "Ganetios Search",
+        "name": "Munetios Search",
         "operatingSystem": "Web",
         "applicationCategory": "SearchEngine",
         "url": "https://munetios.com",
@@ -182,7 +182,7 @@
         margin: 0;
         padding: 0;
         font-family:
-          "Google Sans Flex", "Google Sans", "Roboto", "Noto Sans", Arial, sans-serif;
+          "Munetios UI v4 Font", "Google Sans", "Roboto", "Noto Sans", Arial, sans-serif;
         font-variation-settings: "ROND" 50, "opsz" 18;
 
       }
@@ -3931,7 +3931,7 @@
         border: 1px solid rgba(216, 180, 254, 0.18);
         box-shadow: 0 12px 30px rgba(0, 0, 0, 0.38);
         z-index: 1000000;
-        font-family: "Google Sans Flex", "Google Sans", Arial, sans-serif !important;
+        font-family: "Munetios UI v4 Font", "Google Sans", Arial, sans-serif !important;
         font-size: 12px;
         line-height: 1.2;
         pointer-events: none;
@@ -4029,7 +4029,7 @@ html.halloween-season .topbar-right {
   color: #fff3d8;
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
-  font-family: "Google Sans Flex", sans-serif;
+  font-family: "Munetios UI v4 Font", sans-serif;
 }
 .halloween-game-dialog::backdrop { background: rgba(18, 4, 33, 0.50); backdrop-filter: blur(3px); }
 .halloween-game-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
@@ -4051,8 +4051,8 @@ html.halloween-season .topbar-right {
         border-radius: 999px;
         white-space: nowrap;
         text-decoration: none;
-        font: 16px/1.25 'Google Sans Flex', sans-serif;
-        font-feature-settings: 'ss01' 1;
+        font: 16px/1.25 'Munetios UI v4 Font', sans-serif;
+        font-feature-settings: normal;
       }
       .account-sign-in:focus-visible { outline: 2px solid #b68cff; outline-offset: 3px; }
     </style>
@@ -4067,12 +4067,12 @@ html.halloween-season .topbar-right {
         <div class="mu-capsule topbar-nav">
           <div class="munetios-brand-nav">
             <img
-              src="ganetios-logo-icon.png"
+              src="munetios-logo-icon.png"
               width="36"
               height="36"
-              alt="Ganetios"
+              alt="Munetios"
             />
-            <span class="munetios-brand-label" translate="no">Ganetios</span>
+            <span class="munetios-brand-label" translate="no">Munetios</span>
           </div>
           <span class="mu-divider-v topbar-brand-divider"></span>
           <div class="topbar-left-item">
@@ -4133,12 +4133,12 @@ html.halloween-season .topbar-right {
         <div class="mu-capsule topbar-nav">
           <div class="munetios-brand-nav">
             <img
-              src="ganetios-logo-icon.png"
+              src="munetios-logo-icon.png"
               width="36"
               height="36"
-              alt="Ganetios"
+              alt="Munetios"
             />
-            <span class="munetios-brand-label" translate="no">Ganetios</span>
+            <span class="munetios-brand-label" translate="no">Munetios</span>
           </div>
         </div>
         <div class="mu-capsule topbar-actions">
@@ -4157,9 +4157,9 @@ html.halloween-season .topbar-right {
       <div class="content home-page" id="homePage">
         <div class="logo-container">
           <img
-            src="ganetios-logo.png"
+            src="munetios-logo.png"
             width="500"
-            id="canChangeLogoinDoodles"
+            id="canChangeLogoinDoodles" alt="Munetios Search"
           />
         </div>
         <div class="home-search">
@@ -4495,13 +4495,13 @@ html.halloween-season .topbar-right {
           <div class="footer-col-brand">
             <div class="footer-brand-row">
               <img
-                src="ganetios-logo-icon.png"
+                src="munetios-logo-icon.png"
                 width="32"
                 height="32"
-                alt="Ganetios"
+                alt="Munetios"
                 style="border-radius: 6px"
               />
-              <span class="footer-brand-name" translate="no">Ganetios</span>
+              <span class="footer-brand-name" translate="no">Munetios</span>
             </div>
             <p class="footer-tagline" data-translate="footerTagline">
               Search the web without Google watching. No tracking, no profiling,
@@ -4658,7 +4658,7 @@ html.halloween-season .topbar-right {
               style="font-size: 11px; color: rgba(255, 255, 255, 0.38); cursor: pointer;"
               title="Change language"
               data-translate-title="changeLanguage"
-              >Ganetios offers in English</span
+              >Munetios offers in English</span
             >
           </div>
           <div class="footer-bottom-right">
@@ -4927,7 +4927,7 @@ html.halloween-season .topbar-right {
                   </div>
                   <div class="settings-item">
                     <span class="settings-label" data-translate="fontFamily">Font Family</span>
-                    <button id="fontFamilyButton">Google Sans Flex</button>
+                    <button id="fontFamilyButton">Munetios UI v4 Font</button>
                   </div>
                   <div id="fontFeatures" style="margin-top: 10px"></div>
                   <div class="font-detect-section">
@@ -5171,7 +5171,7 @@ html.halloween-season .topbar-right {
                   <article class="changelog-release">
                     <header><h3>Version 1.3.0</h3><time datetime="2026-08-03">August 3, 2026</time></header>
                     <ul>
-                      <li>Introduced the Ganetios identity and refreshed search branding.</li>
+                      <li>Refreshed the Search branding.</li>
                       <li>Added Voice mode with voice selection, speed controls, and optional background music.</li>
                       <li>Expanded image discovery and media support.</li>
                     </ul>
@@ -5356,6 +5356,7 @@ html.halloween-season .topbar-right {
         <div class="dropdown-item" data-country="pk">Pakistan</div>
       </div>
       <div class="dropdown-wrapper liquid-glass" id="fontFamilySelector">
+        <div class="dropdown-item" data-font="Munetios UI v4 Font">Munetios UI v4 Font</div>
         <div class="dropdown-item" data-font="Google Sans Flex">
           Google Sans Flex
         </div>
@@ -7032,7 +7033,7 @@ const isAmerica250Date =
 if (isAmerica250Date && logo) {
   const america250Url = "https://www.munetios.com/america250.html";
   const america250DefaultLogoState = {
-    src: logo.getAttribute("src") || "ganetios-logo.png",
+    src: logo.getAttribute("src") || "munetios-logo.png",
     cursor: logo.style.cursor || "",
     onclick: logo.onclick,
   };
@@ -24258,7 +24259,7 @@ if (isAmerica250Date && logo) {
               id: "munetios-default",
               name: "Munetios Default",
               nameKey: "themeMunetiosDefault",
-              font: "Google Sans Flex",
+              font: "Munetios UI v4 Font",
               bgCss: "",
               swatch:
                 "linear-gradient(135deg, #0d0914 0%, #32106c 55%, #4d8bff 100%)",
@@ -24267,7 +24268,7 @@ if (isAmerica250Date && logo) {
               id: "light-mode",
               name: "Light Mode",
               nameKey: "themeLightMode",
-              font: "Google Sans Flex",
+              font: "Munetios UI v4 Font",
               bgCss: "  body{ background: #ffffff !important; color: #000000 !important; } #changeCountryLink { color: #a3bef1 !important;} .settings-modal,  .modal, .bookmarks-overlay, .sidebar-overlay {background-color: rgb(136 136 136 / 40%);}",
               swatch:
                 "linear-gradient(135deg, #ffffff 0%, #f0f0f0 50%, #ffffff 100%)",
@@ -24276,7 +24277,7 @@ if (isAmerica250Date && logo) {
               id: "midnight-orchid",
               name: "Midnight Orchid",
               nameKey: "themeMidnightOrchid",
-              font: "Google Sans Flex",
+              font: "Munetios UI v4 Font",
               bgCss: "body { background: radial-gradient(circle at 18% 12%, #8a3dca 0%, transparent 31%), radial-gradient(circle at 85% 85%, #3d187f 0%, transparent 36%), #10051d !important; }",
               swatch: "linear-gradient(135deg, #10051d 0%, #60268f 55%, #d37cff 100%)",
             },
@@ -24573,7 +24574,7 @@ if (isAmerica250Date && logo) {
           const savedTextColor =
             localStorage.getItem("munetiosTextColor") || getDefaultTextColor();
           const savedFont =
-            localStorage.getItem("munetiosFontFamily") || "Google Sans Flex";
+            window.munetiosSearchFont();
           const reduceTransparency =
             localStorage.getItem("munetiosReduceTransparency") === "true";
           let googleSansTextFontReady = false;
@@ -25121,6 +25122,7 @@ if (isAmerica250Date && logo) {
                 getFontFamilyButtons().forEach(function (button) {
                   button.textContent = font;
                 });
+                localStorage.setItem("munetiosFont_uiV4Migration", "1");
                 localStorage.setItem("munetiosFontFamily", font);
                 localStorage.setItem("munetiosFontUserOverride", "true");
                 closeFontFamilySelector();
@@ -25270,7 +25272,7 @@ if (isAmerica250Date && logo) {
               localStorage.getItem("munetiosTextColor") || getDefaultTextColor();
             const bgImage = localStorage.getItem("munetiosBgImage") || "";
             const font =
-              localStorage.getItem("munetiosFontFamily") || "Google Sans Flex";
+              window.munetiosSearchFont();
             ensureGoogleSansTextFont(font);
 
             // Apply background to body using style injection
@@ -25318,14 +25320,6 @@ if (isAmerica250Date && logo) {
             let opticalSizingCSS = "";
             let fontVariationCSS = "";
 
-            // The same face supports both "a" shapes through its ss01 feature.
-            if (font === "Google Sans Flex") {
-              fontFeatureSettings.push(
-                `"ss01" ${localStorage.getItem("munetiosFont_Google Sans Flex_doubleStoryA") === "true" ? 0 : 1}`,
-                `"ss02" ${localStorage.getItem("munetiosFont_Google Sans Flex_ss02") === "true" ? 1 : 0}`,
-              );
-            }
-
             features.forEach((feature) => {
               const isEnabled =
                 localStorage.getItem(`munetiosFont_${font}_${feature.tag}`) ===
@@ -25340,7 +25334,7 @@ if (isAmerica250Date && logo) {
                 if (isEnabled) {
                   fontVariationCSS = "font-variation-settings: 'opsz' 17;";
                 }
-              } else if (font !== "Google Sans Flex" && isEnabled) {
+              } else if (isEnabled) {
                 fontFeatureSettings.push(`"${feature.tag}" 1`);
               }
             });
@@ -25348,7 +25342,7 @@ if (isAmerica250Date && logo) {
             const fontFeatureCSS =
               fontFeatureSettings.length > 0
                 ? `font-feature-settings: ${fontFeatureSettings.join(", ")} !important;`
-                : "";
+                : "font-feature-settings: normal !important;";
             const fontFamilyCSS =
               font === "Google Sans Text"
                 ? '"Google Sans 17pt Text", "Google Sans Text", "Google Sans", sans-serif'
@@ -25406,7 +25400,7 @@ if (isAmerica250Date && logo) {
               googleSansTextFontReady = true;
               googleSansTextFontLoading = false;
               if (
-                (localStorage.getItem("munetiosFontFamily") || "Google Sans Flex") === "Google Sans Text"
+                (window.munetiosSearchFont()) === "Google Sans Text"
               ) {
                 applyAppearanceSettings();
               }
@@ -25463,8 +25457,9 @@ if (isAmerica250Date && logo) {
             ];
             const featuresMap = {
               "Google Sans": genericStylisticSets,
+              "Munetios UI v4 Font": [{ name: "Double-Story a", tag: "ss02" }],
               "Google Sans Flex": [
-                { name: "Double-Story a", tag: "doubleStoryA" },
+                { name: "Single Story a", tag: "ss01" },
                 { name: "Double-Story g", tag: "ss02" },
               ],
               Poppins: [
@@ -29635,7 +29630,21 @@ if (isAmerica250Date && logo) {
               element.textContent = featureText(element.dataset.featureI18n) || element.textContent;
             });
           };
-          const fontMenu=document.getElementById("fontFamilySelector");const sortFonts=()=>fontMenu&&[...fontMenu.children].sort((a,b)=>(/^(OpenAI|Regular)/i.test(a.dataset.font||a.textContent)?1:0)-(/^(OpenAI|Regular)/i.test(b.dataset.font||b.textContent)?1:0)||a.textContent.localeCompare(b.textContent)).forEach(item=>fontMenu.append(item));sortFonts();document.getElementById("detectLocalFontsBtn")?.addEventListener("click",async()=>{let fonts=[];try{fonts=[...new Set((await window.queryLocalFonts()).map(font=>font.family))]}catch(_){fonts=["Arial","Segoe UI","Georgia","Verdana"]}fonts.forEach(name=>{if([...fontMenu.children].some(item=>item.dataset.font===name))return;const item=document.createElement("div");item.className="dropdown-item";item.dataset.font=name;item.textContent=name;item.addEventListener("click",()=>{localStorage.setItem("munetiosFontFamily",name);document.getElementById("fontFamilyButton").textContent=name;fontMenu.style.display="none"});fontMenu.append(item)});sortFonts();fontMenu.style.display="block"});
+          const fontMenu = document.getElementById("fontFamilySelector");
+          const fontPriority = (item) => {
+            const name = item.dataset.font || item.textContent.trim();
+            if (name === "Munetios UI v4 Font") return 0;
+            return /^(OpenAI|Regular)/i.test(name) ? 2 : 1;
+          };
+          const sortFonts = () => {
+            if (!fontMenu) return;
+            const items = [...fontMenu.children].sort((a, b) =>
+              fontPriority(a) - fontPriority(b) || a.textContent.localeCompare(b.textContent)
+            );
+            fontMenu.append(...items);
+          };
+          sortFonts();
+          document.getElementById("detectLocalFontsBtn")?.addEventListener("click",async()=>{let fonts=[];try{fonts=[...new Set((await window.queryLocalFonts()).map(font=>font.family))]}catch(_){fonts=["Arial","Segoe UI","Georgia","Verdana"]}fonts.forEach(name=>{if([...fontMenu.children].some(item=>item.dataset.font===name))return;const item=document.createElement("div");item.className="dropdown-item";item.dataset.font=name;item.textContent=name;item.addEventListener("click",()=>{localStorage.setItem("munetiosFontFamily",name);document.getElementById("fontFamilyButton").textContent=name;fontMenu.style.display="none"});fontMenu.append(item)});sortFonts();fontMenu.style.display="block"});
           function updateVoiceOptions() {
             const translation = window.getTranslation?.("systemVoice");
             const systemVoice = translation && translation !== "systemVoice" ? translation : "System voice";
@@ -29790,13 +29799,13 @@ if (isAmerica250Date && logo) {
       dictionary.halloweenGame = titles[code] || titles[code.split(/[-_]/)[0]] || titles.en;
     });
 
-    const logos = [...document.querySelectorAll('#canChangeLogoinDoodles, img[src="ganetios-logo.png"], img[src="ganetios-logo-icon.png"]')];
+    const logos = [...document.querySelectorAll('#canChangeLogoinDoodles, img[src="munetios-logo.png"], img[src="munetios-logo-icon.png"]')];
     const states = logos.map(logo => ({
       logo, src: logo.getAttribute("src"), onclick: logo.onclick,
       tabindex: logo.getAttribute("tabindex"), role: logo.getAttribute("role"),
       label: logo.getAttribute("aria-label"), cursor: logo.style.cursor,
       onerror: logo.onerror,
-      banner: logo.id === "canChangeLogoinDoodles" || logo.getAttribute("src") === "ganetios-logo.png"
+      banner: logo.id === "canChangeLogoinDoodles" || logo.getAttribute("src") === "munetios-logo.png"
     }));
     let active = false;
     let dialog;
@@ -29804,29 +29813,16 @@ if (isAmerica250Date && logo) {
     let opener;
     let timer;
 
-    const pumpkinArtwork = `<path d="M63 35 Q54 17 71 11 L79 16 Q65 24 76 36" fill="#b69bff"/><ellipse cx="70" cy="77" rx="59" ry="48" fill="#ef8632"/><ellipse cx="70" cy="77" rx="42" ry="48" fill="#ffad42"/><ellipse cx="70" cy="77" rx="23" ry="48" fill="#ffc45c"/><path d="M30 67 L47 49 L55 72 Z M85 72 L93 49 L110 67 Z" fill="#35104f"/><path d="M33 89 Q70 124 107 89 L94 96 L88 90 L79 103 L62 103 L53 90 L46 96 Z" fill="#35104f"/><text x="70" y="88" text-anchor="middle" font-family="Google Sans Flex,Arial,sans-serif" font-size="31" font-weight="800" fill="#5d2183">G</text>`;
+    const pumpkinArtwork = `<path d="M63 35 Q54 17 71 11 L79 16 Q65 24 76 36" fill="#b69bff"/><ellipse cx="70" cy="77" rx="59" ry="48" fill="#ef8632"/><ellipse cx="70" cy="77" rx="42" ry="48" fill="#ffad42"/><ellipse cx="70" cy="77" rx="23" ry="48" fill="#ffc45c"/><path d="M30 67 L47 49 L55 72 Z M85 72 L93 49 L110 67 Z" fill="#35104f"/><path d="M33 89 Q70 124 107 89 L94 96 L88 90 L79 103 L62 103 L53 90 L46 96 Z" fill="#35104f"/><text x="70" y="88" text-anchor="middle" font-family="Munetios UI v4 Font,Arial,sans-serif" font-size="31" font-weight="800" fill="#5d2183">M</text>`;
     function embeddedHalloweenLogo(banner) {
       const artwork = banner
-        ? `<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="280" viewBox="0 0 1000 280"><defs><linearGradient id="purple" x2="1" y2="1"><stop stop-color="#dab3ff"/><stop offset="1" stop-color="#9d65f7"/></linearGradient></defs><g transform="translate(18 68) scale(1.2)">${pumpkinArtwork}</g><text x="550" y="173" text-anchor="middle" font-family="Google Sans Flex,Arial,sans-serif" font-size="119" font-weight="700" fill="url(#purple)">Ganetios</text><path d="M250 47 l6 15 15 6-15 6-6 15-6-15-15-6 15-6 Z M910 175 l5 12 12 5-12 5-5 12-5-12-12-5 12-5 Z" fill="#ffc45c"/><path d="M847 55 Q861 38 878 55 Q895 38 912 55 L904 77 L893 64 L879 85 L866 64 L855 77 Z" fill="#aa7aec"/></svg>`
+        ? `<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="280" viewBox="0 0 1000 280"><defs><linearGradient id="purple" x2="1" y2="1"><stop stop-color="#dab3ff"/><stop offset="1" stop-color="#9d65f7"/></linearGradient></defs><g transform="translate(18 68) scale(1.2)">${pumpkinArtwork}</g><text x="550" y="173" text-anchor="middle" font-family="Munetios UI v4 Font,Arial,sans-serif" font-size="119" font-weight="700" fill="url(#purple)">Munetios</text><path d="M250 47 l6 15 15 6-15 6-6 15-6-15-15-6 15-6 Z M910 175 l5 12 12 5-12 5-5 12-5-12-12-5 12-5 Z" fill="#ffc45c"/><path d="M847 55 Q861 38 878 55 Q895 38 912 55 L904 77 L893 64 L879 85 L866 64 L855 77 Z" fill="#aa7aec"/></svg>`
         : `<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140">${pumpkinArtwork}</svg>`;
       return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(artwork);
     }
 
     function replaceHalloweenLogo(state) {
-      const candidates = state.banner
-        ? ["https://munetios.com/ganetiosspookyhalloweenbanner.png"]
-        : ["https://munetios.com/halloweenlogog.png"];
-      let candidate = 0;
-      state.logo.onerror = () => {
-        if (!active) return;
-        candidate += 1;
-        if (candidate < candidates.length) state.logo.src = candidates[candidate];
-        else {
-          state.logo.onerror = null;
-          state.logo.src = embeddedHalloweenLogo(state.banner);
-        }
-      };
-      state.logo.src = candidates[0];
+      state.logo.src = embeddedHalloweenLogo(state.banner);
     }
 
     function translate() {

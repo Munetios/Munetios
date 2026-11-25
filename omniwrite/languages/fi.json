@@ -1431,7 +1431,7 @@
   "collab_restricted": "Rajoitettu",
   "collab_restricted_desc": "Vain lisäämäsi henkilöt voivat avata sen.",
   "collab_anyone_link": "Kaikki, joilla on linkki",
-  "collab_anyone_link_desc": "Kuka tahansa linkin saanut voi avata sen ilman tiliäkin. Kirjautumattomat vierailijat voivat vain katsella.",
+  "collab_anyone_link_desc": "Kuka tahansa linkin saanut voi avata sen ilman tiliäkin.",
   "collab_role": "Rooli",
   "collab_role_owner": "Omistaja",
   "collab_role_edit": "Muokkaaja",
@@ -1534,8 +1534,10 @@
   "dictionary": "Sanakirja",
   "dictionary_custom_words": "Omat sanat",
   "dictionary_autocorrect": "Automaattinen korjaus",
-  "dictionary_english_words": "Englannin sanaluettelo",
   "dictionary_word": "Sana",
   "dictionary_invalid_word": "Kirjoita yksi sana käyttäen kirjaimia ja heittomerkkejä.",
-  "dictionary_load_failed": "Englannin sanaluetteloa ei voitu ladata."
+  "overview_page": "OmniWriten yleiskatsaus",
+  "overview_heading": "Kirjoita, järjestä ja tee yhteistyötä.",
+  "overview_intro": "Luo asiakirjoja ja laskentataulukoita yhdessä työtilassa.",
+  "overview_open": "Avaa OmniWrite"
 }

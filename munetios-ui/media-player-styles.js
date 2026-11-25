@@ -2,7 +2,7 @@
   "use strict";
   if (window.MunetiosMediaPlayerStyles) return;
   const css = `
-        :host{display:block;position:relative;color:#fff;font-family:'Google Sans Flex',sans-serif;font-feature-settings:'ss01' 1,'liga' 0;line-height:1.4}
+        :host{display:block;position:relative;color:#fff;font-family:'Munetios UI v4 Font',sans-serif;font-feature-settings:'liga' 0;line-height:1.4}
         *{box-sizing:border-box} [hidden]{display:none!important} button,input{font:inherit}button{cursor:pointer;color:inherit}button:disabled{opacity:.4;cursor:default}
         .surface{position:relative;width:100%;background:#05040c;border-radius:inherit;isolation:isolate;container-type:inline-size}::slotted(video){display:block!important;width:100%!important;height:auto;max-width:100%;margin:0!important;border-radius:inherit;background:#05040c}
         .liquid-glass{background:rgba(34,13,66,.45);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(2px) saturate(140%);-webkit-backdrop-filter:blur(2px) saturate(140%);box-shadow:0 4px 16px rgba(0,0,0,.18);border-radius:999px}

@@ -1431,7 +1431,7 @@
   "collab_restricted": "Kısıtlı",
   "collab_restricted_desc": "Yalnızca eklediğiniz kişiler açabilir.",
   "collab_anyone_link": "Bağlantıya sahip olan herkes",
-  "collab_anyone_link_desc": "Bağlantıya sahip olan herkes hesap olmadan bile açabilir. Oturum açmamış ziyaretçiler yalnızca görüntüleyebilir.",
+  "collab_anyone_link_desc": "Bağlantıya sahip olan herkes hesap olmadan bile açabilir.",
   "collab_role": "Rol",
   "collab_role_owner": "Sahip",
   "collab_role_edit": "Düzenleyen",
@@ -1534,8 +1534,10 @@
   "dictionary": "Sözlük",
   "dictionary_custom_words": "Özel sözcükler",
   "dictionary_autocorrect": "Otomatik düzeltme",
-  "dictionary_english_words": "İngilizce sözcük listesi",
   "dictionary_word": "Sözcük",
   "dictionary_invalid_word": "Harf ve kesme işareti kullanarak tek bir sözcük girin.",
-  "dictionary_load_failed": "İngilizce sözcük listesi yüklenemedi."
+  "overview_page": "OmniWrite’a genel bakış",
+  "overview_heading": "Yazın, düzenleyin ve birlikte çalışın.",
+  "overview_intro": "Belgeleri ve e-tabloları tek bir çalışma alanında oluşturun.",
+  "overview_open": "OmniWrite’ı aç"
 }

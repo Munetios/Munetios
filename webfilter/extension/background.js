@@ -4,10 +4,8 @@
  *   into declarativeNetRequest redirects, so a blocked page never starts loading. A navigation
  *   listener with the same engine stays as a backup.
  * - Device name and class come from the dashboard (or managed policy). Students can't change them.
- * - Injects the bundled Google Sans Flex and sanitized UserCSS with
+ * - Injects sanitized UserCSS and its bundled font when requested with
  *   chrome.scripting.insertCSS, which page CSPs (font-src, style-src) can't block.
- *   The bundled font is the ss01 build, so ss01 never needs font-feature-settings
- *   and other fonts on the site are left untouched.
  * - Blocked pages are replaced by the WebFilter block page at <server>/blocked.
  *   Restricted pages, including /blocked itself, never receive UserCSS.
  * - Blocked text: URLs containing it are blocked, and each page's content script gets
@@ -20,9 +18,11 @@ importScripts("categories.js", "policy-engine.js");
 
 const Engine = self.MunetiosWebFilterEngine;
 const HEARTBEAT_ALARM = "mwf-heartbeat";
-const FONT_URL = chrome.runtime.getURL(Engine.FONT_PATH);
 const injected = new Map();
 const tabQueues = new Map();
+const mainRequests = new Map();
+const navigationStarts = new Map();
+const blockCommits = new Map();
 let ruleSync = Promise.resolve();
 
 /* ------------------------------------------------------------- settings */
@@ -99,7 +99,7 @@ async function getContext() {
   const tempBlocks = (local.tempBlocks || []).filter(block => !block.until || block.until > now);
   const tempAllows = (local.tempAllows || []).filter(item => !item.until || item.until > now);
   return {
-    settings, policy, tempBlocks, tempAllows, locked: local.locked || null, classId: settings.classId, extensionId: chrome.runtime.id, now,
+    settings, policy, tempBlocks, tempAllows, locked: local.locked || null, classId: settings.classId, now,
     blockPageUrl: blockPageUrl(settings),
     injectUserCss: !!local.injectUserCss,
     userStyles: Array.isArray(local.userStyles) ? local.userStyles : [],
@@ -112,12 +112,19 @@ function blockPageUrl(settings) {
   return settings.serverUrl ? settings.serverUrl + "/blocked" : "";
 }
 
-// The WebFilter block page lives on the WebFilter server at /blocked.
-// The original address always goes last (the network-level redirect appends it unencoded).
-function blockPage(ctx, params) {
-  const { url, ...rest } = params;
-  const query = new URLSearchParams(ctx.settings.workspaceName ? { ...rest, workspace: ctx.settings.workspaceName } : rest).toString();
-  return (ctx.blockPageUrl || "about:blank") + "?" + query + (url !== undefined ? (query ? "&" : "") + "url=" + encodeURIComponent(url) : "");
+function blockPage(ctx, mode, ticket) {
+  const query = new URLSearchParams(ticket ? { mode, ticket } : { mode });
+  return (ctx.blockPageUrl || "about:blank") + "?" + query;
+}
+
+const blockKey = tabId => "blockPage:" + tabId;
+const pendingBlockKey = tabId => "pendingBlockPage:" + tabId;
+
+async function showBlockPage(tabId, ctx, mode, target = "", message = "") {
+  if (!ctx.blockPageUrl) return;
+  const url = blockPage(ctx, mode, crypto.randomUUID());
+  await chrome.storage.session.set({ [pendingBlockKey(tabId)]: { url, mode, target, message, expires: Date.now() + 60000 } });
+  await chrome.tabs.update(tabId, { url }).catch(() => {});
 }
 
 /* ------------------------------------------------- redirect before load */
@@ -129,9 +136,8 @@ function escapeRegex(text) {
   return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function redirectTo(ctx, params) {
-  const base = blockPage(ctx, params) + (Object.keys(params).length ? "&" : "") + "url=";
-  return { type: "redirect", redirect: { regexSubstitution: base.replace(/\\/g, "\\\\") + "\\1" } };
+function redirectTo(ctx, mode) {
+  return { type: "redirect", redirect: { url: blockPage(ctx, mode) } };
 }
 
 function patternCondition(value, type) {
@@ -144,11 +150,13 @@ function patternCondition(value, type) {
 }
 
 function blockDetails(verdict) {
-  const { reason, rule } = verdict;
-  if (!rule) return { reason };
-  if (reason === "category-block") return { reason, category: rule.value };
-  if (reason === "blocked-text") return { reason };
-  return { reason, websiteId: Engine.blockedWebsiteId(rule.id, rule.value), until: rule.until || "" };
+  const { reason, rule, scope } = verdict;
+  return {
+    reason,
+    blockId: Engine.blockedWebsiteId(rule?.id, [scope, reason, rule?.value].join(":")),
+    category: reason === "category-block" ? rule?.value : undefined,
+    until: rule?.until || 0,
+  };
 }
 
 function compileRedirectRules(ctx) {
@@ -165,29 +173,30 @@ function compileRedirectRules(ctx) {
   try { serverHost = new URL(ctx.settings.serverUrl).hostname; } catch (error) { serverHost = ""; }
   if (serverHost) add(1000, allow, { requestDomains: [serverHost] });
   if (ctx.locked) {
-    add(900, redirectTo(ctx, { mode: "lock", message: ctx.locked.message || "" }), { regexFilter: ALL_PAGES });
+    add(900, redirectTo(ctx, "lock"), { regexFilter: ALL_PAGES });
     return rules;
   }
+  const block = redirectTo(ctx, "blocked");
   ctx.tempAllows.forEach(item => add(800, allow, patternCondition(item.pattern)));
-  ctx.tempBlocks.forEach(item => add(700, redirectTo(ctx, { mode: "blocked", reason: "temporary", websiteId: Engine.blockedWebsiteId(item.id, item.pattern), until: String(item.until || "") }), patternCondition(item.pattern)));
-  const ruleSet = (list, action, priority, reason) => list.filter(rule => rule.enabled !== false && rule.action === action).forEach(rule => {
-    add(priority, action === "allow" ? allow : redirectTo(ctx, { mode: "blocked", reason, websiteId: Engine.blockedWebsiteId(rule.id, rule.value) }), patternCondition(rule.value, rule.type));
+  ctx.tempBlocks.forEach(item => add(700, block, patternCondition(item.pattern)));
+  const ruleSet = (list, action, priority) => list.filter(rule => rule.enabled !== false && rule.action === action).forEach(rule => {
+    add(priority, action === "allow" ? allow : block, patternCondition(rule.value, rule.type));
   });
-  if (klass) { ruleSet(klass.rules, "block", 600, "class-block"); ruleSet(klass.rules, "allow", 500); }
-  ruleSet(global.rules, "block", 400, "global-block");
+  if (klass) { ruleSet(klass.rules, "block", 600); ruleSet(klass.rules, "allow", 500); }
+  ruleSet(global.rules, "block", 400);
   ruleSet(global.rules, "allow", 300);
   const phrases = Array.from(new Set(global.blockedText.concat(klass ? klass.blockedText : []).map(Engine.normalizePhrase).filter(Boolean)));
   phrases.forEach(phrase => {
     const words = phrase.split(" ").map(escapeRegex);
-    add(250, redirectTo(ctx, { mode: "blocked", reason: "blocked-text" }), { regexFilter: "^(https?://.*?" + SEP + words.join(SEP + "+") + "(?:" + SEP + "|$).*)$" });
+    add(250, block, { regexFilter: "^(https?://.*?" + SEP + words.join(SEP + "+") + "(?:" + SEP + "|$).*)$" });
   });
   const blocked = Array.from(new Set(global.blockedCategories.concat(klass ? klass.blockedCategories : [])));
   const overrides = Engine.categoryOverridesOf(policy);
   blocked.filter(category => category !== "unrated").forEach(category => {
     const domains = Engine.categoryDomains(category, policy);
-    if (domains.length) add(200, redirectTo(ctx, { mode: "blocked", reason: "category-block", category }), { regexFilter: ALL_PAGES, requestDomains: domains });
-    if (category === "education") add(200, redirectTo(ctx, { mode: "blocked", reason: "category-block", category }), { regexFilter: "^(https?://[^/:]*\\.(?:edu|(?:edu|ac|sch)\\.[a-z]{2})(?::\\d+)?(?:[/?#].*)?)$" });
-    if (category === "government") add(200, redirectTo(ctx, { mode: "blocked", reason: "category-block", category }), { regexFilter: "^(https?://[^/:]*\\.(?:gov|mil|(?:gov|gob|gouv|govt)\\.[a-z]{2})(?::\\d+)?(?:[/?#].*)?)$" });
+    if (domains.length) add(200, block, { regexFilter: ALL_PAGES, requestDomains: domains });
+    if (category === "education") add(200, block, { regexFilter: "^(https?://[^/:]*\\.(?:edu|(?:edu|ac|sch)\\.[a-z]{2})(?::\\d+)?(?:[/?#].*)?)$" });
+    if (category === "government") add(200, block, { regexFilter: "^(https?://[^/:]*\\.(?:gov|mil|(?:gov|gob|gouv|govt)\\.[a-z]{2})(?::\\d+)?(?:[/?#].*)?)$" });
   });
   // A custom category can move a subdomain out of a blocked category.
   const movedOut = Object.entries(overrides).filter(([, category]) => !blocked.includes(category)).map(([domain]) => domain);
@@ -196,10 +205,10 @@ function compileRedirectRules(ctx) {
     add(150, allow, { requestDomains: Engine.categorizedDomains(policy) });
     if (!blocked.includes("education")) add(150, allow, { regexFilter: "^https?://[^/:]*\\.(?:edu|(?:edu|ac|sch)\\.[a-z]{2})(?::\\d+)?(?:[/?#]|$)" });
     if (!blocked.includes("government")) add(150, allow, { regexFilter: "^https?://[^/:]*\\.(?:gov|mil|(?:gov|gob|gouv|govt)\\.[a-z]{2})(?::\\d+)?(?:[/?#]|$)" });
-    add(100, redirectTo(ctx, { mode: "blocked", reason: "category-block", category: "unrated" }), { regexFilter: ALL_PAGES });
+    add(100, block, { regexFilter: ALL_PAGES });
   }
   if (policy.global.allowlistOnly || (klass && klass.allowlistOnly)) {
-    add(90, redirectTo(ctx, { mode: "blocked", reason: "allowlist-only" }), { regexFilter: ALL_PAGES });
+    add(90, block, { regexFilter: ALL_PAGES });
   }
   return rules;
 }
@@ -222,7 +231,7 @@ function compileSiteModeRules(ctx, firstId) {
     forceParam("schoolMode", "true", { requestDomains: ["munetios.com"] }, ["main_frame", "sub_frame"]);
   }
   if (safeModes.includes("youtube")) {
-    for (const frameCondition of [{ resourceTypes: ["main_frame"] }, { excludedResourceTypes: ["main_frame"] }]) {
+    for (const frameCondition of [{ resourceTypes: ["main_frame"] }, { excludedResourceTypes: ["main_frame", "stylesheet", "font", "image"] }]) {
       rules.push({
         id: firstId + rules.length,
         priority: 1100,
@@ -283,7 +292,7 @@ async function enforce(tabId, url, ctx, applySiteModes = true) {
   if (context.locked) {
     const current = await getContext();
     if (!current.locked) return false;
-    await chrome.tabs.update(tabId, { url: blockPage(current, { mode: "lock", message: current.locked.message || "", url }) }).catch(() => {});
+    await showBlockPage(tabId, current, "lock", url);
     return true;
   }
   const verdict = Engine.evaluateAccess(url, context.policy, context);
@@ -298,9 +307,7 @@ async function enforce(tabId, url, ctx, applySiteModes = true) {
     return true;
   }
   await removeInjected(tabId, 0);
-  await chrome.tabs.update(tabId, {
-    url: blockPage(context, { mode: "blocked", url, ...blockDetails(verdict) }),
-  }).catch(() => {});
+  await showBlockPage(tabId, context, "blocked", url);
   return true;
 }
 
@@ -327,32 +334,75 @@ function applyToTab(tabId, frameId, url) {
     if (isBlockPage(url, ctx)) { await removeInjected(tabId, frameId); return { restricted: true }; }
     if (await enforce(tabId, url, ctx)) return { restricted: true };
     const page = Engine.computePageStyles(url, ctx.policy, ctx);
-    await removeInjected(tabId, frameId);
     // Restricted pages never get UserCSS (they are redirected above); Blocked URLs load unstyled.
-    if (page.mode === "restricted") return { restricted: true, mode: page.mode };
+    if (page.mode === "restricted") { await removeInjected(tabId, frameId); return { restricted: true, mode: page.mode }; }
     const { integrityFailed = {} } = await chrome.storage.session.get("integrityFailed").catch(() => ({}));
-    const userCss = integrityFailed[tabId] === url ? "" : page.css;
-    const css = Engine.fontFaceCss(FONT_URL) + userCss;
-    try {
-      await chrome.scripting.insertCSS({ target: { tabId, frameIds: [frameId] }, css, origin: "AUTHOR" });
-      injected.set(tabId + ":" + frameId, css);
-    } catch (error) {
-      return { restricted: false, mode: page.mode, error: String(error && error.message || error) };
+    const userCss = integrityFailed[tabId] === url || !page.css ? "" : await Engine.resolveCssResources(page.css, page.mode, AbortSignal.timeout(5000), page.importUrls);
+    const current = await chrome.tabs.get(tabId).catch(() => null);
+    if (frameId === 0 && (current?.url !== url || (current.pendingUrl && current.pendingUrl !== url))) return { restricted: false, mode: page.mode };
+    await removeInjected(tabId, frameId);
+    const fonts = Engine.bundledFontFamilies(userCss);
+    if (userCss) {
+      const css = fonts.map(family => Engine.fontFaceCss(chrome.runtime.getURL(Engine.BUNDLED_FONTS[family]), family)).join("") + userCss;
+      try {
+        await chrome.scripting.insertCSS({ target: { tabId, frameIds: [frameId] }, css, origin: "AUTHOR" });
+        injected.set(tabId + ":" + frameId, css);
+      } catch (error) {
+        return { restricted: false, mode: page.mode, error: String(error && error.message || error) };
+      }
     }
     const phrases = page.textFilter.phrases;
     chrome.tabs.sendMessage(tabId, { type: "mwf:text-filter", phrases }, { frameId }).catch(() => {});
-    return { restricted: false, mode: page.mode, usesGoogleSansFlex: !!(userCss && page.usesGoogleSansFlex), stripped: page.violations.length, phrases };
+    return { restricted: false, mode: page.mode, fonts, stripped: page.violations.length, phrases };
   });
 }
 
-function blockedTarget(url) {
-  // The original address is the last parameter (unencoded when added by a redirect rule).
-  const text = String(url || "");
-  const at = text.search(/[?&]url=/);
-  if (at < 0) return "";
-  let value = text.slice(at + 5);
-  if (/^https?%3A/i.test(value)) { try { value = decodeURIComponent(value); } catch (error) { /* keep */ } }
-  return value;
+function sameBlockLocation(a, b) {
+  return Engine.isBlockPage(a, b) && new URL(a).search === new URL(b).search;
+}
+
+async function readBlock(tabId) {
+  await blockCommits.get(tabId);
+  const key = blockKey(tabId);
+  return (await chrome.storage.session.get(key))[key];
+}
+
+// Redirects retain their browser request ID. A standalone visit has no preceding request.
+chrome.webRequest.onBeforeRequest.addListener(({ tabId, requestId, url }) => {
+  if (tabId < 0) return;
+  const last = mainRequests.get(tabId);
+  const target = last?.requestId !== requestId ? "" : sameBlockLocation(url, last.url) ? last.target : last.url;
+  mainRequests.set(tabId, { requestId, url, target });
+}, { urls: ["<all_urls>"], types: ["main_frame"] });
+
+async function recordBlockCommit(details, request, startUrl) {
+  const { tabId, url, documentId, transitionType, transitionQualifiers } = details;
+  const key = blockKey(tabId);
+  const pendingKey = pendingBlockKey(tabId);
+  const mode = new URL(url).searchParams.get("mode");
+  if (!["blocked", "lock", "notice"].includes(mode)) { await chrome.storage.session.remove(key); return; }
+  const ctx = await getContext();
+  if (!isBlockPage(url, ctx)) { await chrome.storage.session.remove(key); return; }
+  const stored = await chrome.storage.session.get([key, pendingKey]);
+  const pending = stored[pendingKey];
+  const previous = stored[key];
+  let record;
+  if (pending && pending.expires >= Date.now() && sameBlockLocation(url, pending.url)) {
+    record = { mode: pending.mode, target: pending.target, message: pending.message };
+    await chrome.storage.session.remove(pendingKey);
+  } else if (previous && sameBlockLocation(url, previous.url) && (previous.documentId === documentId || transitionType === "reload")) {
+    record = previous;
+  } else if (request && startUrl && !isBlockPage(startUrl, ctx) && transitionQualifiers.includes("server_redirect")) {
+    // Cached internal redirects may commit without a final webRequest event.
+    const target = sameBlockLocation(url, request.url) ? request.target : request.url;
+    if (!isWebUrl(target) || isBlockPage(target, ctx)) { await chrome.storage.session.remove(key); return; }
+    if (ctx.locked && sameBlockLocation(url, blockPage(ctx, "lock"))) record = { mode: "lock", target };
+    else if (sameBlockLocation(url, blockPage(ctx, "blocked")) && Engine.evaluateAccess(target, ctx.policy, ctx).blocked) {
+      record = { mode: "blocked", target };
+    }
+  }
+  if (record) await chrome.storage.session.set({ [key]: { ...record, documentId, url } });
+  else await chrome.storage.session.remove(key);
 }
 
 async function refreshAllTabs() {
@@ -360,8 +410,9 @@ async function refreshAllTabs() {
   const ctx = await getContext();
   const tabs = await chrome.tabs.query({});
   await Promise.all(tabs.map(async tab => {
-    if (tab.id && isBlockPage(tab.url, ctx) && !ctx.locked && /[?&]mode=blocked/.test(tab.url)) {
-      const target = blockedTarget(tab.url);
+    if (tab.id && isBlockPage(tab.url, ctx) && !ctx.locked) {
+      const block = await readBlock(tab.id);
+      const target = block?.mode === "blocked" && sameBlockLocation(tab.url, block.url) ? block.target : "";
       if (isWebUrl(target) && !Engine.evaluateAccess(target, ctx.policy, ctx).blocked) await chrome.tabs.update(tab.id, { url: target }).catch(() => {});
       return;
     }
@@ -376,10 +427,22 @@ async function refreshAllTabs() {
 }
 
 chrome.webNavigation.onBeforeNavigate.addListener(details => {
-  if (details.frameId === 0) enforce(details.tabId, details.url, null, false);
+  if (details.frameId !== 0) return;
+  mainRequests.delete(details.tabId);
+  navigationStarts.set(details.tabId, details.url);
+  enforce(details.tabId, details.url, null, false).catch(() => {});
 });
 chrome.webNavigation.onCommitted.addListener(details => {
-  if (details.frameId === 0 && isWebUrl(details.url)) applyToTab(details.tabId, 0, details.url);
+  if (details.frameId !== 0) return;
+  const request = mainRequests.get(details.tabId);
+  const startUrl = navigationStarts.get(details.tabId);
+  mainRequests.delete(details.tabId);
+  navigationStarts.delete(details.tabId);
+  const prior = blockCommits.get(details.tabId) || Promise.resolve();
+  const commit = prior.then(() => recordBlockCommit(details, request, startUrl)).catch(() => {});
+  blockCommits.set(details.tabId, commit);
+  commit.then(() => { if (blockCommits.get(details.tabId) === commit) blockCommits.delete(details.tabId); });
+  if (isWebUrl(details.url)) applyToTab(details.tabId, 0, details.url);
 });
 chrome.webNavigation.onHistoryStateUpdated.addListener(details => {
   if (details.frameId === 0) applyToTab(details.tabId, 0, details.url);
@@ -396,6 +459,9 @@ chrome.tabs.onUpdated.addListener((tabId, info, tab) => { if (info.status === "c
 chrome.tabs.onRemoved.addListener(tabId => {
   injected.delete(tabId + ":0");
   tabQueues.delete(tabId);
+  mainRequests.delete(tabId);
+  navigationStarts.delete(tabId);
+  (blockCommits.get(tabId) || Promise.resolve()).then(() => chrome.storage.session.remove([blockKey(tabId), pendingBlockKey(tabId)])).catch(() => {});
 });
 
 /* --------------------------------------------------------------- server */
@@ -447,22 +513,47 @@ async function deviceAttributes() {
   return { hostname: await call("getDeviceHostname"), assetId: await call("getDeviceAssetId"), location: await call("getDeviceAnnotatedLocation") };
 }
 
-// A small picture of the visible tab for Remote Devices.
+async function screenPrivacySnapshot(tab) {
+  const [active] = await chrome.tabs.query({ active: true, windowId: tab.windowId });
+  if (active?.id !== tab.id || active.url !== tab.url || active.pendingUrl || active.status !== "complete") return null;
+  const frames = await chrome.webNavigation.getAllFrames({ tabId: tab.id });
+  if (!frames?.some(frame => frame.frameId === 0) ||
+      frames.some(frame => !frame.documentId || frame.errorOccurred || frame.documentLifecycle !== "active")) return null;
+  const checks = await Promise.all(frames.map(async frame => {
+    const revision = await chrome.tabs.sendMessage(tab.id, { type: "mwf:screen-privacy" }, { documentId: frame.documentId });
+    return Number.isSafeInteger(revision) ? [frame.documentId, revision] : null;
+  }));
+  return checks.every(Boolean) ? JSON.stringify(checks.sort(([a], [b]) => a.localeCompare(b))) : null;
+}
+
 async function captureScreen(tab) {
-  if (!tab || tab.windowId == null) return "";
+  if (!Number.isInteger(tab?.id) || tab.windowId == null || !isWebUrl(tab.url)) return "";
+  let changed = false;
+  const activated = info => { if (info.windowId === tab.windowId) changed = true; };
+  const navigating = info => { if (info.tabId === tab.id) changed = true; };
+  chrome.tabs.onActivated.addListener(activated);
+  chrome.webNavigation.onBeforeNavigate.addListener(navigating);
   try {
+    const before = await screenPrivacySnapshot(tab);
+    if (!before || changed) return "";
     const shot = await chrome.tabs.captureVisibleTab(tab.windowId, { format: "jpeg", quality: 60 });
+    const after = await screenPrivacySnapshot(tab);
+    if (changed || before !== after) return "";
     const bitmap = await createImageBitmap(await (await fetch(shot)).blob());
     const scale = Math.min(1, 960 / bitmap.width);
     const canvas = new OffscreenCanvas(Math.max(1, Math.round(bitmap.width * scale)), Math.max(1, Math.round(bitmap.height * scale)));
     canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
     const blob = await canvas.convertToBlob({ type: "image/jpeg", quality: 0.6 });
     const bytes = new Uint8Array(await blob.arrayBuffer());
     let binary = "";
     for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-    return "data:image/jpeg;base64," + btoa(binary);
+    return changed ? "" : "data:image/jpeg;base64," + btoa(binary);
   } catch (error) {
     return "";
+  } finally {
+    chrome.tabs.onActivated.removeListener(activated);
+    chrome.webNavigation.onBeforeNavigate.removeListener(navigating);
   }
 }
 
@@ -511,6 +602,7 @@ async function sendHeartbeat() {
         assetId: attributes.assetId || "",
         location: attributes.location || "",
         screen,
+        screenPrivacy: 1,
         user: settings.studentName || (await profileEmail()),
         classId: settings.classId,
         managedClassId: settings.managed.classId ? settings.classId : "",
@@ -559,8 +651,9 @@ async function lockDevice(message) {
   for (const tab of tabs) {
     if (!tab.id) continue;
     if (isWebUrl(tab.url) || tab.active) {
-      const url = isLockPage(tab.url, ctx) ? blockedTarget(tab.url) : tab.url;
-      await chrome.tabs.update(tab.id, { url: blockPage(ctx, { mode: "lock", message: message || "", url }) }).catch(() => {});
+      const block = await readBlock(tab.id);
+      const url = isBlockPage(tab.url, ctx) ? block?.target : tab.url;
+      await showBlockPage(tab.id, ctx, "lock", url);
     }
   }
 }
@@ -575,7 +668,8 @@ async function unlockDevice() {
     if (!tab.id) continue;
     const page = tab.pendingUrl || tab.url;
     if (!isLockPage(page, ctx)) continue;
-    const original = blockedTarget(page) || lockedTabs[tab.id];
+    const block = await readBlock(tab.id);
+    const original = (block?.mode === "lock" && sameBlockLocation(page, block.url) ? block.target : "") || lockedTabs[tab.id];
     try {
       await chrome.tabs.update(tab.id, { url: isWebUrl(original) ? original : "chrome://newtab/" });
     } catch (error) {
@@ -596,7 +690,10 @@ async function pushNotice(message) {
       // No content script on this page; fall back to a notice tab.
     }
   }
-  await chrome.tabs.create({ url: blockPage(await getContext(), { mode: "notice", message }), active: true });
+  const ctx = await getContext();
+  if (!ctx.blockPageUrl) return;
+  const notice = await chrome.tabs.create({ active: true });
+  await showBlockPage(notice.id, ctx, "notice", "", message);
 }
 
 async function runCommand(command) {
@@ -628,19 +725,30 @@ async function runCommand(command) {
 }
 
 /* ------------------------------------------------------------ block page */
-async function handleBlockPage(type, message, tab) {
+async function handleBlockPage(type, message, sender) {
+  const { tab, url, documentId, frameId } = sender;
   const ctx = await getContext();
-  if (!isBlockPage(tab.url, ctx)) return null;
+  if (frameId !== 0 || !documentId || !isBlockPage(url, ctx)) return null;
+  const block = await readBlock(tab.id);
+  if (!block || block.documentId !== documentId || !sameBlockLocation(url, block.url)) return null;
   const settings = ctx.settings;
-  const target = blockedTarget(tab.url);
+  const { target, mode } = block;
   if (type === "mwf:blocked-hello") {
-    if (ctx.locked) return { available: false, workspaceName: settings.workspaceName };
-    const verdict = isWebUrl(target) ? Engine.evaluateAccess(target, ctx.policy, ctx) : null;
+    const workspaceName = settings.workspaceName;
+    if (mode === "notice") return { verified: true, mode, workspaceName, message: block.message };
+    if (mode === "lock" && ctx.locked) return { verified: true, mode, workspaceName, message: ctx.locked.message };
+    if (mode !== "blocked" || ctx.locked || !isWebUrl(target)) return null;
+    const verdict = Engine.evaluateAccess(target, ctx.policy, ctx);
+    if (!verdict.blocked) return null;
+    const blockedUrl = new URL(target);
+    blockedUrl.username = "";
+    blockedUrl.password = "";
     const available = connected(settings);
-    const bypass = available && verdict?.blocked ? await api(settings, "/bypass", { method: "GET", signal: AbortSignal.timeout(700) }).catch(() => null) : null;
-    return { available, bypassEnabled: bypass?.enabled === true, workspaceName: settings.workspaceName, ...(verdict ? blockDetails(verdict) : {}) };
+    const bypass = available ? await api(settings, "/bypass", { method: "GET", signal: AbortSignal.timeout(700) }).catch(() => null) : null;
+    return { verified: true, mode, available, bypassEnabled: bypass?.enabled === true, workspaceName, blockedUrl: blockedUrl.href, ...blockDetails(verdict) };
   }
-  if (ctx.locked || !connected(settings) || !isWebUrl(target)) return { ok: false, error: "unavailable" };
+  if (mode !== "blocked" || ctx.locked || !connected(settings) || !isWebUrl(target)) return { ok: false, error: "unavailable" };
+  if (type !== "mwf:blocked-status" && !Engine.evaluateAccess(target, ctx.policy, ctx).blocked) return { ok: false, error: "unavailable" };
   const deviceId = settings.deviceId || (await ensureDeviceId());
   if (type === "mwf:blocked-bypass") {
     try {
@@ -760,7 +868,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   // The block page talks to the extension through its content script.
   if (type && type.startsWith("mwf:blocked-") && sender.tab && sender.tab.id != null) {
-    handleBlockPage(type, message, sender.tab).then(sendResponse, () => sendResponse(null));
+    handleBlockPage(type, message, sender).then(sendResponse, () => sendResponse(null));
     return true;
   }
   // Extension pages only (popup, UserCSS editor): content scripts on web pages can't change settings.
@@ -781,7 +889,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         policy: ctx.policy,
         classId: ctx.classId,
         blockPageUrl: ctx.blockPageUrl,
-        extensionId: chrome.runtime.id,
         injectUserCss: ctx.injectUserCss,
         userStyles: ctx.userStyles,
         tab: web ? { id: web.id, url: web.url, title: web.title || "" } : null,

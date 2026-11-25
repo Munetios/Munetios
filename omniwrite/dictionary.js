@@ -3,7 +3,6 @@
     const trigger = document.getElementById('dictionaryMoreOptionsBtn');
     const dictionary = window.OmniSpellcheck.dictionary;
     const id = 'omniDictionary';
-    const pageSize = 25;
     const label = key => escapeHtml(_t(key));
     const icon = name => `<span class="mu-icon" aria-hidden="true">${name}</span>`;
     const iconButton = (name, title, action) =>
@@ -26,7 +25,6 @@
                 <div class="mu-tabs" role="tablist" aria-label="${label('dictionary')}">
                     <button id="${id}WordsTab" type="button" role="tab" data-mu-tab="words" aria-controls="${id}Words" aria-selected="true">${label('dictionary_custom_words')}</button>
                     <button id="${id}AutocorrectTab" type="button" role="tab" data-mu-tab="autocorrect" aria-controls="${id}Autocorrect" aria-selected="false" tabindex="-1">${label('dictionary_autocorrect')}</button>
-                    <button id="${id}EnglishTab" type="button" role="tab" data-mu-tab="english" aria-controls="${id}English" aria-selected="false" tabindex="-1">${label('dictionary_english_words')}</button>
                 </div>
                 <section id="${id}Words" role="tabpanel" data-mu-panel="words" aria-labelledby="${id}WordsTab">
                     <form>
@@ -40,44 +38,27 @@
                     <form>
                         ${field('from', 'replace', 'required placeholder="Muneios"')}
                         ${field('to', 'replace_with', 'required placeholder="Munetios"')}
-                        <button class="mu-btn mu-btn-primary" type="submit">${label('add')}</button>
+                        <button class="mu-btn mu-btn-primary" type="submit" data-action="add">${label('add')}</button>
+                        <button class="mu-btn mu-btn-primary" type="submit" data-action="save" hidden>${label('save')}</button>
                         <button class="mu-btn mu-btn-ghost" type="button" data-action="cancel" hidden>${label('cancel')}</button>
                     </form>
                     <p class="mu-muted" role="status"></p>
                     <div class="mu-group" role="list"></div>
-                </section>
-                <section id="${id}English" role="tabpanel" data-mu-panel="english" aria-labelledby="${id}EnglishTab" hidden>
-                    <label class="mu-field">
-                        <span class="mu-field-label">${label('search')}</span>
-                        <input class="mu-input" type="search" spellcheck="false" autocomplete="off">
-                    </label>
-                    <p class="mu-muted" role="status"></p>
-                    <button class="mu-btn" type="button" data-action="retry" hidden>${label('retry')}</button>
-                    <div class="mu-group" role="list"></div>
-                    <nav class="mu-pagination" aria-label="${label('dictionary_english_words')}" hidden>
-                        ${iconButton('chevron_backward', 'previous', 'previous')}
-                        <span aria-live="polite"></span>
-                        ${iconButton('chevron_forward', 'next', 'next')}
-                    </nav>
                 </section>`
         });
         if (!modal) return;
         modal.classList.add('omni-dictionary');
         const words = modal.querySelector('[data-mu-panel="words"]');
         const autocorrect = modal.querySelector('[data-mu-panel="autocorrect"]');
-        const english = modal.querySelector('[data-mu-panel="english"]');
         const wordForm = words.querySelector('form');
         const replacementForm = autocorrect.querySelector('form');
         const { from, to } = replacementForm.elements;
-        const save = replacementForm.querySelector('[type="submit"]');
+        const add = replacementForm.querySelector('[data-action="add"]');
+        const save = replacementForm.querySelector('[data-action="save"]');
         const cancel = replacementForm.querySelector('[data-action="cancel"]');
-        const search = english.querySelector('input');
-        const pagination = english.querySelector('nav');
-        const retry = english.querySelector('[data-action="retry"]');
         const tabList = modal.querySelector('[role="tablist"]');
         const tabs = [...tabList.querySelectorAll('[role="tab"]')];
         const collator = new Intl.Collator(document.documentElement.lang || undefined);
-        const number = new Intl.NumberFormat(document.documentElement.lang || undefined);
         const status = (panel, key) => { panel.querySelector('[role="status"]').textContent = key ? _t(key) : ''; };
         const showRows = (panel, html) => {
             const list = panel.querySelector('[role="list"]');
@@ -96,9 +77,6 @@
         };
         let savedWords;
         let savedReplacements;
-        let builtIn;
-        let matches = [];
-        let page = 0;
 
         function renderPersonal() {
             savedWords = dictionary.listWords().sort(collator.compare);
@@ -113,41 +91,10 @@
         function resetReplacement() {
             replacementForm.reset();
             from.readOnly = false;
-            save.textContent = _t('add');
+            add.hidden = false;
+            save.hidden = true;
             cancel.hidden = true;
             from.focus();
-        }
-
-        function renderEnglish() {
-            showRows(english, matches.slice(page * pageSize, (page + 1) * pageSize).map(word => row(word)).join(''));
-            status(english, matches.length ? '' : 'no_results');
-            const total = Math.ceil(matches.length / pageSize);
-            pagination.hidden = total <= 1;
-            pagination.querySelector('[aria-live]').textContent = _t('sheets_match_count')
-                .replace('{current}', number.format(page + 1)).replace('{total}', number.format(total));
-            pagination.querySelector('[data-action="previous"]').disabled = page === 0;
-            pagination.querySelector('[data-action="next"]').disabled = page + 1 >= total;
-        }
-
-        function filterEnglish() {
-            if (!builtIn) return;
-            const query = search.value.trim().toLowerCase().replaceAll('’', "'");
-            matches = query ? builtIn.filter(word => word.includes(query)) : builtIn;
-            page = 0;
-            renderEnglish();
-        }
-
-        async function loadEnglish() {
-            if (builtIn) return;
-            status(english, 'loading_ellipsis');
-            retry.hidden = true;
-            try {
-                builtIn = await dictionary.listBuiltIn();
-                filterEnglish();
-            } catch {
-                status(english, 'dictionary_load_failed');
-                retry.hidden = false;
-            }
         }
 
         modal.querySelectorAll('input').forEach(input => input.addEventListener('input', () => input.setCustomValidity('')));
@@ -175,7 +122,6 @@
             const selected = event.target.closest('[role="tab"]');
             if (!selected) return;
             tabs.forEach(tab => { tab.tabIndex = tab === selected ? 0 : -1; });
-            if (selected.dataset.muTab === 'english') loadEnglish();
         });
         tabList.addEventListener('keydown', event => {
             const index = tabs.indexOf(event.target);
@@ -193,15 +139,9 @@
         });
         modal.addEventListener('click', event => {
             const button = event.target.closest('[data-action]');
-            if (!button) return;
+            if (!button || button.type === 'submit') return;
             const action = button.dataset.action;
-            if (action === 'previous' || action === 'next') {
-                page += action === 'next' ? 1 : -1;
-                renderEnglish();
-                if (button.disabled) pagination.querySelector('button:not(:disabled)')?.focus();
-            } else if (action === 'retry') {
-                loadEnglish();
-            } else if (action === 'cancel') {
+            if (action === 'cancel') {
                 resetReplacement();
             } else {
                 const panel = button.closest('[data-mu-panel]');
@@ -221,14 +161,14 @@
                     from.setCustomValidity('');
                     [from.value, to.value] = savedReplacements[index];
                     from.readOnly = true;
-                    save.textContent = _t('save');
+                    add.hidden = true;
+                    save.hidden = false;
                     cancel.hidden = false;
                     to.focus();
                     to.select();
                 }
             }
         });
-        search.addEventListener('input', filterEnglish);
         renderPersonal();
         window.MunetiosUI.openModal(id);
     }

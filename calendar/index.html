@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en" data-mu-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="referrer" content="same-origin">
+  <title translate="no">Munetios Calendar</title>
+  <meta name="description" content="Munetios Calendar: private, encrypted scheduling with sharing, sync, and time zones.">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="https://api.munetios.com/beautiful-css/beautiful.css">
+  <link rel="stylesheet" href="/munetios-ui/munetios-ui-v4.css">
+  <link rel="stylesheet" href="/account/account-menu.css">
+  <link rel="stylesheet" href="/shared/munetios-cloud.css">
+  <link rel="stylesheet" href="calendar.css">
+  <script src="/munetios-ui/munetios-ui-v4.js" defer></script>
+  <script src="/account/account-i18n.js" defer></script>
+  <script src="/account/account-core.js" defer></script>
+  <script src="/account/account-menu.js" defer></script>
+  <script src="/shared/cloud-i18n.js" defer></script>
+  <script src="/shared/munetios-cloud.js" defer></script>
+  <script src="calendar-i18n.js" defer></script>
+  <script src="calendar-reminder-client.js" defer></script>
+  <script src="calendar.js" defer></script>
+</head>
+<body class="mu-root cal-app">
+  <a class="mu-skip-link" href="#calView" data-t="skipToCalendar">Skip to calendar</a>
+
+  <header class="mu-topbar cal-topbar">
+    <button type="button" class="mu-capsule-btn" id="sidebarToggle" aria-controls="calSidebar" aria-expanded="true" data-t-label="toggleSidebar"><span class="mu-icon" aria-hidden="true">menu</span></button>
+    <div class="mu-capsule cal-title-capsule">
+      <span class="mu-icon-circle cal-brand" role="img" aria-label="Munetios Calendar" title="Munetios Calendar" translate="no"><span class="mu-icon" aria-hidden="true">calendar_month</span></span>
+      <button type="button" class="mu-btn mu-btn-ghost cal-today" id="todayBtn" data-t-label="today"><span class="mu-icon" aria-hidden="true">today</span><span data-t="today">Today</span></button>
+      <button type="button" class="mu-icon-btn" id="prevBtn" data-t-label="previous"><span class="mu-icon" aria-hidden="true">chevron_left</span></button>
+      <button type="button" class="mu-icon-btn" id="nextBtn" data-t-label="next"><span class="mu-icon" aria-hidden="true">chevron_right</span></button>
+      <h1 class="cal-range" id="rangeTitle" aria-live="polite"></h1>
+    </div>
+    <label class="mu-search mu-topbar-search" id="searchBox">
+      <span class="mu-icon" aria-hidden="true">search</span>
+      <input id="searchInput" type="search" autocomplete="off" data-t-placeholder="searchPlaceholder" data-t-label="searchPlaceholder">
+      <button type="button" class="mu-icon-btn mu-icon-btn-sm mu-topbar-search-close" id="searchClose" data-t-label="closeSearch"><span class="mu-icon" aria-hidden="true">close</span></button>
+    </label>
+    <div class="mu-capsule cal-actions">
+      <div class="cal-view-select"><select class="mu-select" id="viewSelect" data-t-label="view"></select></div>
+      <span class="mu-divider-v" aria-hidden="true"></span>
+      <button type="button" class="mu-icon-btn" id="paletteBtn" data-t-label="commandPalette"><span class="mu-icon" aria-hidden="true">manage_search</span></button>
+      <button type="button" class="mu-icon-btn" id="insightsBtn" data-t-label="insights"><span class="mu-icon" aria-hidden="true">insights</span></button>
+      <button type="button" class="mu-icon-btn" id="settingsBtn" data-t-label="settings"><span class="mu-icon" aria-hidden="true">settings</span></button>
+      <div class="munetios-account-slot" data-munetios-account></div>
+    </div>
+  </header>
+
+  <div class="cal-shell">
+    <aside class="cal-sidebar mu-glass mu-scroll" id="calSidebar" data-mu-resizable="calendar-sidebar">
+      <div class="cal-create">
+        <button type="button" class="mu-btn mu-btn-primary cal-create-main" id="createBtn"><span class="mu-icon" aria-hidden="true">add</span><span data-t="create">Create</span></button>
+        <button type="button" class="mu-icon-btn mu-icon-btn-primary" id="createMenuBtn" data-mu-popover="createMenu" aria-haspopup="menu" data-t-label="moreCreateOptions"><span class="mu-icon" aria-hidden="true">expand_more</span></button>
+        <div class="mu-popover mu-menu" id="createMenu" role="menu" hidden>
+          <button type="button" class="mu-menu-item" role="menuitem" data-create="event"><span class="mu-icon" aria-hidden="true">event</span><span data-t="newEvent">Event</span><kbd aria-hidden="true">N</kbd></button>
+          <button type="button" class="mu-menu-item" role="menuitem" data-create="focus"><span class="mu-icon" aria-hidden="true">center_focus_strong</span><span data-t="typeFocus">Focus time</span></button>
+          <button type="button" class="mu-menu-item" role="menuitem" data-create="ooo"><span class="mu-icon" aria-hidden="true">flight_takeoff</span><span data-t="typeOutOfOffice">Out of office</span></button>
+          <button type="button" class="mu-menu-item" role="menuitem" data-create="birthday"><span class="mu-icon" aria-hidden="true">cake</span><span data-t="newBirthday">Birthday</span><kbd aria-hidden="true">B</kbd></button>
+          <div class="mu-menu-sep" role="separator"></div>
+          <button type="button" class="mu-menu-item" role="menuitem" data-create="calendar"><span class="mu-icon" aria-hidden="true">calendar_add_on</span><span data-t="newCalendar">New calendar</span></button>
+          <button type="button" class="mu-menu-item" role="menuitem" data-create="import"><span class="mu-icon" aria-hidden="true">upload_file</span><span data-t="importIcs">Import .ics file</span></button>
+        </div>
+      </div>
+
+      <form class="cal-quick-add" id="quickAddForm" autocomplete="off">
+        <label class="mu-search">
+          <span class="mu-icon" aria-hidden="true">bolt</span>
+          <input id="quickAddInput" type="text" data-t-placeholder="quickAddPlaceholder" data-t-label="quickAdd">
+        </label>
+      </form>
+
+      <div class="mu-calendar cal-mini" id="miniCalendar"></div>
+
+      <section class="cal-card" id="upNextCard" aria-labelledby="upNextTitle">
+        <div class="mu-section-label" id="upNextTitle" data-t="upNext">Up next</div>
+        <div id="upNext"></div>
+      </section>
+
+      <section class="cal-card" aria-labelledby="myCalendarsTitle">
+        <div class="cal-card-head">
+          <div class="mu-section-label" id="myCalendarsTitle" data-t="myCalendars">My calendars</div>
+          <button type="button" class="mu-icon-btn mu-icon-btn-sm" id="addCalendarBtn" data-t-label="newCalendar"><span class="mu-icon" aria-hidden="true">add</span></button>
+        </div>
+        <div class="cal-list" id="myCalendars"></div>
+      </section>
+
+      <section class="cal-card" id="sharedCard" aria-labelledby="sharedTitle" hidden>
+        <div class="mu-section-label" id="sharedTitle" data-t="sharedWithMe">Shared with me</div>
+        <div class="cal-list" id="sharedCalendars"></div>
+      </section>
+
+      <section class="cal-card" aria-labelledby="otherTitle">
+        <div class="mu-section-label" id="otherTitle" data-t="otherCalendars">Other calendars</div>
+        <div class="cal-list" id="otherCalendars"></div>
+      </section>
+
+      <section class="cal-card" id="labelsCard" aria-labelledby="labelsTitle" hidden>
+        <div class="mu-section-label" id="labelsTitle" data-t="labels">Labels</div>
+        <div class="mu-chip-grid cal-labels" id="labelFilters"></div>
+      </section>
+
+      <section class="cal-card" aria-labelledby="clocksTitle">
+        <div class="cal-card-head">
+          <div class="mu-section-label" id="clocksTitle" data-t="worldClock">World clock</div>
+          <button type="button" class="mu-icon-btn mu-icon-btn-sm" id="addClockBtn" data-t-label="addClock"><span class="mu-icon" aria-hidden="true">add</span></button>
+        </div>
+        <div class="mu-timezone-lineup cal-clocks" id="worldClocks"></div>
+      </section>
+
+      <nav class="mu-nav cal-links" aria-labelledby="moreTitle">
+        <div class="mu-section-label" id="moreTitle" data-t="more">More</div>
+        <button type="button" class="mu-nav-item" id="navInsightsBtn"><span class="mu-icon" aria-hidden="true">insights</span><span data-t="insights">Insights</span></button>
+        <button type="button" class="mu-nav-item" id="navPaletteBtn"><span class="mu-icon" aria-hidden="true">manage_search</span><span data-t="commandPalette">Command palette</span></button>
+        <button type="button" class="mu-nav-item" id="favoritesBtn"><span class="mu-icon" aria-hidden="true">star</span><span data-t="favoriteDays">Favorite days</span></button>
+        <button type="button" class="mu-nav-item" id="trashBtn"><span class="mu-icon" aria-hidden="true">delete</span><span data-t="recentlyDeleted">Recently deleted</span></button>
+        <a class="mu-nav-item" href="tasks.html"><span class="mu-icon" aria-hidden="true">task_alt</span><span data-t="tasks">Tasks</span></a>
+        <a class="mu-nav-item" href="meals/"><span class="mu-icon" aria-hidden="true">restaurant</span><span data-t="meals">Meals</span></a>
+        <button type="button" class="mu-nav-item" id="shortcutsBtn"><span class="mu-icon" aria-hidden="true">keyboard</span><span data-t="keyboardShortcuts">Keyboard shortcuts</span></button>
+      </nav>
+    </aside>
+
+    <main class="cal-main mu-glass" id="calView" tabindex="-1" aria-busy="true">
+      <div class="cal-loading" role="status"><div class="spinner-container"><svg class="google-spinner" viewBox="0 0 50 50" aria-hidden="true" focusable="false"><circle class="spinner-circle" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg></div></div>
+    </main>
+  </div>
+
+  <input type="file" id="icsInput" accept=".ics,text/calendar" hidden>
+  <input type="file" id="backupInput" accept=".json,application/json" hidden>
+</body>
+</html>

@@ -1431,7 +1431,7 @@
   "collab_restricted": "Imezuiliwa",
   "collab_restricted_desc": "Ni watu unaowaongeza pekee wanaoweza kuifungua.",
   "collab_anyone_link": "Yeyote mwenye kiungo",
-  "collab_anyone_link_desc": "Yeyote mwenye kiungo anaweza kuifungua, hata bila akaunti. Wageni ambao hawajaingia wanaweza kutazama tu.",
+  "collab_anyone_link_desc": "Yeyote mwenye kiungo anaweza kuifungua, hata bila akaunti.",
   "collab_role": "Jukumu",
   "collab_role_owner": "Mmiliki",
   "collab_role_edit": "Mhariri",
@@ -1534,8 +1534,10 @@
   "dictionary": "Kamusi",
   "dictionary_custom_words": "Maneno maalum",
   "dictionary_autocorrect": "Usahihishaji wa kiotomatiki",
-  "dictionary_english_words": "Orodha ya maneno ya Kiingereza",
   "dictionary_word": "Neno",
   "dictionary_invalid_word": "Weka neno moja lenye herufi na alama za apostrofi.",
-  "dictionary_load_failed": "Imeshindwa kupakia orodha ya maneno ya Kiingereza."
+  "overview_page": "Muhtasari wa OmniWrite",
+  "overview_heading": "Andika, panga na shirikiana.",
+  "overview_intro": "Unda hati na lahajedwali katika eneo moja la kazi.",
+  "overview_open": "Fungua OmniWrite"
 }

@@ -50,7 +50,6 @@
         catch { return { words: new Map(), replacements: new Map() }; }
     };
     let personal = loadPersonal();
-    let sortedWords;
 
     function updatePersonal(update) {
         const next = loadPersonal();
@@ -260,10 +259,6 @@
             validWord,
             listWords: () => [...personal.words.values()],
             listReplacements: () => [...personal.replacements.values()],
-            async listBuiltIn() {
-                const dictionary = await loadDictionary();
-                return sortedWords ||= [...dictionary].sort();
-            },
             addWord(word) {
                 if (!validWord(word)) return false;
                 updatePersonal(data => data.words.set(normalize(word), word));

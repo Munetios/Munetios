@@ -11,3 +11,7 @@
   Cache-Control: public, max-age=0, must-revalidate, no-transform
 /404
   Cache-Control: public, max-age=0, must-revalidate, no-transform
+/overview
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/omniwrite/overview
+  Cache-Control: public, max-age=0, must-revalidate, no-transform

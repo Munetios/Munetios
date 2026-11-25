@@ -725,6 +725,26 @@
     ar: ['تغيير الصورة', 'إزالة الصورة', 'تم حفظ صورة الملف الشخصي', 'فشل تحديث صورة ملفك الشخصي. حاول مجددًا.', 'اختر صورة PNG أو JPEG أو WebP أو GIF أو AVIF بحجم لا يتجاوز 20 ميغابايت.']
   };
   for (const [locale, values] of Object.entries(pictureStrings)) pictureKeys.forEach((key, index) => { catalog[locale][key] = values[index]; });
+  const picturePrivacyStrings = {
+    en: ['Show my profile picture to everyone', "We couldn't update profile picture privacy settings. Try again."],
+    'es-ES': ['Mostrar mi foto de perfil a todo el mundo', 'No hemos podido actualizar los ajustes de privacidad de tu foto de perfil. Inténtalo de nuevo.'],
+    'es-419': ['Mostrar mi foto de perfil a todos', 'No pudimos actualizar la configuración de privacidad de tu foto de perfil. Intenta de nuevo.'],
+    fr: ['Afficher ma photo de profil à tout le monde', 'Impossible de mettre à jour les paramètres de confidentialité de votre photo de profil. Réessayez.'],
+    de: ['Mein Profilbild allen anzeigen', 'Wir konnten die Datenschutzeinstellungen für dein Profilbild nicht aktualisieren. Versuche es erneut.'],
+    it: ['Mostra a tutti la mia foto del profilo', 'Non siamo riusciti ad aggiornare le impostazioni sulla privacy della foto del profilo. Riprova.'],
+    'pt-BR': ['Mostrar minha foto de perfil para todos', 'Não conseguimos atualizar as configurações de privacidade da sua foto de perfil. Tente novamente.'],
+    'pt-PT': ['Mostrar a minha fotografia de perfil a todos', 'Não conseguimos atualizar as definições de privacidade da sua fotografia de perfil. Tente novamente.'],
+    ja: ['プロフィール写真を全員に表示する', 'プロフィール写真のプライバシー設定を更新できませんでした。もう一度お試しください。'],
+    ko: ['내 프로필 사진을 모든 사람에게 표시', '프로필 사진 공개 설정을 업데이트하지 못했습니다. 다시 시도하세요.'],
+    'zh-CN': ['向所有人显示我的个人头像', '无法更新个人头像隐私设置。请重试。'],
+    'zh-TW': ['向所有人顯示我的個人頭像', '無法更新個人頭像隱私設定。請再試一次。'],
+    ru: ['Показывать моё фото профиля всем', 'Не удалось обновить настройки конфиденциальности фото профиля. Повторите попытку.'],
+    hi: ['मेरी प्रोफ़ाइल फ़ोटो सभी को दिखाएँ', 'हम प्रोफ़ाइल फ़ोटो की निजता सेटिंग अपडेट नहीं कर सके। फिर से कोशिश करें।'],
+    ar: ['إظهار صورة ملفي الشخصي للجميع', 'لم نتمكن من تحديث إعدادات خصوصية صورة ملفك الشخصي. حاول مجددًا.']
+  };
+  for (const [locale, [picturePrivacy, picturePrivacyFailed]] of Object.entries(picturePrivacyStrings)) {
+    Object.assign(catalog[locale], { picturePrivacy, picturePrivacyFailed });
+  }
   // Same resolution as the Sign in page (Spanish: es-ES vs Latin America; Chinese: Simplified vs Traditional).
   function resolveLocale(value) {
     const code = String(value || "en").replaceAll("_", "-");
@@ -840,6 +860,27 @@
   };
   for (const [locale, [sessionSignedOut, sessionStayHere, sessionSyncPaused, cloudDocumentsUnavailable]] of Object.entries(sessionStrings)) {
     Object.assign(catalog[locale], { sessionSignedOut, sessionStayHere, sessionSyncPaused, cloudDocumentsUnavailable });
+  }
+  const factorKeys = ['scanAuthenticatorQr', 'orSetupKey', 'factorOrRecovery', 'recoveryCodes', 'newRecoveryCodes', 'downloadRecoveryCodes', 'recoveryCodesHelp', 'replaceRecoveryCodes'];
+  const factorStrings = {
+    "en": ["Scan the QR code with your authenticator app.","Or enter this setup key","2FA code or recovery code","Recovery codes","Generate new codes","Download recovery codes","Keep these codes somewhere safe. Each code can be used once.","Generating new codes invalidates your previous codes."],
+    "es-ES": ["Escanea el código QR con tu aplicación de autenticación.","O introduce esta clave de configuración","Código 2FA o de recuperación","Códigos de recuperación","Generar códigos nuevos","Descargar códigos de recuperación","Guarda estos códigos en un lugar seguro. Cada código se puede usar una vez.","Al generar códigos nuevos, se invalidan los anteriores."],
+    "es-419": ["Escanea el código QR con tu aplicación de autenticación.","O ingresa esta clave de configuración","Código 2FA o de recuperación","Códigos de recuperación","Generar códigos nuevos","Descargar códigos de recuperación","Guarda estos códigos en un lugar seguro. Cada código se puede usar una vez.","Al generar códigos nuevos, se invalidan los anteriores."],
+    "fr": ["Scannez le code QR avec votre application d’authentification.","Ou saisissez cette clé de configuration","Code 2FA ou de récupération","Codes de récupération","Générer de nouveaux codes","Télécharger les codes de récupération","Conservez ces codes en lieu sûr. Chaque code est à usage unique.","Les nouveaux codes invalident les précédents."],
+    "de": ["Scanne den QR-Code mit deiner Authenticator-App.","Oder gib diesen Einrichtungsschlüssel ein","2FA- oder Wiederherstellungscode","Wiederherstellungscodes","Neue Codes erstellen","Wiederherstellungscodes herunterladen","Bewahre diese Codes sicher auf. Jeder Code ist einmal gültig.","Neue Codes machen die bisherigen ungültig."],
+    "it": ["Scansiona il codice QR con l’app di autenticazione.","Oppure inserisci questa chiave di configurazione","Codice 2FA o di recupero","Codici di recupero","Genera nuovi codici","Scarica i codici di recupero","Conserva questi codici in un luogo sicuro. Ogni codice si usa una sola volta.","I nuovi codici invalidano quelli precedenti."],
+    "pt-BR": ["Escaneie o código QR com seu app autenticador.","Ou insira esta chave de configuração","Código 2FA ou de recuperação","Códigos de recuperação","Gerar novos códigos","Baixar códigos de recuperação","Guarde os códigos em um local seguro. Cada código pode ser usado uma vez.","Gerar novos códigos invalida os anteriores."],
+    "pt-PT": ["Digitaliza o código QR com a tua aplicação de autenticação.","Ou introduz esta chave de configuração","Código 2FA ou de recuperação","Códigos de recuperação","Gerar novos códigos","Descarregar códigos de recuperação","Guarda os códigos num local seguro. Cada código só pode ser usado uma vez.","Gerar novos códigos invalida os anteriores."],
+    "ja": ["認証アプリでQRコードを読み取ってください。","またはセットアップキーを入力","2FAコードまたはリカバリーコード","リカバリーコード","新しいコードを発行","リカバリーコードをダウンロード","コードは安全な場所に保管してください。各コードは一度だけ使用できます。","新しいコードを発行すると以前のコードは無効になります。"],
+    "ko": ["인증 앱으로 QR 코드를 스캔하세요.","또는 이 설정 키를 입력하세요","2FA 코드 또는 복구 코드","복구 코드","새 코드 생성","복구 코드 다운로드","코드를 안전한 곳에 보관하세요. 각 코드는 한 번만 사용할 수 있습니다.","새 코드를 생성하면 이전 코드가 무효화됩니다."],
+    "zh-CN": ["用身份验证应用扫描二维码。","或输入此设置密钥","双重验证代码或恢复代码","恢复代码","生成新代码","下载恢复代码","请妥善保存。每个代码只能使用一次。","生成新代码会使旧代码失效。"],
+    "zh-TW": ["用驗證應用程式掃描 QR 碼。","或輸入此設定金鑰","雙重驗證代碼或復原代碼","復原代碼","產生新代碼","下載復原代碼","請妥善保存。每個代碼只能使用一次。","產生新代碼會使舊代碼失效。"],
+    "ru": ["Отсканируйте QR-код в приложении-аутентификаторе.","Или введите ключ настройки","Код 2FA или код восстановления","Коды восстановления","Создать новые коды","Скачать коды восстановления","Храните коды в безопасном месте. Каждый код действует один раз.","При создании новых кодов прежние станут недействительными."],
+    "hi": ["अपने ऑथेंटिकेटर ऐप से QR कोड स्कैन करें।","या यह सेटअप कुंजी डालें","2FA कोड या रिकवरी कोड","रिकवरी कोड","नए कोड बनाएँ","रिकवरी कोड डाउनलोड करें","कोड सुरक्षित जगह रखें। हर कोड एक बार इस्तेमाल किया जा सकता है।","नए कोड बनाने से पुराने कोड अमान्य हो जाएँगे।"],
+    "ar": ["امسح رمز QR باستخدام تطبيق المصادقة.","أو أدخل مفتاح الإعداد هذا","رمز المصادقة الثنائية أو رمز الاسترداد","رموز الاسترداد","إنشاء رموز جديدة","تنزيل رموز الاسترداد","احفظ الرموز في مكان آمن. يُستخدم كل رمز مرة واحدة.","إنشاء رموز جديدة يُبطل الرموز السابقة."],
+  };
+  for (const [locale, values] of Object.entries(factorStrings)) {
+    factorKeys.forEach((key, index) => { catalog[locale][key] = values[index]; });
   }
   window.MunetiosAccountStrings = { catalog, resolveLocale, locales: Object.keys(catalog) };
 })();

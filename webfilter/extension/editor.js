@@ -18,7 +18,7 @@
   document.documentElement.lang = chrome.i18n.getUILanguage() || "en";
   document.querySelectorAll("[data-i18n]").forEach(node => { node.textContent = msg(node.dataset.i18n, null, node.textContent); });
 
-  const state = { policy: null, classId: "", blockPageUrl: "", extensionId: "", inject: false, styles: [], tab: null, currentId: "", picking: false };
+  const state = { policy: null, classId: "", blockPageUrl: "", inject: false, styles: [], tab: null, currentId: "", picking: false };
 
   /* ------------------------------------------------------------- storage */
   const send = message => chrome.runtime.sendMessage(message).catch(() => null);
@@ -71,12 +71,8 @@
     const list = $("mwfReport");
     if (!style || !state.tab || !state.policy) { panel.hidden = true; return; }
     const mode = pageMode().mode;
-    const ctx = { classId: state.classId };
-    const result = Engine.sanitizeCss(style.css, {
-      mode,
-      extensionId: state.extensionId,
-      isExternalAllowed: url => Engine.isOnAllowedWebsiteList(url, state.policy, ctx),
-    });
+    const importUrls = Engine.normalizePolicy(state.policy).global.userCss.importUrls;
+    const result = Engine.sanitizeCss(style.css, { mode, importUrls });
     panel.hidden = false;
     list.textContent = "";
     if (!result.violations.length) {
@@ -129,7 +125,6 @@
     state.policy = data.policy;
     state.classId = data.classId;
     state.blockPageUrl = data.blockPageUrl;
-    state.extensionId = data.extensionId;
     state.inject = !!data.injectUserCss;
     // Never overwrite keystrokes that haven't been saved yet.
     if (!saveTimer) state.styles = Array.isArray(data.userStyles) ? data.userStyles : [];

@@ -1534,8 +1534,10 @@
   "dictionary": "অভিধান",
   "dictionary_custom_words": "নিজস্ব শব্দ",
   "dictionary_autocorrect": "স্বয়ংক্রিয় সংশোধন",
-  "dictionary_english_words": "ইংরেজি শব্দের তালিকা",
   "dictionary_word": "শব্দ",
   "dictionary_invalid_word": "অক্ষর ও ঊর্ধ্বকমা ব্যবহার করে একটি শব্দ লিখুন।",
-  "dictionary_load_failed": "ইংরেজি শব্দের তালিকা লোড করা যায়নি।"
+  "overview_page": "OmniWrite পরিচিতি",
+  "overview_heading": "লিখুন, সাজান ও একসঙ্গে কাজ করুন।",
+  "overview_intro": "একটি কর্মক্ষেত্রেই নথি ও স্প্রেডশিট তৈরি করুন।",
+  "overview_open": "OmniWrite খুলুন"
 }

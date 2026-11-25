@@ -1490,8 +1490,302 @@
   else scanPickerFields(document.body);
   new MutationObserver((rs) => rs.forEach((r) => r.addedNodes.forEach(scanPickerFields))).observe(document.documentElement, { childList: true, subtree: true });
 
+  // ------------------------------------------------------------- list picker
+  // A searchable dialog for long lists such as languages and time zones.
+  // pickFromList({ title, icon, value, groups: [{ label, items: [{ value, label, sub, keywords }] }],
+  //   searchLabel, emptyText, closeLabel, onPick(value) }) -> { close }
+  function pickFromList(options) {
+    const opts = options || {};
+    const groups = (opts.groups || [{ items: opts.items || [] }]).filter((g) => g && g.items && g.items.length);
+    const id = "muListPicker" + Math.random().toString(36).slice(2, 8);
+    const modal = document.createElement("div");
+    modal.className = "mu-modal mu-list-picker";
+    modal.id = id;
+    modal.hidden = true;
+    modal.innerHTML =
+      '<div class="mu-dialog mu-dialog-md" role="dialog" aria-modal="false">' +
+      '<div class="mu-dialog-header"><div class="mu-dialog-heading"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true"></span></span><h2></h2></div>' +
+      '<button type="button" class="mu-icon-btn mu-icon-btn-soft" data-mu-close><span class="mu-icon" aria-hidden="true">close</span></button></div>' +
+      '<label class="mu-search"><span class="mu-icon" aria-hidden="true">search</span><input type="search" autocomplete="off" spellcheck="false"></label>' +
+      '<div class="mu-list-picker-list mu-scroll" role="listbox"></div></div>';
+    const dialog = modal.querySelector(".mu-dialog");
+    const heading = modal.querySelector("h2");
+    heading.id = id + "Title";
+    heading.textContent = opts.title || "";
+    dialog.setAttribute("aria-labelledby", heading.id);
+    modal.querySelector(".mu-dialog-heading .mu-icon").textContent = opts.icon || "list";
+    modal.querySelector("[data-mu-close]").setAttribute("aria-label", opts.closeLabel || "Close");
+    const input = modal.querySelector("input");
+    input.placeholder = opts.searchLabel || "Search";
+    input.setAttribute("aria-label", opts.searchLabel || "Search");
+    const list = modal.querySelector(".mu-list-picker-list");
+    list.setAttribute("aria-label", opts.title || "");
+    const normalize = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    let done = false;
+    function render() {
+      const q = normalize(input.value.trim());
+      list.textContent = "";
+      let count = 0;
+      groups.forEach((group) => {
+        const items = group.items.filter((item) => !q || normalize([item.label, item.sub, item.value, item.keywords].join(" ")).includes(q));
+        if (!items.length) return;
+        if (group.label) {
+          const label = document.createElement("div");
+          label.className = "mu-section-label";
+          label.textContent = group.label;
+          list.appendChild(label);
+        }
+        items.forEach((item) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "mu-list-picker-item";
+          button.setAttribute("role", "option");
+          const selected = item.value === opts.value;
+          button.setAttribute("aria-selected", String(selected));
+          button.dataset.value = item.value;
+          if (item.lang) button.lang = item.lang;
+          const text = document.createElement("span");
+          text.className = "mu-list-picker-text";
+          const main = document.createElement("span");
+          main.textContent = item.label;
+          text.appendChild(main);
+          if (item.sub) {
+            const sub = document.createElement("span");
+            sub.className = "mu-muted";
+            sub.textContent = item.sub;
+            text.appendChild(sub);
+          }
+          button.appendChild(text);
+          if (item.trailing) {
+            const trailing = document.createElement("span");
+            trailing.className = "mu-list-picker-trailing mu-muted";
+            trailing.textContent = item.trailing;
+            button.appendChild(trailing);
+          }
+          const check = document.createElement("span");
+          check.className = "mu-icon mu-list-picker-check";
+          check.setAttribute("aria-hidden", "true");
+          check.textContent = selected ? "check_circle" : "";
+          button.appendChild(check);
+          list.appendChild(button);
+          count++;
+        });
+      });
+      if (!count) {
+        const empty = document.createElement("div");
+        empty.className = "mu-empty";
+        empty.innerHTML = '<span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">search_off</span></span><span></span>';
+        empty.lastChild.textContent = opts.emptyText || "No results";
+        list.appendChild(empty);
+      }
+    }
+    function close() {
+      if (done) return;
+      done = true;
+      observer.disconnect();
+      if (!modal.hidden) closeModal(modal);
+      modal.remove();
+    }
+    const observer = new MutationObserver(() => { if (modal.hidden) close(); });
+    list.addEventListener("click", (e) => {
+      const item = e.target.closest(".mu-list-picker-item");
+      if (!item) return;
+      const value = item.dataset.value;
+      close();
+      if (typeof opts.onPick === "function") opts.onPick(value);
+    });
+    const items = () => Array.from(list.querySelectorAll(".mu-list-picker-item"));
+    input.addEventListener("input", render);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown") { e.preventDefault(); items()[0]?.focus(); }
+      if (e.key === "Enter") { e.preventDefault(); items()[0]?.click(); }
+    });
+    list.addEventListener("keydown", (e) => {
+      const all = items();
+      const at = all.indexOf(document.activeElement);
+      if (e.key === "ArrowDown") { e.preventDefault(); all[Math.min(all.length - 1, at + 1)]?.focus(); }
+      if (e.key === "ArrowUp") { e.preventDefault(); if (at <= 0) input.focus(); else all[at - 1].focus(); }
+      if (e.key === "Home") { e.preventDefault(); all[0]?.focus(); }
+      if (e.key === "End") { e.preventDefault(); all[all.length - 1]?.focus(); }
+    });
+    render();
+    document.body.appendChild(modal);
+    openModal(id);
+    observer.observe(modal, { attributes: true, attributeFilter: ["hidden"] });
+    input.focus();
+    list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "center" });
+    return { close };
+  }
+
+  // ------------------------------------------------------------- upload tray
+  // A bottom-right panel that lists uploads with progress.
+  // const tray = MunetiosUI.uploadTray({ title, collapseLabel, expandLabel, closeLabel });
+  // const item = tray.add({ name, icon, meta }); item.progress(0.4, "1.2 MB of 3 MB"); item.done(text); item.fail(text, retry);
+  // item.onCancel = () => {}; tray.setTitle("Uploading 3 items")
+  let trayInstance = null;
+  function uploadTray(options) {
+    const opts = options || {};
+    if (trayInstance && trayInstance.el.isConnected) {
+      trayInstance.configure(opts);
+      return trayInstance;
+    }
+    const el = document.createElement("section");
+    el.className = "mu-upload-tray mu-glass mu-glass-solid";
+    el.hidden = true;
+    el.setAttribute("aria-live", "polite");
+    el.innerHTML =
+      '<header class="mu-upload-tray-head"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">cloud_upload</span></span>' +
+      '<h2 class="mu-upload-tray-title"></h2>' +
+      '<button type="button" class="mu-icon-btn mu-icon-btn-sm" data-tray="toggle" aria-expanded="true"><span class="mu-icon" aria-hidden="true">expand_more</span></button>' +
+      '<button type="button" class="mu-icon-btn mu-icon-btn-sm" data-tray="close"><span class="mu-icon" aria-hidden="true">close</span></button></header>' +
+      '<ul class="mu-upload-tray-list mu-scroll"></ul>';
+    document.body.appendChild(el);
+    const list = el.querySelector("ul");
+    const title = el.querySelector(".mu-upload-tray-title");
+    const toggle = el.querySelector('[data-tray="toggle"]');
+    const closeBtn = el.querySelector('[data-tray="close"]');
+    const entries = new Set();
+    let labels = {};
+    function configure(o) {
+      labels = Object.assign(labels, o || {});
+      closeBtn.setAttribute("aria-label", labels.closeLabel || "Close");
+      const collapsed = el.classList.contains("is-collapsed");
+      toggle.setAttribute("aria-label", collapsed ? labels.expandLabel || "Expand" : labels.collapseLabel || "Collapse");
+      if (labels.title) title.textContent = labels.title;
+    }
+    toggle.addEventListener("click", () => {
+      const collapsed = el.classList.toggle("is-collapsed");
+      toggle.setAttribute("aria-expanded", String(!collapsed));
+      toggle.querySelector(".mu-icon").textContent = collapsed ? "expand_less" : "expand_more";
+      configure();
+    });
+    closeBtn.addEventListener("click", () => {
+      entries.forEach((entry) => { if (entry.state === "active" && typeof entry.onCancel === "function") entry.onCancel(); });
+      entries.clear();
+      list.textContent = "";
+      el.hidden = true;
+      if (typeof api.onClose === "function") api.onClose();
+    });
+    const api = {
+      el,
+      configure,
+      setTitle(text) { title.textContent = text; },
+      get active() { return [...entries].filter((e) => e.state === "active").length; },
+      add(item) {
+        const li = document.createElement("li");
+        li.className = "mu-upload-tray-item";
+        li.innerHTML =
+          '<span class="mu-icon mu-upload-tray-icon" aria-hidden="true"></span><div class="mu-upload-tray-info"><span class="mu-upload-tray-name"></span>' +
+          '<div class="mu-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span style="width:0%"></span></div>' +
+          '<span class="mu-upload-tray-meta mu-muted"></span></div>' +
+          '<button type="button" class="mu-icon-btn mu-icon-btn-sm" data-action="cancel"><span class="mu-icon" aria-hidden="true">close</span></button>';
+        li.querySelector(".mu-upload-tray-icon").textContent = item.icon || "image";
+        li.querySelector(".mu-upload-tray-name").textContent = item.name || "";
+        li.querySelector(".mu-upload-tray-meta").textContent = item.meta || "";
+        const bar = li.querySelector(".mu-progress");
+        bar.setAttribute("aria-label", item.name || "");
+        const action = li.querySelector("[data-action]");
+        action.setAttribute("aria-label", item.cancelLabel || labels.cancelLabel || "Cancel");
+        list.appendChild(li);
+        el.hidden = false;
+        const entry = {
+          el: li,
+          state: "active",
+          onCancel: null,
+          retry: null,
+          progress(fraction, meta) {
+            const pct = Math.max(0, Math.min(100, Math.round(fraction * 100)));
+            bar.firstChild.style.width = pct + "%";
+            bar.setAttribute("aria-valuenow", String(pct));
+            if (meta !== undefined) li.querySelector(".mu-upload-tray-meta").textContent = meta;
+          },
+          setMeta(meta) { li.querySelector(".mu-upload-tray-meta").textContent = meta; },
+          done(meta) {
+            entry.state = "done";
+            entry.progress(1, meta);
+            li.classList.add("is-done");
+            action.querySelector(".mu-icon").textContent = "check_circle";
+            action.disabled = true;
+            action.setAttribute("aria-label", meta || "");
+          },
+          fail(meta, retry) {
+            entry.state = "failed";
+            entry.retry = retry || null;
+            li.classList.add("is-failed");
+            li.querySelector(".mu-upload-tray-meta").textContent = meta || "";
+            action.querySelector(".mu-icon").textContent = retry ? "refresh" : "error";
+            action.disabled = !retry;
+            action.setAttribute("aria-label", labels.retryLabel || "Try again");
+          },
+          remove() { entries.delete(entry); li.remove(); if (!entries.size) el.hidden = true; },
+        };
+        action.addEventListener("click", () => {
+          if (entry.state === "active") {
+            entry.state = "cancelled";
+            if (typeof entry.onCancel === "function") entry.onCancel();
+            entry.remove();
+          } else if (entry.state === "failed" && entry.retry) {
+            const retry = entry.retry;
+            entry.state = "active";
+            li.classList.remove("is-failed");
+            action.querySelector(".mu-icon").textContent = "close";
+            action.setAttribute("aria-label", labels.cancelLabel || "Cancel");
+            retry();
+          }
+        });
+        entries.add(entry);
+        return entry;
+      },
+      clearFinished() {
+        [...entries].forEach((entry) => { if (entry.state === "done") entry.remove(); });
+      },
+    };
+    configure(opts);
+    trayInstance = api;
+    return api;
+  }
+
+  // ------------------------------------------------------------- top bar search
+  // .mu-topbar-search: below 768px it is an icon button that opens as a floating bar.
+  const narrowSearch = window.matchMedia ? window.matchMedia("(width < 768px)") : { matches: false };
+  function enhanceTopbarSearch(box) {
+    if (!box || box._muSearch) return;
+    box._muSearch = true;
+    const input = box.querySelector("input");
+    const close = box.querySelector(".mu-topbar-search-close");
+    if (!input) return;
+    const sync = () => box.classList.toggle("has-value", Boolean(input.value));
+    const open = () => { if (narrowSearch.matches && !box.classList.contains("is-open")) { box.classList.add("is-open"); input.focus(); } };
+    const shut = () => box.classList.remove("is-open");
+    box.addEventListener("click", (e) => { if (!e.target.closest(".mu-topbar-search-close")) open(); });
+    input.addEventListener("focus", open);
+    input.addEventListener("input", sync);
+    input.addEventListener("blur", () => setTimeout(() => { if (!input.value && !box.contains(document.activeElement)) shut(); }, 150));
+    input.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      if (input.value) { input.value = ""; input.dispatchEvent(new Event("input", { bubbles: true })); }
+      else { shut(); input.blur(); }
+    });
+    close?.addEventListener("click", (e) => {
+      e.preventDefault();
+      input.value = "";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      shut();
+      if (!narrowSearch.matches) input.focus();
+    });
+    narrowSearch.addEventListener?.("change", () => { if (!narrowSearch.matches) shut(); });
+    sync();
+  }
+  const scanTopbarSearch = () => document.querySelectorAll(".mu-topbar-search").forEach(enhanceTopbarSearch);
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", scanTopbarSearch);
+  else scanTopbarSearch();
+
   window.MunetiosUI = Object.freeze({
-    version: "4.3.0",
+    enhanceTopbarSearch,
+    version: "4.4.0",
+    pickFromList,
+    uploadTray,
     theme,
     toast,
     openModal,

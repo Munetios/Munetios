@@ -23,7 +23,10 @@
   "use strict";
 
   const VERSION = "1.0.0";
-  const FONT_PATH = "fonts/munetios-sans.ttf";
+  const BUNDLED_FONTS = Object.freeze({
+    "Munetios UI v4 Font": "fonts/munetios-ui-v4-font.ttf",
+    "Google Sans Flex": "fonts/googlesansflex.ttf",
+  });
   const MODE_RANK = { allowed: 0, partial: 1, blocked: 2, restricted: 3 };
 
   // Partially Blocked URLs keep only these 8 properties (background-color is part of #2).
@@ -204,7 +207,7 @@
         blockedText: list(global.blockedText),
         blockedCategories: categoryList(global.blockedCategories),
         categoryOverrides: categoryOverrides(global.categoryOverrides),
-        userCss: userCss(global.userCss, "allowed"),
+        userCss: { ...userCss(global.userCss, "allowed"), importUrls: [...new Set(list(global.userCss?.importUrls).map(normalizeImportUrl).filter(Boolean))] },
         styles: styles(global.styles),
       },
       classes: (Array.isArray(source.classes) ? source.classes : []).filter(item => item && item.id).map(item => ({
@@ -456,17 +459,6 @@
     return { blocked: false, reason: "open", scope: null, rule: null };
   }
 
-  // External UserCSS resources are allowed only for hosts on the Allowed Website List
-  // (enabled "allow" web filter rules, global plus the device's class).
-  function isOnAllowedWebsiteList(url, rawPolicy, ctx) {
-    const policy = normalizePolicy(rawPolicy);
-    const parsed = parseUrl(url);
-    if (!isWebUrl(parsed)) return false;
-    const klass = findClass(policy, ctx && ctx.classId);
-    const rules = effectiveGlobal(policy, klass).rules.concat(klass ? klass.rules : []);
-    return rules.some(rule => rule.enabled !== false && rule.action === "allow" && rule.type !== "keyword" && matchPattern(rule.value, parsed, rule.type));
-  }
-
   function listMatch(userCss, parsed) {
     for (const mode of ["blocked", "partial", "allowed"]) {
       const pattern = userCss[mode].find(item => matchPattern(item, parsed));
@@ -665,41 +657,81 @@
 
   /* -------------------------------------------------------------- sandbox */
 
-  function extractUrls(value) {
-    const urls = [];
-    const pattern = /url\(\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|([^)\s]*))\s*\)/gi;
+  const URL_ARGUMENT = /^\s*(?:"([^"]*)"|'([^']*)'|([^\s"'()]*))\s*\)/;
+  const STRING_RESOURCE_FUNCTIONS = new Set(["image", "image-set", "-webkit-image-set", "src"]);
+
+  function resourceLinks(value) {
+    const links = [];
+    const functions = [];
+    const pattern = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|([-\w]+)\(|[()]/gi;
     let match;
-    while ((match = pattern.exec(value))) urls.push((match[1] ?? match[2] ?? match[3] ?? "").trim());
-    // image-set("a.png" 1x) and src("...") take plain strings as URLs too.
-    const setPattern = /(?:image-set|-webkit-image-set|src)\(([^)]*)\)/gi;
-    while ((match = setPattern.exec(value))) {
-      const strings = match[1].match(/"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'/g) || [];
-      strings.forEach(item => urls.push(item.slice(1, -1).trim()));
+    while ((match = pattern.exec(value))) {
+      const token = match[0];
+      const name = match[1]?.toLowerCase();
+      if (name === "url") {
+        const argument = URL_ARGUMENT.exec(value.slice(pattern.lastIndex));
+        if (argument) pattern.lastIndex += argument[0].length;
+        links.push({ url: (argument?.[1] ?? argument?.[2] ?? argument?.[3] ?? "").trim(), start: match.index, end: pattern.lastIndex });
+      } else if (token.endsWith("(")) {
+        functions.push(name);
+      } else if (token === ")") {
+        functions.pop();
+      } else if (STRING_RESOURCE_FUNCTIONS.has(functions.at(-1))) {
+        links.push({ url: token.slice(1, -1).trim(), start: match.index, end: pattern.lastIndex, string: true });
+      }
     }
-    return urls;
+    return links;
   }
 
   const SAFE_DATA = /^data:(?:image\/(?:png|jpe?g|gif|webp|avif|svg\+xml)|font\/(?:woff2?|ttf|otf)|application\/(?:font-woff2?|x-font-ttf|x-font-woff))[;,]/i;
   const RISKY_VALUE = /expression\s*\(|javascript\s*:|vbscript\s*:|data\s*:\s*text\/html|-moz-binding|livescript\s*:/i;
 
-  function classifyUrl(raw, options) {
+  const RESOURCE_HOSTS = new Set(["api.munetios.com", "fonts.googleapis.com"]);
+
+  function normalizeImportUrl(value) {
+    const input = String(value || "").trim();
+    const parsed = parseUrl(input);
+    if (!parsed || input.includes("\\") || parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || parsed.hash || !parsed.hostname || parsed.hostname.includes("*")) return "";
+    return parsed.pathname === "/" && !parsed.search ? parsed.origin : parsed.href;
+  }
+
+  function classifyUrl(raw, importUrls = []) {
     const value = String(raw || "").trim();
-    if (!value || value.startsWith("#")) return { ok: true, kind: "fragment" };
     if (/^(?:javascript|vbscript|livescript)\s*:/i.test(value) || /^data\s*:\s*text\/html/i.test(value)) return { ok: false, kind: "script-url", risky: true };
-    if (/^data:/i.test(value)) return SAFE_DATA.test(value) ? { ok: true, kind: "data" } : { ok: false, kind: "data-uri" };
-    const extensionMatch = /^chrome-extension:\/\/([a-p]{32})\/(.*)$/i.exec(value);
-    if (extensionMatch) {
-      const sameExtension = !options.extensionId || options.extensionId === extensionMatch[1].toLowerCase();
-      return sameExtension && extensionMatch[2] === FONT_PATH ? { ok: true, kind: "extension-font" } : { ok: false, kind: "extension-url" };
-    }
     if (/^\/\//.test(value) || /^https?:/i.test(value)) {
       const parsed = parseUrl(/^\/\//.test(value) ? "https:" + value : value);
-      if (!parsed) return { ok: false, kind: "invalid-url" };
-      const allowed = typeof options.isExternalAllowed === "function" && options.isExternalAllowed(parsed.href);
-      return allowed ? { ok: true, kind: "external-allowed", host: parsed.hostname } : { ok: false, kind: "external", host: parsed.hostname };
+      if (parsed?.protocol === "https:" && !parsed.username && !parsed.password && !parsed.port &&
+          (RESOURCE_HOSTS.has(parsed.hostname) || importUrls.includes(parsed.origin) || importUrls.includes(normalizeImportUrl(parsed.href.split("#")[0])))) {
+        return { ok: true, href: parsed.href };
+      }
+      return { ok: false, kind: "external", host: parsed?.hostname || "" };
     }
-    if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return { ok: false, kind: "scheme" };
-    return { ok: true, kind: "relative" };
+    return { ok: false, kind: "blocked-url" };
+  }
+
+  function importLink(prelude) {
+    const quoted = /^(?:"([^"]*)"|'([^']*)')/.exec(prelude);
+    const link = quoted ? { url: quoted[1] ?? quoted[2], end: quoted[0].length } : resourceLinks(prelude)[0];
+    if (!link || (!quoted && (link.start !== 0 || !/^url\(/i.test(prelude)))) return { url: "" };
+    return { url: link.url, conditions: prelude.slice(link.end).trim() };
+  }
+
+  function wrapImportedCss(css, conditions) {
+    let rest = conditions;
+    const wrappers = [];
+    const layer = /^layer(?:\(([-\w.]+)\)|(?=\s|$))/i.exec(rest);
+    if (layer) {
+      wrappers.push("@layer" + (layer[1] ? " " + layer[1] : ""));
+      rest = rest.slice(layer[0].length).trim();
+    }
+    if (/^supports\(/i.test(rest)) {
+      const close = scanTo(rest, 9, rest.length, ")");
+      if (close === rest.length) return "";
+      wrappers.push("@supports (" + rest.slice(9, close) + ")");
+      rest = rest.slice(close + 1).trim();
+    }
+    if (rest) wrappers.push("@media " + rest);
+    return wrappers.reduceRight((inner, rule) => rule + " {\n" + indent(inner) + "\n}", css.trimEnd());
   }
 
   function numeric(value) {
@@ -786,12 +818,13 @@
   }
 
   // Returns the URL problems of a value, or [] when every URL is fine.
-  function urlProblems(value, state) {
-    return extractUrls(value).map(url => ({ url, verdict: classifyUrl(url, state.options) })).filter(item => !item.verdict.ok);
+  function urlProblems(value) {
+    return resourceLinks(value).map(({ url }) => ({ url, verdict: classifyUrl(url) })).filter(item => !item.verdict.ok);
   }
 
   function sanitizeDeclaration(decl, state, context) {
-    const { prop, value } = decl;
+    const { prop } = decl;
+    let { value } = decl;
     const base = { property: decl.rawProp, value, line: decl.line };
     if (decl.invalid || !PROPERTY_NAME.test(prop)) {
       report(state, Object.assign({ code: "invalid-declaration", category: "stripped" }, base));
@@ -809,13 +842,21 @@
       report(state, Object.assign({ code: "partial-property", category: "stripped" }, base));
       return null;
     }
-    const problems = urlProblems(value, state);
+    const problems = urlProblems(value);
     if (problems.length) {
       problems.forEach(problem => {
         const code = problem.verdict.kind === "external" ? "external-resource" : problem.verdict.risky ? "script-vector" : "blocked-url";
         report(state, Object.assign({ code, category: problem.verdict.risky ? "risky" : "blocked", url: problem.url, host: problem.verdict.host || "" }, base));
       });
       return null;
+    }
+    if (state.options.resources) {
+      for (const link of resourceLinks(value).reverse()) {
+        const replacement = state.options.resources.assets.get(classifyUrl(link.url).href);
+        if (!replacement) return null;
+        const token = link.string ? '"' + replacement + '"' : 'url("' + replacement + '")';
+        value = value.slice(0, link.start) + token + value.slice(link.end);
+      }
     }
     if (prop === "z-index") {
       if (/var\(|calc\(|env\(/i.test(value)) { report(state, Object.assign({ code: "z-index-indirect", category: "risky" }, base)); return null; }
@@ -834,7 +875,7 @@
       report(state, Object.assign({ code: "protected-overlay", category: "risky" }, base));
       return null;
     }
-    return decl;
+    return value === decl.value ? decl : { ...decl, value };
   }
 
   function sanitizeStyleRule(node, state) {
@@ -899,7 +940,7 @@
     state.selector = "@font-face";
     const unicodeRange = node.decls.some(decl => decl.prop === "unicode-range");
     const src = node.decls.filter(decl => decl.prop === "src").map(decl => decl.value).join(",");
-    const remote = extractUrls(src).some(url => /^(?:https?:)?\/\//i.test(url));
+    const remote = resourceLinks(src).some(({ url }) => /^(?:https?:)?\/\//i.test(url));
     if (unicodeRange && remote) {
       report(state, { code: "font-tracking", category: "risky", line: node.line, value: src });
       state.report.stripped += node.decls.length;
@@ -943,14 +984,22 @@
           report(state, { code: "partial-import", category: "stripped", line: node.line, value: node.prelude });
           return;
         }
-        const quoted = /^\s*(?:url\(\s*)?["']?([^"')\s]+)["']?\s*\)?/i.exec(node.prelude);
-        const target = quoted ? quoted[1] : "";
-        const verdict = classifyUrl(target, state.options);
-        if (!verdict.ok || verdict.kind === "relative" || verdict.kind === "data") {
+        const { url: target, conditions } = importLink(node.prelude);
+        const verdict = classifyUrl(target, state.options.importUrls);
+        if (!node.statement || !verdict.ok || urlProblems(conditions).length) {
           report(state, { code: verdict.kind === "external" ? "external-import" : verdict.risky ? "script-vector" : "blocked-import", category: verdict.risky ? "risky" : "blocked", line: node.line, url: target, host: verdict.host || "" });
           return;
         }
+        if (state.options.resources) {
+          const imported = state.options.resources.imports.get(verdict.href);
+          if (imported) out.push(wrapImportedCss(imported, conditions));
+          return;
+        }
         out.push("@import " + node.prelude + ";");
+        return;
+      }
+      if (urlProblems(node.prelude).length) {
+        report(state, { code: "blocked-url", category: "blocked", line: node.line, value: node.prelude });
         return;
       }
       if (state.options.mode === "partial" && !PARTIAL_AT_RULES.has(name)) {
@@ -987,8 +1036,6 @@
 
   /**
    * options.mode: "allowed" | "partial" | "blocked" | "restricted"
-   * options.isExternalAllowed(url): true when the host is on the Allowed Website List
-   * options.extensionId: the extension's own ID (only its bundled font is allowed)
    */
   function sanitizeCss(css, rawOptions) {
     const options = Object.assign({ mode: "allowed" }, rawOptions || {});
@@ -1009,16 +1056,77 @@
     };
   }
 
+  function collectResources(nodes, imports, assets, importUrls) {
+    for (const node of nodes) {
+      if (node.name === "import") {
+        const { href } = classifyUrl(importLink(node.prelude).url, importUrls);
+        if (href) imports.add(href);
+      }
+      for (const decl of node.decls || []) {
+        for (const { url } of resourceLinks(decl.value)) {
+          const { href } = classifyUrl(url);
+          if (href) assets.add(href);
+        }
+      }
+      if (node.children) collectResources(node.children, imports, assets, importUrls);
+    }
+  }
+
+  async function resolveCssResources(css, mode, signal, importUrls = []) {
+    const assets = new Map();
+    const styleSheets = new Map();
+
+    function load(cache, href, read, allowedImports) {
+      if (!cache.has(href)) {
+        cache.set(href, (async () => {
+          const response = await fetch(href, { redirect: "error", credentials: "omit", referrerPolicy: "no-referrer", signal });
+          if (!response.ok || response.redirected || !classifyUrl(response.url, allowedImports).ok) return "";
+          const type = (response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+          return read(response, type);
+        })().catch(() => ""));
+      }
+      return cache.get(href);
+    }
+
+    async function assetUrl(response, type) {
+      if (!SAFE_DATA.test("data:" + type + ";")) return "";
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      let binary = "";
+      for (let start = 0; start < bytes.length; start += 8192) binary += String.fromCharCode(...bytes.subarray(start, start + 8192));
+      return "data:" + type + ";base64," + btoa(binary);
+    }
+
+    async function resolve(source, ancestors) {
+      const imports = new Set();
+      const links = new Set();
+      collectResources(parseStylesheet(source), imports, links, importUrls);
+      if (!imports.size && !links.size) return source;
+      const [loadedImports, loadedAssets] = await Promise.all([
+        Promise.all([...imports].filter(href => !ancestors.has(href)).map(async href => {
+          const text = await load(styleSheets, href, (response, type) => type === "text/css" ? response.text() : "", importUrls);
+          const imported = await resolve(sanitizeCss(text, { mode, importUrls }).css, new Set([...ancestors, href]));
+          return [href, imported];
+        })),
+        Promise.all([...links].map(async href => [href, await load(assets, href, assetUrl)])),
+      ]);
+      return sanitizeCss(source, { mode, importUrls, resources: { imports: new Map(loadedImports), assets: new Map(loadedAssets) } }).css;
+    }
+
+    return resolve(css, new Set());
+  }
+
   function usesGoogleSansFlex(css) {
     return /google\s+sans\s+flex/i.test(String(css || ""));
   }
 
-  // The bundled file is the ss01 build of Google Sans Flex, so ss01 is part of the
-  // glyphs themselves: no font-feature-settings is ever set on the page, and other
-  // fonts on the site keep their own features. The descriptor below only applies
-  // to this face in browsers that support it.
-  function fontFaceCss(fontUrl) {
-    return "@font-face {\n  font-family: 'Google Sans Flex';\n  src: url('" + fontUrl + "') format('truetype');\n  font-weight: 1 1000;\n  font-stretch: 25% 151%;\n  font-style: normal;\n  font-display: swap;\n  font-feature-settings: \"ss01\" 1;\n}\n";
+  function bundledFontFamilies(css) {
+    return Object.keys(BUNDLED_FONTS).filter(family => family === "Google Sans Flex"
+      ? usesGoogleSansFlex(css)
+      : /munetios\s+ui\s+v4\s+font/i.test(String(css || "")));
+  }
+  function fontFaceCss(fontUrl, family = "Google Sans Flex") {
+    const stretch = family === "Munetios UI v4 Font" ? "23% 149%" : "25% 151%";
+    return "@font-face {\n  font-family: '" + family + "';\n  src: url('" + fontUrl + "') format('truetype');\n  font-weight: 1 1000;\n  font-stretch: " + stretch + ";\n  font-style: normal;\n  font-display: swap;\n}\n";
   }
 
   function computePageStyles(url, rawPolicy, ctx) {
@@ -1027,11 +1135,8 @@
     const resolved = resolveUserCssMode(url, policy, context);
     const styles = resolved.mode === "restricted" || resolved.mode === "blocked" ? [] : stylesForUrl(url, policy, context);
     const combined = styles.map(style => "/* " + String(style.name || style.id || "UserCSS").replace(/\*\//g, "") + " */\n" + style.css).join("\n\n");
-    const result = sanitizeCss(combined, {
-      mode: resolved.mode,
-      extensionId: context.extensionId,
-      isExternalAllowed: target => isOnAllowedWebsiteList(target, policy, context),
-    });
+    const importUrls = policy.global.userCss.importUrls;
+    const result = sanitizeCss(combined, { mode: resolved.mode, importUrls });
     return {
       url: String(url || ""),
       access: resolved.access,
@@ -1039,6 +1144,7 @@
       source: resolved.source,
       styles: styles.map(style => ({ id: style.id, name: style.name, scope: style.scope })),
       css: result.css,
+      importUrls,
       violations: result.violations,
       usesGoogleSansFlex: usesGoogleSansFlex(result.css),
       textFilter: textFilterFor(url, policy, context),
@@ -1047,7 +1153,7 @@
 
   /* ---------------------------------------------------- editor suggestions */
 
-  const FONT_VALUES = ["'Google Sans Flex'", "'Google Sans Mono'", "'Google Sans Flex', system-ui, sans-serif", "'Google Sans Mono', ui-monospace, monospace", "system-ui", "sans-serif", "serif", "monospace", "inherit"];
+  const FONT_VALUES = ["'Munetios UI v4 Font'", "'Google Sans Flex'", "'Google Sans Mono'", "'Munetios UI v4 Font', system-ui, sans-serif", "'Google Sans Flex', system-ui, sans-serif", "'Google Sans Mono', ui-monospace, monospace", "system-ui", "sans-serif", "serif", "monospace", "inherit"];
   const COLOR_VALUES = ["#8f5cff", "#f6f3ff", "#110736", "#1d2433", "#ffffff", "#43d9a0", "#ff6b5e", "#ffcf4a", "rgba(255, 255, 255, 0.24)", "rgba(17, 7, 54, 0.40)", "currentColor", "transparent", "inherit"];
   const SUGGESTIONS = {
     "font-family": FONT_VALUES,
@@ -1057,7 +1163,7 @@
     "font-size": ["18px", "20px", "22px", "24px", "28px", "36px", "48px", "1rem", "1.25rem", "inherit"],
     "backdrop-filter": ["blur(2px)", "blur(2px) saturate(160%)", "saturate(170%)", "none"],
     "font-weight": ["300", "400", "normal", "inherit"],
-    "font-feature-settings": ["\"ss01\" 1", "\"ss01\" 1, \"tnum\" 1", "\"tnum\" 1", "normal"],
+    "font-feature-settings": ["\"ss01\" 1", "\"ss02\" 1", "\"ss01\" 1, \"tnum\" 1", "\"tnum\" 1", "normal"],
     "font-variation-settings": ["\"wght\" 400", "\"wght\" 300", "\"wdth\" 100", "\"ROND\" 100", "\"opsz\" 18", "normal"],
     "border-radius": ["999px", "44px", "36px", "28px", "22px", "50%", "0"],
     "border": ["1px solid rgba(255, 255, 255, 0.12)", "none", "0"],
@@ -1144,7 +1250,7 @@
   return Object.freeze({
     VERSION,
     blockedWebsiteId,
-    FONT_PATH,
+    BUNDLED_FONTS,
     PARTIAL_PROPERTIES,
     parseUrl,
     isBlockPage,
@@ -1160,7 +1266,6 @@
     forcedSafeUrl,
     normalizePolicy,
     evaluateAccess,
-    isOnAllowedWebsiteList,
     resolveUserCssMode,
     textFilterFor,
     CATEGORIES,
@@ -1177,8 +1282,11 @@
     stylesForUrl,
     parseStylesheet,
     sanitizeCss,
+    resolveCssResources,
+    normalizeImportUrl,
     computePageStyles,
     fontFaceCss,
+    bundledFontFamilies,
     usesGoogleSansFlex,
     propertySuggestions,
     valueSuggestions,

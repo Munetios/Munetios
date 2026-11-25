@@ -1431,7 +1431,7 @@
   "collab_restricted": "Περιορισμένη",
   "collab_restricted_desc": "Μόνο τα άτομα που προσθέτετε μπορούν να το ανοίξουν.",
   "collab_anyone_link": "Όποιος έχει τον σύνδεσμο",
-  "collab_anyone_link_desc": "Όποιος έχει τον σύνδεσμο μπορεί να το ανοίξει, ακόμη και χωρίς λογαριασμό. Οι μη συνδεδεμένοι επισκέπτες μπορούν μόνο να το δουν.",
+  "collab_anyone_link_desc": "Όποιος έχει τον σύνδεσμο μπορεί να το ανοίξει, ακόμη και χωρίς λογαριασμό.",
   "collab_role": "Ρόλος",
   "collab_role_owner": "Κάτοχος",
   "collab_role_edit": "Συντάκτης",
@@ -1534,8 +1534,10 @@
   "dictionary": "Λεξικό",
   "dictionary_custom_words": "Προσωπικές λέξεις",
   "dictionary_autocorrect": "Αυτόματη διόρθωση",
-  "dictionary_english_words": "Λίστα αγγλικών λέξεων",
   "dictionary_word": "Λέξη",
   "dictionary_invalid_word": "Πληκτρολογήστε μία λέξη με γράμματα και αποστρόφους.",
-  "dictionary_load_failed": "Δεν ήταν δυνατή η φόρτωση της λίστας αγγλικών λέξεων."
+  "overview_page": "Επισκόπηση του OmniWrite",
+  "overview_heading": "Γράψε, οργάνωσε και συνεργάσου.",
+  "overview_intro": "Δημιούργησε έγγραφα και υπολογιστικά φύλλα σε έναν χώρο εργασίας.",
+  "overview_open": "Άνοιγμα του OmniWrite"
 }

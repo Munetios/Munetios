@@ -1534,8 +1534,10 @@
   "dictionary": "ਸ਼ਬਦਕੋਸ਼",
   "dictionary_custom_words": "ਆਪਣੇ ਸ਼ਬਦ",
   "dictionary_autocorrect": "ਸਵੈਚਲਿਤ ਸੁਧਾਰ",
-  "dictionary_english_words": "ਅੰਗਰੇਜ਼ੀ ਸ਼ਬਦਾਂ ਦੀ ਸੂਚੀ",
   "dictionary_word": "ਸ਼ਬਦ",
   "dictionary_invalid_word": "ਅੱਖਰਾਂ ਅਤੇ ਅਪੋਸਟਰੋਫ਼ਾਂ ਦੀ ਵਰਤੋਂ ਕਰਕੇ ਇੱਕ ਸ਼ਬਦ ਲਿਖੋ।",
-  "dictionary_load_failed": "ਅੰਗਰੇਜ਼ੀ ਸ਼ਬਦਾਂ ਦੀ ਸੂਚੀ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੀ।"
+  "overview_page": "OmniWrite ਦੀ ਜਾਣ-ਪਛਾਣ",
+  "overview_heading": "ਲਿਖੋ, ਤਰਤੀਬ ਦਿਓ ਅਤੇ ਮਿਲ ਕੇ ਕੰਮ ਕਰੋ।",
+  "overview_intro": "ਇੱਕੋ ਕਾਰਜ-ਥਾਂ ਵਿੱਚ ਦਸਤਾਵੇਜ਼ ਅਤੇ ਸਪ੍ਰੈਡਸ਼ੀਟਾਂ ਬਣਾਓ।",
+  "overview_open": "OmniWrite ਖੋਲ੍ਹੋ"
 }

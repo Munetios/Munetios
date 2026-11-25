@@ -213,7 +213,7 @@
 
     </script>
     
-    <script src="https://write.munetios.com/chart.js"></script>
+    <script src="chart.js"></script>
     <script src="https://write.munetios.com/tone.js"></script>
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
@@ -677,7 +677,7 @@ if ('serviceWorker' in navigator) {
                             </div>
                             <div class="toolbar-item" id="shFontFamilyBtn" tabindex="0" role="button" aria-haspopup="menu" aria-label="Font Family" data-i18n-title="Font Family" style="min-width: 120px; align-items: center; justify-content: center;">
                                 <icon class="mobile-icon">font_download</icon>
-                                <div class="menu-text" id="shFontFamilyText">Google Sans Flex</div>
+                                <div class="menu-text" id="shFontFamilyText">Munetios UI v4 Font</div>
                             </div>
                             <div class="toolbar-item" id="shFontSizeDecreaseBtn" tabindex="0" role="button" aria-label="Decrease Font Size" data-i18n-title="decrease_font_size">
                                 <icon>remove</icon>
@@ -732,8 +732,9 @@ if ('serviceWorker' in navigator) {
                                 <div class="sheets-col-headers" id="sheetsColHeaders"><div class="sheets-header-inner" id="sheetsColHeadersInner" data-sheets-render-window></div><div class="sheets-header-frozen" id="sheetsColHeadersFrozen" data-sheets-render-window></div></div>
                                 <div class="sheets-row-headers" id="sheetsRowHeaders"><div class="sheets-header-inner" id="sheetsRowHeadersInner" data-sheets-render-window></div><div class="sheets-header-frozen" id="sheetsRowHeadersFrozen" data-sheets-render-window></div></div>
                                 <div class="sheets-viewport" id="sheetsViewport" tabindex="0" role="grid" aria-label="Spreadsheet" data-i18n-aria-label="sheets_grid">
+                                    <div class="sheets-grid-announcement" id="sheetsAccessibleRow" role="row" data-sheets-render-window><div id="sheetsAccessibleCell" role="gridcell"></div></div>
                                     <div class="sheets-canvas" id="sheetsCanvas">
-                                        <div class="sheets-cells" id="sheetsCells" data-sheets-render-window></div>
+                                        <div class="sheets-cells" id="sheetsCells" data-sheets-render-window><canvas aria-hidden="true" width="0" height="0"></canvas><div class="sheets-cell-controls"></div></div>
                                         <div class="sheets-ref-layer" id="sheetsRefLayer" data-sheets-render-window></div>
                                         <div class="sheets-selection" id="sheetsSelection"></div>
                                         <div class="sheets-active-cell" id="sheetsActiveCell"><div class="sheets-fill-handle" id="sheetsFillHandle"></div></div>
@@ -744,9 +745,9 @@ if ('serviceWorker' in navigator) {
                                         <button class="sheets-add-rows" id="sheetsAddRowsBtn" type="button"><icon>add</icon><span id="sheetsAddRowsLabel">Add 100 rows</span></button>
                                     </div>
                                 </div>
-                                <div class="sheets-pane sheets-pane-top" id="sheetsPaneTop"><div class="sheets-pane-inner" data-sheets-render-window><div class="sheets-cells"></div><div></div></div></div>
-                                <div class="sheets-pane sheets-pane-left" id="sheetsPaneLeft"><div class="sheets-pane-inner" data-sheets-render-window><div class="sheets-cells"></div><div></div></div></div>
-                                <div class="sheets-pane sheets-pane-corner" id="sheetsPaneCorner"><div class="sheets-pane-inner" data-sheets-render-window><div class="sheets-cells"></div><div></div></div></div>
+                                <div class="sheets-pane sheets-pane-top" id="sheetsPaneTop"><div class="sheets-pane-inner" data-sheets-render-window><div class="sheets-cells"><canvas aria-hidden="true" width="0" height="0"></canvas><div class="sheets-cell-controls"></div></div><div></div></div></div>
+                                <div class="sheets-pane sheets-pane-left" id="sheetsPaneLeft"><div class="sheets-pane-inner" data-sheets-render-window><div class="sheets-cells"><canvas aria-hidden="true" width="0" height="0"></canvas><div class="sheets-cell-controls"></div></div><div></div></div></div>
+                                <div class="sheets-pane sheets-pane-corner" id="sheetsPaneCorner"><div class="sheets-pane-inner" data-sheets-render-window><div class="sheets-cells"><canvas aria-hidden="true" width="0" height="0"></canvas><div class="sheets-cell-controls"></div></div><div></div></div></div>
                                 <div class="sheets-resize-guide" id="sheetsResizeGuide" aria-hidden="true" hidden></div>
                             </div>
                                 <div class="sheets-split-divider" id="sheetsSplitDivider" role="separator" aria-orientation="vertical" tabindex="0" hidden></div>
@@ -799,7 +800,7 @@ if ('serviceWorker' in navigator) {
                     </div>
                     <div class="toolbar-item" id="fontFamilyBtn" title="Font Family" style="min-width: 120px; vertical-align: center; display: flex; align-items: center; justify-content: center;">
                         <icon class="mobile-icon">font_download</icon>
-                        <div class="menu-text" id="fontFamilyText">Google Sans Flex</div>
+                        <div class="menu-text" id="fontFamilyText">Munetios UI v4 Font</div>
                     </div>
                     <div class="toolbar-item" id="fontSizeDecreaseBtn" title="Decrease Font Size">
                         <icon>remove</icon>
@@ -1043,6 +1044,9 @@ if ('serviceWorker' in navigator) {
                               <div class="dropdown-item" data-size="200"><div class="menu-text" style="font-size:200pt;">200 pt</div></div>
                     </div>
 <div class="dropdown-wrapper liquid-glass" id="fontFamilyPicker">
+    <div class="dropdown-item" data-font="'Munetios UI v4 Font'">
+            <div class="menu-text" style="font-family: 'Munetios UI v4 Font';">Munetios UI v4 Font</div>
+    </div>
     <div class="dropdown-item" data-font="'Google Sans Flex'">
             <div class="menu-text" style="font-family: 'Google Sans Flex';">Google Sans Flex</div>
         </div>
@@ -1640,6 +1644,7 @@ if ('serviceWorker' in navigator) {
     const FONT_SIZE_STEPS = [1, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 48, 60, 72, 85, 96, 120, 160, 200];
     let saveStartTime = null;
     let isSaved = true; // Track if document is saved
+    let latestSavingStatus, latestSavingIcon;
     const WORKSPACES_KEY = 'omniwrite-workspaces';
     const ACTIVE_WORKSPACE_KEY = 'omniwrite-active-workspace';
     const WORKSPACES_HIDDEN_KEY = 'omniwrite-workspaces-sidebar-hidden';
@@ -3580,9 +3585,10 @@ if ('serviceWorker' in navigator) {
                 toggleVoiceTyping();
             }
         });
-        const refreshStatus = () => updateSavingStatus(document.getElementById('savingStatus')?.textContent || _t('e2e_encrypted'));
+        const refreshStatus = () => updateSavingStatus(latestSavingStatus ?? _t('e2e_encrypted'), latestSavingIcon);
         window.addEventListener('online', refreshStatus);
         window.addEventListener('offline', refreshStatus);
+        document.addEventListener('omni-document-link-access', refreshStatus);
         refreshStatus();
     }
 
@@ -4378,9 +4384,12 @@ if ('serviceWorker' in navigator) {
 
     // Update saving status UI
     function updateSavingStatus(status, iconOverride) {
+        latestSavingStatus = status;
+        latestSavingIcon = iconOverride;
         const localDoc = getOpenLocalDocument();
         const account = window.MunetiosAccount;
         const offline = navigator.onLine === false;
+        const linkShared = window.OmniCollab?.isLinkShared(window.OmniCollabHost?.current());
         const manuallySyncing = localDoc && manualDocumentSync?.id === localDoc.id;
         const syncButton = document.getElementById('syncLocalDocumentBtn');
         document.getElementById('savingStatusPill')?.classList.toggle('omni-is-local', Boolean(localDoc));
@@ -4388,7 +4397,7 @@ if ('serviceWorker' in navigator) {
             syncButton.hidden = !localDoc || !window.__omniWriteSyncStarted;
             syncButton.disabled = !isSaved || offline || !account?.state.ready || !!manualDocumentSync || account.state.status === 'syncing';
         }
-        if (isSaved && localDoc) {
+        if (isSaved && localDoc && (!linkShared || manuallySyncing)) {
             status = manuallySyncing ? account.t('syncing') : _t('document_status_local');
             iconOverride = manuallySyncing ? 'sync' : 'devices';
         } else if (isSaved && account?.state.revocation) {
@@ -4397,6 +4406,9 @@ if ('serviceWorker' in navigator) {
         } else if (isSaved && window.MunetiosAccount?.state.status === 'syncing') {
             status = window.MunetiosAccount.t('syncing');
             iconOverride = 'sync';
+        } else if (linkShared && status === _t('e2e_encrypted')) {
+            status = _t('saved');
+            iconOverride = 'cloud_done';
         }
         const savingStatusElement = document.getElementById('savingStatus');
         const savingStatusIcon = document.getElementById('savingStatusIcon');
@@ -5325,6 +5337,7 @@ if ('serviceWorker' in navigator) {
             id: createDocumentId(),
             title: (doc.title || documentTitleDefault()) + ' (Copy)',
             content: doc.content || '',
+            fontFamilyVersion: doc.fontFamilyVersion,
             versions: doc.versions ? JSON.parse(JSON.stringify(doc.versions)) : [],
             workspaceId: doc.workspaceId || getActiveWorkspaceId(),
             createdAt: now,
@@ -6725,8 +6738,8 @@ if ('serviceWorker' in navigator) {
         function getOmniChartFontFamily() {
             const editorArea = getActiveEditorSurface();
             const editorFont = editorArea ? window.getComputedStyle(editorArea).fontFamily : '';
-            const savedDefaultFont = typeof getSavedDefaultDocumentFont === 'function' ? getSavedDefaultDocumentFont() : "'Google Sans Flex'";
-            return normalizeGoogleSansFlexFontValue(editorFont || savedDefaultFont || "'Google Sans Flex'");
+            const savedDefaultFont = typeof getSavedDefaultDocumentFont === 'function' ? getSavedDefaultDocumentFont() : "'Munetios UI v4 Font'";
+            return normalizeGoogleSansFlexFontValue(editorFont || savedDefaultFont || "'Munetios UI v4 Font'");
         }
         function getOmniChartColors() {
             const accent = getComputedStyle(document.documentElement).getPropertyValue('--omni-accent').trim() || '#8f5cff';
@@ -7233,7 +7246,7 @@ Q4: 22</textarea>
                 frame.src = url.href;
                 frame.title = _t('insert_from_munetios_photos');
                 frame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
-                frame.style.cssText = 'display:block;width:100%;height:0;max-height:600px;border:0';
+                frame.style.cssText = 'display:block;width:100%;height:0;max-height:600px;border:0;background:transparent;color-scheme:only light';
                 const status = document.createElement('div');
                 status.className = 'mu-empty';
                 status.setAttribute('role', 'status');
@@ -9385,6 +9398,7 @@ Q4: 22</textarea>
             id: createDocumentId(),
             title: doc.title + ' (Copy)',
             content: doc.content,
+            fontFamilyVersion: doc.fontFamilyVersion,
             versions: doc.versions ? JSON.parse(JSON.stringify(doc.versions)) : [],
             createdAt: Date.now(),
             timestamp: Date.now(),
@@ -9972,7 +9986,7 @@ try {
                 probe = probe.parentNode;
             }
             // Text directly inside the editor inherits the editor's own font.
-            if (!font) font = window.getComputedStyle(editorArea).fontFamily || "'Google Sans Flex'";
+            if (!font) font = window.getComputedStyle(editorArea).fontFamily || "'Munetios UI v4 Font'";
             if (fontFamilyPicker && fontFamilyText) {
                 // Compare the exact first family name. A prefix match made
                 // "Google Sans Flex" show up as "Google Sans".
@@ -10289,8 +10303,13 @@ try {
                 event.stopPropagation();
                 toggleGroup(formatGroupBtn, formatGroup);
             });
+            const clickActivatedInsert = '#insertVideoBtn, #insertMusicBtn';
             insertGroup.addEventListener('mousedown', event => {
-                if (event.target.closest('.toolbar-item')) setTimeout(() => closeGroup(insertGroup));
+                const item = event.target.closest('.toolbar-item');
+                if (item && !item.matches(clickActivatedInsert)) setTimeout(() => closeGroup(insertGroup));
+            });
+            insertGroup.addEventListener('click', event => {
+                if (event.target.closest(clickActivatedInsert)) closeGroup(insertGroup);
             });
             alignGroup.addEventListener('mousedown', event => {
                 const item = event.target.closest('.toolbar-item');
@@ -13216,8 +13235,8 @@ try {
 
         function importedPdfTextToHtml(text) {
             const fontFamily = typeof normalizeGoogleSansFlexFontValue === 'function'
-                ? normalizeGoogleSansFlexFontValue("'Google Sans Flex'")
-                : "'Google Sans Flex'";
+                ? normalizeGoogleSansFlexFontValue("'Munetios UI v4 Font'")
+                : "'Munetios UI v4 Font'";
             const lines = text
                 .replace(/\u0000/g, '')
                 .split(/\n{2,}|\r?\n/)
@@ -13242,8 +13261,8 @@ try {
 
         function importedPdfEmbedToHtml(bytes, title) {
             const fontFamily = typeof normalizeGoogleSansFlexFontValue === 'function'
-                ? normalizeGoogleSansFlexFontValue("'Google Sans Flex'")
-                : "'Google Sans Flex'";
+                ? normalizeGoogleSansFlexFontValue("'Munetios UI v4 Font'")
+                : "'Munetios UI v4 Font'";
             const pdfFontStyle = "font-family: " + fontFamily + " !important; font-variation-settings: 'ROND' 90;";
             const dataUrl = 'data:application/pdf;base64,' + bytesToBase64(bytes);
             const safeTitle = htmlEscape(title || 'Imported PDF');
@@ -13260,9 +13279,9 @@ try {
         async function ensureGoogleSansFlexReady() {
             if (!document.fonts || typeof document.fonts.load !== 'function') return;
             try {
-                await withTimeout(document.fonts.load("16px 'Google Sans Flex'"), 2000, 'Google Sans Flex font load timed out.');
+                await withTimeout(document.fonts.load("16px 'Munetios UI v4 Font'"), 2000, 'Munetios UI v4 Font load timed out.');
             } catch (error) {
-                console.warn('Google Sans Flex was not ready before PDF import:', error);
+                console.warn('Munetios UI v4 Font was not ready before PDF import:', error);
             }
         }
 
@@ -13353,6 +13372,7 @@ try {
             const fields = {
                 title: doc.title || documentTitleDefault(),
                 content: await portableHtml(serializeDocumentPages(doc.id) || doc.content),
+                fontFamilyVersion: doc.fontFamilyVersion,
                 headerHtml: await portableHtml(doc.headerHtml),
                 footerHtml: await portableHtml(doc.footerHtml),
                 headersFootersEnabled: doc.headersFootersEnabled,
@@ -14830,7 +14850,7 @@ try {
 
         function getDefaultFontFeatureState() {
             return OMNI_FONT_FEATURE_KEYS.reduce((state, key) => {
-                state[key] = key === 'ss01';
+                state[key] = false;
                 return state;
             }, {});
         }
@@ -14859,15 +14879,30 @@ try {
         }
 
         function getSavedDefaultDocumentFont() {
-            const font = normalizeGoogleSansFlexFontValue(localStorage.getItem('omniwrite-default-font') || "'Google Sans Flex'");
+            const storageKey = 'omniwrite-default-font';
+            const marker = 'omniwrite-default-font-ui-v4';
+            const fallback = "'Munetios UI v4 Font'";
             try {
-                if (localStorage.getItem('omniwrite-default-font') !== font) {
-                    localStorage.setItem('omniwrite-default-font', font);
+                const saved = normalizeGoogleSansFlexFontValue(localStorage.getItem(storageKey));
+                if (saved === "'Google Sans Flex'" && !localStorage.getItem(marker)) {
+                    const axesKey = 'omniwrite-document-font-variations';
+                    try {
+                        const axes = JSON.parse(localStorage.getItem(axesKey) || '{}') || {};
+                        if (axes['google sans flex'] && !axes['munetios ui v4 font']) {
+                            axes['munetios ui v4 font'] = axes['google sans flex'];
+                            localStorage.setItem(axesKey, JSON.stringify(axes));
+                        }
+                    } catch (error) {}
+                    const features = loadFontFeatureState(OMNI_DOCUMENT_FONT_FEATURES_KEY);
+                    features.ss01 = false;
+                    features.ss02 = false;
+                    saveFontFeatureState(OMNI_DOCUMENT_FONT_FEATURES_KEY, features);
+                    localStorage.setItem(storageKey, fallback);
+                    localStorage.setItem(marker, '1');
+                    return fallback;
                 }
-            } catch(e) {
-                console.warn('localStorage unavailable:', e);
-            }
-            return font;
+                return saved || fallback;
+            } catch (error) { return fallback; }
         }
 
         function applyFontPreferences() {
@@ -14899,7 +14934,7 @@ try {
                 #editorArea *:not(icon):not(.omni-doc-icon),
                 .document-page-editor *:not(icon):not(.omni-doc-icon),
                 .split-editor *:not(icon):not(.omni-doc-icon) {
-                    font-feature-settings: var(--omni-ff, ${documentFeatures}) !important;
+                    font-feature-settings: var(--omni-ff, var(--omni-code-style-features, ${documentFeatures})) !important;
                     ${documentVariations ? 'font-variation-settings: var(--omni-fv, ' + documentVariations + ') !important;' : ''}
                 }
             `;
@@ -16235,6 +16270,55 @@ try {
             if (!savedPages.length) return [html];
             return savedPages.map(function(page) { return page.innerHTML; });
         }
+        function migrateLegacyFontHtml(content) {
+            if (typeof content !== 'string' || !/google sans flex/i.test(content)) return content;
+            const template = document.createElement('template');
+            template.innerHTML = content;
+            const isLegacyFamily = value => /^['"]?google sans flex['"]?$/i.test(value.trim());
+            const replaceFamily = (family, replacement) => family.split(',').map(value =>
+                isLegacyFamily(value) ? replacement : value
+            ).join(',');
+            let changed = false;
+            for (const element of template.content.querySelectorAll('[style], font[face]')) {
+                const face = element.getAttribute('face');
+                const style = element.style;
+                const family = style.fontFamily;
+                const newFace = face === null ? null : replaceFamily(face, 'Munetios UI v4 Font');
+                const newFamily = replaceFamily(family, "'Munetios UI v4 Font'");
+                if (newFace === face && newFamily === family) continue;
+                changed = true;
+                if (newFace !== face) element.setAttribute('face', newFace);
+                if (newFamily !== family) style.setProperty('font-family', newFamily, style.getPropertyPriority('font-family'));
+                if (!isLegacyFamily((family || face || '').split(',')[0])) continue;
+                for (const property of ['font-feature-settings', '--omni-ff']) {
+                    const value = style.getPropertyValue(property);
+                    if (!value) continue;
+                    const settings = value.split(',').filter(setting => !/^\s*['"]ss0[12]['"](?:\s|$)/i.test(setting));
+                    style.setProperty(property, settings.join(',').trim() || 'normal', style.getPropertyPriority(property));
+                }
+            }
+            return changed ? template.innerHTML : content;
+        }
+        function migrateLegacyDocumentFont(doc) {
+            if (doc.omniRecovery || doc.fontFamilyVersion) return false;
+            const content = migrateLegacyFontHtml(doc.content);
+            let changed = content !== doc.content;
+            doc.content = content;
+            for (const key of ['headerHtml', 'footerHtml']) {
+                if (typeof doc[key] !== 'string') continue;
+                const migrated = migrateLegacyFontHtml(doc[key]);
+                changed ||= migrated !== doc[key];
+                doc[key] = migrated;
+            }
+            for (const version of Array.isArray(doc.versions) ? doc.versions : []) {
+                if (!version) continue;
+                const migrated = migrateLegacyFontHtml(version.content);
+                changed ||= migrated !== version.content;
+                version.content = migrated;
+            }
+            doc.fontFamilyVersion = 1;
+            return changed;
+        }
         function updateLineNumberGutter(gutter, editor) {
             const lineHeight = parseFloat(getComputedStyle(editor).lineHeight) || 28;
             const text = editor.innerText || '';
@@ -16502,6 +16586,7 @@ try {
                 column.innerHTML = '<div class="document-page-shell"><div class="document-page-editor editor-surface" style="display:flex;align-items:center;justify-content:center;min-height:320px;text-align:center;opacity:.78;" contenteditable="false"><div><icon>lock</icon><p>' + htmlEscape(_t('workspace_locked_requires_unlock')) + '</p></div></div></div>';
                 return column.querySelector('.document-page-editor');
             }
+            if (migrateLegacyDocumentFont(doc) && isCurrentWorkspaceWritable()) scheduleDocumentSave();
             const pageHtmlList = parseDocumentPages(doc.content);
             column.querySelectorAll('img[data-omni-blob-url]').forEach(img => {
                 try { URL.revokeObjectURL(img.dataset.omniBlobUrl); } catch(e) {}
@@ -17063,6 +17148,7 @@ try {
             } catch(e) { console.warn('Failed to load custom font:', e); }
         }
         const OMNI_CORE_FONT_OPTIONS = [
+            { name: 'Munetios UI v4 Font', value: "'Munetios UI v4 Font'" },
             { name: 'Google Sans Flex', value: "'Google Sans Flex'" },
             { name: 'Google Sans', value: "'Google Sans', sans-serif" },
             { name: ' Inter', value: "Inter,  sans-serif" },
@@ -18508,7 +18594,10 @@ try {
             }
             updateDefaultFontLabel(getSavedDefaultDocumentFont());
             defaultFontDropdown._applyDefaultFont = ({ font, ff, fv, kind }) => {
-                if (kind === 'family') localStorage.setItem('omniwrite-default-font', font);
+                if (kind === 'family') {
+                    localStorage.setItem('omniwrite-default-font-ui-v4', '1');
+                    localStorage.setItem('omniwrite-default-font', font);
+                }
                 if (kind === 'ff' || kind === 'all') {
                     saveFontFeatureState(OMNI_DOCUMENT_FONT_FEATURES_KEY, { ...loadFontFeatureState(OMNI_DOCUMENT_FONT_FEATURES_KEY), ...ff });
                     renderFontFeatureToggles(settingsModal.querySelector('#documentFontFeatureGrid'), OMNI_DOCUMENT_FONT_FEATURES_KEY);
@@ -22557,8 +22646,13 @@ try {
             },
             all: () => documents,
             isLocked: locked,
-            snapshot: doc => ({ title: String(doc.title || ''), content: String(doc.content || '') }),
+            snapshot: doc => ({ title: String(doc.title || ''), content: String(doc.content || ''), fontFamilyVersion: doc.fontFamilyVersion }),
+            migrateSnapshot(snap) {
+                if (snap?.fontFamilyVersion || typeof snap?.content !== 'string') return snap;
+                return { ...snap, content: migrateLegacyFontHtml(snap.content), fontFamilyVersion: 1 };
+            },
             apply(doc, snap) {
+                doc.fontFamilyVersion = snap.fontFamilyVersion || doc.fontFamilyVersion;
                 const titleChanged = doc.title !== snap.title;
                 doc.title = String(snap.title || documentTitleDefault());
                 if (isOpen(doc)) {
@@ -22607,12 +22701,13 @@ try {
                 if (title && readOnly) { title.contentEditable = 'false'; title.dataset.collabReadonly = 'true'; }
                 else if (title && title.dataset.collabReadonly) { delete title.dataset.collabReadonly; title.contentEditable = locked(doc) ? 'false' : 'true'; }
             },
-            create({ title, content, collab, open = true }) {
+            create({ title, content, fontFamilyVersion, collab, open = true }) {
                 if (!isCurrentWorkspaceWritable()) return null;
                 const doc = {
                     id: createDocumentId(),
                     title: String(title || documentTitleDefault()),
                     content: String(content || ''),
+                    fontFamilyVersion,
                     createdAt: Date.now(), updatedAt: Date.now(), timestamp: Date.now(),
                     pinned: false,
                     workspaceId: getActiveWorkspaceId()

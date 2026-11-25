@@ -54,6 +54,8 @@
 .account-row-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .account-dialog-text { margin: 0; }
 .account-dialog-error { margin: 0; color: var(--mu-danger); }
+.account-auth-qr { display: block; inline-size: min(220px, 100%); block-size: auto; margin-inline: auto; border-radius: 12px; }
+.account-recovery-codes { margin: 0; text-align: center; user-select: all; }
 
 @media (max-width: 860px) {
     .account-layout { grid-template-columns: minmax(0, 1fr); }

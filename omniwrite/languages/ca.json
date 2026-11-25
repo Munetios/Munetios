@@ -1431,7 +1431,7 @@
   "collab_restricted": "Restringit",
   "collab_restricted_desc": "Només les persones que afegeixis poden obrir-lo.",
   "collab_anyone_link": "Qualsevol persona que tingui l’enllaç",
-  "collab_anyone_link_desc": "Qualsevol persona amb l’enllaç pot obrir-lo, fins i tot sense compte. Els visitants sense sessió només poden veure’l.",
+  "collab_anyone_link_desc": "Qualsevol persona amb l’enllaç pot obrir-lo, fins i tot sense compte.",
   "collab_role": "Rol",
   "collab_role_owner": "Propietari",
   "collab_role_edit": "Editor",
@@ -1534,8 +1534,10 @@
   "dictionary": "Diccionari",
   "dictionary_custom_words": "Paraules personalitzades",
   "dictionary_autocorrect": "Correcció automàtica",
-  "dictionary_english_words": "Llista de paraules en anglès",
   "dictionary_word": "Paraula",
   "dictionary_invalid_word": "Introduïu una paraula amb lletres i apòstrofs.",
-  "dictionary_load_failed": "No s'ha pogut carregar la llista de paraules en anglès."
+  "overview_page": "Visió general d’OmniWrite",
+  "overview_heading": "Escriu, organitza i col·labora.",
+  "overview_intro": "Crea documents i fulls de càlcul en un sol espai de treball.",
+  "overview_open": "Obre OmniWrite"
 }

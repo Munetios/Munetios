@@ -1,29 +1,11 @@
-/* Munetios WebFilter block page: /blocked?mode=blocked|lock|notice&reason=&rule=&until=&message=&url=
- * The original address is always the last parameter (a network-level redirect appends it unencoded).
- * Request access and the bypass password go through the Munetios WebFilter extension's content
- * script (window.postMessage), which only answers when this tab really is the block page.
- */
+/* The extension supplies block details and handles actions for verified navigations. */
 (async () => {
   "use strict";
   const I18n = window.MunetiosWebFilterI18n;
   await I18n.load();
   const t = I18n.t;
   const $ = id => document.getElementById(id);
-  const search = location.search;
-  const params = new URLSearchParams(search.replace(/[?&]url=.*$/, ""));
-  const mode = params.get("mode") || "blocked";
-  const engine = window.MunetiosWebFilterEngine;
   const setWorkspace = name => { if (typeof name === "string" && name.trim()) $("mwfWorkspace").textContent = name.trim().slice(0, 120); };
-  const blockInfo = { reason: params.get("reason"), rule: params.get("rule"), websiteId: params.get("websiteId"), category: params.get("category"), until: Number(params.get("until")) || 0 };
-  setWorkspace(params.get("workspace"));
-
-  function targetUrl() {
-    const at = search.search(/[?&]url=/);
-    if (at < 0) return "";
-    let value = search.slice(at + 5);
-    if (/^https?%3A/i.test(value)) { try { value = decodeURIComponent(value); } catch (error) { /* keep */ } }
-    return value;
-  }
 
   // --------------------------------------------------------------- extension bridge
   let counter = 0;
@@ -59,18 +41,18 @@
     "category-block": rule => t("block_reason_category", { category: t("cat_" + rule) }),
   };
 
-  function showReason({ reason, rule, websiteId, category, until }) {
-    const text = (reasons[reason] || reasons["global-block"])(category || rule || "unrated");
+  function showReason({ reason, blockId, category, until }) {
+    const text = (reasons[reason] || reasons["global-block"])(category || "unrated");
     $("mwfReason").textContent = text + (until ? " · " + t("block_until", { time: I18n.formatTime(until) }) : "");
-    const id = ["global-block", "class-block", "temporary"].includes(reason) ? engine.blockedWebsiteId(websiteId, rule) : "";
+    const id = typeof blockId === "string" && /^[a-z0-9_-]{1,100}$/i.test(blockId) ? blockId : "";
     $("mwfRule").textContent = id;
     $("mwfRuleRow").hidden = !id;
   }
 
   // Static labels
-  $("mwfUrlLabel").textContent = t("block_address");
+  $("mwfUrlLabel").textContent = t("tab_url");
   $("mwfReasonLabel").textContent = t("block_reason");
-  $("mwfRuleLabel").textContent = t("block_rule");
+  $("mwfRuleLabel").textContent = t("block_pattern");
   $("mwfRequestLabel").textContent = t("block_request_access");
   $("mwfRequestTitle").textContent = t("block_request_title");
   $("mwfRequestReasonLabel").textContent = t("block_request_reason");
@@ -84,7 +66,13 @@
   $("mwfBypassCancel").textContent = t("block_cancel");
 
   const back = $("mwfBack");
-  const message = params.get("message") || "";
+  const reply = await ask("hello", {}, 2000);
+  const hello = reply?.verified === true ? reply : null;
+  // Older extensions check the policy against a URL from the query string.
+  // Their response can select the standard screen, but cannot verify details or actions.
+  const legacyBlock = reply?.verified === undefined && Object.hasOwn(reasons, reply?.reason);
+  const mode = hello?.mode;
+  setWorkspace(hello?.workspaceName);
 
   if (mode === "lock") {
     $("mwfTitle").textContent = t("block_locked_title");
@@ -100,12 +88,16 @@
       if (!window.closed) history.length > 1 ? history.back() : location.replace("about:blank");
     });
   } else {
-    const url = targetUrl();
-    $("mwfTitle").textContent = t("block_title");
-    $("mwfBody").textContent = t("block_body");
-    $("mwfFacts").hidden = false;
-    $("mwfUrl").textContent = url;
-    showReason(blockInfo);
+    if (hello || legacyBlock) $("mwfTitle").textContent = t("block_title");
+    $("mwfBody").textContent = t(hello || legacyBlock ? "block_body" : "block_return_body");
+    if (hello) {
+      $("mwfFacts").hidden = false;
+      if (typeof hello.blockedUrl === "string" && hello.blockedUrl) {
+        $("mwfUrl").textContent = hello.blockedUrl;
+        $("mwfUrlRow").hidden = false;
+      }
+      showReason(hello);
+    }
     $("mwfBackLabel").textContent = t("block_go_back");
     back.addEventListener("click", () => { history.length > 1 ? history.back() : location.replace("about:blank"); });
 
@@ -124,13 +116,10 @@
     $("mwfRequestBtn").addEventListener("click", () => togglePanel("mwfRequestPanel", $("mwfRequestBtn")));
     $("mwfBypassBtn").addEventListener("click", () => togglePanel("mwfBypassPanel", $("mwfBypassBtn")));
 
-    const hello = await ask("hello", { url }, 1500);
-    setWorkspace(hello?.workspaceName);
-    if (hello && hello.available && /^https?:/i.test(url)) {
+    if (hello?.available) {
       $("mwfRequestBtn").hidden = false;
       $("mwfBypassBtn").hidden = !hello.bypassEnabled;
-      if (hello.reason && hello.reason !== "open") showReason({ ...blockInfo, ...hello, until: hello.until || blockInfo.until });
-    } else {
+    } else if (hello) {
       $("mwfNeedsExtension").textContent = t("block_needs_extension");
       $("mwfNeedsExtension").hidden = false;
     }
@@ -141,7 +130,7 @@
       event.preventDefault();
       const send = $("mwfRequestSend");
       send.disabled = true;
-      const result = await ask("request", { url, reason: $("mwfRequestReason").value.trim() });
+      const result = await ask("request", { reason: $("mwfRequestReason").value.trim() });
       send.disabled = false;
       if (!result || !result.ok) { status(t("block_request_failed"), "bad"); return; }
       $("mwfRequestPanel").hidden = true;
@@ -149,7 +138,7 @@
       $("mwfRequestBtn").setAttribute("aria-expanded", "false");
       status(t("block_request_sent"), "good");
       const check = async () => {
-        const answer = await ask("status", { url, id: result.id });
+        const answer = await ask("status", { id: result.id });
         if (answer && answer.status === "approved") { status(t("block_request_approved"), "good"); return; }
         if (answer && answer.status === "denied") { status(t("block_request_denied"), "bad"); return; }
         pollTimer = setTimeout(check, 10000);
@@ -162,7 +151,7 @@
       event.preventDefault();
       const unlock = $("mwfUnlock");
       unlock.disabled = true;
-      const result = await ask("bypass", { url, password: $("mwfPassword").value });
+      const result = await ask("bypass", { password: $("mwfPassword").value });
       unlock.disabled = false;
       $("mwfPassword").value = "";
       if (result && result.ok) { clearTimeout(pollTimer); status(t("block_bypass_ok", { minutes: result.minutes }), "good"); return; }
@@ -172,8 +161,8 @@
   }
 
   document.title = $("mwfTitle").textContent + " · Munetios WebFilter";
-  if (message) {
+  if (typeof hello?.message === "string" && hello.message) {
     $("mwfMessage").hidden = false;
-    $("mwfMessage").textContent = message;
+    $("mwfMessage").textContent = hello.message;
   }
 })();

@@ -1431,7 +1431,7 @@
   "collab_restricted": "מוגבלת",
   "collab_restricted_desc": "רק אנשים שהוספת יכולים לפתוח אותו.",
   "collab_anyone_link": "כל מי שיש לו את הקישור",
-  "collab_anyone_link_desc": "כל מי שיש לו את הקישור יכול לפתוח אותו, גם בלי חשבון. מבקרים שלא נכנסו יכולים רק לצפות.",
+  "collab_anyone_link_desc": "כל מי שיש לו את הקישור יכול לפתוח אותו, גם בלי חשבון.",
   "collab_role": "תפקיד",
   "collab_role_owner": "בעלים",
   "collab_role_edit": "עורך",
@@ -1534,8 +1534,10 @@
   "dictionary": "מילון",
   "dictionary_custom_words": "מילים מותאמות אישית",
   "dictionary_autocorrect": "תיקון אוטומטי",
-  "dictionary_english_words": "רשימת מילים באנגלית",
   "dictionary_word": "מילה",
   "dictionary_invalid_word": "יש להזין מילה אחת המורכבת מאותיות ומגרשים.",
-  "dictionary_load_failed": "לא ניתן לטעון את רשימת המילים באנגלית."
+  "overview_page": "סקירה כללית של OmniWrite",
+  "overview_heading": "לכתוב, לארגן ולעבוד יחד.",
+  "overview_intro": "צרו מסמכים וגיליונות אלקטרוניים בסביבת עבודה אחת.",
+  "overview_open": "פתיחת OmniWrite"
 }

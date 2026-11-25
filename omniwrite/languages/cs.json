@@ -1431,7 +1431,7 @@
   "collab_restricted": "Omezený",
   "collab_restricted_desc": "Otevřít ho mohou jen lidé, které přidáte.",
   "collab_anyone_link": "Kdokoli s odkazem",
-  "collab_anyone_link_desc": "Kdokoli s odkazem ho může otevřít i bez účtu. Nepřihlášení návštěvníci mohou jen zobrazovat.",
+  "collab_anyone_link_desc": "Kdokoli s odkazem ho může otevřít i bez účtu.",
   "collab_role": "Role",
   "collab_role_owner": "Vlastník",
   "collab_role_edit": "Editor",
@@ -1534,8 +1534,10 @@
   "dictionary": "Slovník",
   "dictionary_custom_words": "Vlastní slova",
   "dictionary_autocorrect": "Automatické opravy",
-  "dictionary_english_words": "Seznam anglických slov",
   "dictionary_word": "Slovo",
   "dictionary_invalid_word": "Zadejte jedno slovo tvořené písmeny a apostrofy.",
-  "dictionary_load_failed": "Seznam anglických slov se nepodařilo načíst."
+  "overview_page": "Přehled OmniWrite",
+  "overview_heading": "Pište, organizujte a spolupracujte.",
+  "overview_intro": "Vytvářejte dokumenty a tabulky v jednom pracovním prostoru.",
+  "overview_open": "Otevřít OmniWrite"
 }

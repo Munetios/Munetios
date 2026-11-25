@@ -52,6 +52,25 @@ body.wf-app::before {
 
 .wf-content { display: grid; gap: 20px; max-width: 1280px; margin: 0 auto; }
 .wf-page { display: grid; gap: 20px; min-width: 0; }
+.wf-page[data-page="compare"] { grid-template-columns: minmax(0, 1fr); }
+.wf-compare-legend, .wf-compare-legend > span { display: flex; align-items: center; gap: 8px; }
+.wf-compare-legend { flex-wrap: wrap; column-gap: 20px; }
+.wf-compare-mark { position: relative; display: inline-flex; }
+.wf-compare-legend > span:first-child .mu-icon, .wf-compare-mark.is-supported .mu-icon { color: var(--mu-success); }
+.wf-compare-legend > span:nth-child(2) .mu-icon, .wf-compare-mark .mu-icon { color: var(--mu-danger); }
+.wf-compare-table th, .wf-compare-table td { vertical-align: middle; }
+.wf-compare-table th:not(:first-child), .wf-compare-table td { min-inline-size: 6rem; text-align: center; }
+.wf-compare-table th:first-child {
+  position: sticky;
+  z-index: 1;
+  inset-inline-start: 0;
+  inline-size: 26%;
+  min-inline-size: 8rem;
+  background: var(--mu-bg);
+  border-inline-end: 1px solid var(--mu-border);
+}
+.wf-compare-table th[scope="row"] { color: var(--mu-text); font-weight: 400; }
+.wf-compare-table a { color: inherit; text-underline-offset: 0.2em; }
 
 /* ------------------------------------------------------------ blocks */
 .wf-hero { display: flex; align-items: center; gap: 20px; }

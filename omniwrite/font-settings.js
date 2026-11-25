@@ -1,8 +1,7 @@
 /*
  * OmniWrite font settings (font family picker > right pane)
  *
- * - Stylistic sets ss01–ss20 are available for every font (ss01 on by
- *   default). Fonts ignore OpenType sets they do not support.
+ * - Stylistic sets ss01–ss20 are available for every font. Fonts ignore OpenType sets they do not support.
  * - Sliders for every variation axis a font really has. The axis ranges were
  *   read from the font files OmniWrite loads (api.munetios.com/fonts).
  * - Changes apply to selected text, or to text typed next at the caret.
@@ -17,11 +16,16 @@
 
     const AXIS = (tag, min, def, max, step) => ({ tag, min, default: def, max, step: step || 1 });
     // Read from the font files' fvar tables.
+    const VARIABLE_FLEX = {
+        stylisticSets: true,
+        axes: [AXIS('wght', 1, 400, 1000), AXIS('wdth', 25, 100, 151), AXIS('opsz', 6, 18, 144), AXIS('GRAD', 0, 0, 100), AXIS('ROND', 0, 0, 100), AXIS('slnt', -10, 0, 0, 0.5)]
+    };
     const META = {
-        'google sans flex': {
-            stylisticSets: true,
-            axes: [AXIS('wght', 1, 400, 1000), AXIS('wdth', 25, 100, 151), AXIS('opsz', 6, 18, 144), AXIS('GRAD', 0, 0, 100), AXIS('ROND', 0, 0, 100), AXIS('slnt', -10, 0, 0, 0.5)]
+        'munetios ui v4 font': {
+            ...VARIABLE_FLEX,
+            axes: VARIABLE_FLEX.axes.map(axis => axis.tag === 'wdth' ? AXIS('wdth', 23, 100, 149) : axis)
         },
+        'google sans flex': VARIABLE_FLEX,
         'google sans': { stylisticSets: false, axes: [AXIS('wght', 400, 400, 700), AXIS('opsz', 17, 18, 18, 0.001), AXIS('GRAD', -50, 0, 200)] },
         'inter': { stylisticSets: false, axes: [AXIS('wght', 100, 400, 900), AXIS('opsz', 14, 14, 32)] },
         'open sans': { stylisticSets: false, axes: [AXIS('wght', 300, 400, 800), AXIS('wdth', 75, 100, 100)] },
@@ -49,7 +53,7 @@
 
     function documentDefaultFeatures() {
         const state = {};
-        SS_KEYS.forEach(k => { state[k] = k === 'ss01'; });
+        SS_KEYS.forEach(k => { state[k] = false; });
         try {
             const stored = JSON.parse(localStorage.getItem('omniwrite-document-font-features') || '{}');
             SS_KEYS.forEach(k => { if (typeof stored[k] === 'boolean') state[k] = stored[k]; });
@@ -184,7 +188,7 @@
 
     function reset() {
         cancelAnimationFrame(commitFrame);
-        pane.ff = Object.fromEntries(SS_KEYS.map(key => [key, key === 'ss01']));
+        pane.ff = Object.fromEntries(SS_KEYS.map(key => [key, false]));
         pane.fv = Object.fromEntries((metaFor(pane.font)?.axes || []).map(axis => [axis.tag, axis.default]));
         commit('all');
         render();
@@ -260,10 +264,10 @@
     }
 
     function fontOfContext() {
-        if (pane.external) return externalContext().font || "'Google Sans Flex'";
+        if (pane.external) return externalContext().font || "'Munetios UI v4 Font'";
         const probe = pane.targets[0] || (pane.range ? (pane.range.startContainer.nodeType === 1 ? pane.range.startContainer : pane.range.startContainer.parentElement) : null);
-        const family = probe ? getComputedStyle(probe).fontFamily : "'Google Sans Flex'";
-        return family || "'Google Sans Flex'";
+        const family = probe ? getComputedStyle(probe).fontFamily : "'Munetios UI v4 Font'";
+        return family || "'Munetios UI v4 Font'";
     }
 
     function labelFor(fontValue) {
@@ -291,7 +295,7 @@
         pane.defaults = picker?.dataset.fontScope === 'default';
         pane.external = picker?.dataset.fontScope === 'external';
         captureContext();
-        pane.font = fontValue || (pane.defaults ? localStorage.getItem('omniwrite-default-font') || "'Google Sans Flex'" : fontOfContext());
+        pane.font = fontValue || (pane.defaults ? localStorage.getItem('omniwrite-default-font') || "'Munetios UI v4 Font'" : fontOfContext());
         pane.label = labelFor(pane.font);
         readCurrent(metaFor(pane.font));
         markCurrent();

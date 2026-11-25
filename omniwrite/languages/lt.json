@@ -1431,7 +1431,7 @@
   "collab_restricted": "Apribota",
   "collab_restricted_desc": "Atidaryti gali tik jūsų pridėti žmonės.",
   "collab_anyone_link": "Visi, turintys nuorodą",
-  "collab_anyone_link_desc": "Bet kas, turintis nuorodą, gali atidaryti net be paskyros. Neprisijungę lankytojai gali tik peržiūrėti.",
+  "collab_anyone_link_desc": "Bet kas, turintis nuorodą, gali atidaryti net be paskyros.",
   "collab_role": "Vaidmuo",
   "collab_role_owner": "Savininkas",
   "collab_role_edit": "Redaktorius",
@@ -1534,8 +1534,10 @@
   "dictionary": "Žodynas",
   "dictionary_custom_words": "Savi žodžiai",
   "dictionary_autocorrect": "Automatinis taisymas",
-  "dictionary_english_words": "Angliškų žodžių sąrašas",
   "dictionary_word": "Žodis",
   "dictionary_invalid_word": "Įveskite vieną žodį iš raidžių ir apostrofų.",
-  "dictionary_load_failed": "Nepavyko įkelti angliškų žodžių sąrašo."
+  "overview_page": "„OmniWrite“ apžvalga",
+  "overview_heading": "Rašykite, tvarkykite ir bendradarbiaukite.",
+  "overview_intro": "Kurkite dokumentus ir skaičiuokles vienoje darbo srityje.",
+  "overview_open": "Atidaryti „OmniWrite“"
 }

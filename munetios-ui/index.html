@@ -78,7 +78,7 @@
         <div class="doc-brand">
             <span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">widgets</span></span>
             <h1>Munetios UI v4</h1>
-            <span class="mu-badge">4.3.0</span>
+            <span class="mu-badge">4.4.0</span>
         </div>
         <label class="mu-search"><span class="mu-icon" aria-hidden="true">search</span><input id="docFilter" type="search" placeholder="Filter components" aria-label="Filter components" autocomplete="off"></label>
         <div class="mu-segmented" role="group" aria-label="Theme" id="docTheme">
@@ -103,7 +103,7 @@
                     <li><span class="mu-icon" aria-hidden="true">check_circle</span><span>Liquid glass with blur no higher than 2px and glass alpha between 0.01 and 0.50.</span></li>
                     <li><span class="mu-icon" aria-hidden="true">check_circle</span><span>Text from 18px to 48px. No bold: headings use weight 300, everything else 400.</span></li>
                     <li><span class="mu-icon" aria-hidden="true">check_circle</span><span>High roundness: pills for single-line controls, circles for icon buttons.</span></li>
-                    <li><span class="mu-icon" aria-hidden="true">check_circle</span><span>Google Sans Flex with ss01, and Material Symbols Rounded icons.</span></li>
+                    <li><span class="mu-icon" aria-hidden="true">check_circle</span><span>Munetios UI v4 Font and Material Symbols Rounded icons.</span></li>
                     <li><span class="mu-icon" aria-hidden="true">check_circle</span><span>Google-style ripple on every clickable control (add <code>data-mu-ripple</code> to any other element), and the Google spinner for loading.</span></li>
                 </ul>
             </div>
@@ -331,12 +331,23 @@
             </div>
         </section>
 
+        <section class="doc-section mu-glass" data-title="Top bar search" data-icon="search" id="topbar-search">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">search</span></span><div><h2>Top bar search</h2><p>A floating glass search pill with the same height and padding as the top bar capsules, so it never makes the right side wrap. Below 768px it becomes an icon button that opens as a floating bar over the top bar, inset by <code>--mu-topbar-pad-block</code> and <code>--mu-topbar-pad-inline</code>. Escape clears it, then closes it. Calendar and Photos use it.</p></div></header>
+            <div class="doc-demo" data-demo>
+<div class="mu-topbar" style="--mu-topbar-pad-block:0px;--mu-topbar-pad-inline:0px">
+<button type="button" class="mu-capsule-btn" aria-label="Menu"><span class="mu-icon" aria-hidden="true">menu</span></button>
+<label class="mu-search mu-topbar-search"><span class="mu-icon" aria-hidden="true">search</span><input type="search" placeholder="Search events" aria-label="Search events"><button type="button" class="mu-icon-btn mu-icon-btn-sm mu-topbar-search-close" aria-label="Close search"><span class="mu-icon" aria-hidden="true">close</span></button></label>
+<div class="mu-capsule" style="margin-inline-start:auto"><button type="button" class="mu-icon-btn" aria-label="Settings"><span class="mu-icon" aria-hidden="true">settings</span></button></div>
+</div>
+            </div>
+        </section>
+
         <section class="doc-section mu-glass" data-title="Toolbar" data-icon="construction" id="toolbar">
             <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">construction</span></span><div><h2>Toolbar</h2><p>Core tools first, field-style controls for text style and font, dividers between groups.</p></div></header>
             <div class="doc-demo" data-demo>
 <div class="mu-toolbar" role="toolbar" aria-label="Formatting">
 <button type="button" class="mu-toolbar-field">Normal text<span class="mu-icon" aria-hidden="true">arrow_drop_down</span></button>
-<button type="button" class="mu-toolbar-field"><span class="mu-icon" aria-hidden="true">font_download</span>Google Sans Flex</button>
+<button type="button" class="mu-toolbar-field"><span class="mu-icon" aria-hidden="true">font_download</span>Munetios UI v4 Font</button>
 <span class="mu-divider-v"></span>
 <button type="button" class="mu-icon-btn" aria-label="Bold"><span class="mu-icon" aria-hidden="true">format_bold</span></button>
 <button type="button" class="mu-icon-btn is-active" aria-label="Italic"><span class="mu-icon" aria-hidden="true">format_italic</span></button>
@@ -613,6 +624,21 @@
             </div>
         </section>
 
+        <section class="doc-section mu-glass" data-title="List picker" data-icon="translate" id="list-picker">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">translate</span></span><div><h2>List picker</h2><p>A searchable dialog for long lists such as languages and time zones. Call <code>MunetiosUI.pickFromList({ title, icon, value, groups, searchLabel, emptyText, onPick })</code>. Each item has a <code>label</code>, an optional <code>sub</code> line, and an optional <code>trailing</code> value. Arrow keys move through the list. Calendar uses it for the language and time zone pickers.</p></div></header>
+            <div class="doc-demo is-row" data-demo>
+<button type="button" class="mu-btn" onclick="MunetiosUI.pickFromList({ title: 'Language', icon: 'translate', value: 'es-US', searchLabel: 'Search languages', groups: [{ label: 'Suggested', items: [{ value: 'en', label: 'English', sub: 'English' }, { value: 'es-US', label: 'Español (Estados Unidos)', sub: 'Spanish (United States)' }] }, { label: 'All languages', items: [{ value: 'es', label: 'Español', sub: 'Spanish' }, { value: 'fr', label: 'Français', sub: 'French' }, { value: 'ja', label: '日本語', sub: 'Japanese' }] }], onPick: v => MunetiosUI.toast('Picked ' + v) })"><span class="mu-icon" aria-hidden="true">translate</span>Choose language</button>
+<button type="button" class="mu-btn" onclick="MunetiosUI.pickFromList({ title: 'Time zone', icon: 'public', value: 'UTC', searchLabel: 'Search time zones', items: [{ value: 'America/New_York', label: 'New York', sub: 'America/New_York', trailing: 'UTC-05:00' }, { value: 'UTC', label: 'UTC', sub: 'UTC', trailing: 'UTC+00:00' }, { value: 'Asia/Tokyo', label: 'Tokyo', sub: 'Asia/Tokyo', trailing: 'UTC+09:00' }], onPick: v => MunetiosUI.toast('Picked ' + v) })"><span class="mu-icon" aria-hidden="true">public</span>Choose time zone</button>
+            </div>
+        </section>
+
+        <section class="doc-section mu-glass" data-title="Upload tray" data-icon="cloud_upload" id="upload-tray">
+            <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">cloud_upload</span></span><div><h2>Upload tray</h2><p>A panel fixed to the bottom right while files upload. Call <code>MunetiosUI.uploadTray({ title })</code>, then <code>tray.add({ name, icon })</code>. Each item has <code>progress(fraction, text)</code>, <code>done(text)</code>, and <code>fail(text, retry)</code>, and calls <code>onCancel</code> when someone cancels it. Photos uses it for cloud uploads.</p></div></header>
+            <div class="doc-demo is-row" data-demo>
+<button type="button" class="mu-btn" onclick="(() => { const tray = MunetiosUI.uploadTray({ title: 'Uploading 2 items' }); const a = tray.add({ name: 'Beach.jpg', icon: 'image' }); const b = tray.add({ name: 'Trip.mp4', icon: 'movie' }); let p = 0; const timer = setInterval(() => { p += 0.1; a.progress(Math.min(1, p * 1.5), Math.round(Math.min(1, p * 1.5) * 100) + '%'); b.progress(p, Math.round(p * 100) + '%'); if (p >= 1) { clearInterval(timer); a.done('Uploaded'); b.fail('Couldn\'t upload the photo or media. Try again', () => b.done('Uploaded')); tray.setTitle('1 item uploaded'); } }, 300); a.onCancel = b.onCancel = () => clearInterval(timer); })()"><span class="mu-icon" aria-hidden="true">cloud_upload</span>Show upload tray</button>
+            </div>
+        </section>
+
         <section class="doc-section mu-glass" data-title="File row" data-icon="draft" id="file">
             <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">draft</span></span><div><h2>File row</h2><p>A file with its size and upload progress.</p></div></header>
             <div class="doc-demo" data-demo>
@@ -668,7 +694,7 @@
 </div>
             </div>
             <h3 class="mu-h-title" style="margin:22px 0 12px">Side panel</h3>
-            <p class="mu-muted" style="margin:0 0 12px"><code>.mu-side-panel</code> docks on the right on wide screens and becomes a bottom sheet (with <code>.mu-sheet-grip</code>) at 760px and narrower. OmniWrite's Comments panel uses it. Toggle it with the <code>hidden</code> attribute.</p>
+            <p class="mu-muted" style="margin:0 0 12px"><code>.mu-side-panel</code> docks on the right on wide screens and becomes a bottom sheet (with <code>.mu-sheet-grip</code>) on screens narrower than 900px. OmniWrite's Comments panel uses it. Toggle it with the <code>hidden</code> attribute.</p>
             <div class="doc-demo" data-demo>
 <button type="button" class="mu-btn" onclick="const panel=document.getElementById('demoSidePanel'); panel.hidden=!panel.hidden;"><span class="mu-icon" aria-hidden="true">forum</span>Toggle side panel</button>
 <aside class="mu-side-panel" id="demoSidePanel" aria-labelledby="demoSidePanelTitle" hidden>
@@ -1055,11 +1081,11 @@
         for (let day = 1; day <= 5; day++) html += '<button type="button" class="mu-calendar-day is-muted" aria-pressed="false" aria-label="December ' + day + ', 2026">' + day + '</button>';
         cal.innerHTML = html;
     }
-    // Stylistic set chips: ss01 on by default
+    // Stylistic set chips
     const chips = document.getElementById('ssChips');
     chips.innerHTML = Array.from({ length: 20 }, (_, i) => {
         const k = 'ss' + String(i + 1).padStart(2, '0');
-        return '<button type="button" class="mu-chip" aria-pressed="' + (k === 'ss01') + '">' + k + '</button>';
+        return '<button type="button" class="mu-chip" aria-pressed="false">' + k + '</button>';
     }).join('');
 
     // Color swatches from the live tokens

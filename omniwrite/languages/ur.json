@@ -1534,8 +1534,10 @@
   "dictionary": "لغت",
   "dictionary_custom_words": "ذاتی الفاظ",
   "dictionary_autocorrect": "خودکار تصحیح",
-  "dictionary_english_words": "انگریزی الفاظ کی فہرست",
   "dictionary_word": "لفظ",
   "dictionary_invalid_word": "حروف اور علامتِ حذف استعمال کرکے ایک لفظ درج کریں۔",
-  "dictionary_load_failed": "انگریزی الفاظ کی فہرست لوڈ نہیں ہو سکی۔"
+  "overview_page": "OmniWrite کا تعارف",
+  "overview_heading": "لکھیں، ترتیب دیں اور مل کر کام کریں۔",
+  "overview_intro": "ایک ہی ورک اسپیس میں دستاویزات اور اسپریڈشیٹس بنائیں۔",
+  "overview_open": "OmniWrite کھولیں"
 }

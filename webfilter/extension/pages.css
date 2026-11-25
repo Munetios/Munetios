@@ -1,9 +1,9 @@
-/* Munetios WebFilter extension pages: liquid glass, bundled Google Sans Flex (ss01). */
+/* Munetios WebFilter extension pages use the bundled Munetios UI v4 Font. */
 @font-face {
-  font-family: "Google Sans Flex";
-  src: url("fonts/munetios-sans.ttf") format("truetype");
+  font-family: "Munetios UI v4 Font";
+  src: url("fonts/munetios-ui-v4-font.ttf") format("truetype");
   font-weight: 1 1000;
-  font-stretch: 25% 151%;
+  font-stretch: 23% 149%;
   font-display: swap;
 }
 
@@ -41,7 +41,7 @@
 html, body {
   margin: 0;
   min-height: 100%;
-  font-family: "Google Sans Flex", system-ui, sans-serif;
+  font-family: "Munetios UI v4 Font", system-ui, sans-serif;
   font-size: 18px;
   font-weight: 400;
   line-height: 1.5;

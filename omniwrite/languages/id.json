@@ -1431,7 +1431,7 @@
   "collab_restricted": "Dibatasi",
   "collab_restricted_desc": "Hanya orang yang Anda tambahkan yang dapat membukanya.",
   "collab_anyone_link": "Siapa saja yang memiliki link",
-  "collab_anyone_link_desc": "Siapa saja yang memiliki link dapat membukanya, bahkan tanpa akun. Pengunjung yang belum masuk hanya dapat melihat.",
+  "collab_anyone_link_desc": "Siapa saja yang memiliki link dapat membukanya, bahkan tanpa akun.",
   "collab_role": "Peran",
   "collab_role_owner": "Pemilik",
   "collab_role_edit": "Editor",
@@ -1534,8 +1534,10 @@
   "dictionary": "Kamus",
   "dictionary_custom_words": "Kata pribadi",
   "dictionary_autocorrect": "Koreksi otomatis",
-  "dictionary_english_words": "Daftar kata bahasa Inggris",
   "dictionary_word": "Kata",
   "dictionary_invalid_word": "Masukkan satu kata yang terdiri dari huruf dan apostrof.",
-  "dictionary_load_failed": "Daftar kata bahasa Inggris tidak dapat dimuat."
+  "overview_page": "Ringkasan OmniWrite",
+  "overview_heading": "Tulis, atur, dan berkolaborasi.",
+  "overview_intro": "Buat dokumen dan spreadsheet dalam satu ruang kerja.",
+  "overview_open": "Buka OmniWrite"
 }
