@@ -1010,8 +1010,8 @@
         onChange?.(btn);
       };
       const labels = pickerLabels();
-      if (btn.dataset.kind === "date") UI.pickDate({ anchor: btn, value: btn.dataset.value, locale: uiLocale(), labels, onPick: set });
-      if (btn.dataset.kind === "time") UI.pickTime({ anchor: btn, value: btn.dataset.value, locale: uiLocale(), labels, hour12: uses12h(), minuteStep: 5, onPick: set });
+      if (btn.dataset.kind === "date") UI.pickDate({ anchor: btn, value: btn.dataset.value, locale: uiLocale(), firstDay: weekStartDay(), labels, onPick: set });
+      if (btn.dataset.kind === "time") UI.pickTime({ anchor: btn, value: btn.dataset.value, locale: uiLocale(), labels, hour12: uses12h(), minuteStep: 1, onPick: set });
       if (btn.dataset.kind === "zone") pickTimeZone({ value: btn.dataset.value, onPick: (value) => set(value === "auto" ? BROWSER_TZ : value) });
     });
   }
@@ -1070,10 +1070,10 @@
             <label class="mu-field"><span class="mu-field-label">${esc(t("repeatUnit"))}</span><select class="mu-select" name="unit">${["daily", "weekly", "monthly", "yearly"].map((u) => `<option value="${u}"${(r.freq === u || (u === "weekly" && r.freq === "weekdays")) ? " selected" : ""}>${esc(t({ daily: "unitDays", weekly: "unitWeeks", monthly: "unitMonths", yearly: "unitYears" }[u]))}</option>`).join("")}</select></label>
           </div>
           <div class="mu-chip-grid cal-weekdays" role="group" aria-label="${esc(t("repeatOn"))}">${[0, 1, 2, 3, 4, 5, 6].map((i) => (weekStartDay() + i) % 7).map((day) => `<button type="button" class="mu-chip" data-day="${day}" aria-pressed="${(r.byDay?.length ? r.byDay : [weekday(item.start)]).includes(day)}">${esc(weekdayShort(day))}</button>`).join("")}</div>
-          <div class="mu-pick-list cal-ends"><span class="mu-field-label">${esc(t("repeatEnds"))}</span>
-            <label class="mu-radio"><input type="radio" name="ends" value="never" ${!r.until && !Number(r.count) ? "checked" : ""}><span>${esc(t("never"))}</span></label>
-            <label class="mu-radio"><input type="radio" name="ends" value="until" ${r.until ? "checked" : ""}><span>${esc(t("onDate"))}</span></label>${fieldButton("date", r.until || addMonths(item.start, 3), 'data-field="until"')}
-            <label class="mu-radio"><input type="radio" name="ends" value="count" ${Number(r.count) > 0 ? "checked" : ""}><span>${esc(t("afterOccurrences"))}</span></label><input class="mu-input cal-count" type="number" name="count" min="1" value="${esc(Number(r.count) || 10)}" aria-label="${esc(t("afterOccurrences"))}">
+          <div class="cal-ends" role="radiogroup" aria-label="${esc(t("repeatEnds"))}"><span class="mu-field-label">${esc(t("repeatEnds"))}</span>
+            <div class="cal-end-row"><label class="mu-radio"><input type="radio" name="ends" value="never" ${!r.until && !Number(r.count) ? "checked" : ""}><span>${esc(t("never"))}</span></label></div>
+            <div class="cal-end-row"><label class="mu-radio"><input type="radio" name="ends" value="until" ${r.until ? "checked" : ""}><span>${esc(t("onDate"))}</span></label>${fieldButton("date", r.until || addMonths(item.start, 3), 'data-field="until"')}</div>
+            <div class="cal-end-row"><label class="mu-radio"><input type="radio" name="ends" value="count" ${Number(r.count) > 0 ? "checked" : ""}><span>${esc(t("afterOccurrences"))}</span></label><input class="mu-input cal-count" type="number" name="count" min="1" value="${esc(Number(r.count) || 10)}" aria-label="${esc(t("afterOccurrences"))}"></div>
           </div>
         </fieldset>
         <label class="mu-field"><span class="mu-field-label">${esc(t("location"))}</span><input class="mu-input" name="location" value="${esc(item.location)}" placeholder="${esc(t("addLocation"))}"></label>
@@ -1098,6 +1098,18 @@
       if (b.dataset.type === "focus" && !form.title.value.trim()) form.title.value = t("typeFocus");
     });
     form.repeat.addEventListener("change", () => { d.q(".cal-custom-repeat").hidden = form.repeat.value !== "custom"; });
+    // Weekday chips only apply to weekly repeats; the end fields follow their radio.
+    const syncUnit = () => { d.q(".cal-weekdays").hidden = form.unit.value !== "weekly"; };
+    const syncEnds = () => { const ends = form.querySelector("[name=ends]:checked")?.value; d.q("[data-field=until]").disabled = ends !== "until"; form.count.disabled = ends !== "count"; };
+    form.unit.addEventListener("change", syncUnit);
+    form.querySelectorAll("[name=ends]").forEach((radio) => radio.addEventListener("change", syncEnds));
+    d.q(".cal-ends").addEventListener("click", (event) => {
+      const row = event.target.closest(".cal-end-row");
+      const radio = row?.querySelector("[name=ends]");
+      if (radio && !radio.checked && event.target.closest(".cal-field-btn, .cal-count")) { radio.checked = true; syncEnds(); }
+    }, true);
+    syncUnit();
+    syncEnds();
     d.q(".cal-weekdays").addEventListener("click", (event) => { const c = event.target.closest(".mu-chip"); if (c) c.setAttribute("aria-pressed", String(c.getAttribute("aria-pressed") !== "true")); });
     d.q("[data-add-reminder]").addEventListener("click", () => { d.q(".cal-reminders").insertAdjacentHTML("beforeend", reminderSelect(10)); d.q(".cal-reminders .cal-reminder:last-child select") && UI.enhanceSelect(d.q(".cal-reminders .cal-reminder:last-child select")); });
     d.q(".cal-reminders").addEventListener("click", (event) => { event.target.closest("[data-remove-reminder]")?.closest(".cal-reminder").remove(); });
@@ -1639,7 +1651,8 @@
     const sample = "2026-11-21";
     const dateFormats = [["locale", formatDateWith("locale", sample)], ["long", formatDateWith("long", sample)], ["MDY", "11/21/2026"], ["DMY", "21/11/2026"], ["YMD", "2026-11-21"], ["DMY.", "21.11.2026"]];
     const meridiems = [["nm-an", "NM / AN"], ["am-pm", "AM / PM"], ["lower", "am / pm"], ["dotted", "a.m. / p.m."], ["short", "A / P"], ["locale", t("meridiemLocale")], ["custom", t("meridiemCustom")]];
-    const weekStarts = [["auto", t("weekStartAuto")], ["0", intl("2026-11-01", { weekday: "long" })], ["1", intl("2026-11-02", { weekday: "long" })], ["6", intl("2026-11-07", { weekday: "long" })]];
+    // 2026-11-01 is a Sunday, so day i of that week has weekday number i.
+    const weekStarts = [["auto", t("weekStartAuto")], ...[1, 2, 3, 4, 5, 6, 0].map((day) => [String(day), intl(`2026-11-0${day + 1}`, { weekday: "long" })])];
     const zoneText = (z) => (z === "auto" ? `${t("useDeviceZone")} (${zoneLabel(BROWSER_TZ).city})` : z ? `${zoneLabel(z).city} (${zoneLabel(z).offset})` : t("none"));
     const languageText = settings.language === "system" ? `${t("systemDefault")} (${Cloud.languageName(language(), uiLocale())})` : Cloud.languageName(language(), uiLocale());
     const accountSyncText = signedIn() ? t("syncOnHelp") : t("syncSignedOutHelp");
@@ -1885,7 +1898,7 @@
     render();
   }
   function goToday() { current = todayIso(); miniMonth = null; render(); }
-  function goToDate() { UI.pickDate({ anchor: $("rangeTitle"), value: current, locale: uiLocale(), labels: pickerLabels(), onPick: (v) => { if (v) { current = v; miniMonth = null; render(); } } }); }
+  function goToDate() { UI.pickDate({ anchor: $("rangeTitle"), value: current, locale: uiLocale(), firstDay: weekStartDay(), labels: pickerLabels(), onPick: (v) => { if (v) { current = v; miniMonth = null; render(); } } }); }
 
   /* ================================================================ events (DOM) */
   function bind() {
