@@ -1,6 +1,6 @@
 /*
  * Munetios Maps accounts and sync.
- * Signed in with sync unlocked, markers, bookmarks, search history, recent directions,
+ * Signed in with sync unlocked, the Home address, markers, bookmarks, search history, recent directions,
  * marked states, the custom map style, and the new Maps extras (saved views and map options)
  * sync with end-to-end encryption through the shared Munetios Account sync engine.
  * Each stored value is one sync item; the newest change wins.

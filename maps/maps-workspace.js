@@ -14,6 +14,7 @@
     "munetios_marked_states",
     "munetios_custom_layer",
     "munetios-maps-extras",
+    "munetios_home",
   ];
   const OWNER_KEY = "munetios-maps-owner";
   const stashKey = (owner) => "munetios-maps-stash:" + owner;

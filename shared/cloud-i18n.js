@@ -156,9 +156,9 @@ window.MunetiosCloudStrings = {
   pt: {
     errorRateLimited: "Você está fazendo alterações rápido demais. Tente novamente em {minutes} min",
     cloudUnavailable: "O Munetios Cloud não está disponível neste servidor no momento. Os envios serão retomados automaticamente",
-    closeSearch: "Fechar pesquisa",
+    closeSearch: "Fechar busca",
     close: "Fechar", done: "Concluído", cancel: "Cancelar", save: "Salvar", delete: "Excluir", edit: "Editar", add: "Adicionar", continue: "Continuar",
-    language: "Idioma", systemDefault: "Padrão do sistema", searchLanguages: "Pesquisar idiomas", noResults: "Nenhum resultado",
+    language: "Idioma", systemDefault: "Padrão do sistema", searchLanguages: "Buscar idiomas", noResults: "Nenhum resultado",
     suggestedLanguages: "Sugeridos", allLanguages: "Todos os idiomas", suggested: "Sugestões", settings: "Configurações",
     theme: "Tema", themeSystem: "Sistema", themeLight: "Claro", themeDark: "Escuro", signIn: "Fazer login",
     clear: "Limpar", today: "Hoje", now: "Agora", previousMonth: "Mês anterior", nextMonth: "Próximo mês", hour: "Hora", minute: "Minuto",

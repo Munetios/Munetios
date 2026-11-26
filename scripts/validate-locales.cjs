@@ -100,4 +100,30 @@ assert.equal(webfilter('pt-PT').nav_settings, 'Ajustes');
 for (const [key, value] of Object.entries(webfilter('es-ES'))) assert.ok(!/\b[Cc]onfiguración\b/.test(value) || /[Cc]onfiguración >|[Pp]erfil(es)? de configuración/.test(value), `es-ES settings label: ${key}`);
 for (const [key, value] of Object.entries(webfilter('pt-PT'))) assert.ok(!/\b[Cc]onfigurações\b/.test(value), `WebFilter pt-PT settings label: ${key}`);
 for (const [key, value] of Object.entries(webfilter('pt-BR'))) assert.ok(!/\b[Pp]esquis(?:ar|e|ando)\b/.test(value), `WebFilter pt-BR search action: ${key}`);
+// Munetios Maps: one complete catalog for each of the 17 global locales, with the regional rules.
+{
+  const mctx = { console, navigator: { language: "en-US", languages: ["en-US"] } }; mctx.window = mctx; vm.createContext(mctx);
+  for (const file of ["shared/munetios-locales.js", "maps/maps-locales.js", "maps/maps-locales-2.js", "maps/maps-features-i18n.js"]) vm.runInContext(read(file), mctx);
+  const mapsHtml = read("maps/index.html");
+  const s = mapsHtml.indexOf("const UI_TRANSLATIONS = {"), e = mapsHtml.indexOf("function _normalizeLanguageCode", s);
+  const ov = mapsHtml.indexOf("      const LOCALE_TRANSLATION_OVERRIDES = {"), me = mapsHtml.indexOf("      // Light map style", ov);
+  vm.runInContext(mapsHtml.slice(s, mapsHtml.indexOf("function _getTranslationDict", e)) + mapsHtml.slice(ov, me) + ";this.MAPS = UI_TRANSLATIONS;", mctx);
+  const codes = mctx.MunetiosLocales.CODES;
+  assert.equal(codes.length, 17);
+  for (const code of codes) {
+    check(mctx.MAPS[code], mctx.MAPS["en-US"], `Maps ${code}`);
+    check(mctx.MapsFeatureStrings[code], mctx.MapsFeatureStrings.en, `Maps features ${code}`);
+    if (!code.startsWith("en")) checkEnglishSentences(mctx.MAPS[code], mctx.MAPS["en-US"], `Maps ${code}`);
+  }
+  assert.equal(mctx.MAPS["pt-BR"].search_placeholder, "Buscar no Munetios Maps");
+  assert.equal(mctx.MAPS["pt-PT"].settings, "Ajustes");
+  assert.equal(mctx.MAPS["es-ES"].settings, "Ajustes");
+  for (const code of ["es-419", "es-US"]) assert.equal(mctx.MAPS[code].settings, "Configuración");
+  for (const code of ["es-419", "es-ES", "es-US"]) assert.equal(mctx.MAPS[code].home_label, "Casa");
+  assert.match(mctx.MAPS["en-GB"].toast_no_start, /^Could not/);
+  assert.match(mctx.MAPS["en-US"].toast_no_start, /^Couldn't/);
+  for (const [k, v] of Object.entries(mctx.MAPS["en-GB"])) assert.ok(!/Couldn't/.test(v), `Maps en-GB: ${k}`);
+  for (const [k, v] of Object.entries(mctx.MAPS["pt-BR"])) assert.ok(!/[Pp]esquis/.test(v), `Maps pt-BR search: ${k}`);
+  for (const [k, v] of Object.entries(mctx.MAPS["pt-PT"])) assert.ok(!/Configurações|Definições/.test(v), `Maps pt-PT settings: ${k}`);
+}
 console.log(`PASS: ${covered.length} Ganetios regional catalogs, Ganetios features in all ${ganetiosLocales.length} language options, ${cache.size} OmniWrite catalogs, and all account/sign-in catalogs; key coverage, placeholders, Unicode, and Portuguese terminology.`);

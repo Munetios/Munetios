@@ -187,7 +187,7 @@
   "search_fonts": "Pesquisar tipos de letra",
   "font_settings_hint": "As alterações aplicam-se ao texto selecionado ou ao parágrafo atual.",
   "font_settings_selection_hint": "Aplica-se apenas ao texto selecionado ou ao texto escrito a seguir na posição do cursor.",
-  "font_settings_defaults_hint": "As predefinições aplicam-se a todos os documentos. A formatação existente do texto é preservada.",
+  "font_settings_defaults_hint": "As preajustes aplicam-se a todos os documentos. A formatação existente do texto é preservada.",
   "default_font_settings_label": "Tipo de letra predefinido:",
   "default_font_updated": "Tipo de letra predefinido atualizado.",
   "default_font_desc": "Escolha o tipo de letra predefinido para os editores que abrir a seguir.",

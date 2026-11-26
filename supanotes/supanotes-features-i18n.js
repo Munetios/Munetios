@@ -120,7 +120,7 @@
     pt: [
       "Ir para as notas", "Munetios SupaNotes", "Sem título", "Sem conteúdo", "Arquivo", "As notas arquivadas ficam fora da lista principal até você precisar delas.", "Nenhuma nota arquivada", "Nota arquivada", "Desarquivar", "Nota desarquivada",
       "Fixar no topo", "Desafixar", "Fixada", "Fixada no topo", "Desafixada", "Cor", "Sem cor", "Vermelho", "Laranja", "Amarelo",
-      "Verde", "Verde-azulado", "Azul", "Roxo", "Rosa", "Cinza", "Pesquisar", "Fechar", "Cancelar", "Salvar",
+      "Verde", "Verde-azulado", "Azul", "Roxo", "Rosa", "Cinza", "Buscar", "Fechar", "Cancelar", "Salvar",
       "Desfazer", "Alteração desfeita", "Nada para desfazer", "Dispensar", "Movida para a lixeira", "Excluída permanentemente", "Desbloquear nota", "Frase secreta", "Desbloquear", "Frase secreta incorreta",
       "Bloquear com frase secreta", "Remover bloqueio", "Nova frase secreta", "Confirmar frase secreta", "Avançar", "Bloquear", "A Munetios não consegue recuperar uma frase secreta esquecida.", "As frases secretas não coincidem", "Nota bloqueada", "Bloqueio removido",
       "Bloqueada", "Esta nota está bloqueada", "{done}/{total}", "Selecionar {title}", "Ordenar por", "Última edição", "Data de criação", "Título", "Cor", "Filtrar por etiqueta",
@@ -133,8 +133,8 @@
       "Objetivo", "Marcos", "Riscos", "Anotações de aula", "Ideias principais", "Perguntas", "Resumo", "Revisão semanal", "Conquistas", "Desafios",
       "Próxima semana", "Nota diária", "Título 1", "Título 2", "Citação", "Bloco de código", "Destacar", "Lista de verificação", "Localizar e substituir", "Modo foco",
       "Localizar", "Substituir por", "Localizar próxima", "Substituir", "Substituir tudo", "Correspondências: {count}", "Substituições: {count}", "Modo foco ativado", "Modo foco desativado", "Palavras: {words} · Caracteres: {chars} · Tempo de leitura: {minutes} min",
-      "Alterações não salvas", "Salvando…", "Salva às {time}", "Salvamento automático", "Salvar notas automaticamente enquanto você digita", "Salve uma nota como modelo pelo menu Mais.", "Excluir modelo", "Modelo excluído", "Paleta de comandos", "Pesquise notas, páginas e ações",
-      "Ir para", "Ações", "Notas", "Nova nota", "Atalhos de teclado", "Pesquisar notas", "Salvar nota", "Ajuda", "Mais ferramentas",
+      "Alterações não salvas", "Salvando…", "Salva às {time}", "Salvamento automático", "Salvar notas automaticamente enquanto você digita", "Salve uma nota como modelo pelo menu Mais.", "Excluir modelo", "Modelo excluído", "Paleta de comandos", "Busque notas, páginas e ações",
+      "Ir para", "Ações", "Notas", "Nova nota", "Atalhos de teclado", "Buscar notas", "Salvar nota", "Ajuda", "Mais ferramentas",
     ],
     ja: [
       "メモへ移動", "Munetios SupaNotes", "無題", "内容なし", "アーカイブ", "アーカイブしたメモは、必要になるまでメインのリストに表示されません。", "アーカイブしたメモはありません", "メモをアーカイブしました", "アーカイブを解除", "アーカイブを解除しました",

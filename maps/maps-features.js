@@ -15,10 +15,8 @@
     return code;
   };
   const lang = () => {
-    const code = langCode();
-    if (/^zh-(TW|HK|MO)$/i.test(code)) return STR["zh-Hant"] ? "zh-Hant" : "zh";
-    const base = code.split("-")[0].toLowerCase();
-    return STR[base] ? base : "en";
+    const code = (window.MunetiosLocales && window.MunetiosLocales.resolve(langCode())) || "en-US";
+    return STR[code] ? code : "en";
   };
   // Words Maps already translates in every locale are reused instead of duplicated.
   const ALIASES = { cancel: "confirm_cancel", delete: "confirm_delete", copied: "ctx_copied", copyCoordinates: "ctx_copy_coords", markers: "markers", bookmarks: "bookmarks" };
