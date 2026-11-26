@@ -14671,27 +14671,49 @@ try {
             <div class="modal-content" style="position:relative;max-width:600px;">
                 <button type="button" class="modal-content-close mu-icon-btn mu-btn-ghost" id="closeHelpModal" aria-label="${escapeHtml(_t('close'))}"><span class="mu-icon" aria-hidden="true">close</span></button>
                 <h2 id="omniHelpTitle">${escapeHtml(_t('help'))}</h2>
+                <p>Learn how to create, edit, organize, and share your work in Munetios OmniWrite.</p>
+                <h3>Getting started</h3>
                 <ul>
-                    <li>${path('create_new', 'new_document')} / ${path('create_new', 'sheets_new')}</li>
-                    <li>${path('create_new', 'import_file')} / ${path('create_new', 'import_spreadsheet')}</li>
-                    <li>${path('insert', 'insert_image', 'insert_from_munetios_photos')}</li>
-                    <li>${path('insert', 'insert_video')} &middot; ${escapeHtml(_t('help_resize_media_hint'))}</li>
-                    <li>${escapeHtml(_t('video_picture_in_picture'))}</li>
-                    <li>${path('share', 'collab_add_people')} &middot; ${escapeHtml(_t('collab_sign_in_required'))}</li>
-                    <li>${path('more_options', 'document_info', 'sync_local_document')}</li>
-                    <li>${path('more_options', 'version_history')} / ${path('more_options', 'split_screen')}</li>
-                    <li>${path('settings', 'settings_nav_backup', 'import_backup')} / ${path('settings', 'settings_nav_backup', 'export_backup')}</li>
+                    <li>Create a document or spreadsheet: ${path('create_new', 'new_document')} / ${path('create_new', 'sheets_new')}.</li>
+                    <li>Open existing files: ${path('create_new', 'import_file')} / ${path('create_new', 'import_spreadsheet')}.</li>
                 </ul>
-                <h3>${escapeHtml(_t('help_changelog'))}</h3>
-                <h4>v2</h4>
+                <h3>Editing and formatting</h3>
+                <p>Select text to change its font, size, color, or style. Use the Insert menu to add tables, icons, images, and other supported content. In spreadsheets, organize data in rows and columns and format cells using the toolbar.</p>
                 <ul>
-                    <li>Munetios UI v4</li>
-                    <li>${escapeHtml(_t('collab_intro_title'))} &middot; ${['collab_role_view', 'collab_role_suggest', 'collab_role_edit'].map(key => escapeHtml(_t(key))).join(' / ')}</li>
-                    <li>${escapeHtml(_t('insert_from_munetios_photos'))}</li>
-                    <li>${escapeHtml(_t('download_as_mwrite'))} (.mwrite) &middot; ${escapeHtml(_t('download_as_msheet'))} (.msheet)</li>
-                    <li>${escapeHtml(_t('import_spreadsheet'))} (.msheet, .xlsx, .csv, .tsv)</li>
-                    <li>Munetios Sheets &middot; ${escapeHtml(_t('help_sheets_canvas'))}</li>
-                    <li>${escapeHtml(_t('video_picture_in_picture'))}</li>
+                    <li>Add photos: ${path('insert', 'insert_image', 'insert_from_munetios_photos')}.</li>
+                    <li>Add videos: ${path('insert', 'insert_video')}. ${escapeHtml(_t('help_resize_media_hint'))}</li>
+                    <li>Watch supported videos in ${escapeHtml(_t('video_picture_in_picture'))} where available.</li>
+                    <li>Review previous versions or work side by side: ${path('more_options', 'version_history')} / ${path('more_options', 'split_screen')}.</li>
+                </ul>
+                <h3>Accounts, sync, and collaboration</h3>
+                <p>Sign in with your Munetios account to access supported synchronization and collaboration features.</p>
+                <ul>
+                    <li>Sync a local document: ${path('more_options', 'document_info', 'sync_local_document')}.</li>
+                    <li>Invite collaborators: ${path('share', 'collab_add_people')}. ${escapeHtml(_t('collab_sign_in_required'))}</li>
+                    <li>Find documents shared with you through email invitations in the Shared tab.</li>
+                </ul>
+                <h3>Backup and troubleshooting</h3>
+                <p>Check your connection and account if synchronization fails. Export a backup before troubleshooting issues that may affect locally stored work.</p>
+                <ul><li>${path('settings', 'settings_nav_backup', 'import_backup')} / ${path('settings', 'settings_nav_backup', 'export_backup')}</li></ul>
+                <h3>${escapeHtml(_t('help_changelog'))}</h3>
+                <h4>v2.0.1 — Improvements and bug fixes</h4>
+                <ul>
+                    <li>Improved language selection so preferences are applied after reloading.</li>
+                    <li>Fixed issues with Insert actions and improved spreadsheet rendering and accessibility.</li>
+                    <li>Added native Picture-in-Picture for supported videos and refreshed Help guidance.</li>
+                    <li>Integrated the Munetios Photos library for media insertion.</li>
+                    <li>Improved the Shared tab to show documents shared through email invitations.</li>
+                </ul>
+                <h4>v2.0.0 — Major update</h4>
+                <p>A major evolution of OmniWrite, bringing documents and spreadsheets together in a redesigned workspace.</p>
+                <ul>
+                    <li>Munetios Accounts and document synchronization across supported devices.</li>
+                    <li>Introduced spreadsheets with Munetios Sheets.</li>
+                    <li>Added icon insertion and expanded document formatting options.</li>
+                    <li>Redesigned the user interface with Munetios UI v4.</li>
+                    <li>Added collaboration with viewing, suggesting, and editing permissions.</li>
+                    <li>Added native .mwrite and .msheet formats and spreadsheet imports (.msheet, .xlsx, .csv, .tsv).</li>
+                    <li>Expanded editing tools and improved workspace organization.</li>
                 </ul>
                 <h4>v1</h4>
                 <div>
