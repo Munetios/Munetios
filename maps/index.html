@@ -5727,8 +5727,112 @@
 
       function _getTranslationDict(lang) {
         const code = window.MunetiosLocales.resolve(lang) || _detectLang();
-        return UI_TRANSLATIONS[code] || UI_TRANSLATIONS["en-US"];
+        return UI_TRANSLATIONS[code] || UI_TRANSLATIONS[_getBaseLang(code)] || UI_TRANSLATIONS["en-US"] || UI_TRANSLATIONS.en || {};
       }
+
+      let selectedLangCode = _getStoredLang();
+
+      // ── Settings Modal ────────────────────────────────────────────────────
+      // The 17 global Munetios locales, labeled in their own language (shared/munetios-locales.js).
+      const REGIONAL_LANGUAGES = [
+        { code: "auto", label: "Auto", i18nLabel: "lang_auto" },
+        ...window.MunetiosLocales.LOCALES.map((l) => ({ code: l.code, label: l.name })),
+      ];
+      const LANGUAGES = REGIONAL_LANGUAGES;
+
+      const LOCALE_TRANSLATION_OVERRIDES = {
+        "en-GB": {
+          search_placeholder: "Search Munetios Maps",
+          my_location: "My location",
+          near_gas: "Petrol",
+          print_orient_label: "Orientation",
+          print_letter: "Letter",
+          custom_color_target: "Colour target",
+          tip_layer_custom: "Design a custom map layer",
+          toast_tap_marker: "Tap the map to place a marker",
+          stat_miles: "Miles",
+          stat_mi: "Miles",
+        },
+        "es-ES": {
+          settings: "Ajustes",
+          settings_title: "Ajustes",
+          pref_preferences: "Preferencias",
+          near_gas: "Gasolineras",
+          near_parking: "Aparcamiento",
+          print_letter: "Carta",
+          custom_color_target: "Color objetivo",
+          tip_close_settings: "Cerrar ajustes",
+        },
+        "es-MX": {
+          settings: "Configuración",
+          settings_title: "Configuración",
+          near_gas: "Gasolina",
+          near_parking: "Estacionamiento",
+          print_letter: "Carta",
+          tip_close_settings: "Cerrar configuración",
+        },
+        "es-US": {
+          settings: "Configuración",
+          settings_title: "Configuración",
+          near_gas: "Gasolina",
+          near_parking: "Estacionamiento",
+          print_letter: "Carta",
+          tip_close_settings: "Cerrar configuración",
+        },
+        "pt-PT": {
+          settings: "Definições",
+          settings_title: "Definições",
+          near_gas: "Combustível",
+          near_grocery: "Mercearia",
+          print_btn: "Imprimir",
+          custom_color_target: "Destino da cor",
+        },
+        "fr-CA": {
+          settings: "Paramètres",
+          settings_title: "Paramètres",
+          near_gas: "Essence",
+          print_letter: "Lettre",
+        },
+        "zh-TW": {
+          settings: "設定",
+          settings_title: "設定",
+          layer_satellite: "衛星",
+          layer_custom: "自訂",
+          layer_tools: "工具",
+        },
+      };
+
+      Object.entries(LOCALE_TRANSLATION_OVERRIDES).forEach(
+        ([locale, patch]) => {
+          const normalized = _normalizeLanguageCode(locale);
+          UI_TRANSLATIONS[normalized] = {
+            ...(UI_TRANSLATIONS[normalized] || {}),
+            ...patch,
+          };
+        },
+      );
+
+      // Build one complete catalog per global locale: English → base language → filled gaps →
+      // full catalogs (co, zh-TW) → regional wording → Home address strings.
+      (() => {
+        const L = window.MunetiosLocales;
+        const D = window.MapsLocaleData || {};
+        const pick = (obj, ...keys) => { for (const k of keys) if (obj && obj[k]) return obj[k]; return {}; };
+        const built = {};
+        L.LOCALES.forEach(({ code, base }) => {
+          let dict = { ...UI_TRANSLATIONS.en };
+          if (base !== "en" && base !== "co") Object.assign(dict, UI_TRANSLATIONS[base] || {}, pick(D.FILL, base));
+          if (code === "en-GB") Object.assign(dict, L.britishCatalog(dict), UI_TRANSLATIONS["en-GB"] || {});
+          if (code === "pt-PT") Object.assign(dict, UI_TRANSLATIONS["pt-PT"] || {});
+          Object.assign(dict, pick(D.MAIN, code), pick(D.REGIONAL, code));
+          if (code === "pt-BR") dict = { ...dict, ...L.mapCatalog(dict, L.toBrazilianSearch) };
+          if (code === "pt-PT") dict = { ...dict, ...L.mapCatalog(dict, L.toEuropeanPortuguese) };
+          Object.assign(dict, pick(D.HOME, code, code === "es-US" ? "es-419" : code));
+          built[code] = dict;
+        });
+        Object.keys(UI_TRANSLATIONS).forEach((k) => delete UI_TRANSLATIONS[k]);
+        Object.assign(UI_TRANSLATIONS, built, { en: built["en-US"] });
+      })();
 
       const MAP_LABEL_FONT_FAMILY = "Munetios UI v4 Font";
       const MAP_LABEL_FONT = [MAP_LABEL_FONT_FAMILY];
@@ -5782,7 +5886,7 @@
       function t(key) {
         const lang = _getLang();
         const dict = _getTranslationDict(lang);
-        return dict[key] || UI_TRANSLATIONS.en[key] || key;
+        return dict[key] || UI_TRANSLATIONS.en?.[key] || key;
       }
 
       function loadingSpinner(size = 34) {
@@ -5888,7 +5992,7 @@
         const normalizedLang = langCode === "auto" ? _detectLang() : window.MunetiosLocales.resolve(langCode) || _detectLang();
         document.documentElement.lang = normalizedLang;
         const dict = _getTranslationDict(normalizedLang);
-        const fallback = UI_TRANSLATIONS.en;
+        const fallback = UI_TRANSLATIONS["en-US"] || UI_TRANSLATIONS.en || {};
         const resolve = (k) => dict[k] || fallback[k] || k;
 
         // Text content elements
@@ -12410,108 +12514,6 @@ overlay.querySelector("p").textContent =
         }
       });
 
-      // ── Settings Modal ────────────────────────────────────────────────────
-      // The 17 global Munetios locales, labeled in their own language (shared/munetios-locales.js).
-      const REGIONAL_LANGUAGES = [
-        { code: "auto", label: "Auto", i18nLabel: "lang_auto" },
-        ...window.MunetiosLocales.LOCALES.map((l) => ({ code: l.code, label: l.name })),
-      ];
-      const LANGUAGES = REGIONAL_LANGUAGES;
-
-      const LOCALE_TRANSLATION_OVERRIDES = {
-        "en-GB": {
-          search_placeholder: "Search Munetios Maps",
-          my_location: "My location",
-          near_gas: "Petrol",
-          print_orient_label: "Orientation",
-          print_letter: "Letter",
-          custom_color_target: "Colour target",
-          tip_layer_custom: "Design a custom map layer",
-          toast_tap_marker: "Tap the map to place a marker",
-          stat_miles: "Miles",
-          stat_mi: "Miles",
-        },
-        "es-ES": {
-          settings: "Ajustes",
-          settings_title: "Ajustes",
-          pref_preferences: "Preferencias",
-          near_gas: "Gasolineras",
-          near_parking: "Aparcamiento",
-          print_letter: "Carta",
-          custom_color_target: "Color objetivo",
-          tip_close_settings: "Cerrar ajustes",
-        },
-        "es-MX": {
-          settings: "Configuración",
-          settings_title: "Configuración",
-          near_gas: "Gasolina",
-          near_parking: "Estacionamiento",
-          print_letter: "Carta",
-          tip_close_settings: "Cerrar configuración",
-        },
-        "es-US": {
-          settings: "Configuración",
-          settings_title: "Configuración",
-          near_gas: "Gasolina",
-          near_parking: "Estacionamiento",
-          print_letter: "Carta",
-          tip_close_settings: "Cerrar configuración",
-        },
-        "pt-PT": {
-          settings: "Definições",
-          settings_title: "Definições",
-          near_gas: "Combustível",
-          near_grocery: "Mercearia",
-          print_btn: "Imprimir",
-          custom_color_target: "Destino da cor",
-        },
-        "fr-CA": {
-          settings: "Paramètres",
-          settings_title: "Paramètres",
-          near_gas: "Essence",
-          print_letter: "Lettre",
-        },
-        "zh-TW": {
-          settings: "設定",
-          settings_title: "設定",
-          layer_satellite: "衛星",
-          layer_custom: "自訂",
-          layer_tools: "工具",
-        },
-      };
-
-      Object.entries(LOCALE_TRANSLATION_OVERRIDES).forEach(
-        ([locale, patch]) => {
-          const normalized = _normalizeLanguageCode(locale);
-          UI_TRANSLATIONS[normalized] = {
-            ...(UI_TRANSLATIONS[normalized] || {}),
-            ...patch,
-          };
-        },
-      );
-
-      // Build one complete catalog per global locale: English → base language → filled gaps →
-      // full catalogs (co, zh-TW) → regional wording → Home address strings.
-      (() => {
-        const L = window.MunetiosLocales;
-        const D = window.MapsLocaleData || {};
-        const pick = (obj, ...keys) => { for (const k of keys) if (obj && obj[k]) return obj[k]; return {}; };
-        const built = {};
-        L.LOCALES.forEach(({ code, base }) => {
-          let dict = { ...UI_TRANSLATIONS.en };
-          if (base !== "en" && base !== "co") Object.assign(dict, UI_TRANSLATIONS[base] || {}, pick(D.FILL, base));
-          if (code === "en-GB") Object.assign(dict, L.britishCatalog(dict), UI_TRANSLATIONS["en-GB"] || {});
-          if (code === "pt-PT") Object.assign(dict, UI_TRANSLATIONS["pt-PT"] || {});
-          Object.assign(dict, pick(D.MAIN, code), pick(D.REGIONAL, code));
-          if (code === "pt-BR") dict = { ...dict, ...L.mapCatalog(dict, L.toBrazilianSearch) };
-          if (code === "pt-PT") dict = { ...dict, ...L.mapCatalog(dict, L.toEuropeanPortuguese) };
-          Object.assign(dict, pick(D.HOME, code, code === "es-US" ? "es-419" : code));
-          built[code] = dict;
-        });
-        Object.keys(UI_TRANSLATIONS).forEach((k) => delete UI_TRANSLATIONS[k]);
-        Object.assign(UI_TRANSLATIONS, built, { en: built["en-US"] });
-      })();
-
       // Light map style (simple cleaner tiles)
       const lightMapStyle = {
         version: 8,
@@ -12734,7 +12736,6 @@ overlay.querySelector("p").textContent =
       }
 
       let currentTheme = localStorage.getItem("munetios_theme") || "dark";
-      let selectedLangCode = _getStoredLang();
       let selectedVoiceName = localStorage.getItem("munetios_voice") || "";
 
       function applyTheme(theme) {
