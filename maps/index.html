@@ -5725,11 +5725,6 @@
           : window.MunetiosLocales.resolve(stored) || _detectLang();
       }
 
-      function _getTranslationDict(lang) {
-        const code = window.MunetiosLocales.resolve(lang) || _detectLang();
-        return UI_TRANSLATIONS[code] || UI_TRANSLATIONS[_getBaseLang(code)] || UI_TRANSLATIONS["en-US"] || UI_TRANSLATIONS.en || {};
-      }
-
       let selectedLangCode = _getStoredLang();
 
       // ── Settings Modal ────────────────────────────────────────────────────
@@ -5833,6 +5828,11 @@
         Object.keys(UI_TRANSLATIONS).forEach((k) => delete UI_TRANSLATIONS[k]);
         Object.assign(UI_TRANSLATIONS, built, { en: built["en-US"] });
       })();
+
+      function _getTranslationDict(lang) {
+        const code = window.MunetiosLocales.resolve(lang) || _detectLang();
+        return UI_TRANSLATIONS[code] || UI_TRANSLATIONS[_getBaseLang(code)] || UI_TRANSLATIONS["en-US"] || UI_TRANSLATIONS.en || {};
+      }
 
       const MAP_LABEL_FONT_FAMILY = "Munetios UI v4 Font";
       const MAP_LABEL_FONT = [MAP_LABEL_FONT_FAMILY];
