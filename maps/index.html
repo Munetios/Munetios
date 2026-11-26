@@ -5815,6 +5815,15 @@
           for (const k of keys) if (obj && obj[k]) return obj[k];
           return {};
         };
+        const autoLabels = {
+          "en-US": "Auto", "en-GB": "Auto",
+          "es-419": "Automático", "es-ES": "Automático", "es-US": "Automático",
+          "fr-FR": "Automatique", "fr-CA": "Automatique",
+          de: "Automatisch", it: "Automatico",
+          "pt-BR": "Automático", "pt-PT": "Automático",
+          "zh-CN": "自动", "zh-TW": "自動",
+          ko: "자동", ar: "تلقائي", hi: "स्वचालित", co: "Autumaticu",
+        };
         const built = {};
         L.LOCALES.forEach(({ code, base }) => {
           let dict = { ...UI_TRANSLATIONS.en };
@@ -5831,6 +5840,7 @@
           if (code === "pt-PT") Object.assign(dict, L.mapCatalog(dict, L.toEuropeanPortuguese));
           Object.assign(dict, pick(D.HOME, code, code === "es-US" ? "es-419" : code));
           // Accessible toolbar names mirror their localized visible labels.
+          dict.lang_auto = autoLabels[code] || autoLabels["en-US"];
           dict.use_my_location_aria = dict.my_location;
           dict.bookmarks_aria = dict.bookmarks;
           dict.settings_aria = dict.settings;
@@ -12794,7 +12804,11 @@ overlay.querySelector("p").textContent =
         const cur =
           LANGUAGES.find((l) => l.code === normalizedSelection) ||
           LANGUAGES[0];
-        const langLabel = (l) => (l.i18nLabel ? t(l.i18nLabel) : l.label);
+        const langLabel = (l) => {
+          if (!l.i18nLabel) return l.label;
+          const translated = t(l.i18nLabel);
+          return translated && translated !== l.i18nLabel ? translated : l.label;
+        };
         labelEl.textContent = langLabel(cur);
         LANGUAGES.forEach((lang) => {
           const item = document.createElement("div");
