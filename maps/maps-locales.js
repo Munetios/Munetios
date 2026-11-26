@@ -177,7 +177,7 @@
     "es-US": { settings: "Configuración", settings_title: "Configuración", tip_close_settings: "Cerrar configuración", near_gas: "Gasolina", near_parking: "Estacionamiento" },
     "fr-CA": { near_gas: "Essence", near_parking: "Stationnement", print_letter: "Lettre", near_atm: "Guichets automatiques", units_imperial: "Milles" },
     "fr-FR": { near_gas: "Stations-service", near_parking: "Parking", print_letter: "Lettre US" },
-    "pt-BR": { units_metric: "Quilômetros" },
+    "pt-BR": { units_metric: "Quilômetros", search_prefix: "Buscar: ", search_history: "Histórico de buscas", search_placeholder: "Buscar no Munetios Maps", voice_search_aria: "Busca por voz" },
     "pt-PT": { near_gas: "Combustível", near_grocery: "Mercearia", near_atm: "Multibanco", units_metric: "Quilómetros", custom_color_target: "Destino da cor", custom_font: "Tipo de letra", marker_upload_image: "Ou carregue um ficheiro de imagem", toast_print_popup_blocked: "A janela de impressão foi bloqueada. Permita janelas pop-up e tente novamente." },
     "en-GB": { my_location: "My location", near_gas: "Petrol", print_orient_label: "Orientation" },
   };

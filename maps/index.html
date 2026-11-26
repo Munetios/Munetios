@@ -5554,7 +5554,7 @@
           layer_roads_subtitle: "Resaltar",
           layer_marker_photos: "Fotos de marcadores",
           layer_marker_photos_subtitle: "Vista en popup",
-          layer_add_marker: "Anadir marcador",
+          layer_add_marker: "Añadir marcador",
           layer_add_marker_subtitle: "Toca el mapa",
           layer_mark_state: "Marcar estado",
           layer_mark_state_subtitle: "Toca estado",
@@ -5584,13 +5584,13 @@
           toast_state_save_failed:
             "No se pudieron guardar los estados marcados.",
           toast_print_popup_blocked:
-            "Se bloqueo la ventana de impresion. Permite ventanas emergentes e intentalo de nuevo.",
+            "Se bloqueó la ventana de impresión. Permite las ventanas emergentes e inténtalo de nuevo.",
           toast_print_capture_failed:
-            "No se pudo capturar el mapa. Espera a que cargue e intentalo de nuevo.",
+            "No se pudo capturar el mapa. Espera a que cargue e inténtalo de nuevo.",
           print_loading_tiles: "Cargando mosaicos del mapa...",
           print_vector_label: "Mapa vectorial",
           print_satellite_label: "Mapa satelital",
-          print_attribution_aria: "Atribucion del mapa",
+          print_attribution_aria: "Atribución del mapa",
         },
         fr: {
           close: "Fermer",
@@ -5807,22 +5807,34 @@
         },
       );
 
-      // Build one complete catalog per global locale: English → base language → filled gaps →
-      // full catalogs (co, zh-TW) → regional wording → Home address strings.
+      // Build complete catalogs with regional vocabulary applied after base translations.
       (() => {
         const L = window.MunetiosLocales;
         const D = window.MapsLocaleData || {};
-        const pick = (obj, ...keys) => { for (const k of keys) if (obj && obj[k]) return obj[k]; return {}; };
+        const pick = (obj, ...keys) => {
+          for (const k of keys) if (obj && obj[k]) return obj[k];
+          return {};
+        };
         const built = {};
         L.LOCALES.forEach(({ code, base }) => {
           let dict = { ...UI_TRANSLATIONS.en };
-          if (base !== "en" && base !== "co") Object.assign(dict, UI_TRANSLATIONS[base] || {}, pick(D.FILL, base));
-          if (code === "en-GB") Object.assign(dict, L.britishCatalog(dict), UI_TRANSLATIONS["en-GB"] || {});
+          if (base !== "en" && base !== "co") {
+            Object.assign(dict, UI_TRANSLATIONS[base] || {}, pick(D.FILL, base));
+          }
+          if (code === "en-GB") Object.assign(dict, UI_TRANSLATIONS["en-GB"] || {});
           if (code === "pt-PT") Object.assign(dict, UI_TRANSLATIONS["pt-PT"] || {});
           Object.assign(dict, pick(D.MAIN, code), pick(D.REGIONAL, code));
-          if (code === "pt-BR") dict = { ...dict, ...L.mapCatalog(dict, L.toBrazilianSearch) };
-          if (code === "pt-PT") dict = { ...dict, ...L.mapCatalog(dict, L.toEuropeanPortuguese) };
+          if (code === "en-GB") Object.assign(dict, L.britishCatalog(dict));
+          if (code === "es-ES") Object.assign(dict, L.mapCatalog(dict, L.toPeninsularSpanish));
+          if (code === "es-419" || code === "es-US") Object.assign(dict, L.mapCatalog(dict, L.toLatinAmericanSpanish));
+          if (code === "pt-BR") Object.assign(dict, L.mapCatalog(dict, L.toBrazilianSearch));
+          if (code === "pt-PT") Object.assign(dict, L.mapCatalog(dict, L.toEuropeanPortuguese));
           Object.assign(dict, pick(D.HOME, code, code === "es-US" ? "es-419" : code));
+          // Accessible toolbar names mirror their localized visible labels.
+          dict.use_my_location_aria = dict.my_location;
+          dict.bookmarks_aria = dict.bookmarks;
+          dict.settings_aria = dict.settings;
+          dict.apps_aria = dict.apps_title;
           built[code] = dict;
         });
         Object.keys(UI_TRANSLATIONS).forEach((k) => delete UI_TRANSLATIONS[k]);

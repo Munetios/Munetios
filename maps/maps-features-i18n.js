@@ -202,6 +202,8 @@
         else if (base !== "en") Object.assign(dict, strings[base] || {});
         Object.assign(dict, extra[code] || {});
         if (code === "en-GB") Object.assign(dict, L.britishCatalog(dict));
+        if (code === "es-ES") Object.assign(dict, L.mapCatalog(dict, L.toPeninsularSpanish));
+        if (code === "es-419" || code === "es-US") Object.assign(dict, L.mapCatalog(dict, L.toLatinAmericanSpanish));
         if (code === "pt-BR") Object.assign(dict, L.mapCatalog(dict, L.toBrazilianSearch));
         if (code === "pt-PT") Object.assign(dict, L.mapCatalog(dict, L.toEuropeanPortuguese));
         strings[code] = dict;
