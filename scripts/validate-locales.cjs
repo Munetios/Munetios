@@ -105,9 +105,13 @@ for (const [key, value] of Object.entries(webfilter('pt-BR'))) assert.ok(!/\b[Pp
   const mctx = { console, navigator: { language: "en-US", languages: ["en-US"] } }; mctx.window = mctx; vm.createContext(mctx);
   for (const file of ["shared/munetios-locales.js", "maps/maps-locales.js", "maps/maps-locales-2.js", "maps/maps-features-i18n.js"]) vm.runInContext(read(file), mctx);
   const mapsHtml = read("maps/index.html");
-  const s = mapsHtml.indexOf("const UI_TRANSLATIONS = {"), e = mapsHtml.indexOf("function _normalizeLanguageCode", s);
-  const ov = mapsHtml.indexOf("      const LOCALE_TRANSLATION_OVERRIDES = {"), me = mapsHtml.indexOf("      // Light map style", ov);
-  vm.runInContext(mapsHtml.slice(s, mapsHtml.indexOf("function _getTranslationDict", e)) + mapsHtml.slice(ov, me) + ";this.MAPS = UI_TRANSLATIONS;", mctx);
+  // Run the real contiguous block: the tables through the 17-locale build, plus the language helpers it calls.
+  const start = mapsHtml.indexOf("const UI_TRANSLATIONS = {");
+  const buildEnd = mapsHtml.indexOf("})();", mapsHtml.indexOf("Object.assign(UI_TRANSLATIONS, built, { en: built[\"en-US\"] });", start)) + 5;
+  const helperStart = mapsHtml.indexOf("function _normalizeLanguageCode");
+  const helpers = helperStart > buildEnd || helperStart < start ? mapsHtml.slice(helperStart, mapsHtml.indexOf("function _getTranslationDict", helperStart)) : "";
+  mctx.localStorage = { getItem: () => null, setItem() {} };
+  vm.runInContext(helpers + mapsHtml.slice(start, buildEnd) + ";this.MAPS = UI_TRANSLATIONS;", mctx);
   const codes = mctx.MunetiosLocales.CODES;
   assert.equal(codes.length, 17);
   for (const code of codes) {
@@ -125,5 +129,26 @@ for (const [key, value] of Object.entries(webfilter('pt-BR'))) assert.ok(!/\b[Pp
   for (const [k, v] of Object.entries(mctx.MAPS["en-GB"])) assert.ok(!/Couldn't/.test(v), `Maps en-GB: ${k}`);
   for (const [k, v] of Object.entries(mctx.MAPS["pt-BR"])) assert.ok(!/[Pp]esquis/.test(v), `Maps pt-BR search: ${k}`);
   for (const [k, v] of Object.entries(mctx.MAPS["pt-PT"])) assert.ok(!/Configurações|Definições/.test(v), `Maps pt-PT settings: ${k}`);
+}
+// Apps on the shared 17-locale catalogs: every locale present, every key filled, placeholders intact.
+{
+  const actx = { console, navigator: { language: "en-US", languages: ["en-US"] }, localStorage: { getItem: () => null, setItem() {} } }; actx.window = actx; vm.createContext(actx);
+  vm.runInContext(read("shared/munetios-locales.js"), actx);
+  for (const file of ["mail/strings.js", "tasks/tasks-features-i18n.js", "tasks/tasks-account-i18n.js", "supanotes/supanotes-features-i18n.js", "meals/meals-features-i18n.js", "munetios-ui/youtube-i18n.js"]) vm.runInContext(read(file), actx);
+  const codes = actx.MunetiosLocales.CODES;
+  for (const [label, cat] of [["Mail", actx.MunetiosMailTranslations], ["Tasks features", actx.TasksFeatureStrings], ["SupaNotes features", actx.SupaNotesFeatureStrings], ["Meals features", actx.MealsFeatureStrings]]) {
+    assert.deepEqual(Object.keys(cat).sort(), [...codes].sort(), `${label}: locales`);
+    const realWords = (text) => (String(text).replace(/{w+}/g, "").match(/[A-Za-z]{3,}/g) || []).length;
+    for (const code of codes) {
+      check(cat[code], cat["en-US"], `${label} ${code}`);
+      if (code.startsWith("en")) continue;
+      for (const [key, value] of Object.entries(cat["en-US"])) if (realWords(value) >= 4) assert.notEqual(cat[code][key], value, `${label} ${code}: English sentence in ${key}`);
+    }
+  }
+  assert.deepEqual(Object.keys(actx.MunetiosTasksAccountStrings).sort(), [...codes].sort(), "Tasks account: locales");
+  for (const code of codes) assert.ok(actx.MunetiosYouTubeI18n.get(code, "settings"), `YouTube ${code}`);
+  assert.equal(actx.MunetiosYouTubeI18n.get("es-ES", "settings"), "Ajustes");
+  assert.equal(actx.MunetiosYouTubeI18n.get("pt-PT", "settings"), "Ajustes");
+  assert.equal(actx.MunetiosLocales.toTraditional("设置"), "設定");
 }
 console.log(`PASS: ${covered.length} Ganetios regional catalogs, Ganetios features in all ${ganetiosLocales.length} language options, ${cache.size} OmniWrite catalogs, and all account/sign-in catalogs; key coverage, placeholders, Unicode, and Portuguese terminology.`);
