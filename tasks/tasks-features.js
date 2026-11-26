@@ -10,9 +10,9 @@
   "use strict";
 
   const STR = window.TasksFeatureStrings || { en: {} };
-  const lang = () => (window.currentLang && STR[window.currentLang] ? window.currentLang : "en");
+  const lang = () => (window.currentLang && STR[window.currentLang] ? window.currentLang : "en-US");
   function t(key, vars) {
-    let value = (STR[lang()] && STR[lang()][key]) ?? STR.en[key] ?? key;
+    let value = (STR[lang()] && STR[lang()][key]) ?? (STR["en-US"] || STR.en)[key] ?? key;
     if (vars) for (const [name, v] of Object.entries(vars)) value = value.split("{" + name + "}").join(String(v));
     return value;
   }

@@ -46,6 +46,8 @@
     <link rel="stylesheet" href="./supanotes.css" />
     <link rel="stylesheet" href="./supanotes-features.css" />
     <script src="/account/workspace-scope.js"></script>
+    <script src="/shared/munetios-locales.js"></script>
+    <script src="./supanotes-locales.js"></script>
     <script defer src="/munetios-ui/munetios-ui-v4.js"></script>
     <script defer src="/account/account-i18n.js"></script>
     <script defer src="/account/account-core.js"></script>
@@ -229,9 +231,58 @@
       </div>
     </div>
     <div class="custom-dropdown-wrapper liquid-glass" id="languageDropdown">
-      <div class="dropdown-item" id="languageOptionEnglish">
-        English
+      <div class="dropdown-item" id="languageOption_en_US" lang="en-US">
+        English (United States)
       </div>
+      <div class="dropdown-item" id="languageOption_en_GB" lang="en-GB">
+        English (United Kingdom)
+      </div>
+      <div class="dropdown-item" id="languageOption_es_419" lang="es-419">
+        Español (Latinoamérica)
+      </div>
+      <div class="dropdown-item" id="languageOption_es_ES" lang="es-ES">
+        Español (España)
+      </div>
+      <div class="dropdown-item" id="languageOption_es_US" lang="es-US">
+        Español (Estados Unidos)
+      </div>
+      <div class="dropdown-item" id="languageOption_fr_FR" lang="fr-FR">
+        Français (France)
+      </div>
+      <div class="dropdown-item" id="languageOption_fr_CA" lang="fr-CA">
+        Français (Canada)
+      </div>
+      <div class="dropdown-item" id="languageOption_de" lang="de">
+        Deutsch
+      </div>
+      <div class="dropdown-item" id="languageOption_it" lang="it">
+        Italiano
+      </div>
+      <div class="dropdown-item" id="languageOption_pt_BR" lang="pt-BR">
+        Português (Brasil)
+      </div>
+      <div class="dropdown-item" id="languageOption_pt_PT" lang="pt-PT">
+        Português (Portugal)
+      </div>
+      <div class="dropdown-item" id="languageOption_zh_CN" lang="zh-CN">
+        中文（简体）
+      </div>
+      <div class="dropdown-item" id="languageOption_zh_TW" lang="zh-TW">
+        中文（繁體）
+      </div>
+      <div class="dropdown-item" id="languageOption_ko" lang="ko">
+        한국어
+      </div>
+      <div class="dropdown-item" id="languageOption_ar" lang="ar">
+        العربية
+      </div>
+      <div class="dropdown-item" id="languageOption_hi" lang="hi">
+        हिन्दी
+      </div>
+      <div class="dropdown-item" id="languageOption_co" lang="co">
+        Corsu
+      </div>
+    </div>
       <div class="dropdown-item" id="languageOptionSpanish">
         Spanish
       </div>
@@ -958,7 +1009,7 @@
         var _settings = {
           noteFont: localStorage.getItem('sn_noteFont') || 'sans',
           customFont: localStorage.getItem('sn_customFont') || '',
-          language: localStorage.getItem('sn_language') || 'en',
+          language: window.MunetiosLocales.resolve(localStorage.getItem('sn_language')) || window.MunetiosLocales.detect(),
           lightMode: localStorage.getItem('sn_lightMode') === 'true'
         };
 
@@ -1176,24 +1227,23 @@
           }
         };
 
+        // One complete catalog per global locale (supanotes-locales.js holds the strings the table above lacks).
+        (function () {
+          var L = window.MunetiosLocales;
+          var composed = L.compose(TRANSLATIONS, window.SupaNotesLocaleExtras || {}, { es: '419', pt: 'BR' });
+          L.LOCALES.forEach(function (l) { composed[l.code].nativeName = l.name; });
+          Object.keys(TRANSLATIONS).forEach(function (k) { delete TRANSLATIONS[k]; });
+          Object.assign(TRANSLATIONS, composed, { en: composed['en-US'] });
+        })();
+
         function _t(key) {
           var lang = _settings ? _settings.language : 'en';
           var t = TRANSLATIONS[lang] || TRANSLATIONS['en'];
           return (t[key] !== undefined) ? t[key] : (TRANSLATIONS['en'][key] || key);
         }
 
-        var LANGUAGE_OPTIONS = [
-          ['languageOptionEnglish', 'en'],
-          ['languageOptionSpanish', 'es'],
-          ['languageOptionFrench', 'fr'],
-          ['languageOptionGerman', 'de'],
-          ['languageOptionItalian', 'it'],
-          ['languageOptionPortuguese', 'pt'],
-          ['languageOptionJapanese', 'ja'],
-          ['languageOptionChinese', 'zh'],
-          ['languageOptionRussian', 'ru'],
-          ['languageOptionArabic', 'ar']
-        ];
+        // The 17 global Munetios locales (shared/munetios-locales.js).
+        var LANGUAGE_OPTIONS = window.MunetiosLocales.CODES.map(function (code) { return ['languageOption_' + code.replace(/-/g, '_'), code]; });
 
         function getLanguageNativeName(lang) {
           var translation = TRANSLATIONS[lang] || TRANSLATIONS.en;
@@ -1201,7 +1251,7 @@
         }
 
         function syncLanguageSelector(lang) {
-          var selectedLang = TRANSLATIONS[lang] ? lang : 'en';
+          var selectedLang = TRANSLATIONS[lang] ? lang : 'en-US';
           var langBtn = document.getElementById('languageDropdownBtn');
           if (langBtn) langBtn.textContent = getLanguageNativeName(selectedLang);
           LANGUAGE_OPTIONS.forEach(function(pair) {

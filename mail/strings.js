@@ -157,15 +157,22 @@
     'pt-PT': ['Mostrar imagens externas', 'Reencaminha as mensagens para'],
     fr: ['Afficher les images distantes', 'Transférez les messages vers'],
   };
-  window.MunetiosMailTranslations = Object.freeze(
-    Object.fromEntries(
-      Object.entries(messages).map(([locale, values]) => [
-        locale,
-        Object.freeze(
-          { ...Object.fromEntries(keys.map((key, index) => [key, values[index]])),
-            showImages: privacy[locale][0], forwardTo: privacy[locale][1] },
-        ),
-      ]),
-    ),
-  );
+  // Remaining global Munetios locales (zh-TW, es-US, fr-CA, and en-GB are derived in compose()).
+  Object.assign(messages, {
+    de: ["Unvollständig", "Posteingang", "Gesendet", "Aktualisieren", "Verfassen", "Keine Nachrichten.", "Mehr laden", "Schließen", "An", "Betreff", "Nachricht", "Senden", "Kein Betreff", "E-Mails werden geladen…", "Dieses Konto hat kein Munetios-Postfach.", "Mail ist nicht verfügbar. Versuche es später erneut.", "Nachricht gesendet.", "Nachricht gesendet. Sie wurde nicht unter „Gesendet“ gespeichert.", "Die Nachricht konnte nicht gesendet werden."],
+    it: ["Incompleto", "Posta in arrivo", "Inviati", "Aggiorna", "Scrivi", "Nessun messaggio.", "Carica altri", "Chiudi", "A", "Oggetto", "Messaggio", "Invia", "Nessun oggetto", "Caricamento della posta…", "Questo account non ha una casella Munetios.", "La posta non è disponibile. Riprova più tardi.", "Messaggio inviato.", "Messaggio inviato. Non è stato salvato in Inviati.", "Impossibile inviare il messaggio."],
+    "zh-CN": ["未完成", "收件箱", "已发送", "刷新", "写邮件", "没有邮件。", "加载更多", "关闭", "收件人", "主题", "正文", "发送", "无主题", "正在加载邮件…", "此账户没有 Munetios 邮箱。", "邮件暂时不可用，请稍后重试。", "邮件已发送。", "邮件已发送，但未保存到“已发送”。", "邮件发送失败。"],
+    ko: ["미완료", "받은편지함", "보낸편지함", "새로고침", "편지 쓰기", "메일이 없습니다.", "더 불러오기", "닫기", "받는 사람", "제목", "내용", "보내기", "제목 없음", "메일을 불러오는 중…", "이 계정에는 Munetios 메일함이 없습니다.", "메일을 사용할 수 없습니다. 나중에 다시 시도하세요.", "메일을 보냈습니다.", "메일을 보냈지만 보낸편지함에 저장되지 않았습니다.", "메일을 보내지 못했습니다."],
+    ar: ["غير مكتمل", "البريد الوارد", "المرسَل", "تحديث", "إنشاء رسالة", "لا توجد رسائل.", "تحميل المزيد", "إغلاق", "إلى", "الموضوع", "الرسالة", "إرسال", "بلا موضوع", "جارٍ تحميل البريد…", "لا يملك هذا الحساب صندوق بريد Munetios.", "البريد غير متاح. حاول مرة أخرى لاحقًا.", "تم إرسال الرسالة.", "تم إرسال الرسالة، لكنها لم تُحفظ في المرسَل.", "تعذّر إرسال الرسالة."],
+    hi: ["अधूरा", "इनबॉक्स", "भेजे गए", "रीफ़्रेश करें", "लिखें", "कोई संदेश नहीं।", "और लोड करें", "बंद करें", "प्रति", "विषय", "संदेश", "भेजें", "कोई विषय नहीं", "मेल लोड हो रहा है…", "इस खाते में Munetios मेलबॉक्स नहीं है।", "मेल उपलब्ध नहीं है। बाद में फिर से कोशिश करें।", "संदेश भेजा गया।", "संदेश भेजा गया, लेकिन भेजे गए में सहेजा नहीं गया।", "संदेश भेजा नहीं जा सका।"],
+    co: ["Incumpletu", "Ricevuti", "Mandati", "Rinfriscà", "Scrive", "Nisunu messaghju.", "Caricà altri", "Chjode", "À", "Oggettu", "Messaghju", "Mandà", "Senza oggettu", "Caricamentu di a posta…", "Stu contu ùn hà micca casella Munetios.", "A posta ùn hè micca dispunibule. Pruvate torna più tardi.", "Messaghju mandatu.", "Messaghju mandatu. Ùn hè micca statu arregistratu in i Mandati.", "Ùn hè micca statu pussibule di mandà u messaghju."],
+  });
+  Object.assign(privacy, {
+    de: ["Externe Bilder anzeigen", "Nachrichten weiterleiten an"], it: ["Mostra immagini remote", "Inoltra i messaggi a"], "zh-CN": ["显示远程图片", "将邮件转发到"],
+    ko: ["외부 이미지 표시", "메일 전달 대상"], ar: ["إظهار الصور البعيدة", "إعادة توجيه الرسائل إلى"], hi: ["दूरस्थ इमेज दिखाएँ", "संदेश इस पते पर अग्रेषित करें"], co: ["Mustrà l’imagine distante", "Trasferisce i messaghji à"],
+  });
+  const own = Object.fromEntries(Object.entries(messages).map(([locale, values]) => [locale,
+    { ...Object.fromEntries(keys.map((key, index) => [key, values[index]])), showImages: privacy[locale][0], forwardTo: privacy[locale][1] }]));
+  const L = window.MunetiosLocales;
+  window.MunetiosMailTranslations = Object.freeze(L ? L.compose(own, {}, {}) : own);
 })();

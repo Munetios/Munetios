@@ -11,9 +11,9 @@
   const H = window.SupaNotesHooks || (window.SupaNotesHooks = {});
   const App = () => window.SupaNotesApp;
   const UI = () => window.MunetiosUI;
-  const lang = () => { const l = (App() && App().language && App().language()) || "en"; return STR[l] ? l : "en"; };
+  const lang = () => { const L = window.MunetiosLocales; const l = (App() && App().language && App().language()) || "en"; const c = (L && L.resolve(l)) || "en-US"; return STR[c] ? c : "en-US"; };
   function t(key, vars) {
-    let value = (STR[lang()] && STR[lang()][key]) ?? STR.en[key] ?? key;
+    let value = (STR[lang()] && STR[lang()][key]) ?? (STR["en-US"] || STR.en)[key] ?? key;
     if (vars) for (const [k, v] of Object.entries(vars)) value = value.split("{" + k + "}").join(String(v));
     return value;
   }

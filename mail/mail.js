@@ -3,13 +3,14 @@
     const $ = id => document.getElementById(id);
     const translations = window.MunetiosMailTranslations;
     const account = window.MunetiosAccount;
-    let language;
-    try { language = localStorage.getItem("munetiosLanguage") || navigator.language; } catch { language = navigator.language; }
-    const base = language.split(/[-_]/)[0].toLowerCase();
-    const locale = base === "es" ? (/^es[-_]es$/i.test(language) ? "es-ES" : "es-419")
-        : base === "pt" ? (/^pt[-_]pt$/i.test(language) ? "pt-PT" : "pt-BR") : translations[base] ? base : "en";
-    const t = key => translations[locale][key];
+    let language = "";
+    try { language = localStorage.getItem("munetiosLanguage") || ""; } catch {}
+    const L = window.MunetiosLocales;
+    const locale = (L && ((language && L.resolve(language)) || L.detect())) || "en-US";
+    const dict = translations[locale] || translations["en-US"] || translations.en;
+    const t = key => dict[key];
     document.documentElement.lang = locale;
+    document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
     document.querySelectorAll("[data-label]").forEach(element => { element.textContent = t(element.dataset.label); });
     document.querySelectorAll("[data-label-aria]").forEach(element => { element.setAttribute("aria-label", t(element.dataset.labelAria)); });
     const status = $("mailStatus");

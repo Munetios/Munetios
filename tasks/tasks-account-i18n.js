@@ -1,4 +1,5 @@
-window.MunetiosTasksAccountStrings = Object.freeze({
+const TASKS_ACCOUNT_STRINGS = {
+  co: "Per sincrunizà i compiti è e categurie trà l’apparechji, cunnettitevi è sbluccate a sincrunizazione. I compiti d’invitatu restanu nant’à st’apparechju.",
   en: "To sync tasks and categories across devices, sign in and unlock sync. Guest tasks stay on this device.",
   es: "Para sincronizar tus tareas y categorías entre dispositivos, inicia sesión y desbloquea la sincronización. Las tareas de invitado se quedan en este dispositivo.",
   fr: "Pour synchroniser les tâches et les catégories entre vos appareils, connectez-vous et déverrouillez la synchronisation. Les tâches créées en mode invité restent sur cet appareil.",
@@ -29,4 +30,11 @@ window.MunetiosTasksAccountStrings = Object.freeze({
   hu: "A feladatok és kategóriák eszközök közötti szinkronizálásához jelentkezz be, és oldd fel a szinkronizálás zárolását. A vendégfeladatok ezen az eszközön maradnak.",
   bg: "За да синхронизирате задачи и категории между устройства, влезте в профила си и отключете синхронизирането. Задачите на госта остават на това устройство.",
   hr: "Za sinkronizaciju zadataka i kategorija na više uređaja prijavite se i otključajte sinkronizaciju. Zadaci gosta ostaju na ovom uređaju.",
-});
+};
+// One sentence per global Munetios locale (shared/munetios-locales.js).
+{
+  const L = window.MunetiosLocales;
+  const wrapped = Object.fromEntries(Object.entries(TASKS_ACCOUNT_STRINGS).map(([k, v]) => [k, { text: v }]));
+  const composed = L ? L.compose(wrapped, {}, { es: "419", pt: "BR" }) : wrapped;
+  window.MunetiosTasksAccountStrings = Object.freeze(Object.fromEntries(Object.entries(composed).map(([k, v]) => [k, v.text])));
+}

@@ -12,13 +12,11 @@
   const UI = () => window.MunetiosUI;
   const locale = () => { try { return getLocale(); } catch { return "en-US"; } };
   const lang = () => {
-    const l = locale();
-    const base = l.split("-")[0];
-    if (base === "co") return "fr";
-    return STR[base] ? base : "en";
+    const code = (window.MunetiosLocales && window.MunetiosLocales.resolve(locale())) || "en-US";
+    return STR[code] ? code : "en-US";
   };
   function t(key, vars) {
-    let value = (STR[lang()] && STR[lang()][key]) ?? STR.en[key] ?? key;
+    let value = (STR[lang()] && STR[lang()][key]) ?? (STR["en-US"] || STR.en)[key] ?? key;
     if (vars) for (const [k, v] of Object.entries(vars)) value = value.split("{" + k + "}").join(String(v));
     return value;
   }
@@ -228,7 +226,7 @@
       if (!value) return;
       const copy = { ...meal, id: crypto.randomUUID(), createdAt: new Date(value).toISOString(), bookmarked: false };
       await persist(copy);
-      toast(t("planned", { date: fmtDay(new Date(value), { weekday: "short", month: "short", day: "numeric" }) }));
+      (window.showSyncedToast || toast)(t("planned", { date: fmtDay(new Date(value), { weekday: "short", month: "short", day: "numeric" }) }));
     } });
   }
 

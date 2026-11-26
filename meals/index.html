@@ -64,6 +64,8 @@
     <link rel="stylesheet" href="./meals-features.css" />
     <link rel="stylesheet" href="/account/account-menu.css" />
     <script src="/account/workspace-scope.js"></script>
+    <script src="/shared/munetios-locales.js"></script>
+    <script src="./meals-locales.js"></script>
     <script src="./meals-account.js"></script>
     <script src="/calendar/meals/meals-sync.js"></script>
     <script defer src="/munetios-ui/munetios-ui-v4.js"></script>
@@ -1174,25 +1176,10 @@
       const languageTrigger = document.getElementById("languageTrigger");
       const languageLabel = document.getElementById("languageLabel");
       const languageMenu = document.getElementById("languageMenu");
+      // The 17 global Munetios locales, labeled in their own language (shared/munetios-locales.js).
       const SUPPORTED_LANGUAGES = [
         ["auto", "Auto detect"],
-        ["en-US", "American English"],
-        ["en-GB", "British English"],
-        ["en-150", "European English"],
-        ["es-US", "American Spanish"],
-        ["es-ES", "European Spanish"],
-        ["es-MX", "Mexican Spanish"],
-        ["fr-CA", "French (Canada)"],
-        ["fr-FR", "French (France)"],
-        ["de-DE", "German (Germany)"],
-        ["pt-BR", "Portuguese (Brazil)"],
-        ["pt-PT", "Portuguese (Portugal)"],
-        ["it-IT", "Italiano"],
-        ["zh-CN", "Chinese"],
-        ["ja-JP", "Japanese"],
-        ["sv-SE", "Swedish"],
-        ["da-DK", "Danish"],
-        ["co-FR", "Corsican"],
+        ...window.MunetiosLocales.LOCALES.map((l) => [l.code, l.name]),
       ];
       languageMenu.innerHTML = SUPPORTED_LANGUAGES.map(
         ([value, label], index) =>
@@ -3151,6 +3138,7 @@
         const browserLanguages = navigator.languages?.length
           ? navigator.languages
           : [navigator.language || "en-US"];
+        if (window.MunetiosLocales) return window.MunetiosLocales.detect(browserLanguages);
         for (const browserLanguage of browserLanguages) {
           let locale = String(browserLanguage).replaceAll("_", "-");
           try {
@@ -3204,7 +3192,8 @@
 
       function getLocale() {
         const preference = state.preferences.language || "auto";
-        return preference === "auto" ? detectBrowserLanguage() : preference;
+        if (preference === "auto") return detectBrowserLanguage();
+        return (window.MunetiosLocales && window.MunetiosLocales.resolve(preference)) || detectBrowserLanguage();
       }
 
       function getTextDirection() {
@@ -3218,7 +3207,31 @@
         );
       }
 
+      // One complete catalog per global locale, built once from the tables above plus meals-locales.js.
+      let MEALS_CATALOGS = null;
+      function buildMealsCatalogs() {
+        const pick = (lang, base) => ({
+          ...(I18N[base] || {}),
+          ...(I18N_EXTRA[base] || {}),
+          ...(I18N_MORE[base] || {}),
+          ...(I18N_LOCALE_OVERRIDES[lang] || {}),
+        });
+        const own = {
+          "en-US": { ...I18N.en, ...(I18N_EXTRA.en || {}), ...(I18N_MORE.en || {}), ...(I18N_LOCALE_OVERRIDES["en-US"] || {}) },
+          "en-GB": I18N_LOCALE_OVERRIDES["en-GB"] || {},
+          "es-419": pick("es-MX", "es"), "es-ES": pick("es-ES", "es"), "es-US": pick("es-US", "es"),
+          "fr-FR": pick("fr-FR", "fr"), "fr-CA": pick("fr-CA", "fr"), de: pick("de-DE", "de"), it: pick("it-IT", "it"),
+          "pt-BR": pick("pt-BR", "pt"), "pt-PT": pick("pt-PT", "pt"), "zh-CN": pick("zh-CN", "zh-CN"), "zh-TW": pick("zh-TW", "zh-TW"),
+          ko: pick("ko", "ko"), ar: pick("ar", "ar"),
+        };
+        return window.MunetiosLocales.compose(own, window.MealsLocaleExtras || {}, {});
+      }
+
       function getTranslation() {
+        if (window.MunetiosLocales) {
+          MEALS_CATALOGS = MEALS_CATALOGS || buildMealsCatalogs();
+          return MEALS_CATALOGS[getLocale()] || MEALS_CATALOGS["en-US"];
+        }
         const language = getLocale();
         const baseLanguage = LANGUAGE_BASE_LOCALES[language] || "en";
         return {

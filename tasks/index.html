@@ -33,6 +33,8 @@
     <link rel="stylesheet" href="/munetios-ui/munetios-ui-v4.css" />
     <link rel="stylesheet" href="/account/account-menu.css" />
     <script src="/account/workspace-scope.js"></script>
+    <script src="/shared/munetios-locales.js"></script>
+    <script src="./tasks-locales.js"></script>
     <script defer src="/munetios-ui/munetios-ui-v4.js"></script>
     <script defer src="/account/account-i18n.js"></script>
     <script defer src="/account/account-core.js"></script>
@@ -431,36 +433,23 @@
         aria-labelledby="dropdownBtnLanguage"
         id="languagesListDropdown"
       >
-        <li data-lang="en">English</li>
-        <li data-lang="es">Español</li>
-        <li data-lang="fr">Français</li>
-        <li data-lang="de">Deutsch</li>
-        <li data-lang="zh">中文</li>
-        <li data-lang="ja">日本語</li>
-        <li data-lang="it">Italiano</li>
-        <li data-lang="pt">Português</li>
-        <li data-lang="ru">Русский</li>
-        <li data-lang="ar">العربية</li>
-        <li data-lang="hi">हिन्दी</li>
-        <li data-lang="ko">한국어</li>
-        <li data-lang="tr">Türkçe</li>
-        <li data-lang="nl">Nederlands</li>
-        <li data-lang="pl">Polski</li>
-        <li data-lang="sv">Svenska</li>
-        <li data-lang="fi">Suomi</li>
-        <li data-lang="no">Norsk</li>
-        <li data-lang="da">Dansk</li>
-        <li data-lang="cs">Čeština</li>
-        <li data-lang="el">Ελληνικά</li>
-        <li data-lang="he">עברית</li>
-        <li data-lang="th">ไทย</li>
-        <li data-lang="vi">Tiếng Việt</li>
-        <li data-lang="id">Bahasa Indonesia</li>
-        <li data-lang="uk">Українська</li>
-        <li data-lang="ro">Română</li>
-        <li data-lang="hu">Magyar</li>
-        <li data-lang="bg">Български</li>
-        <li data-lang="hr">Hrvatski</li>
+        <li data-lang="en-US" lang="en-US">English (United States)</li>
+        <li data-lang="en-GB" lang="en-GB">English (United Kingdom)</li>
+        <li data-lang="es-419" lang="es-419">Español (Latinoamérica)</li>
+        <li data-lang="es-ES" lang="es-ES">Español (España)</li>
+        <li data-lang="es-US" lang="es-US">Español (Estados Unidos)</li>
+        <li data-lang="fr-FR" lang="fr-FR">Français (France)</li>
+        <li data-lang="fr-CA" lang="fr-CA">Français (Canada)</li>
+        <li data-lang="de" lang="de">Deutsch</li>
+        <li data-lang="it" lang="it">Italiano</li>
+        <li data-lang="pt-BR" lang="pt-BR">Português (Brasil)</li>
+        <li data-lang="pt-PT" lang="pt-PT">Português (Portugal)</li>
+        <li data-lang="zh-CN" lang="zh-CN">中文（简体）</li>
+        <li data-lang="zh-TW" lang="zh-TW">中文（繁體）</li>
+        <li data-lang="ko" lang="ko">한국어</li>
+        <li data-lang="ar" lang="ar">العربية</li>
+        <li data-lang="hi" lang="hi">हिन्दी</li>
+        <li data-lang="co" lang="co">Corsu</li>
       </ul>
     </div>
     <div class="more-dropdown liquid-glass" id="taskMoreDropdown">
@@ -6812,6 +6801,12 @@
           ...local.messages,
         };
       });
+      // One complete catalog per global Munetios locale (shared/munetios-locales.js, tasks-locales.js).
+      {
+        const composed = window.MunetiosLocales.composeNested(translations, window.TasksLocaleExtras || {}, { es: "419", pt: "BR" });
+        Object.keys(translations).forEach((k) => delete translations[k]);
+        Object.assign(translations, composed, { en: composed["en-US"] });
+      }
 
       const themes = {
         default: {
@@ -6834,7 +6829,7 @@
       document.addEventListener("DOMContentLoaded", () => {
         // Load saved settings
         const savedTheme = localStorage.getItem("appTheme") || "default";
-        const savedLanguage = localStorage.getItem("appLanguage") || "en";
+        const savedLanguage = window.MunetiosLocales.resolve(localStorage.getItem("appLanguage")) || window.MunetiosLocales.detect();
         const savedCustomColor = localStorage.getItem("customAccentColor");
         const savedTransparency =
           localStorage.getItem("reduceTransparency") === "true";
@@ -6920,7 +6915,7 @@
               const lang = item.dataset.lang;
               applyLanguage(lang);
               localStorage.setItem("appLanguage", lang);
-              showToast(`Language changed to ${item.textContent}`);
+              showToast(`${(translations[window.currentLang] || translations.en).messages.languageChangedTo} ${item.textContent}`);
 
               langDropdown.style.display = "none";
               langList.classList.remove("show");
@@ -7138,7 +7133,7 @@
 
                 // Reset UI
                 applyTheme("default");
-                applyLanguage("en");
+                applyLanguage(window.MunetiosLocales.detect());
                 applyTransparency(false);
                 if (transparencySwitch) transparencySwitch.checked = false;
 
@@ -7165,6 +7160,9 @@
       }
 
       function applyLanguage(lang) {
+        lang = window.MunetiosLocales.resolve(lang) || window.MunetiosLocales.detect();
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
         const syncStrings = window.MunetiosTasksAccountStrings;
         if (!Object.hasOwn(syncStrings, lang)) return;
         const trans = translations[lang] || translations.en;
