@@ -38,12 +38,19 @@
     catch { if (!quiet) UI.toast(t("errorSettings"), { type: "error" }); return false; }
   }
   const language = () => Cloud.resolveLanguage(settings.language === "system" ? navigator.language : settings.language);
-  const uiLocale = () => ({ es: "es-ES", en: "en-US" })[language()] || language();
+  // Intl has no Corsican data, so Corsican dates and numbers use the conventions of Corsica (fr-FR).
+  const uiLocale = () => (language() === "co" ? "fr-FR" : language());
   let catalog = {};
+  // One complete catalog per global Munetios locale: the shared Cloud strings plus this app's strings.
+  let composedCatalogs = null;
   function buildCatalog() {
-    const code = language();
-    const base = Cloud.catalogBase(code);
-    catalog = Object.assign({}, Cloud.strings("en"), STR.en, Cloud.strings(code === "zh-CN" ? "zh" : code), STR[base] || {}, STR[code] || {});
+    if (!composedCatalogs) {
+      const C = window.MunetiosCloudStrings;
+      const own = {};
+      for (const key of new Set([...Object.keys(C), ...Object.keys(STR)])) own[key] = Object.assign({}, C[key] || {}, STR[key] || {});
+      composedCatalogs = window.MunetiosLocales.compose(own, {}, { es: "ES", pt: "BR" });
+    }
+    catalog = composedCatalogs[language()] || composedCatalogs["en-US"];
   }
   function t(key, vars) {
     let text = catalog[key] ?? key;

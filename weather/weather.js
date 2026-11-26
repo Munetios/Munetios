@@ -39,31 +39,25 @@
   let zoneRevision = 0;
 
   // ------------------------------------------------------------ language
-  const LANGS = ["en", "en-GB", "es-419", "es-ES", "fr", "de", "it", "pt-BR", "pt-PT", "ru", "zh", "ja", "ko", "ar", "hi"];
-  function resolveLanguage(code) {
-    let locale;
-    try { locale = new Intl.Locale(String(code || "").replace(/_/g, "-")); }
-    catch { return null; }
-    const { language, region } = locale;
-    if (language === "es") return region === "ES" ? "es-ES" : "es-419";
-    if (language === "pt") return region === "PT" ? "pt-PT" : "pt-BR";
-    if (language === "en") return /^(GB|IE|NZ|ZA|AU|IN)$/.test(region) ? "en-GB" : "en";
-    return LANGS.includes(language) ? language : null;
-  }
+  // The 17 global Munetios locales (shared/munetios-locales.js).
+  const LOCALES = window.MunetiosLocales;
+  const LANGS = LOCALES.CODES.slice();
+  const resolveLanguage = (code) => LOCALES.resolve(String(code || ""));
+  // One complete catalog per locale; gaps fill from the closest language before English.
+  const CATALOGS = LOCALES.compose(STR, {}, { es: "419", pt: "BR" });
   if (settings.language !== "system") settings.language = resolveLanguage(settings.language) || "system";
-  const browserLanguage = () => [...(navigator.languages || []), navigator.language].map(resolveLanguage).find(Boolean) || "en";
+  const browserLanguage = () => LOCALES.detect();
   let systemLanguage = browserLanguage();
   const lang = () => settings.language === "system" ? systemLanguage : settings.language;
-  const locale = () => ({ en: "en-US", zh: "zh-CN" }[lang()] || lang());
+  // Intl has no Corsican data, so Corsican dates and numbers use the conventions of Corsica (fr-FR).
+  const locale = () => (lang() === "co" ? "fr-FR" : lang());
   function t(key, vars) {
-    const l = lang();
-    const shared = { "es-ES": "es-419", "pt-PT": "pt-BR" }[l];
-    let s = STR[l]?.[key] ?? STR[shared]?.[key] ?? STR.en[key] ?? key;
+    let s = (CATALOGS[lang()] || CATALOGS["en-US"])[key] ?? CATALOGS["en-US"][key] ?? key;
     if (vars) s = s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? ""));
     return s;
   }
   function applyStrings() {
-    document.documentElement.lang = locale();
+    document.documentElement.lang = lang();
     document.documentElement.dir = lang() === "ar" ? "rtl" : "ltr";
     $$("[data-t]").forEach((el) => { el.textContent = t(el.dataset.t); });
     $$("[data-t-label]").forEach((el) => { el.setAttribute("aria-label", t(el.dataset.tLabel)); if (el.matches("button")) el.title = t(el.dataset.tLabel); });
@@ -1332,10 +1326,7 @@
     sel.innerHTML = options.map(([v, l]) => `<option value="${esc(v)}"${v === value ? " selected" : ""}>${esc(l)}</option>`).join("");
     UI.refreshSelect?.(sel);
   }
-  function languageName(code) {
-    const display = code === "zh" ? "zh-CN" : code;
-    try { const n = new Intl.DisplayNames([display], { type: "language" }).of(display); return n.charAt(0).toLocaleUpperCase(display) + n.slice(1); } catch (e) { return code; }
-  }
+  const languageName = (code) => LOCALES.name(code);
   function renderSettings() {
     fillSelect($("#setLanguage"), [["system", t("systemDefault")], ...LANGS.map((l) => [l, languageName(l)])], settings.language);
     fillSelect($("#setTemp"), [["fahrenheit", t("fahrenheit")], ["celsius", t("celsius")]], settings.temp);

@@ -37,6 +37,9 @@
   const PORTUGAL = new Set(["pt", "ao", "mz", "cv", "gw", "st", "tl", "mo", "gq", "ch", "lu"]);
   const TRADITIONAL = new Set(["tw", "hk", "mo", "hant"]);
 
+  // Converters change words only outside {placeholders}, so "{color}" stays "{color}".
+  const guardPh = (text, fn) => String(text).split(/(\{\w+\})/).map((part, i) => (i % 2 ? part : fn(part))).join("");
+
   function resolve(tag) {
     if (!tag || typeof tag !== "string" || tag === "auto") return null;
     const parts = tag.replace(/_/g, "-").toLowerCase().split("-");
@@ -88,9 +91,10 @@
   const GB_WORDS = [["Couldn't", "Could not"], ["couldn't", "could not"], ["Color", "Colour"], ["color", "colour"], ["Favorites", "Favourites"], ["favorites", "favourites"], ["Favorite", "Favourite"], ["favorite", "favourite"], ["Kilometers", "Kilometres"], ["kilometers", "kilometres"], ["Center", "Centre"], ["center", "centre"], ["Organize", "Organise"], ["organize", "organise"], ["Customize", "Customise"], ["customize", "customise"], ["Canceled", "Cancelled"], ["canceled", "cancelled"], ["Gray", "Grey"], ["gray", "grey"], ["Analyze", "Analyse"], ["analyze", "analyse"], ["Recognize", "Recognise"], ["recognize", "recognise"], ["Synchronize", "Synchronise"], ["synchronize", "synchronise"], ["Behavior", "Behaviour"], ["behavior", "behaviour"], ["Catalog", "Catalogue"], ["catalog", "catalogue"], ["Dialog", "Dialogue"]];
   function toBritish(text) {
     if (typeof text !== "string") return text;
-    let out = text;
-    for (const [us, gb] of GB_WORDS) out = out.replace(new RegExp(`(?<![\\p{L}])${us}(?![\\p{L}])`, "gu"), gb);
-    return out;
+    return guardPh(text, (out) => {
+      for (const [us, gb] of GB_WORDS) out = out.replace(new RegExp(`(?<![\\p{L}])${us}(?![\\p{L}])`, "gu"), gb);
+      return out;
+    });
   }
   function britishCatalog(catalog) {
     const out = {};
@@ -101,8 +105,8 @@
   // pt-BR search wording ("Pesquisar" → "Buscar").
   function toBrazilianSearch(text) {
     if (typeof text !== "string") return text;
-    return text.replace(/Pesquisar/g, "Buscar").replace(/pesquisar/g, "buscar").replace(/Pesquisando/g, "Buscando").replace(/pesquisando/g, "buscando")
-      .replace(/Pesquise/g, "Busque").replace(/pesquise/g, "busque").replace(/Pesquisas/g, "Buscas").replace(/pesquisas/g, "buscas").replace(/Pesquisa/g, "Busca").replace(/pesquisa/g, "busca");
+    return guardPh(text, (t) => t.replace(/Pesquisar/g, "Buscar").replace(/pesquisar/g, "buscar").replace(/Pesquisando/g, "Buscando").replace(/pesquisando/g, "buscando")
+      .replace(/Pesquise/g, "Busque").replace(/pesquise/g, "busque").replace(/Pesquisas/g, "Buscas").replace(/pesquisas/g, "buscas").replace(/Pesquisa/g, "Busca").replace(/pesquisa/g, "busca"));
   }
   // pt-PT settings wording ("Configurações"/"Definições" → "Ajustes").
   function toPortugalSettings(text) {
@@ -132,6 +136,9 @@
   ];
   function toEuropeanPortuguese(text) {
     if (typeof text !== "string") return text;
+    return guardPh(text, europeanPortuguesePart);
+  }
+  function europeanPortuguesePart(text) {
     let out = text;
     for (const [br, pt] of PT_WORDS) out = out.replace(new RegExp(`(?<![\\p{L}])${br}(?![\\p{L}])`, "gu"), pt);
     return out.replace(/\bas ajustes/g, "os ajustes").replace(/\bdas ajustes/g, "dos ajustes").replace(/\bsuas ajustes/g, "os seus ajustes").replace(/\bàs ajustes/g, "aos ajustes").replace(/\bnas ajustes/g, "nos ajustes")
@@ -169,9 +176,10 @@
     ["ordenador", "computadora"], ["Ordenador", "Computadora"], ["Vídeos", "Videos"], ["vídeos", "videos"], ["Vídeo", "Video"], ["vídeo", "video"], ["Aparcamiento", "Estacionamiento"], ["aparcamiento", "estacionamiento"]];
   const replaceWords = (text, pairs) => {
     if (typeof text !== "string") return text;
-    let out = text;
-    for (const [a, b] of pairs) out = out.replace(new RegExp(`(?<![\\p{L}])${a}(?![\\p{L}])`, "gu"), b);
-    return out;
+    return guardPh(text, (out) => {
+      for (const [a, b] of pairs) out = out.replace(new RegExp(`(?<![\\p{L}])${a}(?![\\p{L}])`, "gu"), b);
+      return out;
+    });
   };
   const toPeninsularSpanish = (text) => replaceWords(text, ES_ES).replace(/\blas ajustes\b/g, "los ajustes").replace(/\bLa ajustes\b/g, "Los ajustes").replace(/\bla ajustes\b/g, "los ajustes").replace(/\btu ajustes\b/g, "tus ajustes").replace(/\bde la ajustes\b/g, "de los ajustes");
   const toLatinAmericanSpanish = (text) => replaceWords(text, ES_419).replace(/\blos configuración\b/g, "la configuración").replace(/\bLos configuración\b/g, "La configuración").replace(/\btus configuración\b/g, "tu configuración");

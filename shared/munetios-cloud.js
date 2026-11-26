@@ -215,10 +215,10 @@
   }
 
   /* ---------------------------------------------------------- strings */
+  let composedStrings = null;
   function strings(locale) {
-    const S = window.MunetiosCloudStrings;
-    const base = locale.split("-")[0];
-    return Object.assign({}, S.en, S[base] || {}, S[locale] || {});
+    composedStrings = composedStrings || window.MunetiosLocales.compose(window.MunetiosCloudStrings, {}, { es: "ES", pt: "BR" });
+    return composedStrings[window.MunetiosLocales.resolve(locale) || "en-US"] || composedStrings["en-US"];
   }
   function errorText(error, fallback, t) {
     if (error?.code === "offline") return t("errorOffline");
@@ -328,40 +328,30 @@
   }
 
   /* ---------------------------------------------------------- languages */
-  // Every language Calendar and Photos can show. Regional entries reuse their base language.
-  const LANGUAGES = ["en", "en-GB", "en-AU", "en-CA", "en-IN", "es", "es-US", "es-MX", "es-419", "fr", "fr-CA", "de", "it", "pt-BR", "pt-PT", "ru", "zh-CN", "ja", "ko", "ar", "hi"];
-  function resolveLanguage(value) {
-    const code = String(value || "").replace(/_/g, "-");
-    const exact = LANGUAGES.find((item) => item.toLowerCase() === code.toLowerCase());
-    if (exact) return exact;
-    const lower = code.toLowerCase();
-    const base = lower.split("-")[0];
-    if (base === "es") return lower === "es-es" || lower === "es" ? "es" : lower === "es-us" ? "es-US" : lower === "es-mx" ? "es-MX" : "es-419";
-    if (base === "pt") return lower === "pt-pt" ? "pt-PT" : "pt-BR";
-    if (base === "zh") return "zh-CN";
-    if (base === "en") return /-(gb|ie|nz|za)$/.test(lower) ? "en-GB" : lower === "en-au" ? "en-AU" : lower === "en-ca" ? "en-CA" : lower === "en-in" ? "en-IN" : "en";
-    if (base === "fr") return lower === "fr-ca" ? "fr-CA" : "fr";
-    return LANGUAGES.includes(base) ? base : "en";
-  }
-  // The catalog key a language reads from: "es-US" reads "es-US" and then "es".
-  const catalogBase = (code) => (code === "zh-CN" ? "zh" : code === "pt-BR" || code === "pt-PT" ? "pt" : code.split("-")[0]);
+  // The 17 global Munetios locales (shared/munetios-locales.js).
+  const L = window.MunetiosLocales;
+  const LANGUAGES = L.CODES.slice();
+  const resolveLanguage = (value) => L.resolve(String(value || "")) || L.detect();
+  // The base language of a locale ("es-US" → "es"), used for right-to-left checks and shared files.
+  const catalogBase = (code) => String(code || "en").split("-")[0];
+  // The language's own name for itself, or its name in another language.
   function languageName(code, inLocale) {
-    const tag = code === "es" ? "es-ES" : code === "en" ? "en-US" : code;
+    if (!inLocale || L.resolve(inLocale) === code) return L.name(code);
     try {
-      const name = new Intl.DisplayNames([inLocale], { type: "language", languageDisplay: "standard" }).of(tag);
-      return name ? name.charAt(0).toLocaleUpperCase(inLocale) + name.slice(1) : code;
-    } catch { return code; }
+      const name = new Intl.DisplayNames([inLocale], { type: "language", languageDisplay: "standard" }).of(code);
+      return name && name !== code ? name.charAt(0).toLocaleUpperCase(inLocale) + name.slice(1) : L.name(code);
+    } catch { return L.name(code); }
   }
   // Modern language picker: native names first, the name in the current language below.
   function pickLanguage({ value, uiLocale, t, onPick }) {
     const preferred = [...new Set((navigator.languages || [navigator.language]).map(resolveLanguage))];
-    const toItem = (code) => ({ value: code, label: languageName(code, code === "es" ? "es-ES" : code), sub: languageName(code, uiLocale), lang: code, keywords: code });
+    const toItem = (code) => ({ value: code, label: L.name(code), sub: languageName(code, uiLocale), lang: code, keywords: code + " " + L.name(code) });
     const system = { value: "system", label: t("systemDefault"), sub: languageName(resolveLanguage(navigator.language), uiLocale) };
     window.MunetiosUI.pickFromList({
       title: t("language"), icon: "translate", value, searchLabel: t("searchLanguages"), emptyText: t("noResults"), closeLabel: t("close"),
       groups: [
         { label: t("suggestedLanguages"), items: [system, ...preferred.map(toItem)] },
-        { label: t("allLanguages"), items: LANGUAGES.map(toItem).sort((a, b) => a.label.localeCompare(b.label, uiLocale)) },
+        { label: t("allLanguages"), items: LANGUAGES.map(toItem) },
       ],
       onPick,
     });

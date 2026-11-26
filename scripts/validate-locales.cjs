@@ -145,6 +145,16 @@ for (const [key, value] of Object.entries(webfilter('pt-BR'))) assert.ok(!/\b[Pp
       for (const [key, value] of Object.entries(cat["en-US"])) if (realWords(value) >= 4) assert.notEqual(cat[code][key], value, `${label} ${code}: English sentence in ${key}`);
     }
   }
+  // Calendar and Photos read the shared Cloud strings plus their own; Weather reads its own.
+  for (const file of ["shared/cloud-i18n.js", "calendar/calendar-i18n.js", "photos/photos-i18n.js", "weather/weather-i18n.js"]) vm.runInContext(read(file), actx);
+  const withCloud = (app) => { const C = actx.MunetiosCloudStrings, own = {}; for (const k of new Set([...Object.keys(C), ...Object.keys(app)])) own[k] = Object.assign({}, C[k] || {}, app[k] || {}); return actx.MunetiosLocales.compose(own, {}, { es: "ES", pt: "BR" }); };
+  for (const [label, cat] of [["Cloud", actx.MunetiosLocales.compose(actx.MunetiosCloudStrings, {}, { es: "ES", pt: "BR" })], ["Calendar", withCloud(actx.MunetiosCalendarStrings)], ["Photos", withCloud(actx.MunetiosPhotosStrings)], ["Weather", actx.MunetiosLocales.compose(actx.GanetiosWeatherStrings, {}, { es: "419", pt: "BR" })]]) {
+    for (const code of codes) check(cat[code], cat["en-US"], `${label} ${code}`);
+    assert.equal(cat["pt-PT"].settings, "Ajustes", `${label} pt-PT settings`);
+    assert.equal(cat["es-ES"].settings, "Ajustes", `${label} es-ES settings`);
+    assert.equal(cat["es-419"].settings, "Configuración", `${label} es-419 settings`);
+    for (const [k, v] of Object.entries(cat["en-GB"])) assert.ok(!/Couldn't/.test(v), `${label} en-GB: ${k}`);
+  }
   assert.deepEqual(Object.keys(actx.MunetiosTasksAccountStrings).sort(), [...codes].sort(), "Tasks account: locales");
   for (const code of codes) assert.ok(actx.MunetiosYouTubeI18n.get(code, "settings"), `YouTube ${code}`);
   assert.equal(actx.MunetiosYouTubeI18n.get("es-ES", "settings"), "Ajustes");
