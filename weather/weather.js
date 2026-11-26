@@ -37,6 +37,17 @@
   const deviceTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   let deviceZone = deviceTimezone();
   let zoneRevision = 0;
+  // Compare wall-clock and monotonic time to detect manual device clock changes.
+  // This does not adjust astronomical timestamps: changing the device date selects
+  // the corresponding real solar day, while changing the hour moves the live marker.
+  let clockSample = { wall: Date.now(), mono: performance.now() };
+  function deviceClockChanged() {
+    const wall = Date.now();
+    const mono = performance.now();
+    const drift = (wall - clockSample.wall) - (mono - clockSample.mono);
+    clockSample = { wall, mono };
+    return Math.abs(drift) >= 2000;
+  }
 
   // ------------------------------------------------------------ language
   // The 17 global Munetios locales (shared/munetios-locales.js).
@@ -1560,15 +1571,24 @@
 
     // Redraw width-dependent charts on resize.
     let rz = null;
-    new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => { renderChart(); const loc = activeLocation(); if (loc) { const { info } = sunDay(loc); const lp = Sun.localParts(Date.now(), zoneOf(loc), loc.lon); const today = !view.sunDate || (view.sunDate.year === lp.year && view.sunDate.month === lp.month && view.sunDate.day === lp.day); renderSunChart(loc, info, today ? Date.now() : null, sunDay(loc).lp); } }, 120); }).observe($("#main"));
+    new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => { renderChart(); const loc = activeLocation(); if (loc) { const { lp, info } = sunDay(loc); const today = Sun.localParts(Date.now(), zoneOf(loc), loc.lon); const showNow = today.year === lp.year && today.month === lp.month && today.day === lp.day; renderSunChart(loc, info, showNow ? Date.now() : null, lp); } }, 120); }).observe($("#main"));
 
+    // Keep time-based displays in sync, including when the OS clock changes.
+    // A frequent lightweight clock check avoids waiting for the minute update.
+    setInterval(() => {
+      const changed = deviceClockChanged();
+      const loc = activeLocation();
+      if (!loc || document.hidden || !changed) return;
+      renderAll(); // Recompute dawn, sunrise, solar noon, sunset, dusk and the sky for the device date.
+      renderLocations();
+    }, 1000);
     // Keep clocks, the sun, and the sky moving; refresh data every 15 minutes.
     setInterval(() => {
       const loc = activeLocation();
       if (!loc || document.hidden) return;
       $("#placeSub").textContent = placeSubtitle(loc);
       renderLocations();
-      if (!view.sunDate) renderSun();
+      renderSun();
       updateSky();
       const d = store.data[loc.id];
       if (d && Date.now() - d.fetchedAt > 15 * 60000) refresh(true);
@@ -1576,11 +1596,14 @@
     }, 60000);
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) return;
+      const changed = deviceClockChanged();
       const zone = deviceTimezone();
       if (zone !== deviceZone) {
         deviceZone = zone;
         if (settings.useDeviceTimezone) { onTimezoneChange(); return; }
       }
+      if (changed) { renderAll(); renderLocations(); }
+      else { renderSun(); updateSky(); }
       const d = store.data[activeId];
       if (d && Date.now() - d.fetchedAt > 15 * 60000) refresh(true);
     });
