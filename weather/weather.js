@@ -37,21 +37,39 @@
   const deviceTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   let deviceZone = deviceTimezone();
   let zoneRevision = 0;
-  // In manual device-clock mode, track the amount the wall clock has jumped
-  // relative to monotonic elapsed time. Solar calculations remain astronomical;
-  // this offset is applied only to their displayed clock readings.
+  // Compare the device clock against a same-origin HTTP Date reference, so
+  // offsets also work after reloads and changes made before opening Weather.
   let clockSample = { wall: Date.now(), mono: performance.now() };
   let solarClockOffset = 0;
+  let referencePending = false;
   function deviceClockChanged() {
     const wall = Date.now();
     const mono = performance.now();
     const drift = (wall - clockSample.wall) - (mono - clockSample.mono);
     clockSample = { wall, mono };
     if (Math.abs(drift) < 2000) return false;
-    // Treat jumps of at least two seconds as manual adjustments. Round to whole
-    // seconds so tiny scheduling discrepancies do not accumulate over time.
-    solarClockOffset += Math.round(drift / 1000) * 1000;
+    solarClockOffset += Math.round(drift / 60000) * 60000;
     return true;
+  }
+  async function syncSolarClock() {
+    if (referencePending) return;
+    referencePending = true;
+    try {
+      const start = performance.now();
+      const url = new URL("/weather/weather.js", location.origin);
+      url.searchParams.set("clock-reference", String(Math.random()));
+      const response = await fetch(url, { method: "HEAD", cache: "no-store", credentials: "same-origin" });
+      const server = Date.parse(response.headers.get("Date") || "");
+      const elapsed = performance.now() - start;
+      if (!response.ok || !Number.isFinite(server) || elapsed > 10000) return;
+      const offset = Math.round((Date.now() - server - elapsed / 2) / 60000) * 60000;
+      clockSample = { wall: Date.now(), mono: performance.now() };
+      if (offset !== solarClockOffset) {
+        solarClockOffset = offset;
+        if (activeLocation()) renderSun();
+      }
+    } catch (e) { /* Offline: retain the locally detected offset. */ }
+    finally { referencePending = false; }
   }
   function solarTimeStr(ms, loc) {
     return ms == null ? "—" : timeStr(ms + solarClockOffset, loc);
@@ -128,7 +146,7 @@
     const local = Date.UTC(lp.year, lp.month, lp.day, h);
     let instant = local - Sun.offsetMinutes(local, zone, loc.lon) * 60000;
     instant = local - Sun.offsetMinutes(instant, zone, loc.lon) * 60000;
-    return hourStr(instant + solarClockOffset, loc);
+    return solarClockOffset ? solarTimeStr(instant, loc) : hourStr(instant, loc);
   }
   function dateStr(ms, loc, opts) {
     const zone = zoneOf(loc);
@@ -1588,6 +1606,7 @@
     // A frequent lightweight clock check avoids waiting for the minute update.
     setInterval(() => {
       const changed = deviceClockChanged();
+      if (changed) syncSolarClock();
       const loc = activeLocation();
       if (!loc || document.hidden || !changed) return;
       renderAll(); // Recompute dawn, sunrise, solar noon, sunset, dusk and the sky for the device date.
@@ -1608,6 +1627,7 @@
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) return;
       const changed = deviceClockChanged();
+      syncSolarClock();
       const zone = deviceTimezone();
       if (zone !== deviceZone) {
         deviceZone = zone;
@@ -1618,7 +1638,10 @@
       const d = store.data[activeId];
       if (d && Date.now() - d.fetchedAt > 15 * 60000) refresh(true);
     });
-    window.addEventListener("online", () => refresh(true));
+    window.addEventListener("focus", () => { if (deviceClockChanged() && activeLocation()) renderSun(); syncSolarClock(); });
+    window.addEventListener("online", () => { syncSolarClock(); refresh(true); });
+    setInterval(() => { if (!document.hidden) syncSolarClock(); }, 60000);
+    syncSolarClock();
 
     renderLocations();
     refresh();
