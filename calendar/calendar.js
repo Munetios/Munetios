@@ -416,8 +416,17 @@
     return out;
   }
 
+  // The birthday saved in your Munetios Account profile: shown every year, read-only, never stored or synced here.
+  const ACCOUNT_BIRTHDAY = "account-birthday";
+  function accountBirthday() {
+    const account = A?.state?.account;
+    const date = account?.birthday;
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+    return { id: ACCOUNT_BIRTHDAY, kind: "birthday", accountBirthday: true, calendarId: defaultCalendar()?.id, name: account.displayName || "", date, yearKnown: true, color: "", notes: "", reminder: true };
+  }
+  const allItems = () => { const own = accountBirthday(); return own ? [...items.values(), own] : items.values(); };
   // Everything visible between two display dates, as occurrences.
-  function occurrences(from, to, { includeHidden = false, forReminders = false, source = items.values() } = {}) {
+  function occurrences(from, to, { includeHidden = false, forReminders = false, source = allItems() } = {}) {
     const tz = displayTz();
     const out = [];
     const visible = new Set(calendars.filter((c) => includeHidden || c.visible !== false).map((c) => c.id));
@@ -434,7 +443,7 @@
           if (md === "02-29" && !(y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0))) continue;
           if (item.yearKnown && y < Number(item.date.slice(0, 4))) continue;
           const age = item.yearKnown ? y - Number(item.date.slice(0, 4)) : null;
-          out.push({ key: `${item.id}@${d}`, item, cal, kind: "birthday", date: d, endDate: d, allDay: true, title: t("birthdayOf", { name: item.name }), sub: age ? t("turnsAge", { age: num(age) }) : "", color: item.color || cal?.color || "#e91e8c", icon: "cake", startMs: parse(d).getTime() });
+          out.push({ key: `${item.id}@${d}`, item, cal, kind: "birthday", date: d, endDate: d, allDay: true, title: item.accountBirthday ? t("yourBirthday") : t("birthdayOf", { name: item.name }), sub: age ? t("turnsAge", { age: num(age) }) : "", color: item.color || cal?.color || "#e91e8c", icon: "cake", startMs: parse(d).getTime() });
         }
         continue;
       }
@@ -862,7 +871,7 @@
   function findOccurrence(key) {
     if (key.startsWith("holiday:")) { const [, date, ...name] = key.split(":"); return { kind: "holiday", date, title: name.join(":") }; }
     const [id, date] = key.split("@");
-    const item = items.get(id);
+    const item = id === ACCOUNT_BIRTHDAY ? accountBirthday() : items.get(id);
     if (!item) return null;
     return occurrences(addDays(date, -2), addDays(date, 2), { includeHidden: true }).find((o) => o.key === key) || { item, kind: item.kind, occurrence: date, date, cal: calendarOf(item), title: item.title || item.name };
   }
@@ -874,9 +883,10 @@
       return;
     }
     const item = o.item, cal = o.cal || calendarOf(item);
-    const editable = canEdit(cal);
+    // Your own birthday comes from your account profile, so it isn't edited here.
+    const editable = canEdit(cal) && !item.accountBirthday;
     if (item.kind === "birthday") {
-      const d = dialog({ icon: "cake", title: t("birthdayOf", { name: item.name }), size: "",
+      const d = dialog({ icon: "cake", title: item.accountBirthday ? t("yourBirthday") : t("birthdayOf", { name: item.name }), size: "",
         body: `<p class="cal-detail-line"><span class="mu-icon" aria-hidden="true">calendar_today</span>${esc(item.yearKnown ? formatDate(item.date, "long") : intl(item.date, { month: "long", day: "numeric" }))}</p>${o.sub ? `<p class="cal-detail-line"><span class="mu-icon" aria-hidden="true">celebration</span>${esc(o.sub)}</p>` : ""}${item.notes ? `<p class="cal-detail-line"><span class="mu-icon" aria-hidden="true">notes</span>${esc(item.notes)}</p>` : ""}<p class="cal-detail-line mu-muted"><span class="cal-dot" style="--chip:${esc(cal?.color || "")}" aria-hidden="true"></span>${esc(cal?.name || "")}</p>`,
         actions: editable ? `<button type="button" class="mu-btn mu-btn-danger-outline" data-del><span class="mu-icon" aria-hidden="true">delete</span>${esc(t("delete"))}</button><button type="button" class="mu-btn mu-btn-primary" data-edit><span class="mu-icon" aria-hidden="true">edit</span>${esc(t("edit"))}</button>` : "" });
       d.q("[data-edit]")?.addEventListener("click", () => { d.close(); openBirthdayEditor(item); });
@@ -2067,7 +2077,11 @@
     document.addEventListener("mu-theme", () => render());
     window.addEventListener("storage", (e) => { if (e.key === SETTINGS_KEY) { settings = Object.assign({}, DEFAULTS, store.json(SETTINGS_KEY, {})); buildCatalog(); translateUI(); render(); } });
     setInterval(() => { renderClocks(); renderUpNext(); const line = main.querySelector(".cal-now"); if (line) line.style.top = `calc(${nowMin()} * var(--min))`; }, 30000);
+    let shownBirthday = A?.state?.account?.birthday || null;
     A?.on?.(() => {
+      // Redraw when the account birthday appears, changes, or goes away (sign in, sign out, profile edit).
+      const birthday = A.state.account?.birthday || null;
+      if (birthday !== shownBirthday) { shownBirthday = birthday; render(); }
       if (!signedIn() || A.state.offline) { loadedShared = false; return; }
       if (!loadedShared) { loadedShared = true; loadSharedCalendars(); }
     });

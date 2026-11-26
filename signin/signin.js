@@ -44,6 +44,29 @@
     const continueTo = /^\/(?!\/)[^\s\\]*$/.test(rawContinue) && !rawContinue.startsWith('/signin')
         ? rawContinue + (rawContinue.includes('#') ? '' : location.hash) : '';
     let locale = 'en', creating = false, verifying = false, busy = false, statusKey = '';
+    // New accounts: a display name (required) and an optional birthday for Munetios Calendar.
+    const displayName = document.getElementById('displayName');
+    const birthdayButton = document.getElementById('birthdayButton');
+    const birthdayValue = document.getElementById('birthdayValue');
+    const birthdayClear = document.getElementById('birthdayClear');
+    let birthday = '';
+    function paintBirthday() {
+        birthdayValue.dataset.placeholder = t('birthdayPlaceholder');
+        birthdayClear.setAttribute('aria-label', t('birthdayClear'));
+        birthdayClear.title = t('birthdayClear');
+        birthdayClear.hidden = !birthday;
+        if (!birthday) { birthdayValue.textContent = ''; return; }
+        const [y, m, d] = birthday.split('-').map(Number);
+        try { birthdayValue.textContent = new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(y, m - 1, d))); }
+        catch { birthdayValue.textContent = birthday; }
+    }
+    function showProfileFields() {
+        document.getElementById('displayNameField').hidden = !creating;
+        document.getElementById('birthdayField').hidden = !creating;
+        displayName.disabled = !creating;
+        displayName.required = creating;
+        birthdayButton.disabled = !creating;
+    }
     let resetStep = '', resetProof = '', resetErrorKey = '';
     const isInternal = () => email.value.trim().toLowerCase().endsWith('@munetios.com');
     const get = key => { try { return localStorage.getItem(key); } catch { return null; } };
@@ -72,6 +95,7 @@
         root.lang = locale;
         root.dir = locale === 'ar' ? 'rtl' : 'ltr';
         document.querySelectorAll('[data-i18n]').forEach(element => { element.textContent = t(element.dataset.i18n); });
+        paintBirthday();
         document.title = `${t(creating ? 'createAccount' : 'signIn')} · ${omniWriteHost ? 'OmniWrite' : 'Munetios'}`;
         document.getElementById('signinTitle').textContent = t(verifying ? 'emailVerificationTitle' : creating ? 'createAccount' : 'signIn');
         if (resetStep) {
@@ -106,6 +130,7 @@
         if (input === email) key = !email.value.trim() ? 'emailRequired' : email.validity.typeMismatch || email.value.length > 254 || /[^\x00-\x7f]/.test(email.value) ? 'emailInvalid' : '';
         if (input === password) key = !password.value ? 'passwordRequired' : creating && [...password.value].length < 12 ? 'passwordWeak' : '';
         if (input === confirmation && creating) key = confirmation.value !== password.value ? 'passwordMismatch' : '';
+        if (input === displayName && creating) key = !displayName.value.replace(/[\u0000-\u001f\u007f]/g, '').trim() ? 'displayNameRequired' : '';
         error(input, key);
         return !key;
     }
@@ -120,6 +145,7 @@
             confirmation.disabled = !creating;
             confirmation.required = creating;
             password.autocomplete = creating ? 'new-password' : 'current-password';
+            showProfileFields();
         }
         signinBody.hidden = Boolean(account);
         sessionPanel.hidden = !account;
@@ -135,7 +161,7 @@
         message('');
         renderLanguage();
     }
-    const KNOWN_ERRORS = ['invalidCredentials', 'passwordWeak', 'createFailed', 'tooManyAttempts', 'emailCodeRequired', 'emailCodeInvalid', 'emailCodeCooldown', 'emailDeliveryUnavailable'];
+    const KNOWN_ERRORS = ['invalidCredentials', 'passwordWeak', 'createFailed', 'tooManyAttempts', 'emailCodeRequired', 'emailCodeInvalid', 'emailCodeCooldown', 'emailDeliveryUnavailable', 'displayNameRequired', 'birthdayInvalid'];
     const errorKey = failure => (KNOWN_ERRORS.includes(failure?.code) ? failure.code : 'unavailable');
     function resetView(step, focus = true) {
         resetStep = step;
@@ -276,18 +302,36 @@
         confirmation.disabled = !creating;
         confirmation.required = creating;
         confirmation.value = '';
+        showProfileFields();
         updateVerificationFields();
         password.autocomplete = creating ? 'new-password' : 'current-password';
-        [email, password, confirmation].forEach(input => error(input, ''));
+        [email, password, confirmation, displayName].forEach(input => error(input, ''));
         message('');
         renderLanguage();
     };
+    displayName.addEventListener('blur', () => { if (creating && displayName.value) validate(displayName); });
+    birthdayButton.addEventListener('click', () => {
+        if (!window.MunetiosUI?.pickDate) return;
+        const today = new Date();
+        const max = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        window.MunetiosUI.pickDate({
+            anchor: birthdayButton,
+            value: birthday || `${today.getFullYear() - 25}-01-01`,
+            min: '1900-01-01',
+            max,
+            locale,
+            allowClear: Boolean(birthday),
+            labels: { previous: t('pickerPrevious'), next: t('pickerNext'), today: t('pickerToday'), clear: t('birthdayClear'), date: t('birthday') },
+            onPick: (iso) => { birthday = iso && iso <= max ? iso : ''; paintBirthday(); birthdayButton.focus(); },
+        });
+    });
+    birthdayClear.addEventListener('click', () => { birthday = ''; paintBirthday(); birthdayButton.focus(); });
     modeButton.addEventListener('click', () => setMode(true));
     signinModeButton.addEventListener('click', () => setMode(false));
     form.addEventListener('submit', async event => {
         event.preventDefault();
         if (busy) return;
-        const fields = googleFactor ? [] : creating ? [email, password, confirmation] : [email, password];
+        const fields = googleFactor ? [] : creating ? [email, password, confirmation, displayName] : [email, password];
         const valid = fields.map(validate);
         if (valid.includes(false)) { fields[valid.indexOf(false)].focus(); return; }
         if (verifying && !/^\d{6}$/.test(emailCode.value.trim())) { message('emailCodeRequired'); emailCode.focus(); return; }
@@ -315,6 +359,7 @@
             const details = {
                 email: email.value.trim(), password: password.value, code: document.getElementById('authCode').value.trim(),
                 emailCode: isInternal() ? undefined : emailCode.value.trim(), add: adding,
+                ...(creating ? { displayName: displayName.value.replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim(), birthday: birthday || null } : {}),
             };
             const account = creating ? await Account.signUp(details) : await Account.signIn(details);
             if (!account?.email) throw new Error('unavailable');

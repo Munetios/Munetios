@@ -69,6 +69,22 @@
               <input class="mu-input" id="confirmPassword" type="password" autocomplete="new-password" aria-describedby="confirmPasswordError" disabled>
               <span class="mu-field-help signin-error" id="confirmPasswordError" hidden></span>
             </div>
+            <div class="mu-field" id="displayNameField" hidden>
+              <label class="mu-field-label" for="displayName" data-i18n="displayName">Display name</label>
+              <input class="mu-input" id="displayName" name="displayName" type="text" autocomplete="name" maxlength="80" aria-describedby="displayNameError" dir="auto" disabled>
+              <span class="mu-field-help signin-error" id="displayNameError" hidden></span>
+            </div>
+            <div class="mu-field" id="birthdayField" hidden>
+              <span class="mu-field-label" id="birthdayLabel" data-i18n="birthday">Birthday (optional)</span>
+              <div class="signin-birthday">
+                <button type="button" class="mu-picker-field" id="birthdayButton" aria-labelledby="birthdayLabel birthdayValue" aria-describedby="birthdayHint">
+                  <span class="mu-icon" aria-hidden="true">cake</span>
+                  <span class="mu-picker-value" id="birthdayValue" data-placeholder="Choose a date"></span>
+                </button>
+                <button type="button" class="mu-icon-btn mu-icon-btn-soft" id="birthdayClear" hidden><span class="mu-icon" aria-hidden="true">close</span></button>
+              </div>
+              <span class="mu-field-help" id="birthdayHint" data-i18n="birthdayHint">Shown on your birthday in Munetios Calendar</span>
+            </div>
             <div class="mu-field" id="emailCodeField" hidden>
               <label class="mu-field-label" for="emailCode" data-i18n="emailCodeLabel">Email verification code</label>
               <input class="mu-input" id="emailCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code">

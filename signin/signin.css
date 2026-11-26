@@ -131,3 +131,8 @@
     .signin-settings { justify-content: flex-start; }
     .signin-row-control { flex: 1 1 160px; max-width: 240px; }
 }
+
+/* Birthday picker row (create account) */
+.signin-birthday { display: flex; align-items: center; gap: 8px; }
+.signin-birthday .mu-picker-field { flex: 1 1 auto; min-width: 0; }
+.signin-birthday .mu-picker-field .mu-icon { color: var(--mu-accent); }

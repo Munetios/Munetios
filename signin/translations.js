@@ -564,6 +564,25 @@
     "hi": ["साइन इन करने पर आपके दस्तावेज़ खाते में दिखाई दे सकते हैं", "लोकल डेटा मिला", "आप इस ब्राउज़र में OmniWrite फ़ाइलें रखकर समर्थित फ़ाइलों को अपने खाते से सिंक कर सकते हैं या साइन इन करने से पहले लोकल डेटा मिटा सकते हैं।", "साइन इन करें और लोकल डेटा मिटाएँ", "OmniWrite का लोकल डेटा मिटाएँ?", "इस ब्राउज़र के दस्तावेज़, स्प्रेडशीट, नोट और मीडिया हमेशा के लिए मिट जाएँगे। खाते से पहले से सिंक की गई फ़ाइलें दोबारा डाउनलोड की जा सकती हैं।", "अन्य OmniWrite टैब या विंडो बंद करके फिर कोशिश करें।", "OmniWrite का लोकल डेटा नहीं मिटा सके। फिर कोशिश करें।"],
     "ar": ["قد تظهر مستنداتك في حسابك بعد تسجيل الدخول", "تم العثور على بيانات محلية", "يمكنك الاحتفاظ بملفات OmniWrite في هذا المتصفح ومزامنة الملفات المتوافقة مع حسابك، أو حذف البيانات المحلية قبل تسجيل الدخول.", "تسجيل الدخول وحذف البيانات المحلية", "هل تريد حذف بيانات OmniWrite المحلية؟", "ستُحذف المستندات وجداول البيانات والملاحظات والوسائط نهائيًا من هذا المتصفح. يمكنك تنزيل الملفات التي سبقت مزامنتها مع حسابك مرة أخرى.", "أغلق علامات تبويب أو نوافذ OmniWrite الأخرى ثم حاول مجددًا.", "تعذّر حذف بيانات OmniWrite المحلية. حاول مجددًا."],
   };
+  // Create account: display name and optional birthday.
+  const profileKeys = ["displayName", "displayNameRequired", "birthday", "birthdayHint", "birthdayPlaceholder", "birthdayClear", "birthdayInvalid", "pickerPrevious", "pickerNext", "pickerToday"];
+  const profileMessages = {
+    "en": ["Display name", "Enter a display name.", "Birthday (optional)", "Shown on your birthday in Munetios Calendar", "Choose a date", "Remove birthday", "Choose a valid birthday.", "Previous month", "Next month", "Today"],
+    "es-419": ["Nombre visible", "Ingresa un nombre visible.", "Cumpleaños (opcional)", "Se muestra el día de tu cumpleaños en Munetios Calendar", "Elige una fecha", "Quitar cumpleaños", "Elige un cumpleaños válido.", "Mes anterior", "Mes siguiente", "Hoy"],
+    "es-ES": ["Nombre visible", "Introduce un nombre visible.", "Cumpleaños (opcional)", "Se muestra el día de tu cumpleaños en Munetios Calendar", "Elige una fecha", "Quitar cumpleaños", "Elige un cumpleaños válido.", "Mes anterior", "Mes siguiente", "Hoy"],
+    "fr": ["Nom affiché", "Saisissez un nom affiché.", "Anniversaire (facultatif)", "Affiché le jour de votre anniversaire dans Munetios Calendar", "Choisir une date", "Supprimer l’anniversaire", "Choisissez une date d’anniversaire valide.", "Mois précédent", "Mois suivant", "Aujourd’hui"],
+    "de": ["Anzeigename", "Gib einen Anzeigenamen ein.", "Geburtstag (optional)", "Wird an deinem Geburtstag in Munetios Calendar angezeigt", "Datum auswählen", "Geburtstag entfernen", "Wähle einen gültigen Geburtstag.", "Vorheriger Monat", "Nächster Monat", "Heute"],
+    "it": ["Nome visualizzato", "Inserisci un nome visualizzato.", "Compleanno (facoltativo)", "Mostrato il giorno del tuo compleanno in Munetios Calendar", "Scegli una data", "Rimuovi compleanno", "Scegli una data di compleanno valida.", "Mese precedente", "Mese successivo", "Oggi"],
+    "pt-BR": ["Nome de exibição", "Digite um nome de exibição.", "Aniversário (opcional)", "Mostrado no dia do seu aniversário no Munetios Calendar", "Escolha uma data", "Remover aniversário", "Escolha uma data de aniversário válida.", "Mês anterior", "Próximo mês", "Hoje"],
+    "pt-PT": ["Nome a apresentar", "Introduza um nome a apresentar.", "Aniversário (opcional)", "Apresentado no dia do seu aniversário no Munetios Calendar", "Escolha uma data", "Remover aniversário", "Escolha uma data de aniversário válida.", "Mês anterior", "Mês seguinte", "Hoje"],
+    "ja": ["表示名", "表示名を入力してください。", "誕生日（任意）", "Munetios Calendar の誕生日に表示されます", "日付を選択", "誕生日を削除", "有効な誕生日を選択してください。", "前の月", "次の月", "今日"],
+    "ko": ["표시 이름", "표시 이름을 입력하세요.", "생일(선택 사항)", "Munetios Calendar의 생일 날짜에 표시됩니다", "날짜 선택", "생일 삭제", "올바른 생일을 선택하세요.", "이전 달", "다음 달", "오늘"],
+    "zh-CN": ["显示名称", "请输入显示名称。", "生日（可选）", "将在 Munetios Calendar 中你的生日当天显示", "选择日期", "移除生日", "请选择有效的生日。", "上个月", "下个月", "今天"],
+    "zh-TW": ["顯示名稱", "請輸入顯示名稱。", "生日（選填）", "將在 Munetios Calendar 中你的生日當天顯示", "選擇日期", "移除生日", "請選擇有效的生日。", "上個月", "下個月", "今天"],
+    "ru": ["Отображаемое имя", "Введите отображаемое имя.", "День рождения (необязательно)", "Отображается в ваш день рождения в Munetios Calendar", "Выберите дату", "Удалить день рождения", "Выберите правильную дату рождения.", "Предыдущий месяц", "Следующий месяц", "Сегодня"],
+    "hi": ["प्रदर्शित नाम", "प्रदर्शित नाम दर्ज करें।", "जन्मदिन (वैकल्पिक)", "Munetios Calendar में आपके जन्मदिन पर दिखाया जाता है", "तारीख चुनें", "जन्मदिन हटाएँ", "मान्य जन्मदिन चुनें।", "पिछला महीना", "अगला महीना", "आज"],
+    "ar": ["الاسم المعروض", "أدخل اسمًا معروضًا.", "تاريخ الميلاد (اختياري)", "يظهر في يوم ميلادك في Munetios Calendar", "اختر تاريخًا", "إزالة تاريخ الميلاد", "اختر تاريخ ميلاد صالحًا.", "الشهر السابق", "الشهر التالي", "اليوم"],
+  };
   window.MunetiosSigninTranslations = Object.freeze(
     Object.fromEntries(
       Object.entries(messages).map(([locale, values]) => {
@@ -574,6 +593,7 @@
           Object.freeze(
             { ...Object.fromEntries(keys.concat(verificationKeys, flowKeys).map((key, index) => [key, values.concat(verification[locale], flows[locale])[index]])),
               ...Object.fromEntries(localKeys.map((key, index) => [key, localMessages[locale][index]])),
+              ...Object.fromEntries(profileKeys.map((key, index) => [key, (profileMessages[locale] || profileMessages.en)[index]])),
               emailVerificationTitle: verificationTitles[locale], signInOr: signInSeparators[locale] },
           ),
         ];

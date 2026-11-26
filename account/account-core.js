@@ -325,11 +325,11 @@
     await refresh({ deliberate: true, enableSyncFor: result.account.id });
     return result.account;
   }
-  async function signUp({ email, password, emailCode, add = false }) {
+  async function signUp({ email, password, emailCode, add = false, displayName = "", birthday = null }) {
     await syncBeforeAdding(add);
     const secret = await authSecret(password, email);
     const { material, dataKey } = await createKeys(password);
-    const result = await api("/signup", { email, password: secret, keys: material, emailCode, add });
+    const result = await api("/signup", { email, password: secret, keys: material, emailCode, add, displayName, birthday: birthday || undefined });
     await keys.put(result.account.id, dataKey);
     await refresh({ deliberate: true, enableSyncFor: result.account.id });
     return result.account;
