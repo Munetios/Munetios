@@ -100,6 +100,14 @@
   function clockStr(h, m) {
     return formatParts(Date.UTC(2026, 0, 1, h, m ?? 0), "UTC", m == null ? { hour: "numeric" } : { hour: "numeric", minute: "2-digit" });
   }
+  // Label solar charts with the selected date, time zone and clock format.
+  function sunHourLabel(h, loc, lp) {
+    const zone = zoneOf(loc);
+    const local = Date.UTC(lp.year, lp.month, lp.day, h);
+    let instant = local - Sun.offsetMinutes(local, zone, loc.lon) * 60000;
+    instant = local - Sun.offsetMinutes(instant, zone, loc.lon) * 60000;
+    return hourStr(instant, loc);
+  }
   function dateStr(ms, loc, opts) {
     const zone = zoneOf(loc);
     const o = Object.assign({ timeZone: zone || "UTC" }, opts);
@@ -939,8 +947,8 @@
     polar.innerHTML = info.polarDay ? `${iconHtml("sunny", "mu-icon-filled")}<span><span class="gw-polar-title">${esc(t("polarDay"))}</span><span class="mu-muted">${esc(t("polarDayHelp"))}</span></span>` : info.polarNight ? `${iconHtml("dark_mode", "mu-icon-filled")}<span><span class="gw-polar-title">${esc(t("polarNight"))}</span><span class="mu-muted">${esc(t("polarNightHelp"))}</span></span>` : "";
     const nowMs = Date.now();
     const showNow = isToday;
-    renderSunDial(loc, info, showNow ? nowMs : null);
-    renderSunChart(loc, info, showNow ? nowMs : null);
+    renderSunDial(loc, info, showNow ? nowMs : null, lp);
+    renderSunChart(loc, info, showNow ? nowMs : null, lp);
     renderSunEvents(loc, info, lp);
     renderMonths(loc, lp.year);
   }
@@ -952,7 +960,7 @@
     if (alt >= Sun.H.veryDawn) return "var(--gw-sun-almost)";
     return "var(--gw-sun-night)";
   }
-  function renderSunDial(loc, info, nowMs) {
+  function renderSunDial(loc, info, nowMs, lp) {
     const S = 280;
     const c = S / 2;
     const R = 112;
@@ -981,7 +989,7 @@
       const [lx, ly] = pt(f, R + sw / 2 + (side ? 10 : 12));
       const anchor = hh === 6 ? "end" : hh === 18 ? "start" : "middle";
       const dy = hh === 12 ? -2 : hh === 0 ? 18 : 6;
-      ticks += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" class="gw-dial-tick"/><text x="${lx}" y="${ly + dy}" text-anchor="${anchor}" class="gw-dial-label">${esc(clockStr(hh, null))}</text>`;
+      ticks += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" class="gw-dial-tick"/><text x="${lx}" y="${ly + dy}" text-anchor="${anchor}" class="gw-dial-label">${esc(sunHourLabel(hh, loc, lp))}</text>`;
     });
     const mark = (ms, cls) => {
       if (!ms) return "";
@@ -1000,7 +1008,7 @@
     const center = info.polarDay ? t("polarDay") : info.polarNight ? t("polarNight") : durationStr(info.daylight);
     $("#sunDial").innerHTML = `<svg viewBox="-64 -30 ${S + 128} ${S + 60}" role="img" aria-label="${esc(t("sunDialLabel", { v: center }))}">${arcs}${ticks}${mark(info.sunrise, "is-rise")}${mark(info.sunset, "is-set")}${sun}<text x="${c}" y="${c - 2}" text-anchor="middle" class="gw-dial-center">${esc(center)}</text>${info.polarDay || info.polarNight ? "" : `<text x="${c}" y="${c + 26}" text-anchor="middle" class="gw-dial-sub">${esc(t("daylight"))}</text>`}</svg>`;
   }
-  function renderSunChart(loc, info, nowMs) {
+  function renderSunChart(loc, info, nowMs, lp) {
     const host = $("#sunChart");
     const W = Math.max(280, host.clientWidth || 340);
     const Hh = 230;
@@ -1027,7 +1035,7 @@
     });
     [6, 12, 18].forEach((hh) => {
       const ms = info.start + (hh / 24) * info.length;
-      svg += `<text class="gw-axis" x="${x(ms)}" y="${Hh - 10}" text-anchor="middle">${esc(clockStr(hh, null))}</text>`;
+      svg += `<text class="gw-axis" x="${x(ms)}" y="${Hh - 10}" text-anchor="middle">${esc(sunHourLabel(hh, loc, lp))}</text>`;
     });
     let path = "";
     s.forEach((p, i) => { path += (i ? "L" : "M") + x(p.t).toFixed(1) + " " + y(p.alt).toFixed(1); });
@@ -1552,7 +1560,7 @@
 
     // Redraw width-dependent charts on resize.
     let rz = null;
-    new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => { renderChart(); const loc = activeLocation(); if (loc) { const { info } = sunDay(loc); const lp = Sun.localParts(Date.now(), zoneOf(loc), loc.lon); const today = !view.sunDate || (view.sunDate.year === lp.year && view.sunDate.month === lp.month && view.sunDate.day === lp.day); renderSunChart(loc, info, today ? Date.now() : null); } }, 120); }).observe($("#main"));
+    new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => { renderChart(); const loc = activeLocation(); if (loc) { const { info } = sunDay(loc); const lp = Sun.localParts(Date.now(), zoneOf(loc), loc.lon); const today = !view.sunDate || (view.sunDate.year === lp.year && view.sunDate.month === lp.month && view.sunDate.day === lp.day); renderSunChart(loc, info, today ? Date.now() : null, sunDay(loc).lp); } }, 120); }).observe($("#main"));
 
     // Keep clocks, the sun, and the sky moving; refresh data every 15 minutes.
     setInterval(() => {
