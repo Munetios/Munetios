@@ -25,6 +25,14 @@ pattern = "photos.munetios.com/*"
 zone_name = "munetios.com"
 
 [[routes]]
+pattern = "notes.munetios.com/*"
+zone_name = "munetios.com"
+
+[[routes]]
+pattern = "tasks.munetios.com/*"
+zone_name = "munetios.com"
+
+[[routes]]
 pattern = "weather.munetios.com/*"
 zone_name = "munetios.com"
 

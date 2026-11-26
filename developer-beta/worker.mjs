@@ -8,6 +8,8 @@ const appRoots = new Map([
     ['accounts.munetios.com', '/signin'],
     ['calendar.munetios.com', '/calendar'],
     ['photos.munetios.com', '/photos'],
+    ['notes.munetios.com', '/supanotes'],
+    ['tasks.munetios.com', '/tasks'],
 ]);
 const sharedAssets = /^\/(?:signin|omniwrite|account|fonts|munetios-ui|shared|blocked|mail|calendar|photos|webfilter)(?:\/|$)|^\/(?:tone\.js|ganetios-logo-icon\.png|munetios-logo(?:-icon)?\.png|404(?:\.html|\.css|-i18n\.js)?)$/;
 const weatherAssets = /^\/(?:weather|fonts|munetios-ui)(?:\/|$)|^\/404(?:\.html|\.css|-i18n\.js)?$/;
@@ -86,7 +88,7 @@ export default {
             else if (isWeather && pathname === '/') target.pathname = '/weather/';
             else if (isWebFilter && pathname === '/') target.pathname = '/webfilter/welcome';
             else if (photosRoutes.pathPattern.test(pathname) && ['GET', 'HEAD'].includes(request.method)) target.pathname = '/photos/';
-            else if (root && !sharedAssets.test(pathname)) target.pathname = root + (pathname === '/index.html' ? '/' : pathname);
+            else if (root && !sharedAssets.test(pathname) && pathname !== root && !pathname.startsWith(root + '/')) target.pathname = root + (pathname === '/index.html' ? '/' : pathname);
             const asset = await env.ASSETS.fetch(target.href === request.url ? request : new Request(target, request));
             if (asset.status !== 404 || !['GET', 'HEAD'].includes(request.method)) return asset;
             const accept = request.headers.get('Accept');

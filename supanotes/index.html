@@ -1,0 +1,3333 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Munetios SupaNotes</title>
+    <meta
+      name="description"
+      content="Munetios SupaNotes is a powerful, end-to-end encrypted note-taking application that helps you organize your thoughts and ideas efficiently."
+    />
+    <meta
+      name="keywords"
+      content="note-taking, productivity, organization, Munetios SupaNotes"
+    />
+    <meta name="author" content="Munetios" />
+    <meta name="robots" content="index, follow" />
+    <link rel="icon" href="favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+    <link rel="manifest" href="./site.webmanifest" />
+    <meta name="theme-color" content="#110736" />
+    <link
+      rel="stylesheet"
+      href="https://api.munetios.com/beautiful-css/beautiful.css"
+    />
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self' https://*.munetios.com https://www.munetios.com;
+        style-src 'self' https://api.munetios.com 'unsafe-inline';
+        script-src 'self' 'nonce-Dm3NDi3ud893hbdDn3idjh30xJ3nfuN' https://api.munetios.com https://cdnjs.cloudflare.com;
+        img-src 'self' data: blob: https://*.munetios.com https://www.munetios.com;
+        media-src 'self' data: blob: https://*.munetios.com https://www.munetios.com;
+        font-src 'self' https:;
+        connect-src 'self' https://*.munetios.com https://www.munetios.com;
+        frame-src 'self' https://*.munetios.com https://www.munetios.com;
+        object-src 'self' https://*.munetios.com https://www.munetios.com;
+        worker-src 'self' https://*.munetios.com https://www.munetios.com;
+        upgrade-insecure-requests;
+    "
+    />
+    <link rel="stylesheet" href="/munetios-ui/munetios-ui-v4.css" />
+    <link rel="stylesheet" href="/account/account-menu.css" />
+    <link rel="stylesheet" href="./supanotes.css" />
+    <link rel="stylesheet" href="./supanotes-features.css" />
+    <script defer src="/munetios-ui/munetios-ui-v4.js"></script>
+    <script defer src="/account/account-i18n.js"></script>
+    <script defer src="/account/account-core.js"></script>
+    <script defer src="/account/account-menu.js"></script>
+    <script defer src="./supanotes-toasts-i18n.js"></script>
+    <script defer src="./supanotes-features-i18n.js"></script>
+    <script defer src="./supanotes-sync.js"></script>
+    <script defer src="./supanotes-features.js"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body class="mu-root">
+    <a class="mu-skip-link" href="#notesPage" data-sf="skipToNotes">Skip to notes</a>
+    <!-- Mobile Sidebar Overlay -->
+    <div class="mobile-sidebar-overlay" id="mobileSidebarOverlay">
+      <div class="mobile-sidebar">
+        <div class="mobile-sidebar-header">
+          <div class="mobile-sidebar-title">
+            <img src="android-chrome-192x192.png" alt="Logo" />
+            <span>SupaNotes</span>
+          </div>
+          <div class="mobile-sidebar-close" id="mobileSidebarClose">
+            <icon>close</icon>
+          </div>
+        </div>
+        <nav class="mobile-sidebar-nav">
+          <div class="mobile-sidebar-navlink" data-page="notesPage">
+            <icon>notes</icon> Notes
+          </div>
+          <div class="mobile-sidebar-navlink" data-page="tagsPage">
+            <icon>label</icon> Tags
+          </div>
+          <div class="mobile-sidebar-navlink" data-page="favoritesPage">
+            <icon>star</icon> Favorites
+          </div>
+          <div class="mobile-sidebar-navlink" data-page="archivePage">
+            <icon>archive</icon> <span data-sf="archive">Archive</span>
+          </div>
+          <div class="mobile-sidebar-navlink" data-page="trashPage">
+            <icon>delete</icon> Trash
+          </div>
+        </nav>
+      </div>
+    </div>
+
+    <supanotes-container id="app">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="mobile-menu-btn liquid-glass" id="menuBtn">
+            <icon>menu</icon>
+          </div>
+          <div class="logo liquid-glass">
+            <img
+              src="android-chrome-192x192.png"
+              width="32"
+              height="32"
+              alt="Munetios SupaNotes Logo"
+            />
+            <span class="logo-text">Munetios SupaNotes</span>
+          </div>
+        </div>
+        <div class="topbar-middle">
+          <div class="navlinks liquid-glass">
+            <div class="navlink" id="notesBtnNav" data-page="notesPage">
+              Notes
+            </div>
+            <div class="navlink" id="tagsBtnNav" data-page="tagsPage">Tags</div>
+            <div class="navlink" id="favoritesBtnNav" data-page="favoritesPage">
+              Favorites
+            </div>
+            <div class="navlink" id="archiveBtnNav" data-page="archivePage" data-sf="archive">Archive</div>
+            <div class="navlink" id="trashBtnNav" data-page="trashPage">
+              Trash
+            </div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div class="search-bar liquid-glass">
+            <icon>search</icon>
+            <input type="search" placeholder="Search notes" id="searchInput" aria-label="Search notes" />
+          </div>
+          <div class="topbar-right-actions liquid-glass">
+            <div
+              class="topbar-right-action"
+              id="mobileSearchBtn"
+              title="Search"
+            >
+              <icon>search</icon>
+            </div>
+            <div
+              class="topbar-right-action"
+              id="createNoteBtn"
+              title="Create Note"
+            >
+              <icon>note_add</icon>
+              <div class="topbar-right-action-label">New</div>
+            </div>
+            <div class="topbar-right-action" id="settingsBtn" title="Settings">
+              <icon>settings</icon>
+            </div>
+            <div class="topbar-right-action" id="helpBtn" title="Help">
+              <icon>help</icon>
+            </div>
+            <div class="munetios-account-slot" data-munetios-account>
+              <a class="account-sign-in mu-btn mu-btn-primary" href="/signin" aria-label="Sign in" title="Sign in" hidden>
+                <span class="mu-icon" aria-hidden="true">login</span>
+                <span data-signin-label>Sign in</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="main-content">
+        <div class="mobile-search-bar liquid-glass" id="mobileSearchBar">
+          <icon class="back-btn" id="mobileSearchBackBtn">arrow_back</icon>
+          <input
+            type="text"
+            placeholder="Search notes"
+            id="mobileSearchInput"
+          />
+        </div>
+        <div class="content-page active" id="notesPage">
+          <h1>Notes</h1>
+          <div class="notes-list" id="notesList">
+            <!-- Notes will be dynamically added here -->
+          </div>
+        </div>
+
+        <div class="content-page" id="favoritesPage">
+          <h1 class="page-section-title">Favorites</h1>
+          <p class="page-section-subtitle">Notes you've starred appear here.</p>
+          <div class="notes-list" id="favoritesList"></div>
+        </div>
+
+        <div class="content-page" id="tagsPage">
+          <h1 class="page-section-title">Tags</h1>
+          <p class="page-section-subtitle">Organize your notes with tags.</p>
+          <div class="tag-add-row">
+            <input
+              type="text"
+              id="newTagInput"
+              class="tag-add-input"
+              placeholder="New tag name..."
+              maxlength="40"
+            />
+            <div class="tag-add-btn" id="addTagBtn">
+              <icon style="font-size: 20px">add</icon>Add Tag
+            </div>
+          </div>
+          <div class="tag-chip-list" id="tagChipList"></div>
+        </div>
+
+        <div class="content-page" id="archivePage">
+          <h1 class="page-section-title" data-sf="archive">Archive</h1>
+          <p class="page-section-subtitle" data-sf="archiveSubtitle">Archived notes stay out of your main list until you need them.</p>
+          <div class="notes-list" id="archiveList"></div>
+        </div>
+        <div class="content-page" id="trashPage">
+          <h1 class="page-section-title">Trash</h1>
+          <p class="page-section-subtitle">
+            Deleted notes. Restore or permanently delete them.
+          </p>
+          <div class="notes-list" id="trashList"></div>
+        </div>
+      </div>
+    </supanotes-container>
+    <div class="custom-dropdown-wrapper liquid-glass" id="noteFontDropdown">
+      <div class="dropdown-item" id="fontOptionDefault">
+        Munetios UI v4 Font
+      </div>
+      <div class="dropdown-item" id="fontOptionFlex">
+        Google Sans Flex
+      </div>
+      <div class="dropdown-item" id="fontOptionSerif">
+        Serif
+      </div>
+      <div class="dropdown-item" id="fontOptionCustom">
+        Custom
+      </div>
+    </div>
+    <div class="custom-dropdown-wrapper liquid-glass" id="languageDropdown">
+      <div class="dropdown-item" id="languageOptionEnglish">
+        English
+      </div>
+      <div class="dropdown-item" id="languageOptionSpanish">
+        Spanish
+      </div>
+      <div class="dropdown-item" id="languageOptionFrench">
+        French
+      </div>
+      <div class="dropdown-item" id="languageOptionGerman">
+        German
+      </div>
+      <div class="dropdown-item" id="languageOptionItalian">
+        Italian
+      </div>
+      <div class="dropdown-item" id="languageOptionPortuguese">
+        Portuguese
+      </div>
+      <div class="dropdown-item" id="languageOptionJapanese">
+        Japanese
+      </div>
+      <div class="dropdown-item" id="languageOptionChinese">
+        Chinese
+      </div>
+      <div class="dropdown-item" id="languageOptionRussian">
+        Russian
+      </div>
+      <div class="dropdown-item" id="languageOptionArabic">
+        Arabic
+      </div>
+    </div>
+    
+    <div class="new-note_Modal" id="newNoteModal">
+      <div class="new-note_Modal-content liquid-glass">
+        <div class="new__note-modal-header">
+          <h2 id="noteModalTitle">New Note</h2>
+          <div class="new__note-modal-header-right">
+            <div class="close-btn" id="closeNewNoteModalBtn">
+              <icon>close</icon>
+            </div>
+          </div>
+        </div>
+        <div class="new__note-modal-body">
+          <div class="note-container">
+            <input
+              type="text"
+              id="noteTitleInput"
+              class="note-title-input"
+              placeholder="Note title..."
+            />
+            <div
+              id="noteContent"
+              class="note-content-editor"
+              contenteditable="true"
+              spellcheck="true"
+              placeholder="Type your note here..."
+            ></div>
+            <div class="formatting-actionsbar">
+              <div class="formatting-actions-left">
+                <div class="actionitem-formatting" id="boldBtn" title="Bold">
+                  <icon>format_bold</icon>
+                </div>
+                <div
+                  class="actionitem-formatting"
+                  id="italicBtn"
+                  title="Italic"
+                >
+                  <icon>format_italic</icon>
+                </div>
+                <div
+                  class="actionitem-formatting"
+                  id="underlineBtn"
+                  title="Underline"
+                >
+                  <icon>format_underlined</icon>
+                </div>
+                <div
+                  class="actionitem-formatting"
+                  id="strikethroughBtn"
+                  title="Strikethrough"
+                >
+                  <icon>format_strikethrough</icon>
+                </div>
+                <div
+                  class="actionitem-formatting"
+                  id="bulletListBtn"
+                  title="Bullet List"
+                >
+                  <icon>format_list_bulleted</icon>
+                </div>
+                <div
+                  class="actionitem-formatting"
+                  id="numberedListBtn"
+                  title="Numbered List"
+                >
+                  <icon>format_list_numbered</icon>
+                </div>
+                <div
+                  class="actionitem-formatting"
+                  id="alignLeftBtn"
+                  title="Align Left"
+                >
+                  <icon>format_align_left</icon>
+                </div>
+                <div
+                  class="actionitem-formatting"
+                  id="alignCenterBtn"
+                  title="Align Center"
+                >
+                  <icon>format_align_center</icon>
+                </div>
+                <div
+                  class="actionitem-formatting"
+                  id="alignRightBtn"
+                  title="Align Right"
+                >
+                  <icon>format_align_right</icon>
+                </div>
+                <div
+                  class="actionitem-formatting"
+                  id="alignJustifyBtn"
+                  title="Align Justify"
+                >
+                  <icon>format_align_justify</icon>
+                </div>
+                <div class="actionitem-formatting" id="undoBtn" title="Undo">
+                  <icon>undo</icon>
+                </div>
+                <div class="actionitem-formatting" id="redoBtn" title="Redo">
+                  <icon>redo</icon>
+                </div>
+                <vl-divider></vl-divider>
+                <div
+                  class="actionitem-formatting"
+                  id="insertImageBtn"
+                  title="Insert Image"
+                >
+                  <icon>image</icon>
+                </div>
+                <div
+                  class="actionitem-formatting"
+                  id="insertLinkBtn"
+                  title="Insert Link"
+                >
+                  <icon>link</icon>
+                </div>
+                <div
+                  class="actionitem-formatting"
+                  id="insertPaintBtn"
+                  title="Insert Paint"
+                >
+                  <icon>brush</icon>
+                </div>
+              </div>
+              <vl-divider></vl-divider>
+              <div class="formatting-actions-right">
+                <div
+                  class="actionitem-formatting"
+                  id="voiceNoteBtn"
+                  title="Voice Note"
+                >
+                  <icon>mic</icon>
+                </div>
+                <div class="actionitem-formatting-button" id="newNoteButton">
+                  New Note
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- â•â•â• VOICE NOTE MODAL â•â•â• -->
+    <div class="generic-modal" id="voiceNoteModal">
+      <div class="voice-note-modal-content liquid-glass">
+        <div class="vm-header">
+          <h2>Voice Note</h2>
+          <div class="close-btn" id="closeVoiceNoteModalBtn">
+            <icon>close</icon>
+          </div>
+        </div>
+        <div class="vm-body">
+          <canvas
+            class="voice-waveform"
+            id="voiceWaveform"
+            width="420"
+            height="80"
+          ></canvas>
+          <div class="vnm-timer" id="vnmTimer">00:00</div>
+          <div class="vnm-status" id="vnmStatus">Tap record to start</div>
+          <div class="vnm-controls">
+            <div
+              class="vnm-btn record-btn"
+              id="vnmRecordBtn"
+              title="Record / Stop"
+            >
+              <icon>mic</icon>
+            </div>
+            <div
+              class="vnm-btn"
+              id="vnmPauseBtn"
+              title="Pause / Resume"
+              disabled
+            >
+              <icon>pause</icon>
+            </div>
+            <div
+              class="vnm-btn done-btn"
+              id="vnmDoneBtn"
+              title="Insert into note"
+              disabled
+            >
+              <icon>check</icon>&nbsp;Done
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- â•â•â• PAINT MODAL â•â•â• -->
+    <div class="generic-modal" id="paintModal">
+      <div class="paint-modal-content liquid-glass">
+        <div class="pm-header">
+          <h2>Paint</h2>
+          <div class="close-btn" id="closePaintModalBtn">
+            <icon>close</icon>
+          </div>
+        </div>
+        <div class="pm-toolbar">
+          <div class="pm-tool-group">
+            <span class="pm-tool-label">Size</span>
+            <input
+              type="range"
+              class="pm-range"
+              id="pmBrushSize"
+              min="1"
+              max="60"
+              value="8"
+            />
+            <span
+              id="pmBrushSizeVal"
+              style="
+                font-size: 18px;
+                opacity: 0.7;
+                min-width: 22px;
+                text-align: right;
+              "
+              >8</span
+            >
+          </div>
+          <div class="pm-tool-group">
+            <span class="pm-tool-label">Color</span>
+            <input
+              type="color"
+              class="pm-color"
+              id="pmBrushColor"
+              value="#ffffff"
+            />
+          </div>
+          <div class="pm-tool-group">
+            <div class="pm-btn" id="pmEraserBtn">Eraser</div>
+            <div class="pm-btn" id="pmClearBtn">Clear</div>
+          </div>
+          <div class="pm-btn done" id="pmDoneBtn" style="margin-left: auto">
+            <icon
+              style="font-size: 18px; vertical-align: middle; margin-right: 4px"
+              >check</icon
+            >Insert
+          </div>
+        </div>
+        <div class="paint-canvas-wrap">
+          <canvas
+            class="paint-canvas"
+            id="paintCanvas"
+            width="780"
+            height="460"
+          ></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- â•â•â• LINK MODAL â•â•â• -->
+    <div class="generic-modal" id="linkModal">
+      <div
+        class="voice-note-modal-content liquid-glass"
+        style="max-width: 420px"
+      >
+        <div class="vm-header">
+          <h2>Insert Link</h2>
+          <div class="close-btn" id="closeLinkModalBtn"><icon>close</icon></div>
+        </div>
+        <div
+          class="vm-body"
+          style="gap: 14px; align-items: stretch; padding: 20px"
+        >
+          <input
+            type="text"
+            id="linkTextInput"
+            class="note-title-input"
+            placeholder="Display text (optional)"
+            style="font-size: 18px; font-weight: 400"
+          />
+          <input
+            type="url"
+            id="linkUrlInput"
+            class="note-title-input"
+            placeholder="https://..."
+            style="font-size: 18px; font-weight: 400"
+          />
+          <div style="display: flex; gap: 10px; justify-content: flex-end">
+            <div
+              class="vnm-btn done-btn"
+              id="linkInsertBtn"
+              style="
+                width: auto;
+                border-radius: 50px;
+                padding: 0 22px;
+                gap: 8px;
+                background: rgba(96, 21, 218, 0.7);
+                border-color: rgba(150, 80, 255, 0.6);
+                font-size: 18px;
+                height: 44px;
+                cursor: pointer;
+              "
+            >
+              <icon>link</icon>&nbsp;Insert
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- hidden file input for images -->
+    <input
+      type="file"
+      id="imageFileInput"
+      accept="image/*"
+      style="display: none"
+    />
+
+    <!-- Note Preview Modal -->
+    <div class="generic-modal" id="notePreviewModal">
+      <div
+        class="note-modal-content liquid-glass"
+        style="
+          max-width: 680px;
+          max-height: 90vh;
+          display: flex;
+          border-radius: var(--mu-radius-xl);
+          flex-direction: column;
+          width: 95%;
+        "
+      >
+        <div class="npreview-header">
+          <h2 id="npreviewTitle">Note</h2>
+          <div class="npreview-actions">
+            <div
+              class="npreview-action-btn"
+              id="npreviewFavBtn"
+              role="button"
+              tabindex="0"
+              title="Favorite"
+            >
+              <icon>favorite_border</icon>
+            </div>
+            <div
+              class="npreview-action-btn"
+              id="npreviewEditBtn"
+              role="button"
+              tabindex="0"
+              title="Edit note"
+            >
+              <icon>edit</icon>
+            </div>
+            <div
+              class="npreview-action-btn"
+              id="npreviewShareBtn"
+              role="button"
+              title="Share"
+              tabindex="0"
+            >
+              <icon>share</icon>
+            </div>
+            <div
+              class="npreview-action-btn"
+              id="npreviewPrintBtn"
+              role="button"
+              title="Print"
+              tabindex="0"
+            >
+              <icon>print</icon>
+            </div>
+            <div
+              class="npreview-action-btn"
+              id="npreviewCloseBtn"
+              role="button"
+              title="Close"
+              tabindex="0"
+            >
+              <icon>close</icon>
+            </div>
+          </div>
+        </div>
+        <div class="npreview-body" id="npreviewBody"></div>
+      </div>
+    </div>
+
+    <!-- Card More Menu -->
+    <div id="cardMoreMenu" class="liquid-glass">
+      <div class="card-menu-item" id="menuFavItem">
+        <icon>favorite_border</icon>
+        <span class="menu-item-label">Add to Favorites</span>
+      </div>
+      <div class="card-menu-item" id="menuTagItem">
+        <icon>label</icon>
+        <span class="menu-item-label">Add to Tag</span>
+      </div>
+      <div class="card-menu-item" id="menuEditItem">
+        <icon>edit</icon>
+        <span class="menu-item-label">Edit</span>
+      </div>
+      <div class="card-menu-item" id="menuTrashItem">
+        <icon>delete</icon>
+        <span class="menu-item-label">Move to Trash</span>
+      </div>
+    </div>
+
+    <!-- Tag Selector Modal -->
+    <div class="generic-modal" id="tagSelectorModal">
+      <div
+        class="note-modal-content liquid-glass"
+        style="max-width: 380px; width: 92%; border-radius: var(--mu-radius-xl)"
+      >
+        <div class="new__note-modal-header">
+          <h2>Add to Tag</h2>
+          <div class="new__note-modal-header-right">
+            <div class="close-btn" id="closeTagSelectorBtn">
+              <icon>close</icon>
+            </div>
+          </div>
+        </div>
+        <div style="padding: 8px 16px 16px 16px">
+          <input type="hidden" id="tagSelectorNoteId" />
+          <div class="tag-selector-list" id="tagSelectorList"></div>
+        </div>
+      </div>
+    </div>
+    <div class="generic-modal" id="settingsModal">
+      <div class="settings-modal-content liquid-glass">
+        <div class="settings-modal-header">
+          <h2>Settings</h2>
+          <div class="settings-modal-header-right">
+            <div class="close-btn" id="closeSettingsModalBtn">
+              <icon>close</icon>
+            </div>
+          </div>
+        </div>
+        <div class="settings-modal-body">
+          <div class="settings-item" style="flex-wrap: wrap;" id="noteFontOption">
+            <div class="settings-label" id="noteFontLabel">Note Font:</div>
+            <button class="settings-button" id="noteFontDropdownBtn">
+             Sans
+            </button>
+            <div class="custom-font-row" id="customFontRow">
+              <input type="text" class="custom-font-input" id="customFontInput" placeholder="e.g. Roboto, Open Sans..." />
+              <button class="custom-font-apply" id="customFontApplyBtn">Apply</button>
+            </div>
+          </div>
+          <div class="settings-item" id="languageOption">
+            <div class="settings-label" id="languageLabel">Language:</div>
+            <button class="settings-button" id="languageDropdownBtn">
+              English
+            </button>
+          </div>
+          <div class="settings-item" id="lightThemeOption">
+            <div class="settings-label" id="lightModeLabel">Light Mode:</div>
+            <input type="checkbox" id="lightThemeToggle" class="settings-checkbox" />
+          </div>
+          <div class="advanced-section">
+            <button class="advanced-settings-button" id="moveToTrashAllNotesBtn">Move All Notes to Trash</button>
+            <button class="advanced-settings-button is-success" id="exportAllNotesBtn">Export All Notes</button>
+            <button class="advanced-settings-button is-info" id="importNotesBtn">Import Notes</button>
+            <input type="file" id="importNotesFileInput" accept=".json" style="display:none" />
+            <button class="advanced-settings-button is-warning" id="resetEncryptionKeyBtn">Reset Encryption Key</button>
+            <button class="advanced-settings-button is-danger" id="deleteAllNotesBtn">Delete Everything</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Help Modal -->
+    <div class="generic-modal" id="helpModal">
+      <div class="help-modal-content liquid-glass">
+        <div class="help-modal-header">
+          <h2>Help</h2>
+          <div class="settings-modal-header-right">
+            <div class="close-btn" id="closeHelpModalBtn">
+              <icon>close</icon>
+            </div>
+          </div>
+        </div>
+        <div class="help-tab-bar">
+          <button class="help-tab active" data-tab="helpPanel">Help</button>
+          <button class="help-tab" data-tab="faqPanel">FAQ</button>
+        </div>
+        <div class="help-modal-body">
+          <!-- Help Panel -->
+          <div class="help-tab-panel active" id="helpPanel">
+            <div class="help-section-title">Getting Started</div>
+            <div class="help-item">
+              <icon>note_add</icon>
+              <div class="help-item-text">
+                <div class="help-item-title">Create a Note</div>
+                <div class="help-item-desc">Tap the <strong>New</strong> button in the toolbar to create a new note. Give it a title and start typing.</div>
+              </div>
+            </div>
+            <div class="help-item">
+              <icon>label</icon>
+              <div class="help-item-text">
+                <div class="help-item-title">Organize with Tags</div>
+                <div class="help-item-desc">Open the <strong>Tags</strong> page to create and manage tags, then assign them to notes for quick filtering.</div>
+              </div>
+            </div>
+            <div class="help-item">
+              <icon>star</icon>
+              <div class="help-item-text">
+                <div class="help-item-title">Favorites</div>
+                <div class="help-item-desc">Star any note to pin it to your <strong>Favorites</strong> page for fast access.</div>
+              </div>
+            </div>
+            <div class="help-section-title">Features</div>
+            <div class="help-item">
+              <icon>lock</icon>
+              <div class="help-item-text">
+                <div class="help-item-title">End-to-End Encryption</div>
+                <div class="help-item-desc">All notes are encrypted locally on your device. Only you can read them — not even Munetios has access.</div>
+              </div>
+            </div>
+            <div class="help-item">
+              <icon>mic</icon>
+              <div class="help-item-text">
+                <div class="help-item-title">Voice Notes</div>
+                <div class="help-item-desc">Use the microphone button inside a note to record and attach a voice memo.</div>
+              </div>
+            </div>
+            <div class="help-item">
+              <icon>search</icon>
+              <div class="help-item-text">
+                <div class="help-item-title">Search</div>
+                <div class="help-item-desc">Use the search bar to instantly find notes by title or content.</div>
+              </div>
+            </div>
+            <div class="help-item">
+              <icon>upload_file</icon>
+              <div class="help-item-text">
+                <div class="help-item-title">Import &amp; Export</div>
+                <div class="help-item-desc">Back up and restore your notes as JSON via <strong>Settings &rarr; Export / Import All Notes</strong>.</div>
+              </div>
+            </div>
+          </div>
+          <!-- FAQ Panel -->
+          <div class="help-tab-panel" id="faqPanel">
+            <div class="faq-item">
+              <div class="faq-question">Are my notes private? <icon>expand_more</icon></div>
+              <div class="faq-answer">Yes. Notes are encrypted end-to-end using a key generated and stored only on your device. Nobody else — including Munetios — can read your notes.</div>
+            </div>
+            <div class="faq-item">
+              <div class="faq-question">Where are my notes stored? <icon>expand_more</icon></div>
+              <div class="faq-answer">Notes are stored locally in your browser's IndexedDB. They never leave your device unless you explicitly export them.</div>
+            </div>
+            <div class="faq-item">
+              <div class="faq-question">What happens if I clear my browser data? <icon>expand_more</icon></div>
+              <div class="faq-answer">Clearing browser data will permanently delete your notes and encryption key. Always export a backup from Settings before clearing site data.</div>
+            </div>
+            <div class="faq-item">
+              <div class="faq-question">Can I use SupaNotes offline? <icon>expand_more</icon></div>
+              <div class="faq-answer">As of now, It doesn't have service worker support, so offline functionality is limited. You can still use it in your browser while online.</div>
+            </div>
+            <div class="faq-item">
+              <div class="faq-question">How do I restore deleted notes? <icon>expand_more</icon></div>
+              <div class="faq-answer">Deleted notes move to the <strong>Trash</strong> page first. Open Trash and tap <strong>Restore</strong> to recover them before they are permanently deleted.</div>
+            </div>
+            <div class="faq-item">
+              <div class="faq-question">How do I reset my encryption key? <icon>expand_more</icon></div>
+              <div class="faq-answer">Go to <strong>Settings &rarr; Reset Encryption Key</strong>. Warning: this will make all existing notes unreadable. Export your notes as a backup first.</div>
+            </div>
+            <div class="faq-item">
+              <div class="faq-question">Is there a mobile app? <icon>expand_more</icon></div>
+              <div class="faq-answer">SupaNotes is a PWA and works great on mobile. Install it to your home screen from Chrome or Safari for a native-like experience with offline support.</div>
+            </div>
+            <div class="faq-item">
+              <div class="faq-question">How do I change the app language? <icon>expand_more</icon></div>
+              <div class="faq-answer">Open <strong>Settings</strong> and tap the <strong>Language</strong> selector to choose from over 10 supported languages.</div>
+            </div>
+          </div>
+        </div>
+        <div class="help-modal-footer">
+          <a href="https://www.munetios.com" class="help-footer-link">Munetios</a>
+          <a href="https://www.munetios.com/policies/#/terms" class="help-footer-link">Terms of Service</a>
+          <a href="https://www.munetios.com/policies/#/privacy" class="help-footer-link">Privacy Policy</a>
+        </div>
+      </div>
+    </div>
+    <!-- Custom Confirm Modal -->
+    <div class="generic-modal" id="confirmModal" style="z-index: 9998">
+      <div
+        class="note-modal-content liquid-glass"
+        style="
+          max-width: 360px;
+          width: 90%;
+          padding: 28px 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+          border-radius: var(--mu-radius-xl);
+        "
+      >
+        <h2
+          id="confirmModalMsg"
+          style="font-size: 18px; font-weight: 400; line-height: 1.4"
+        >
+          Are you sure?
+        </h2>
+        <div style="display: flex; gap: 10px; justify-content: flex-end">
+          <div
+            class="vnm-btn"
+            id="confirmModalCancel"
+            style="
+              width: auto;
+              border-radius: 50px;
+              padding: 0 22px;
+              font-size: 18px;
+              height: 40px;
+              cursor: pointer;
+            "
+          >
+            Cancel
+          </div>
+          <div
+            class="vnm-btn"
+            id="confirmModalOk"
+            style="
+              width: auto;
+              border-radius: 50px;
+              padding: 0 22px;
+              font-size: 18px;
+              height: 40px;
+              cursor: pointer;
+              background: rgba(200, 30, 30, 0.7);
+              border-color: rgba(255, 80, 80, 0.6);
+            "
+          >
+            Delete
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script nonce="Dm3NDi3ud893hbdDn3idjh30xJ3nfuN">
+      // Github copilot do not remove these lines
+      function showToast(message) {
+        var info = window.SupaNotesToast ? window.SupaNotesToast(message) : { text: String(message), type: "success" };
+        if (window.MunetiosUI && window.MunetiosUI.toast) {
+          window.MunetiosUI.toast(info.text, { type: info.type });
+          return;
+        }
+        message = info.text;
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.setAttribute("role", "status");
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+      }
+
+      // Github copilot do not remove these lines
+
+      /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+         ALL FUNCTIONALITY BELOW
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+      (function () {
+        "use strict";
+        var H = window.SupaNotesHooks || (window.SupaNotesHooks = {});
+        function snEsc(value) {
+          return String(value == null ? "" : value).replace(/[&<>"']/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+          });
+        }
+        function snChanged() {
+          document.dispatchEvent(new CustomEvent("supanotes-changed"));
+        }
+
+        /* ─── CUSTOM CONFIRM MODAL ───────────────── */
+        var _confirmCallback = null;
+        (function () {
+          var modal = document.getElementById("confirmModal");
+          document
+            .getElementById("confirmModalOk")
+            .addEventListener("click", function () {
+              modal.classList.remove("active");
+              if (_confirmCallback) {
+                _confirmCallback();
+                _confirmCallback = null;
+              }
+            });
+          document
+            .getElementById("confirmModalCancel")
+            .addEventListener("click", function () {
+              modal.classList.remove("active");
+              _confirmCallback = null;
+            });
+          modal.addEventListener("click", function (e) {
+            if (e.target === modal) {
+              modal.classList.remove("active");
+              _confirmCallback = null;
+            }
+          });
+        })();
+        function showConfirm(message, onOk) {
+          _confirmCallback = onOk;
+          document.getElementById("confirmModalMsg").textContent = message;
+          document.getElementById("confirmModal").classList.add("active");
+        }
+
+        /* â”€â”€â”€ TONE.JS SOUNDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        /* --- SETTINGS STATE --- */
+        var _settings = {
+          noteFont: localStorage.getItem('sn_noteFont') || 'sans',
+          customFont: localStorage.getItem('sn_customFont') || '',
+          language: localStorage.getItem('sn_language') || 'en',
+          lightMode: localStorage.getItem('sn_lightMode') === 'true'
+        };
+
+        /* --- TRANSLATIONS --- */
+        var TRANSLATIONS = {
+          en: {
+            nativeName: 'English', languageChanged: 'Language changed', notes: 'Notes', tags: 'Tags', favorites: 'Favorites', trash: 'Trash',
+            newLabel: 'New', searchPlaceholder: 'Search notes',
+            favoritesTitle: 'Favorites', favoritesSubtitle: "Notes you've starred appear here.",
+            tagsTitle: 'Tags', tagsSubtitle: 'Organize your notes with tags.',
+            trashTitle: 'Trash', trashSubtitle: 'Deleted notes. Restore or permanently delete them.',
+            newNote: 'New Note', editNote: 'Edit Note',
+            noteTitlePlaceholder: 'Note title...', noteContentPlaceholder: 'Type your note here...',
+            saveNote: 'New Note', voiceNote: 'Voice Note', tapRecord: 'Tap record to start',
+            recording: 'Recording...', paused: 'Paused', recordSaved: 'Recording saved - tap Done to insert',
+            paint: 'Paint', insertLink: 'Insert Link', displayTextPlaceholder: 'Display text (optional)',
+            newTagPlaceholder: 'New tag name...', addTag: 'Add Tag',
+            settingsTitle: 'Settings', noteFontLabel: 'Note Font:', languageLabel: 'Language:', lightModeLabel: 'Light Mode:',
+            moveToTrashAll: 'Move All Notes to Trash', exportAll: 'Export All Notes', importNotes: 'Import Notes',
+            resetEncKey: 'Reset Encryption Key', deleteAll: 'Delete Everything',
+            addToTag: 'Add to Tag', addToFavorites: 'Add to Favorites', removeFavorite: 'Remove Favorite',
+            edit: 'Edit', moveToTrash: 'Move to Trash', restore: 'Restore',
+            share: 'Share', print: 'Print', shareTitle: 'Share Note', shareVia: 'Share via:',
+            shareFacebook: 'Facebook', shareGmail: 'Gmail', shareOmniWrite: 'Munetios OmniWrite', shareWhatsApp: 'WhatsApp', shareReddit: 'Reddit', shareChatGPT: 'ChatGPT',
+            shareCopied: 'Note content copied!', shareNotSupported: 'Sharing not supported on this device.'
+          },
+          es: {
+            nativeName: 'Espa\u00f1ol', languageChanged: 'Idioma cambiado', notes: 'Notas', tags: 'Etiquetas', favorites: 'Favoritos', trash: 'Papelera',
+            newLabel: 'Nuevo', searchPlaceholder: 'Buscar notas',
+            favoritesTitle: 'Favoritos', favoritesSubtitle: 'Las notas marcadas aparecen aqui.',
+            tagsTitle: 'Etiquetas', tagsSubtitle: 'Organiza tus notas con etiquetas.',
+            trashTitle: 'Papelera', trashSubtitle: 'Notas eliminadas. Restaura o eliminelas.',
+            newNote: 'Nueva Nota', editNote: 'Editar Nota',
+            noteTitlePlaceholder: 'Titulo de la nota...', noteContentPlaceholder: 'Escribe tu nota aqui...',
+            saveNote: 'Nueva Nota', voiceNote: 'Nota de Voz', tapRecord: 'Toca grabar para empezar',
+            recording: 'Grabando...', paused: 'Pausado', recordSaved: 'Grabacion guardada - toca Listo',
+            paint: 'Pintar', insertLink: 'Insertar Enlace', displayTextPlaceholder: 'Texto visible (opcional)',
+            newTagPlaceholder: 'Nombre de etiqueta...', addTag: 'Agregar Etiqueta',
+            settingsTitle: 'Configuraci\u00f3n', noteFontLabel: 'Fuente de Nota:', languageLabel: 'Idioma:', lightModeLabel: 'Modo Claro:',
+            moveToTrashAll: 'Mover Todo a Papelera', exportAll: 'Exportar Todas las Notas', importNotes: 'Importar Notas',
+            resetEncKey: 'Restablecer Clave', deleteAll: 'Eliminar Todo',
+            addToTag: 'Agregar Etiqueta', addToFavorites: 'Agregar a Favoritos', removeFavorite: 'Quitar Favorito',
+            edit: 'Editar', moveToTrash: 'Mover a Papelera', restore: 'Restaurar',
+            share: 'Compartir', print: 'Imprimir', shareTitle: 'Compartir Nota', shareVia: 'Compartir vía:',
+            shareFacebook: 'Facebook', shareGmail: 'Gmail', shareOmniWrite: 'Munetios OmniWrite', shareWhatsApp: 'WhatsApp', shareReddit: 'Reddit', shareChatGPT: 'ChatGPT',
+            shareCopied: '¡Contenido copiado!', shareNotSupported: 'Compartir no soportado en este dispositivo.'
+          },
+          fr: {
+            nativeName: 'Fran\u00e7ais', languageChanged: 'Langue modifi\u00e9e', notes: 'Notes', tags: 'Etiquettes', favorites: 'Favoris', trash: 'Corbeille',
+            newLabel: 'Nouveau', searchPlaceholder: 'Rechercher des notes',
+            favoritesTitle: 'Favoris', favoritesSubtitle: 'Vos notes etoilees apparaissent ici.',
+            tagsTitle: 'Etiquettes', tagsSubtitle: 'Organisez vos notes avec des etiquettes.',
+            trashTitle: 'Corbeille', trashSubtitle: 'Notes supprimees. Restaurez ou supprimez-les.',
+            newNote: 'Nouvelle Note', editNote: 'Modifier la Note',
+            noteTitlePlaceholder: 'Titre de la note...', noteContentPlaceholder: 'Tapez votre note ici...',
+            saveNote: 'Nouvelle Note', voiceNote: 'Note Vocale', tapRecord: 'Appuyez pour enregistrer',
+            recording: 'Enregistrement...', paused: 'En pause', recordSaved: 'Enregistre - appuyez sur Termine',
+            paint: 'Peinture', insertLink: 'Inserer un Lien', displayTextPlaceholder: 'Texte affiche (optionnel)',
+            newTagPlaceholder: "Nom de l'etiquette...", addTag: 'Ajouter',
+            settingsTitle: 'Param\u00e8tres', noteFontLabel: 'Police de Note:', languageLabel: 'Langue:', lightModeLabel: 'Mode Clair:',
+            moveToTrashAll: 'Tout mettre a la Corbeille', exportAll: 'Exporter Toutes les Notes', importNotes: 'Importer des Notes',
+            resetEncKey: 'Reinitialiser la Cle', deleteAll: 'Tout Supprimer',
+            addToTag: 'Ajouter une Etiquette', addToFavorites: 'Ajouter aux Favoris', removeFavorite: 'Retirer des Favoris',
+            edit: 'Modifier', moveToTrash: 'Mettre a la Corbeille', restore: 'Restaurer',
+            share: 'Partager', print: 'Imprimer', shareTitle: 'Partager la note', shareVia: 'Partager via:',
+            shareFacebook: 'Facebook', shareGmail: 'Gmail', shareOmniWrite: 'Munetios OmniWrite', shareWhatsApp: 'WhatsApp', shareReddit: 'Reddit', shareChatGPT: 'ChatGPT',
+            shareCopied: 'Contenu copié!', shareNotSupported: 'Partage non pris en charge sur cet appareil.'
+          },
+          de: {
+            nativeName: 'Deutsch', languageChanged: 'Sprache ge\u00e4ndert', notes: 'Notizen', tags: 'Tags', favorites: 'Favoriten', trash: 'Papierkorb',
+            newLabel: 'Neu', searchPlaceholder: 'Notizen suchen',
+            favoritesTitle: 'Favoriten', favoritesSubtitle: 'Markierte Notizen erscheinen hier.',
+            tagsTitle: 'Tags', tagsSubtitle: 'Organisiere Notizen mit Tags.',
+            trashTitle: 'Papierkorb', trashSubtitle: 'Geloschte Notizen. Wiederherstellen oder loschen.',
+            newNote: 'Neue Notiz', editNote: 'Notiz bearbeiten',
+            noteTitlePlaceholder: 'Notiz-Titel...', noteContentPlaceholder: 'Schreibe deine Notiz hier...',
+            saveNote: 'Neue Notiz', voiceNote: 'Sprachnotiz', tapRecord: 'Aufnahme starten',
+            recording: 'Aufnahme...', paused: 'Pausiert', recordSaved: 'Aufgenommen - Fertig drucken',
+            paint: 'Zeichnen', insertLink: 'Link einfugen', displayTextPlaceholder: 'Anzeigetext (optional)',
+            newTagPlaceholder: 'Tag-Name...', addTag: 'Tag hinzufugen',
+            settingsTitle: 'Einstellungen', noteFontLabel: 'Notizenart:', languageLabel: 'Sprache:', lightModeLabel: 'Hellmodus:',
+            moveToTrashAll: 'Alle in den Papierkorb', exportAll: 'Alle Notizen exportieren', importNotes: 'Notizen importieren',
+            resetEncKey: 'Schlussel zurucksetzen', deleteAll: 'Alles loschen',
+            addToTag: 'Tag hinzufugen', addToFavorites: 'Zu Favoriten', removeFavorite: 'Aus Favoriten',
+            edit: 'Bearbeiten', moveToTrash: 'In Papierkorb', restore: 'Wiederherstellen',
+            share: 'Teilen', print: 'Drucken', shareTitle: 'Notiz teilen', shareVia: 'Teilen über:',
+            shareFacebook: 'Facebook', shareGmail: 'Gmail', shareOmniWrite: 'Munetios OmniWrite', shareWhatsApp: 'WhatsApp', shareReddit: 'Reddit', shareChatGPT: 'ChatGPT',
+            shareCopied: 'Inhalt kopiert!', shareNotSupported: 'Teilen auf diesem Gerät nicht unterstützt.'
+          },
+          it: {
+            nativeName: 'Italiano', languageChanged: 'Lingua cambiata', notes: 'Note', tags: 'Etichette', favorites: 'Preferiti', trash: 'Cestino',
+            newLabel: 'Nuovo', searchPlaceholder: 'Cerca note',
+            favoritesTitle: 'Preferiti', favoritesSubtitle: 'Le note preferite appaiono qui.',
+            tagsTitle: 'Etichette', tagsSubtitle: 'Organizza le note con etichette.',
+            trashTitle: 'Cestino', trashSubtitle: 'Note eliminate. Ripristina o elimina.',
+            newNote: 'Nuova Nota', editNote: 'Modifica Nota',
+            noteTitlePlaceholder: 'Titolo nota...', noteContentPlaceholder: 'Scrivi la tua nota qui...',
+            saveNote: 'Nuova Nota', voiceNote: 'Nota Vocale', tapRecord: 'Premi per registrare',
+            recording: 'Registrazione...', paused: 'In pausa', recordSaved: 'Registrato - premi Fine',
+            paint: 'Disegna', insertLink: 'Inserisci Link', displayTextPlaceholder: 'Testo visualizzato (opzionale)',
+            newTagPlaceholder: 'Nome etichetta...', addTag: 'Aggiungi',
+            settingsTitle: 'Impostazioni', noteFontLabel: 'Font Nota:', languageLabel: 'Lingua:', lightModeLabel: 'Modalita Chiara:',
+            moveToTrashAll: 'Sposta tutto nel Cestino', exportAll: 'Esporta tutte le Note', importNotes: 'Importa Note',
+            resetEncKey: 'Reimposta Chiave', deleteAll: 'Elimina Tutto',
+            addToTag: 'Aggiungi Etichetta', addToFavorites: 'Aggiungi ai Preferiti', removeFavorite: 'Rimuovi dai Preferiti',
+            edit: 'Modifica', moveToTrash: 'Sposta nel Cestino', restore: 'Ripristina',
+            share: 'Condividi', print: 'Stampa', shareTitle: 'Condividi Nota', shareVia: 'Condividi tramite:',
+            shareFacebook: 'Facebook', shareGmail: 'Gmail', shareOmniWrite: 'Munetios OmniWrite', shareWhatsApp: 'WhatsApp', shareReddit: 'Reddit', shareChatGPT: 'ChatGPT',
+            shareCopied: 'Contenuto copiato!', shareNotSupported: 'Condivisione non supportata su questo dispositivo.'
+          },
+          pt: {
+            nativeName: 'Portugu\u00eas', languageChanged: 'Idioma alterado', notes: 'Notas', tags: 'Etiquetas', favorites: 'Favoritos', trash: 'Lixeira',
+            newLabel: 'Novo', searchPlaceholder: 'Pesquisar notas',
+            favoritesTitle: 'Favoritos', favoritesSubtitle: 'Notas marcadas aparecem aqui.',
+            tagsTitle: 'Etiquetas', tagsSubtitle: 'Organize notas com etiquetas.',
+            trashTitle: 'Lixeira', trashSubtitle: 'Notas excluidas. Restaure ou apague.',
+            newNote: 'Nova Nota', editNote: 'Editar Nota',
+            noteTitlePlaceholder: 'Titulo da nota...', noteContentPlaceholder: 'Digite sua nota aqui...',
+            saveNote: 'Nova Nota', voiceNote: 'Nota de Voz', tapRecord: 'Toque para gravar',
+            recording: 'Gravando...', paused: 'Pausado', recordSaved: 'Gravado - toque Concluido',
+            paint: 'Pintar', insertLink: 'Inserir Link', displayTextPlaceholder: 'Texto exibido (opcional)',
+            newTagPlaceholder: 'Nome da etiqueta...', addTag: 'Adicionar',
+            settingsTitle: 'Configuracoes', noteFontLabel: 'Fonte da Nota:', languageLabel: 'Idioma:', lightModeLabel: 'Modo Claro:',
+            moveToTrashAll: 'Mover Tudo para Lixeira', exportAll: 'Exportar Todas as Notas', importNotes: 'Importar Notas',
+            resetEncKey: 'Redefinir Chave', deleteAll: 'Deletar Tudo',
+            addToTag: 'Adicionar Etiqueta', addToFavorites: 'Adicionar aos Favoritos', removeFavorite: 'Remover Favorito',
+            edit: 'Editar', moveToTrash: 'Mover para Lixeira', restore: 'Restaurar',
+            share: 'Compartilhar', print: 'Imprimir', shareTitle: 'Compartilhar Nota', shareVia: 'Compartilhar via:',
+            shareFacebook: 'Facebook', shareGmail: 'Gmail', shareOmniWrite: 'Munetios OmniWrite', shareWhatsApp: 'WhatsApp', shareReddit: 'Reddit', shareChatGPT: 'ChatGPT',
+            shareCopied: 'Conteúdo copiado!', shareNotSupported: 'Compartilhamento não suportado neste dispositivo.'
+          },
+          ja: {
+            nativeName: '\u65e5\u672c\u8a9e', languageChanged: '\u8a00\u8a9e\u304c\u5909\u66f4\u3055\u308c\u307e\u3057\u305f', notes: '\u30ce\u30fc\u30c8', tags: '\u30bf\u30b0', favorites: '\u304a\u6c17\u306b\u5165\u308a', trash: '\u30b4\u30df\u7b71',
+            newLabel: '\u65b0\u898f', searchPlaceholder: '\u30ce\u30fc\u30c8\u3092\u691c\u7d22',
+            favoritesTitle: '\u304a\u6c17\u306b\u5165\u308a', favoritesSubtitle: '\u30b9\u30bf\u30fc\u3092\u4ed8\u3051\u305f\u30ce\u30fc\u30c8\u304c\u3053\u3053\u306b\u8868\u793a\u3055\u308c\u307e\u3059\u3002',
+            tagsTitle: '\u30bf\u30b0', tagsSubtitle: '\u30bf\u30b0\u3067\u30ce\u30fc\u30c8\u3092\u6574\u7406\u3057\u307e\u3057\u3087\u3046\u3002',
+            trashTitle: '\u30b4\u30df\u7b71', trashSubtitle: '\u524a\u9664\u3055\u308c\u305f\u30ce\u30fc\u30c8\u3002\u5fa9\u5143\u307e\u305f\u306f\u5b8c\u5168\u524a\u9664\u3067\u304d\u307e\u3059\u3002',
+            newNote: '\u65b0\u3057\u3044\u30ce\u30fc\u30c8', editNote: '\u30ce\u30fc\u30c8\u3092\u7de8\u96c6',
+            noteTitlePlaceholder: '\u30ce\u30fc\u30c8\u306e\u30bf\u30a4\u30c8\u30eb...', noteContentPlaceholder: '\u3053\u3053\u306b\u30ce\u30fc\u30c8\u3092\u5165\u529b...',
+            saveNote: '\u65b0\u3057\u3044\u30ce\u30fc\u30c8', voiceNote: '\u97f3\u58f0\u30ce\u30fc\u30c8', tapRecord: '\u9332\u97f3\u3092\u958b\u59cb',
+            recording: '\u9332\u97f3\u4e2d...', paused: '\u4e00\u6642\u505c\u6b62', recordSaved: '\u9332\u97f3\u5b8c\u4e86 - \u5b8c\u4e86\u3092\u30bf\u30c3\u30d7\u3057\u3066\u633f\u5165',
+            paint: '\u30da\u30a4\u30f3\u30c8', insertLink: '\u30ea\u30f3\u30af\u3092\u633f\u5165', displayTextPlaceholder: '\u8868\u793a\u30c6\u30ad\u30b9\u30c8\uff08\u4efb\u610f\uff09',
+            newTagPlaceholder: '\u30bf\u30b0\u540d...', addTag: '\u30bf\u30b0\u8ffd\u52a0',
+            settingsTitle: '\u8a2d\u5b9a', noteFontLabel: '\u30ce\u30fc\u30c8\u30d5\u30a9\u30f3\u30c8:', languageLabel: '\u8a00\u8a9e:', lightModeLabel: '\u30e9\u30a4\u30c8\u30e2\u30fc\u30c9:',
+            moveToTrashAll: '\u3059\u3079\u3066\u30b4\u30df\u7b71\u3078', exportAll: '\u3059\u3079\u3066\u306e\u30ce\u30fc\u30c8\u3092\u30a8\u30af\u30b9\u30dd\u30fc\u30c8', importNotes: '\u30ce\u30fc\u30c8\u3092\u30a4\u30f3\u30dd\u30fc\u30c8',
+            resetEncKey: '\u6697\u53f7\u5316\u30ad\u30fc\u3092\u30ea\u30bb\u30c3\u30c8', deleteAll: '\u3059\u3079\u3066\u524a\u9664',
+            addToTag: '\u30bf\u30b0\u306b\u8ffd\u52a0', addToFavorites: '\u304a\u6c17\u306b\u5165\u308a\u306b\u8ffd\u52a0', removeFavorite: '\u304a\u6c17\u306b\u5165\u308a\u304b\u3089\u524a\u9664',
+            edit: '\u7de8\u96c6', moveToTrash: '\u30b4\u30df\u7b71\u3078\u79fb\u52d5', restore: '\u5fa9\u5143',
+            share: 'Share', print: 'Print', shareTitle: 'Share Note', shareVia: 'Share via:',
+            shareFacebook: 'Facebook', shareGmail: 'Gmail', shareOmniWrite: 'Munetios OmniWrite', shareWhatsApp: 'WhatsApp', shareReddit: 'Reddit', shareChatGPT: 'ChatGPT',
+            shareCopied: 'Note content copied!', shareNotSupported: 'Sharing not supported on this device.'
+          },
+          zh: {
+            nativeName: '\u4e2d\u6587', languageChanged: '\u8bed\u8a00\u5df2\u66f4\u6539', notes: '\u7b14\u8bb0', tags: '\u6807\u7b7e', favorites: '\u6536\u85cf', trash: '\u56de\u6536\u7ad9',
+            newLabel: '\u65b0\u5efa', searchPlaceholder: '\u641c\u7d22\u7b14\u8bb0',
+            favoritesTitle: '\u6536\u85cf', favoritesSubtitle: '\u5df2\u52a0\u661f\u6807\u7684\u7b14\u8bb0\u663e\u793a\u5728\u8fd9\u91cc\u3002',
+            tagsTitle: '\u6807\u7b7e', tagsSubtitle: '\u7528\u6807\u7b7e\u6574\u7406\u4f60\u7684\u7b14\u8bb0\u3002',
+            trashTitle: '\u56de\u6536\u7ad9', trashSubtitle: '\u5df2\u5220\u9664\u7684\u7b14\u8bb0\u3002\u6062\u590d\u6216\u6c38\u4e45\u5220\u9664\u3002',
+            newNote: '\u65b0\u7b14\u8bb0', editNote: '\u7f16\u8f91\u7b14\u8bb0',
+            noteTitlePlaceholder: '\u7b14\u8bb0\u6807\u9898...', noteContentPlaceholder: '\u5728\u6b64\u8f93\u5165\u7b14\u8bb0...',
+            saveNote: '\u65b0\u7b14\u8bb0', voiceNote: '\u8bed\u97f3\u7b14\u8bb0', tapRecord: '\u70b9\u51fb\u5f00\u59cb\u5f55\u97f3',
+            recording: '\u5f55\u97f3\u4e2d...', paused: '\u5df2\u6682\u505c', recordSaved: '\u5f55\u97f3\u5df2\u4fdd\u5b58 - \u70b9\u51fb\u5b8c\u6210\u63d2\u5165',
+            paint: '\u7ed8\u753b', insertLink: '\u63d2\u5165\u94fe\u63a5', displayTextPlaceholder: '\u663e\u793a\u6587\u672c\uff08\u53ef\u9009\uff09',
+            newTagPlaceholder: '\u6807\u7b7e\u540d\u79f0...', addTag: '\u6dfb\u52a0\u6807\u7b7e',
+            settingsTitle: '\u8bbe\u7f6e', noteFontLabel: '\u7b14\u8bb0\u5b57\u4f53:', languageLabel: '\u8bed\u8a00:', lightModeLabel: '\u4eae\u8272\u6a21\u5f0f:',
+            moveToTrashAll: '\u5168\u90e8\u79fb\u81f3\u56de\u6536\u7ad9', exportAll: '\u5bfc\u51fa\u6240\u6709\u7b14\u8bb0', importNotes: '\u5bfc\u5165\u7b14\u8bb0',
+            resetEncKey: '\u91cd\u7f6e\u52a0\u5bc6\u5bc6\u9470', deleteAll: '\u5220\u9664\u6240\u6709\u5185\u5bb9',
+            addToTag: '\u6dfb\u52a0\u6807\u7b7e', addToFavorites: '\u6dfb\u52a0\u5230\u6536\u85cf', removeFavorite: '\u53d6\u6d88\u6536\u85cf',
+            edit: '\u7f16\u8f91', moveToTrash: '\u79fb\u81f3\u56de\u6536\u7ad9', restore: '\u6062\u590d',
+            share: 'Share', print: 'Print', shareTitle: 'Share Note', shareVia: 'Share via:',
+            shareFacebook: 'Facebook', shareGmail: 'Gmail', shareOmniWrite: 'Munetios OmniWrite', shareWhatsApp: 'WhatsApp', shareReddit: 'Reddit', shareChatGPT: 'ChatGPT',
+            shareCopied: 'Note content copied!', shareNotSupported: 'Sharing not supported on this device.'
+          },
+          ru: {
+            nativeName: '\u0420\u0443\u0441\u0441\u043a\u0438\u0439', languageChanged: '\u042f\u0437\u044b\u043a \u0438\u0437\u043c\u0435\u043d\u0435\u043d', notes: '\u0417\u0430\u043c\u0435\u0442\u043a\u0438', tags: '\u0422\u0435\u0433\u0438', favorites: '\u0418\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435', trash: '\u041a\u043e\u0440\u0437\u0438\u043d\u0430',
+            newLabel: '\u041d\u043e\u0432\u0430\u044f', searchPlaceholder: '\u041f\u043e\u0438\u0441\u043a \u0437\u0430\u043c\u0435\u0442\u043e\u043a',
+            favoritesTitle: '\u0418\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435', favoritesSubtitle: '\u041e\u0442\u043c\u0435\u0447\u0435\u043d\u043d\u044b\u0435 \u0437\u0430\u043c\u0435\u0442\u043a\u0438 \u043f\u043e\u044f\u0432\u043b\u044f\u044e\u0442\u0441\u044f \u0437\u0434\u0435\u0441\u044c.',
+            tagsTitle: '\u0422\u0435\u0433\u0438', tagsSubtitle: '\u041e\u0440\u0433\u0430\u043d\u0438\u0437\u0443\u0439\u0442\u0435 \u0437\u0430\u043c\u0435\u0442\u043a\u0438 \u0441 \u0442\u0435\u0433\u0430\u043c\u0438.',
+            trashTitle: '\u041a\u043e\u0440\u0437\u0438\u043d\u0430', trashSubtitle: '\u0423\u0434\u0430\u043b\u0451\u043d\u043d\u044b\u0435 \u0437\u0430\u043c\u0435\u0442\u043a\u0438.',
+            newNote: '\u041d\u043e\u0432\u0430\u044f \u0417\u0430\u043c\u0435\u0442\u043a\u0430', editNote: '\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0417\u0430\u043c\u0435\u0442\u043a\u0443',
+            noteTitlePlaceholder: '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a...', noteContentPlaceholder: '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0437\u0430\u043c\u0435\u0442\u043a\u0443...',
+            saveNote: '\u041d\u043e\u0432\u0430\u044f \u0417\u0430\u043c\u0435\u0442\u043a\u0430', voiceNote: '\u0413\u043e\u043b\u043e\u0441\u043e\u0432\u0430\u044f \u0417\u0430\u043c\u0435\u0442\u043a\u0430', tapRecord: '\u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u0434\u043b\u044f \u0437\u0430\u043f\u0438\u0441\u0438',
+            recording: '\u0417\u0430\u043f\u0438\u0441\u044c...', paused: '\u041f\u0430\u0443\u0437\u0430', recordSaved: '\u0417\u0430\u043f\u0438\u0441\u0430\u043d\u043e - \u043d\u0430\u0436\u043c\u0438\u0442\u0435 \u0413\u043e\u0442\u043e\u0432\u043e',
+            paint: '\u0420\u0438\u0441\u043e\u0432\u0430\u043d\u0438\u0435', insertLink: '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0421\u0441\u044b\u043b\u043a\u0443', displayTextPlaceholder: '\u0422\u0435\u043a\u0441\u0442 \u0441\u0441\u044b\u043b\u043a\u0438',
+            newTagPlaceholder: '\u0418\u043c\u044f \u0442\u0435\u0433\u0430...', addTag: '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0422\u0435\u0433',
+            settingsTitle: '\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438', noteFontLabel: '\u0428\u0440\u0438\u0444\u0442 \u0417\u0430\u043c\u0435\u0442\u043e\u043a:', languageLabel: '\u042f\u0437\u044b\u043a:', lightModeLabel: '\u0421\u0432\u0435\u0442\u043b\u044b\u0439 \u0420\u0435\u0436\u0438\u043c:',
+            moveToTrashAll: '\u041f\u0435\u0440\u0435\u043c\u0435\u0441\u0442\u0438\u0442\u044c \u0432\u0441\u0451 \u0432 \u041a\u043e\u0440\u0437\u0438\u043d\u0443', exportAll: '\u042d\u043a\u0441\u043f\u043e\u0440\u0442 \u0437\u0430\u043c\u0435\u0442\u043e\u043a', importNotes: '\u0418\u043c\u043f\u043e\u0440\u0442 \u0437\u0430\u043c\u0435\u0442\u043e\u043a',
+            resetEncKey: '\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c \u041a\u043b\u044e\u0447', deleteAll: '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0432\u0441\u0451',
+            addToTag: '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0432 \u0422\u0435\u0433', addToFavorites: '\u0412 \u0418\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435', removeFavorite: '\u0423\u0431\u0440\u0430\u0442\u044c \u0438\u0437 \u0418\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0433\u043e',
+            edit: '\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c', moveToTrash: '\u0412 \u041a\u043e\u0440\u0437\u0438\u043d\u0443', restore: '\u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c',
+            share: 'Share', print: 'Print', shareTitle: 'Share Note', shareVia: 'Share via:',
+            shareFacebook: 'Facebook', shareGmail: 'Gmail', shareOmniWrite: 'Munetios OmniWrite', shareWhatsApp: 'WhatsApp', shareReddit: 'Reddit', shareChatGPT: 'ChatGPT',
+            shareCopied: 'Note content copied!', shareNotSupported: 'Sharing not supported on this device.'
+          },
+          ar: {
+            nativeName: '\u0627\u0644\u0639\u0631\u0628\u064a\u0629', languageChanged: '\u062a\u0645 \u062a\u063a\u064a\u064a\u0631 \u0627\u0644\u0644\u063a\u0629', notes: '\u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0627\u062a', tags: '\u0627\u0644\u0648\u0633\u0648\u0645', favorites: '\u0627\u0644\u0645\u0641\u0636\u0644\u0629', trash: '\u0633\u0644\u0629 \u0627\u0644\u0645\u0647\u0645\u0644\u0627\u062a',
+            newLabel: '\u062c\u062f\u064a\u062f', searchPlaceholder: '\u0627\u0644\u0628\u062d\u062b \u0641\u064a \u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0627\u062a',
+            favoritesTitle: '\u0627\u0644\u0645\u0641\u0636\u0644\u0629', favoritesSubtitle: '\u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0627\u062a \u0627\u0644\u0645\u0645\u064a\u0632\u0629 \u062a\u0638\u0647\u0631 \u0647\u0646\u0627.',
+            tagsTitle: '\u0627\u0644\u0648\u0633\u0648\u0645', tagsSubtitle: '\u0646\u0638\u0645 \u0645\u0644\u0627\u062d\u0638\u0627\u062a\u0643 \u0628\u0627\u0644\u0648\u0633\u0648\u0645.',
+            trashTitle: '\u0633\u0644\u0629 \u0627\u0644\u0645\u0647\u0645\u0644\u0627\u062a', trashSubtitle: '\u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0627\u062a \u0627\u0644\u0645\u062d\u0630\u0648\u0641\u0629.',
+            share: 'Share', print: 'Print', shareTitle: 'Share Note', shareVia: 'Share via:',
+            shareFacebook: 'Facebook', shareGmail: 'Gmail', shareOmniWrite: 'Munetios OmniWrite', shareWhatsApp: 'WhatsApp', shareReddit: 'Reddit', shareChatGPT: 'ChatGPT',
+            shareCopied: 'Note content copied!', shareNotSupported: 'Sharing not supported on this device.',
+            newNote: '\u0645\u0644\u0627\u062d\u0638\u0629 \u062c\u062f\u064a\u062f\u0629', editNote: '\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0629',
+            noteTitlePlaceholder: '\u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0629...', noteContentPlaceholder: '\u0627\u0643\u062a\u0628 \u0645\u0644\u0627\u062d\u0638\u062a\u0643 \u0647\u0646\u0627...',
+            saveNote: '\u0645\u0644\u0627\u062d\u0638\u0629 \u062c\u062f\u064a\u062f\u0629', voiceNote: '\u0645\u0644\u0627\u062d\u0638\u0629 \u0635\u0648\u062a\u064a\u0629', tapRecord: '\u0627\u0636\u063a\u0637 \u0644\u0644\u062a\u0633\u062c\u064a\u0644',
+            recording: '\u062c\u0627\u0631\u064d \u0627\u0644\u062a\u0633\u062c\u064a\u0644...', paused: '\u0645\u062a\u0648\u0642\u0641', recordSaved: '\u062a\u0645 \u0627\u0644\u062a\u0633\u062c\u064a\u0644 - \u0627\u0636\u063a\u0637 \u062a\u0645',
+            paint: '\u0631\u0633\u0645', insertLink: '\u0625\u062f\u0631\u0627\u062c \u0631\u0627\u0628\u0637', displayTextPlaceholder: '\u0646\u0635 \u0627\u0644\u0639\u0631\u0636 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a)',
+            newTagPlaceholder: '\u0627\u0633\u0645 \u0627\u0644\u0648\u0633\u0645...', addTag: '\u0625\u0636\u0627\u0641\u0629 \u0648\u0633\u0645',
+            settingsTitle: '\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a', noteFontLabel: '\u062e\u0637 \u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0629:', languageLabel: '\u0627\u0644\u0644\u063a\u0629:', lightModeLabel: '\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0641\u0627\u062a\u062d:',
+            moveToTrashAll: '\u0646\u0642\u0644 \u0627\u0644\u0643\u0644 \u0625\u0644\u0649 \u0633\u0644\u0629 \u0627\u0644\u0645\u0647\u0645\u0644\u0627\u062a', exportAll: '\u062a\u0635\u062f\u064a\u0631 \u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0627\u062a', importNotes: '\u0627\u0633\u062a\u064a\u0631\u0627\u062f \u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0627\u062a',
+            resetEncKey: '\u0625\u0639\u0627\u062f\u0629 \u062a\u0639\u064a\u064a\u0646 \u0627\u0644\u0645\u0641\u062a\u0627\u062d', deleteAll: '\u062d\u0630\u0641 \u0643\u0644 \u0634\u064a\u0621',
+            addToTag: '\u0625\u0636\u0627\u0641\u0629 \u0648\u0633\u0645', addToFavorites: '\u0625\u0636\u0627\u0641\u0629 \u0625\u0644\u0649 \u0627\u0644\u0645\u0641\u0636\u0644\u0629', removeFavorite: '\u0625\u0632\u0627\u0644\u0629 \u0645\u0646 \u0627\u0644\u0645\u0641\u0636\u0644\u0629',
+            edit: '\u062a\u0639\u062f\u064a\u0644', moveToTrash: '\u0646\u0642\u0644 \u0625\u0644\u0649 \u0627\u0644\u0645\u0647\u0645\u0644\u0627\u062a', restore: '\u0627\u0633\u062a\u0639\u0627\u062f\u0629'
+          }
+        };
+
+        function _t(key) {
+          var lang = _settings ? _settings.language : 'en';
+          var t = TRANSLATIONS[lang] || TRANSLATIONS['en'];
+          return (t[key] !== undefined) ? t[key] : (TRANSLATIONS['en'][key] || key);
+        }
+
+        var LANGUAGE_OPTIONS = [
+          ['languageOptionEnglish', 'en'],
+          ['languageOptionSpanish', 'es'],
+          ['languageOptionFrench', 'fr'],
+          ['languageOptionGerman', 'de'],
+          ['languageOptionItalian', 'it'],
+          ['languageOptionPortuguese', 'pt'],
+          ['languageOptionJapanese', 'ja'],
+          ['languageOptionChinese', 'zh'],
+          ['languageOptionRussian', 'ru'],
+          ['languageOptionArabic', 'ar']
+        ];
+
+        function getLanguageNativeName(lang) {
+          var translation = TRANSLATIONS[lang] || TRANSLATIONS.en;
+          return translation.nativeName || TRANSLATIONS.en.nativeName;
+        }
+
+        function syncLanguageSelector(lang) {
+          var selectedLang = TRANSLATIONS[lang] ? lang : 'en';
+          var langBtn = document.getElementById('languageDropdownBtn');
+          if (langBtn) langBtn.textContent = getLanguageNativeName(selectedLang);
+          LANGUAGE_OPTIONS.forEach(function(pair) {
+            var option = document.getElementById(pair[0]);
+            if (!option) return;
+            option.textContent = getLanguageNativeName(pair[1]);
+            option.classList.toggle('active', pair[1] === selectedLang);
+            option.setAttribute('aria-selected', pair[1] === selectedLang ? 'true' : 'false');
+          });
+        }
+
+        function applyButtonTabIndex(root) {
+          var scope = root && root.querySelectorAll ? root : document;
+          scope.querySelectorAll('button').forEach(function(button) {
+            button.setAttribute('tabindex', '0');
+            if (!button.hasAttribute('type')) button.setAttribute('type', 'button');
+          });
+        }
+
+        function applyActionKeyboardSupport(root) {
+          var scope = root && root.querySelectorAll ? root : document;
+          scope.querySelectorAll('.topbar-right-action, .close-btn, .dropdown-item, .tag-add-btn').forEach(function(node) {
+            node.setAttribute('tabindex', '0');
+            node.setAttribute('role', 'button');
+            if (node.dataset.keyboardBound === 'true') return;
+            node.dataset.keyboardBound = 'true';
+            node.addEventListener('keydown', function(e) {
+              if (e.key !== 'Enter' && e.key !== ' ') return;
+              e.preventDefault();
+              node.click();
+            });
+          });
+        }
+
+        function observeButtonTabIndex() {
+          var observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+              mutation.addedNodes.forEach(function(node) {
+                if (!node || node.nodeType !== 1) return;
+                if (node.tagName === 'BUTTON') node.setAttribute('tabindex', '0');
+                applyButtonTabIndex(node);
+                applyActionKeyboardSupport(node);
+              });
+            });
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
+        }
+
+        function applyNoteFont(font, customFamily) {
+          var family;
+          if (font === 'serif') {
+            family = 'Georgia, "Times New Roman", serif';
+          } else if (font === 'custom' && customFamily) {
+            family = '"' + String(customFamily).replace(/["\\]/g, "") + '", "Munetios UI v4 Font", sans-serif';
+          } else if (font === 'flex') {
+            family = '"Google Sans Flex", "Munetios UI v4 Font", sans-serif';
+          } else {
+            family = '"Munetios UI v4 Font", sans-serif';
+          }
+          var noteEd = document.getElementById('noteContent');
+          var titleInp = document.getElementById('noteTitleInput');
+          var prevBody = document.getElementById('npreviewBody');
+          if (noteEd) noteEd.style.fontFamily = family;
+          if (titleInp) titleInp.style.fontFamily = family;
+          if (prevBody) prevBody.style.fontFamily = family;
+        }
+
+        function applyLightMode(isLight) {
+          document.body.classList.toggle('light-mode', isLight);
+          if (window.MunetiosUI && window.MunetiosUI.theme) window.MunetiosUI.theme.set(isLight ? 'light' : 'dark');
+          else document.documentElement.setAttribute('data-mu-theme', isLight ? 'light' : 'dark');
+        }
+
+        function applyTranslations(lang) {
+          var t = TRANSLATIONS[lang] || TRANSLATIONS['en'];
+          document.documentElement.lang = lang;
+          document.body.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+          syncLanguageSelector(lang);
+          var nb = document.getElementById('notesBtnNav'); if (nb) nb.textContent = t.notes;
+          var tb = document.getElementById('tagsBtnNav'); if (tb) tb.textContent = t.tags;
+          var fb = document.getElementById('favoritesBtnNav'); if (fb) fb.textContent = t.favorites;
+          var trb = document.getElementById('trashBtnNav'); if (trb) trb.textContent = t.trash;
+          var notesH1 = document.querySelector('#notesPage h1'); if (notesH1) notesH1.textContent = t.notes;
+          var newLbl = document.querySelector('#createNoteBtn .topbar-right-action-label');
+          if (newLbl) newLbl.textContent = t.newLabel;
+          var si = document.getElementById('searchInput'); if (si) si.placeholder = t.searchPlaceholder;
+          var msi = document.getElementById('mobileSearchInput'); if (msi) msi.placeholder = t.searchPlaceholder;
+          var favT = document.querySelector('#favoritesPage .page-section-title'); if (favT) favT.textContent = t.favoritesTitle;
+          var favS = document.querySelector('#favoritesPage .page-section-subtitle'); if (favS) favS.textContent = t.favoritesSubtitle;
+          var tagT = document.querySelector('#tagsPage .page-section-title'); if (tagT) tagT.textContent = t.tagsTitle;
+          var tagS = document.querySelector('#tagsPage .page-section-subtitle'); if (tagS) tagS.textContent = t.tagsSubtitle;
+          var trT = document.querySelector('#trashPage .page-section-title'); if (trT) trT.textContent = t.trashTitle;
+          var trS = document.querySelector('#trashPage .page-section-subtitle'); if (trS) trS.textContent = t.trashSubtitle;
+          var nt = document.getElementById('noteTitleInput'); if (nt) nt.placeholder = t.noteTitlePlaceholder;
+          var nc = document.getElementById('noteContent'); if (nc) nc.setAttribute('placeholder', t.noteContentPlaceholder);
+          var nnb = document.getElementById('newNoteButton'); if (nnb) nnb.textContent = t.saveNote;
+          var vmH = document.querySelector('#voiceNoteModal .vm-header h2'); if (vmH) vmH.textContent = t.voiceNote;
+          var vnSt = document.getElementById('vnmStatus'); if (vnSt) vnSt.textContent = t.tapRecord;
+          var pmH = document.querySelector('#paintModal .pm-header h2'); if (pmH) pmH.textContent = t.paint;
+          var lmH = document.querySelector('#linkModal .vm-header h2'); if (lmH) lmH.textContent = t.insertLink;
+          var shBtn = document.getElementById('npreviewShareBtn'); if (shBtn) shBtn.title = t.share;
+          var prBtn = document.getElementById('npreviewPrintBtn'); if (prBtn) prBtn.title = t.print;
+                  // --- SHARE & PRINT LOGIC ---
+                  function showShareDialog(noteTitle, noteContent) {
+                    var t = _t;
+                    var shareOptions = [
+                      { id: 'facebook', label: t('shareFacebook'), url: 'https://www.facebook.com/sharer/sharer.php?u=' },
+                      { id: 'gmail', label: t('shareGmail'), url: 'https://mail.google.com/mail/?view=cm&fs=1&su=' },
+                      { id: 'omniwrite', label: t('shareOmniWrite'), url: 'https://write.munetios.com/#/create?name=' },
+                      { id: 'whatsapp', label: t('shareWhatsApp'), url: 'https://wa.me/?text=' },
+                      { id: 'reddit', label: t('shareReddit'), url: 'https://www.reddit.com/submit?title=' },
+                      { id: 'chatgpt', label: t('shareChatGPT'), url: 'https://chatgpt.com/?q=' }
+                    ];
+                    var dlg = document.createElement('div');
+                    dlg.className = 'generic-modal active';
+                    dlg.style.zIndex = 9999;
+                    dlg.innerHTML = `
+                      <div class="note-modal-content liquid-glass" style="max-width: 380px; width: 92%; border-radius: var(--mu-radius-xl); padding: 20px;">
+                        <h2 style="margin-bottom: 12px;">${t('shareTitle')}</h2>
+                        <div style="margin-bottom: 10px;">${t('shareVia')}</div>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                          ${shareOptions.map(opt => `<button type="button" class="share-btn liquid-glass" data-id="${opt.id}" style="padding: 10px 0; color: inherit; font-size: 18px; cursor: pointer;">${opt.label}</button>`).join('')}
+                          <button type="button" class="share-btn liquid-glass" data-id="copy" style="padding: 10px 0;  color: inherit; font-size: 18px; cursor: pointer;">Copy</button>
+                          <button type="button" class="share-btn liquid-glass" data-id="close" style="padding: 10px 0;  color: inherit; font-size: 18px; cursor: pointer;">Close</button>
+                        </div>
+                      </div>
+                    `;
+                    dlg.addEventListener('click', function(e) {
+                      if (e.target.classList.contains('share-btn')) {
+                        var id = e.target.getAttribute('data-id');
+                        var url = '';
+                        var text = noteTitle + '\n' + noteContent;
+                        if (id === 'close') { document.body.removeChild(dlg); return; }
+                        if (id === 'copy') {
+                          navigator.clipboard.writeText(text).then(function() {
+                            showToast(t('shareCopied'));
+                          });
+                          return;
+                        }
+                        var encTitle = encodeURIComponent(noteTitle);
+                        var encContent = encodeURIComponent(noteContent);
+                        var target = '_self';
+                        switch(id) {
+                          case 'facebook': url = shareOptions[0].url + encodeURIComponent(window.location.href); target = '_self'; break;
+                          case 'gmail': url = shareOptions[1].url + encTitle + '&body=' + encContent; target = '_self'; break;
+                          case 'omniwrite': url = shareOptions[2].url + encTitle + '&content=' + encContent; target = '_self'; break;
+                          case 'chatgpt': url = shareOptions[5].url + encContent; target = '_self'; break;
+                          case 'whatsapp': url = shareOptions[3].url + encTitle + '%0A' + encContent; target = '_blank'; break;
+                          case 'reddit': url = shareOptions[4].url + encTitle + '&text=' + encContent; target = '_blank'; break;
+                        }
+                        if (url) window.open(url, target);
+                      }
+                    });
+                    document.body.appendChild(dlg);
+                    applyButtonTabIndex(dlg);
+                    var firstShareButton = dlg.querySelector('.share-btn');
+                    if (firstShareButton) firstShareButton.focus();
+                  }
+
+                    function printNote(title, content) {
+                    var win = window.open('', '', 'width=700,height=600');
+                    win.document.write(
+                      '<html><head><title>' + title + '</title>' +
+                      // Google Fonts and Google Sans Flex
+                      '<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght,ROND@6..144,1..1000,80&family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">' +
+                      '<style>body{font-family:"Google Sans Flex", "Google Sans", Arial, sans-serif;padding:32px;color:#222;} h2{margin-bottom:18px;} img{max-width:100%;border-radius:6px;} .sn-voice-note{display:none;}</style>' +
+                      '</head><body><h2>' + title + '</h2><div>' + content + '</div></body></html>'
+                    );
+                    win.document.close();
+                    win.focus();
+                    setTimeout(function() { win.print(); win.close(); }, 300);
+                    }
+
+                  // Attach share/print to preview modal
+                  var shareBtn = document.getElementById('npreviewShareBtn');
+                  var printBtn = document.getElementById('npreviewPrintBtn');
+                  if (shareBtn) {
+                    shareBtn.addEventListener('click', function() {
+                      var title = document.getElementById('npreviewTitle').textContent || '';
+                      var content = document.getElementById('npreviewBody').innerText || '';
+                      showShareDialog(title, content);
+                    });
+                  }
+                  if (printBtn) {
+                    printBtn.addEventListener('click', function() {
+                      var title = document.getElementById('npreviewTitle').textContent || '';
+                      var content = document.getElementById('npreviewBody').innerHTML || '';
+                      printNote(title, content);
+                    });
+                  }
+          var ltI = document.getElementById('linkTextInput'); if (ltI) ltI.placeholder = t.displayTextPlaceholder;
+          var ntI = document.getElementById('newTagInput'); if (ntI) ntI.placeholder = t.newTagPlaceholder;
+          var atB = document.getElementById('addTagBtn');
+          if (atB) atB.innerHTML = '<icon style="font-size: 20px">add</icon>' + t.addTag;
+          var stH = document.querySelector('#settingsModal .settings-modal-header h2'); if (stH) stH.textContent = t.settingsTitle;
+          var nfL = document.getElementById('noteFontLabel'); if (nfL) nfL.textContent = t.noteFontLabel;
+          var lnL = document.getElementById('languageLabel'); if (lnL) lnL.textContent = t.languageLabel;
+          var lmL = document.getElementById('lightModeLabel'); if (lmL) lmL.textContent = t.lightModeLabel;
+          var mtA = document.getElementById('moveToTrashAllNotesBtn'); if (mtA) mtA.textContent = t.moveToTrashAll;
+          var exA = document.getElementById('exportAllNotesBtn'); if (exA) { exA.textContent = t.exportAll; }
+          var imN = document.getElementById('importNotesBtn'); if (imN) { imN.textContent = t.importNotes; }
+          var rkB = document.getElementById('resetEncryptionKeyBtn'); if (rkB) { rkB.textContent = t.resetEncKey; }
+          var daB = document.getElementById('deleteAllNotesBtn'); if (daB) { daB.textContent = t.deleteAll; }
+          document.querySelectorAll('.mobile-sidebar-navlink[data-page]').forEach(function(n) {
+            var pg = n.dataset.page;
+            if (pg === 'notesPage') n.innerHTML = '<icon>notes</icon> ' + t.notes;
+            else if (pg === 'tagsPage') n.innerHTML = '<icon>label</icon> ' + t.tags;
+            else if (pg === 'favoritesPage') n.innerHTML = '<icon>star</icon> ' + t.favorites;
+            else if (pg === 'trashPage') n.innerHTML = '<icon>delete</icon> ' + t.trash;
+            else if (pg === 'archivePage') n.innerHTML = '<icon>archive</icon> <span data-sf="archive">' + (window.SupaNotesT ? window.SupaNotesT('archive') : 'Archive') + '</span>';
+          });
+          if (window.SupaNotesFeatures) window.SupaNotesFeatures.translate();
+        }
+        var _toneReady = false;
+        // Warm up Tone on first user gesture so sounds work even if mic is denied
+        document.addEventListener(
+          "click",
+          function _warmTone() {
+            document.removeEventListener("click", _warmTone);
+            _ensureTone().catch(function () {});
+          },
+          { once: true },
+        );
+
+        function _ensureTone() {
+          if (typeof Tone === "undefined") return Promise.resolve();
+          if (_toneReady) return Promise.resolve();
+          return Tone.start().then(function () {
+            _toneReady = true;
+          });
+        }
+
+        /* Only recStart / recStop use Tone.js â€“ all other UI sounds are silent */
+        function playSound(type) {
+          if (type !== "recStart" && type !== "recStop") return;
+          _ensureTone()
+            .then(function () {
+              if (typeof Tone === "undefined") return;
+              try {
+                var now = Tone.now();
+                if (type === "recStart") {
+                  var s = new Tone.Synth().toDestination();
+                  s.triggerAttackRelease("C5", "8n", now);
+                  s.triggerAttackRelease("E5", "8n", now + 0.13);
+                  setTimeout(function () {
+                    s.dispose();
+                  }, 900);
+                } else {
+                  var s2 = new Tone.Synth().toDestination();
+                  s2.triggerAttackRelease("G4", "8n", now);
+                  s2.triggerAttackRelease("C4", "8n", now + 0.15);
+                  setTimeout(function () {
+                    s2.dispose();
+                  }, 900);
+                }
+              } catch (e) {}
+            })
+            .catch(function () {});
+        }
+
+        /* â”€â”€â”€ INDEXEDDB + AES-GCM 256 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        var _db = null,
+          _cryptoKey = null;
+        function openDB() {
+          return new Promise(function (res, rej) {
+            var req = indexedDB.open((window.SupaNotesWorkspace && window.SupaNotesWorkspace.dbName) || "SupaNotes_v1", 3);
+            req.onupgradeneeded = function (e) {
+              var db = e.target.result;
+              if (!db.objectStoreNames.contains("keys"))
+                db.createObjectStore("keys");
+              if (!db.objectStoreNames.contains("notes"))
+                db.createObjectStore("notes", { keyPath: "id" });
+              if (!db.objectStoreNames.contains("tags"))
+                db.createObjectStore("tags", { keyPath: "id" });
+            };
+            req.onsuccess = function (e) {
+              res(e.target.result);
+            };
+            req.onerror = function (e) {
+              rej(e.target.error);
+            };
+          });
+        }
+        function idbGet(db, store, key) {
+          return new Promise(function (res, rej) {
+            var t = db.transaction(store, "readonly"),
+              r = t.objectStore(store).get(key);
+            r.onsuccess = function () {
+              res(r.result);
+            };
+            r.onerror = rej;
+          });
+        }
+        function idbPut(db, store, val, key) {
+          return new Promise(function (res, rej) {
+            var t = db.transaction(store, "readwrite");
+            if (key !== undefined) t.objectStore(store).put(val, key);
+            else t.objectStore(store).put(val);
+            t.oncomplete = res;
+            t.onerror = rej;
+          });
+        }
+        function idbDel(db, store, key) {
+          return new Promise(function (res, rej) {
+            var t = db.transaction(store, "readwrite");
+            t.objectStore(store).delete(key);
+            t.oncomplete = res;
+            t.onerror = rej;
+          });
+        }
+        function idbGetAll(db, store) {
+          return new Promise(function (res, rej) {
+            var t = db.transaction(store, "readonly"),
+              r = t.objectStore(store).getAll();
+            r.onsuccess = function () {
+              res(r.result);
+            };
+            r.onerror = rej;
+          });
+        }
+
+        async function loadOrGenKey(db) {
+          const raw = await idbGet(db, "keys", "main");
+          if (raw)
+            return crypto.subtle.importKey(
+              "raw",
+              raw,
+              { name: "AES-GCM", length: 256 },
+              false,
+              ["encrypt", "decrypt"],
+            );
+          const key = await crypto.subtle.generateKey(
+            { name: "AES-GCM", length: 256 },
+            true,
+            ["encrypt", "decrypt"],
+          );
+          const exp = await crypto.subtle.exportKey("raw", key);
+          await idbPut(db, "keys", exp, "main");
+          return crypto.subtle.importKey(
+            "raw",
+            exp,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["encrypt", "decrypt"],
+          );
+        }
+        async function encText(txt) {
+          const iv = crypto.getRandomValues(new Uint8Array(12));
+          const buf = await crypto.subtle.encrypt(
+            { name: "AES-GCM", iv },
+            _cryptoKey,
+            new TextEncoder().encode(txt),
+          );
+          return { iv: Array.from(iv), data: Array.from(new Uint8Array(buf)) };
+        }
+        async function decText(iv, data) {
+          try {
+            const buf = await crypto.subtle.decrypt(
+              { name: "AES-GCM", iv: new Uint8Array(iv) },
+              _cryptoKey,
+              new Uint8Array(data),
+            );
+            return new TextDecoder().decode(buf);
+          } catch (e) {
+            return "";
+          }
+        }
+
+        async function dbSaveNote(note, opts) {
+          opts = opts || {};
+          if (H.beforeSave) note = await H.beforeSave(note);
+          const eT = await encText(note.title || ""),
+            eC = await encText(note.content || ""),
+            eM = await encText(JSON.stringify(note.meta || {}));
+          let ca = note.createdAt;
+          if (!ca) {
+            const ex = await idbGet(_db, "notes", note.id);
+            ca = ex && ex.createdAt ? ex.createdAt : Date.now();
+          }
+          await idbPut(_db, "notes", {
+            id: note.id,
+            encTitle: eT,
+            encContent: eC,
+            encMeta: eM,
+            createdAt: ca,
+            updatedAt: opts.keepUpdatedAt && note.updatedAt ? note.updatedAt : Date.now(),
+            favorite: note.favorite || false,
+            trashed: note.trashed || false,
+            tags: note.tags || [],
+          });
+          if (!opts.silent) snChanged();
+        }
+        async function dbDeleteNote(id, opts) {
+          if (H.beforeDelete && !(opts && opts.silent)) await H.beforeDelete(id);
+          await idbDel(_db, "notes", id);
+          if (!(opts && opts.silent)) snChanged();
+        }
+        async function dbGetAllNotes() {
+          const recs = await idbGetAll(_db, "notes");
+          const notes = [];
+          for (const r of recs) {
+            let meta = {};
+            if (r.encMeta) {
+              try { meta = JSON.parse((await decText(r.encMeta.iv, r.encMeta.data)) || "{}") || {}; } catch (e) { meta = {}; }
+            }
+            notes.push({
+              id: r.id,
+              title: await decText(r.encTitle.iv, r.encTitle.data),
+              content: await decText(r.encContent.iv, r.encContent.data),
+              createdAt: r.createdAt,
+              updatedAt: r.updatedAt,
+              favorite: r.favorite || false,
+              trashed: r.trashed || false,
+              tags: r.tags || [],
+              meta: meta,
+            });
+          }
+          return notes.sort(function (a, b) {
+            return b.updatedAt - a.updatedAt;
+          });
+        }
+        async function dbGetTags() {
+          const tags = await idbGetAll(_db, "tags");
+          return tags.sort(function (a, b) {
+            return a.name.localeCompare(b.name);
+          });
+        }
+        async function dbSaveTag(tag, opts) {
+          await idbPut(_db, "tags", tag);
+          if (!(opts && opts.silent)) snChanged();
+        }
+        async function dbDeleteTag(id, opts) {
+          await idbDel(_db, "tags", id);
+          if (!(opts && opts.silent)) snChanged();
+        }
+
+        /* â”€â”€â”€ EDITOR + SELECTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        const editor = document.getElementById("noteContent");
+        function saveSelection() {
+          const sel = window.getSelection();
+          return sel && sel.rangeCount > 0
+            ? sel.getRangeAt(0).cloneRange()
+            : null;
+        }
+        function restoreSelection(r) {
+          if (!r) return;
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(r);
+        }
+
+        /* â”€â”€â”€ FORMATTING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        function applyFormat(cmd, val) {
+          editor.focus();
+          document.execCommand(cmd, false, val || null);
+          updateFmtBtns();
+        }
+        function updateFmtBtns() {
+          [
+            ["bold", "boldBtn"],
+            ["italic", "italicBtn"],
+            ["underline", "underlineBtn"],
+            ["strikeThrough", "strikethroughBtn"],
+          ].forEach(function (pair) {
+            const el = document.getElementById(pair[1]);
+            if (el)
+              el.classList.toggle(
+                "active",
+                document.queryCommandState(pair[0]),
+              );
+          });
+        }
+        document
+          .querySelectorAll(
+            ".actionitem-formatting,.actionitem-formatting-button",
+          )
+          .forEach(function (btn) {
+            btn.addEventListener("mousedown", function (e) {
+              e.preventDefault();
+            });
+          });
+        document
+          .getElementById("boldBtn")
+          .addEventListener("click", function () {
+            applyFormat("bold");
+          });
+        document
+          .getElementById("italicBtn")
+          .addEventListener("click", function () {
+            applyFormat("italic");
+          });
+        document
+          .getElementById("underlineBtn")
+          .addEventListener("click", function () {
+            applyFormat("underline");
+          });
+        document
+          .getElementById("strikethroughBtn")
+          .addEventListener("click", function () {
+            applyFormat("strikeThrough");
+          });
+        document
+          .getElementById("bulletListBtn")
+          .addEventListener("click", function () {
+            applyFormat("insertUnorderedList");
+          });
+        document
+          .getElementById("numberedListBtn")
+          .addEventListener("click", function () {
+            applyFormat("insertOrderedList");
+          });
+        document
+          .getElementById("alignLeftBtn")
+          .addEventListener("click", function () {
+            applyFormat("justifyLeft");
+          });
+        document
+          .getElementById("alignCenterBtn")
+          .addEventListener("click", function () {
+            applyFormat("justifyCenter");
+          });
+        document
+          .getElementById("alignRightBtn")
+          .addEventListener("click", function () {
+            applyFormat("justifyRight");
+          });
+        document
+          .getElementById("alignJustifyBtn")
+          .addEventListener("click", function () {
+            applyFormat("justifyFull");
+          });
+        document
+          .getElementById("undoBtn")
+          .addEventListener("click", function () {
+            editor.focus();
+            document.execCommand("undo");
+          });
+        document
+          .getElementById("redoBtn")
+          .addEventListener("click", function () {
+            editor.focus();
+            document.execCommand("redo");
+          });
+        editor.addEventListener("keyup", updateFmtBtns);
+        editor.addEventListener("mouseup", updateFmtBtns);
+        document.addEventListener("selectionchange", function () {
+          if (document.activeElement === editor) updateFmtBtns();
+        });
+        editor.addEventListener("keydown", function (e) {
+          if (e.ctrlKey || e.metaKey) {
+            if (e.key === "b") {
+              e.preventDefault();
+              applyFormat("bold");
+            }
+            if (e.key === "i") {
+              e.preventDefault();
+              applyFormat("italic");
+            }
+            if (e.key === "u") {
+              e.preventDefault();
+              applyFormat("underline");
+            }
+          }
+        });
+
+        /* â”€â”€â”€ INSERT IMAGE (file picker) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        const imgInput = document.getElementById("imageFileInput");
+        var _imgRange = null;
+        document
+          .getElementById("insertImageBtn")
+          .addEventListener("mousedown", function (e) {
+            e.preventDefault();
+          });
+        document
+          .getElementById("insertImageBtn")
+          .addEventListener("click", function () {
+            _imgRange = saveSelection();
+            imgInput.value = "";
+            imgInput.click();
+          });
+        imgInput.addEventListener("change", function () {
+          const f = imgInput.files[0];
+          if (!f) return;
+          const r = new FileReader();
+          r.onload = function (ev) {
+            editor.focus();
+            if (_imgRange) restoreSelection(_imgRange);
+            document.execCommand(
+              "insertHTML",
+              false,
+              '<img src="' +
+                ev.target.result +
+                '" alt="" draggable="true" style="max-width:100%;border-radius:6px;margin:4px 0" />',
+            );
+            showToast("Image inserted");
+          };
+          r.readAsDataURL(f);
+        });
+
+        /* â”€â”€â”€ INSERT LINK (custom modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        const linkModal = document.getElementById("linkModal");
+        var _linkRange = null;
+        document
+          .getElementById("insertLinkBtn")
+          .addEventListener("mousedown", function (e) {
+            e.preventDefault();
+          });
+        document
+          .getElementById("insertLinkBtn")
+          .addEventListener("click", function () {
+            _linkRange = saveSelection();
+            const sel = window.getSelection();
+            document.getElementById("linkTextInput").value =
+              sel && sel.toString() ? sel.toString() : "";
+            document.getElementById("linkUrlInput").value = "";
+            linkModal.classList.add("active");
+            setTimeout(function () {
+              document.getElementById("linkUrlInput").focus();
+            }, 80);
+          });
+        function closeLinkModal() {
+          linkModal.classList.remove("active");
+        }
+        document
+          .getElementById("closeLinkModalBtn")
+          .addEventListener("click", closeLinkModal);
+        linkModal.addEventListener("click", function (e) {
+          if (e.target === linkModal) closeLinkModal();
+        });
+        document
+          .getElementById("linkInsertBtn")
+          .addEventListener("click", function () {
+            const url = document.getElementById("linkUrlInput").value.trim();
+            if (!url) {
+              showToast("Please enter a URL");
+              return;
+            }
+            const text =
+              document.getElementById("linkTextInput").value.trim() || url;
+            editor.focus();
+            if (_linkRange) restoreSelection(_linkRange);
+            document.execCommand(
+              "insertHTML",
+              false,
+              '<a href="' +
+                url +
+                '" target="_self" rel="noopener noreferrer" style="color:#c4a4ff">' +
+                text +
+                "</a>",
+            );
+            closeLinkModal();
+            showToast("Link inserted");
+          });
+
+        /* â”€â”€â”€ VOICE NOTE (raw MediaRecorder) â”€â”€â”€â”€â”€â”€â”€ */
+        const vnModal = document.getElementById("voiceNoteModal");
+        const vnTimer = document.getElementById("vnmTimer");
+        const vnStatus = document.getElementById("vnmStatus");
+        const vnRecBtn = document.getElementById("vnmRecordBtn");
+        const vnPauseBtn = document.getElementById("vnmPauseBtn");
+        const vnDoneBtn = document.getElementById("vnmDoneBtn");
+        const vnCanvas = document.getElementById("voiceWaveform");
+        const vnCtx = vnCanvas.getContext("2d");
+        var _mrec = null,
+          _audioChunks = [],
+          _audioCtxVN = null,
+          _analyser = null,
+          _waveRAF = null,
+          _timerInt = null,
+          _recSecs = 0,
+          _recState = "idle",
+          _capturedBlob = null;
+
+        function vnFmt(s) {
+          return (
+            String(Math.floor(s / 60)).padStart(2, "0") +
+            ":" +
+            String(s % 60).padStart(2, "0")
+          );
+        }
+        function vnStartTimer() {
+          _timerInt = setInterval(function () {
+            _recSecs++;
+            vnTimer.textContent = vnFmt(_recSecs);
+          }, 1000);
+        }
+        function vnStopTimer() {
+          clearInterval(_timerInt);
+          _timerInt = null;
+        }
+        function vnDrawIdle() {
+          vnCtx.clearRect(0, 0, vnCanvas.width, vnCanvas.height);
+          vnCtx.strokeStyle = "rgba(255,255,255,0.15)";
+          vnCtx.lineWidth = 2;
+          vnCtx.beginPath();
+          vnCtx.moveTo(0, vnCanvas.height / 2);
+          vnCtx.lineTo(vnCanvas.width, vnCanvas.height / 2);
+          vnCtx.stroke();
+        }
+        function vnDrawWave() {
+          if (!_analyser) return;
+          _waveRAF = requestAnimationFrame(vnDrawWave);
+          const buf = new Uint8Array(_analyser.frequencyBinCount);
+          _analyser.getByteTimeDomainData(buf);
+          vnCtx.clearRect(0, 0, vnCanvas.width, vnCanvas.height);
+          vnCtx.strokeStyle = "rgba(180,120,255,0.9)";
+          vnCtx.lineWidth = 2;
+          vnCtx.beginPath();
+          const sw = vnCanvas.width / buf.length;
+          let x = 0;
+          for (let i = 0; i < buf.length; i++) {
+            const y = (buf[i] / 128.0) * (vnCanvas.height / 2);
+            i === 0 ? vnCtx.moveTo(x, y) : vnCtx.lineTo(x, y);
+            x += sw;
+          }
+          vnCtx.lineTo(vnCanvas.width, vnCanvas.height / 2);
+          vnCtx.stroke();
+        }
+        function vnResetUI() {
+          _recSecs = 0;
+          _capturedBlob = null;
+          _audioChunks = [];
+          _recState = "idle";
+          vnTimer.textContent = "00:00";
+          vnStatus.textContent = "Tap record to start";
+          vnRecBtn.innerHTML = "<icon>mic</icon>";
+          vnRecBtn.classList.remove("recording");
+          vnPauseBtn.setAttribute("disabled", "");
+          vnDoneBtn.setAttribute("disabled", "");
+          if (_waveRAF) {
+            cancelAnimationFrame(_waveRAF);
+            _waveRAF = null;
+          }
+          vnDrawIdle();
+        }
+        function vnKillAll() {
+          vnStopTimer();
+          if (_mrec && _mrec.state !== "inactive") _mrec.stop();
+          if (_waveRAF) {
+            cancelAnimationFrame(_waveRAF);
+            _waveRAF = null;
+          }
+          if (_audioCtxVN) {
+            _audioCtxVN.close().catch(function () {});
+            _audioCtxVN = null;
+            _analyser = null;
+          }
+        }
+        document
+          .getElementById("voiceNoteBtn")
+          .addEventListener("click", function () {
+            vnResetUI();
+            vnModal.classList.add("active");
+          });
+        document
+          .getElementById("closeVoiceNoteModalBtn")
+          .addEventListener("click", function () {
+            vnKillAll();
+            vnModal.classList.remove("active");
+          });
+        vnModal.addEventListener("click", function (e) {
+          if (e.target === vnModal) {
+            vnKillAll();
+            vnModal.classList.remove("active");
+          }
+        });
+
+        vnRecBtn.addEventListener("click", async function () {
+          if (_recState === "idle") {
+            let stream;
+            try {
+              stream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+              });
+            } catch (e) {
+              showToast("Microphone access denied");
+              playSound("recStop"); // still play the sound even if mic denied
+              return;
+            }
+            _audioCtxVN = new AudioContext();
+            _analyser = _audioCtxVN.createAnalyser();
+            _analyser.fftSize = 2048;
+            _audioCtxVN.createMediaStreamSource(stream).connect(_analyser);
+            const mime =
+              ["audio/webm", "audio/ogg", "audio/mp4"].find(function (m) {
+                return MediaRecorder.isTypeSupported(m);
+              }) || "";
+            _mrec = new MediaRecorder(stream, mime ? { mimeType: mime } : {});
+            _audioChunks = [];
+            _mrec.ondataavailable = function (e) {
+              if (e.data.size > 0) _audioChunks.push(e.data);
+            };
+            _mrec.onstop = function () {
+              _capturedBlob = new Blob(_audioChunks, {
+                type: _mrec.mimeType || "audio/webm",
+              });
+              vnDoneBtn.removeAttribute("disabled");
+              stream.getTracks().forEach(function (t) {
+                t.stop();
+              });
+              if (_audioCtxVN) {
+                _audioCtxVN.close().catch(function () {});
+                _audioCtxVN = null;
+                _analyser = null;
+              }
+              if (_waveRAF) {
+                cancelAnimationFrame(_waveRAF);
+                _waveRAF = null;
+              }
+              vnDrawIdle();
+              vnStatus.textContent = "Recording saved - tap Done to insert";
+              playSound("recStop");
+            };
+            _mrec.start(100);
+            _recState = "recording";
+            vnRecBtn.innerHTML = "<icon>stop</icon>";
+            vnRecBtn.classList.add("recording");
+            vnPauseBtn.removeAttribute("disabled");
+            vnStatus.textContent = "Recording...";
+            playSound("recStart");
+            vnStartTimer();
+            vnDrawWave();
+          } else {
+            vnStopTimer();
+            if (_mrec && _mrec.state !== "inactive") _mrec.stop();
+            _recState = "idle";
+            vnRecBtn.innerHTML = "<icon>mic</icon>";
+            vnRecBtn.classList.remove("recording");
+            vnPauseBtn.setAttribute("disabled", "");
+          }
+        });
+        vnPauseBtn.addEventListener("click", function () {
+          if (_recState === "recording") {
+            _mrec.pause();
+            _recState = "paused";
+            vnPauseBtn.innerHTML = "<icon>fiber_manual_record</icon>";
+            vnStatus.textContent = "Paused";
+            vnStopTimer();
+            if (_waveRAF) {
+              cancelAnimationFrame(_waveRAF);
+              _waveRAF = null;
+            }
+          } else if (_recState === "paused") {
+            _mrec.resume();
+            _recState = "recording";
+            vnPauseBtn.innerHTML = "<icon>pause</icon>";
+            vnStatus.textContent = "Recording...";
+            vnStartTimer();
+            if (_analyser) vnDrawWave();
+          }
+        });
+        vnDoneBtn.addEventListener("click", function () {
+          if (!_capturedBlob) return;
+          const reader = new FileReader();
+          reader.onload = function (ev) {
+            const b64 = ev.target.result;
+            const html =
+              '<div class="sn-voice-note" data-audio="' +
+              b64 +
+              '" contenteditable="false">' +
+              '<div class="sn-vn-play" title="Play/Pause"><icon>play_arrow</icon></div>' +
+              '<div class="sn-vn-time-wrap">' +
+              '<div class="sn-vn-time-label"><span class="sn-vn-cur">0:00</span><span class="sn-vn-dur">0:00</span></div>' +
+              '<input type="range" class="sn-vn-slider" value="0" min="0" max="100" step="0.01" />' +
+              "</div>" +
+              '<div class="sn-vn-vol-wrap"><icon style="font-size:18px;opacity:.6">volume_up</icon><input type="range" class="sn-vn-vol" value="100" min="0" max="100" /></div>' +
+              "</div><p><br></p>";
+            editor.focus();
+            document.execCommand("insertHTML", false, html);
+            attachVNPlayers(editor);
+            vnKillAll();
+            vnModal.classList.remove("active");
+            showToast("Voice note inserted");
+          };
+          reader.readAsDataURL(_capturedBlob);
+        });
+
+        function fmtAt(s) {
+          if (!isFinite(s) || isNaN(s)) return "0:00";
+          return (
+            Math.floor(s / 60) +
+            ":" +
+            String(Math.floor(s % 60)).padStart(2, "0")
+          );
+        }
+        function attachVNPlayers(root) {
+          root
+            .querySelectorAll(".sn-voice-note:not([data-bound])")
+            .forEach(function (el) {
+              el.dataset.bound = "1";
+              const audioSrc = el.dataset.audio;
+              if (!audioSrc) return;
+              const audio = new Audio();
+              audio.src = audioSrc;
+              const play = el.querySelector(".sn-vn-play"),
+                slider = el.querySelector(".sn-vn-slider"),
+                vol = el.querySelector(".sn-vn-vol"),
+                cur = el.querySelector(".sn-vn-cur"),
+                dur = el.querySelector(".sn-vn-dur");
+              if (!play || !slider || !vol) return;
+              let seeking = false;
+
+              audio.addEventListener("loadedmetadata", function () {
+                dur.textContent = fmtAt(audio.duration);
+              });
+              audio.addEventListener("timeupdate", function () {
+                if (!seeking && audio.duration) {
+                  slider.value = (audio.currentTime / audio.duration) * 100;
+                  cur.textContent = fmtAt(audio.currentTime);
+                }
+              });
+              audio.addEventListener("ended", function () {
+                play.querySelector("icon").textContent = "play_arrow";
+                slider.value = 0;
+                cur.textContent = "0:00";
+              });
+
+              // FIX: stopPropagation so contenteditable parent doesn't swallow events
+              play.addEventListener("mousedown", function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+              });
+              play.addEventListener("click", function (e) {
+                e.stopPropagation();
+                if (audio.paused) {
+                  audio.play().catch(function () {});
+                  play.querySelector("icon").textContent = "pause";
+                } else {
+                  audio.pause();
+                  play.querySelector("icon").textContent = "play_arrow";
+                }
+              });
+
+              slider.addEventListener("mousedown", function (e) {
+                e.stopPropagation();
+                seeking = true;
+              });
+              slider.addEventListener(
+                "touchstart",
+                function (e) {
+                  e.stopPropagation();
+                  seeking = true;
+                },
+                { passive: true },
+              );
+              slider.addEventListener("input", function () {
+                if (audio.duration) {
+                  audio.currentTime = (slider.value / 100) * audio.duration;
+                  cur.textContent = fmtAt(audio.currentTime);
+                }
+              });
+              slider.addEventListener("mouseup", function () {
+                seeking = false;
+              });
+              slider.addEventListener(
+                "touchend",
+                function () {
+                  seeking = false;
+                },
+                { passive: true },
+              );
+
+              vol.addEventListener("mousedown", function (e) {
+                e.stopPropagation();
+              });
+              vol.addEventListener("input", function () {
+                audio.volume = vol.value / 100;
+              });
+            });
+        }
+
+        /* â”€â”€â”€ PAINT MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        const paintModal = document.getElementById("paintModal");
+        const paintCanvas = document.getElementById("paintCanvas");
+        const paintCtx = paintCanvas.getContext("2d");
+        var _pmDraw = false,
+          _pmErase = false,
+          _pmRange = null;
+        function pmGetPos(e) {
+          const r = paintCanvas.getBoundingClientRect(),
+            sx = paintCanvas.width / r.width,
+            sy = paintCanvas.height / r.height;
+          const src = e.touches ? e.touches[0] : e;
+          return {
+            x: (src.clientX - r.left) * sx,
+            y: (src.clientY - r.top) * sy,
+          };
+        }
+        function pmDraw(p) {
+          paintCtx.globalCompositeOperation = _pmErase
+            ? "destination-out"
+            : "source-over";
+          paintCtx.strokeStyle = _pmErase
+            ? "rgba(0,0,0,1)"
+            : document.getElementById("pmBrushColor").value;
+          paintCtx.lineWidth = parseInt(
+            document.getElementById("pmBrushSize").value,
+          );
+          paintCtx.lineCap = "round";
+          paintCtx.lineJoin = "round";
+          paintCtx.lineTo(p.x, p.y);
+          paintCtx.stroke();
+        }
+        paintCanvas.addEventListener("mousedown", function (e) {
+          _pmDraw = true;
+          const p = pmGetPos(e);
+          paintCtx.beginPath();
+          paintCtx.moveTo(p.x, p.y);
+        });
+        paintCanvas.addEventListener("mousemove", function (e) {
+          if (!_pmDraw) return;
+          pmDraw(pmGetPos(e));
+        });
+        paintCanvas.addEventListener("mouseup", function () {
+          _pmDraw = false;
+        });
+        paintCanvas.addEventListener("mouseleave", function () {
+          _pmDraw = false;
+        });
+        paintCanvas.addEventListener(
+          "touchstart",
+          function (e) {
+            e.preventDefault();
+            _pmDraw = true;
+            const p = pmGetPos(e);
+            paintCtx.beginPath();
+            paintCtx.moveTo(p.x, p.y);
+          },
+          { passive: false },
+        );
+        paintCanvas.addEventListener(
+          "touchmove",
+          function (e) {
+            e.preventDefault();
+            if (!_pmDraw) return;
+            pmDraw(pmGetPos(e));
+          },
+          { passive: false },
+        );
+        paintCanvas.addEventListener(
+          "touchend",
+          function (e) {
+            e.preventDefault();
+            _pmDraw = false;
+          },
+          { passive: false },
+        );
+        document
+          .getElementById("pmBrushSize")
+          .addEventListener("input", function () {
+            document.getElementById("pmBrushSizeVal").textContent = this.value;
+          });
+        document
+          .getElementById("pmEraserBtn")
+          .addEventListener("click", function () {
+            _pmErase = !_pmErase;
+            this.classList.toggle("active", _pmErase);
+          });
+        document
+          .getElementById("pmClearBtn")
+          .addEventListener("click", function () {
+            paintCtx.clearRect(0, 0, paintCanvas.width, paintCanvas.height);
+            paintCtx.fillStyle = "#1a0a40";
+            paintCtx.fillRect(0, 0, paintCanvas.width, paintCanvas.height);
+          });
+        document
+          .getElementById("insertPaintBtn")
+          .addEventListener("mousedown", function (e) {
+            e.preventDefault();
+          });
+        document
+          .getElementById("insertPaintBtn")
+          .addEventListener("click", function () {
+            _pmRange = saveSelection();
+            _pmErase = false;
+            document.getElementById("pmEraserBtn").classList.remove("active");
+            paintCtx.clearRect(0, 0, paintCanvas.width, paintCanvas.height);
+            paintCtx.fillStyle = "#1a0a40";
+            paintCtx.fillRect(0, 0, paintCanvas.width, paintCanvas.height);
+            paintModal.classList.add("active");
+          });
+        document
+          .getElementById("closePaintModalBtn")
+          .addEventListener("click", function () {
+            paintModal.classList.remove("active");
+          });
+        paintModal.addEventListener("click", function (e) {
+          if (e.target === paintModal) paintModal.classList.remove("active");
+        });
+        document
+          .getElementById("pmDoneBtn")
+          .addEventListener("click", function () {
+            const url = paintCanvas.toDataURL("image/png");
+            editor.focus();
+            if (_pmRange) restoreSelection(_pmRange);
+            document.execCommand(
+              "insertHTML",
+              false,
+              '<img src="' +
+                url +
+                '" alt="drawing" style="max-width:100%;border-radius:6px;margin:4px 0" draggable="true" />',
+            );
+            paintModal.classList.remove("active");
+            showToast("Drawing inserted");
+          });
+
+        /* â”€â”€â”€ NOTE MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        const noteModal = document.getElementById("newNoteModal");
+        const noteTitleInput = document.getElementById("noteTitleInput");
+        var _curId = null,
+          _curCa = null,
+          _curNote = null;
+        function openNoteModal(note) {
+          _curId = note ? note.id : null;
+          _curCa = note ? note.createdAt : null;
+          _curNote = note || null;
+          document.getElementById("noteModalTitle").textContent = note
+            ? _t('editNote')
+            : _t('newNote');
+          noteTitleInput.value = note ? note.title : "";
+          editor.innerHTML = note ? note.content : "";
+          if (note) {
+            editor
+              .querySelectorAll(".sn-voice-note[data-bound]")
+              .forEach(function (el) {
+                delete el.dataset.bound;
+              });
+            attachVNPlayers(editor);
+          }
+          noteModal.classList.add("active");
+          if (H.onOpenEditor) H.onOpenEditor(note);
+          updateFmtBtns();
+          setTimeout(function () {
+            noteTitleInput.focus();
+          }, 80);
+        }
+        function closeNoteModal() {
+          if (H.onCloseEditor) H.onCloseEditor();
+          noteModal.classList.remove("active");
+          _curId = null;
+          _curCa = null;
+          _curNote = null;
+          noteTitleInput.value = "";
+          editor.innerHTML = "";
+        }
+        document
+          .getElementById("createNoteBtn")
+          .addEventListener("click", function () {
+            openNoteModal(null);
+          });
+        document
+          .getElementById("closeNewNoteModalBtn")
+          .addEventListener("click", closeNoteModal);
+        noteModal.addEventListener("click", function (e) {
+          if (e.target === noteModal) closeNoteModal();
+        });
+        document
+          .getElementById("newNoteButton")
+          .addEventListener("click", async function () {
+            const title = noteTitleInput.value.trim(),
+              content = editor.innerHTML.trim();
+            if (!title && !content) {
+              showToast("Note is empty");
+              return;
+            }
+            const noteToSave = {
+              id: _curId || "n_" + Date.now(),
+              title,
+              content,
+              createdAt: _curCa || Date.now(),
+              favorite: _curNote ? _curNote.favorite : false,
+              trashed: _curNote ? _curNote.trashed : false,
+              tags: _curNote ? _curNote.tags : [],
+              meta: Object.assign({}, _curNote && _curNote.meta, H.editorMeta ? H.editorMeta() : {}),
+            };
+            await dbSaveNote(noteToSave);
+            if (H.onSaved) H.onSaved(noteToSave);
+            showToast(_curId ? "Note updated" : "Note saved");
+            closeNoteModal();
+            renderCurrentPage();
+          });
+
+        /* â”€â”€â”€ NOTE PREVIEW MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        var _previewNote = null;
+        function openNotePreview(note) {
+          _previewNote = note;
+          document.getElementById("npreviewTitle").textContent =
+            note.title || "Untitled";
+          const body = document.getElementById("npreviewBody");
+          body.innerHTML = note.content;
+          body
+            .querySelectorAll(".sn-voice-note[data-bound]")
+            .forEach(function (el) {
+              delete el.dataset.bound;
+            });
+          attachVNPlayers(body);
+          if (H.onOpenPreview) H.onOpenPreview(note, body);
+          document
+            .getElementById("npreviewFavBtn")
+            .querySelector("icon").textContent = note.favorite
+            ? "favorite"
+            : "favorite_border";
+          document.getElementById("notePreviewModal").classList.add("active");
+        }
+        function closeNotePreview() {
+          document
+            .getElementById("notePreviewModal")
+            .classList.remove("active");
+          _previewNote = null;
+        }
+        document
+          .getElementById("npreviewCloseBtn")
+          .addEventListener("click", closeNotePreview);
+        document
+          .getElementById("notePreviewModal")
+          .addEventListener("click", function (e) {
+            if (e.target === this) closeNotePreview();
+          });
+        document
+          .getElementById("npreviewEditBtn")
+          .addEventListener("click", function () {
+            if (_previewNote) {
+              const note = _previewNote;
+              closeNotePreview();
+              openNoteModal(note);
+            }
+          });
+        document
+          .getElementById("npreviewFavBtn")
+          .addEventListener("click", async function () {
+            if (!_previewNote) return;
+            _previewNote.favorite = !_previewNote.favorite;
+            await dbSaveNote(_previewNote);
+            this.querySelector("icon").textContent = _previewNote.favorite
+              ? "favorite"
+              : "favorite_border";
+            showToast(
+              _previewNote.favorite
+                ? "Added to Favorites"
+                : "Removed from Favorites",
+            );
+            renderCurrentPage();
+          });
+
+        /* â”€â”€â”€ CARD MORE MENU â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        var _menuNote = null;
+        function showCardMenu(note, anchorEl) {
+          _menuNote = note;
+          const menu = document.getElementById("cardMoreMenu");
+          const rect = anchorEl.getBoundingClientRect();
+          const menuW = 200;
+          let left = rect.right - menuW;
+          if (left < 8) left = 8;
+          let top = rect.bottom + 6;
+          if (top + 200 > window.innerHeight) top = rect.top - 210;
+          menu.style.top = top + "px";
+          menu.style.left = left + "px";
+          document
+            .getElementById("menuFavItem")
+            .querySelector(".menu-item-label").textContent = note.favorite
+            ? _t('removeFavorite')
+            : _t('addToFavorites');
+          document
+            .getElementById("menuFavItem")
+            .querySelector("icon").textContent = note.favorite
+            ? "favorite"
+            : "favorite_border";
+          document
+            .getElementById("menuTrashItem")
+            .querySelector(".menu-item-label").textContent = note.trashed
+            ? _t('restore')
+            : _t('moveToTrash');
+          document
+            .getElementById("menuTrashItem")
+            .querySelector("icon").textContent = note.trashed
+            ? "restore_from_trash"
+            : "delete";
+          if (H.onCardMenu) H.onCardMenu(note, menu);
+          menu.classList.add("visible");
+        }
+        function hideCardMenu() {
+          document.getElementById("cardMoreMenu").classList.remove("visible");
+          _menuNote = null;
+        }
+        document
+          .getElementById("menuFavItem")
+          .addEventListener("click", async function () {
+            if (!_menuNote) return;
+            _menuNote.favorite = !_menuNote.favorite;
+            await dbSaveNote(_menuNote);
+            showToast(
+              _menuNote.favorite
+                ? "Added to Favorites"
+                : "Removed from Favorites",
+            );
+            hideCardMenu();
+            renderCurrentPage();
+          });
+        document
+          .getElementById("menuTagItem")
+          .addEventListener("click", function () {
+            if (!_menuNote) return;
+            const note = _menuNote;
+            hideCardMenu();
+            openTagSelectorModal(note);
+          });
+        document
+          .getElementById("menuEditItem")
+          .addEventListener("click", function () {
+            if (!_menuNote) return;
+            const note = _menuNote;
+            hideCardMenu();
+            openNoteModal(note);
+          });
+        document
+          .getElementById("menuTrashItem")
+          .addEventListener("click", async function () {
+            if (!_menuNote) return;
+            if (_menuNote.trashed) {
+              _menuNote.trashed = false;
+              await dbSaveNote(_menuNote);
+              showToast("Note restored");
+            } else {
+              _menuNote.trashed = true;
+              await dbSaveNote(_menuNote);
+              showToast("Moved to Trash");
+            }
+            hideCardMenu();
+            renderCurrentPage();
+          });
+        // Close menu on outside click
+        document.addEventListener("click", function (e) {
+          const menu = document.getElementById("cardMoreMenu");
+          if (menu.classList.contains("visible") && !menu.contains(e.target))
+            hideCardMenu();
+        });
+
+        /* â”€â”€â”€ TAG SELECTOR MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        var _tagSelectorNote = null;
+        function openTagSelectorModal(note) {
+          _tagSelectorNote = note;
+          renderTagSelectorList(note);
+          document.getElementById("tagSelectorModal").classList.add("active");
+        }
+        function closeTagSelectorModal() {
+          document
+            .getElementById("tagSelectorModal")
+            .classList.remove("active");
+          _tagSelectorNote = null;
+        }
+        document
+          .getElementById("closeTagSelectorBtn")
+          .addEventListener("click", closeTagSelectorModal);
+        document
+          .getElementById("tagSelectorModal")
+          .addEventListener("click", function (e) {
+            if (e.target === this) closeTagSelectorModal();
+          });
+        async function renderTagSelectorList(note) {
+          const tags = await dbGetTags();
+          const list = document.getElementById("tagSelectorList");
+          list.innerHTML = "";
+          if (!tags.length) {
+            list.innerHTML =
+              '<div style="opacity:0.45;font-size: 18px;padding:8px 4px">No tags yet. Create tags in the Tags page.</div>';
+            return;
+          }
+          tags.forEach(function (tag) {
+            const isAssigned = note.tags && note.tags.indexOf(tag.id) !== -1;
+            const item = document.createElement("div");
+            item.className = "card-menu-item";
+            item.innerHTML =
+              '<icon style="font-size:20px">' +
+              (isAssigned ? "label" : "label_outline") +
+              "</icon><span>" +
+              tag.name +
+              "</span>" +
+              (isAssigned
+                ? '<icon style="font-size: 18px;margin-left:auto;opacity:0.6">check</icon>'
+                : "");
+            item.addEventListener("click", async function () {
+              note.tags = note.tags ? note.tags.slice() : [];
+              if (isAssigned) {
+                note.tags = note.tags.filter(function (id) {
+                  return id !== tag.id;
+                });
+                showToast("Tag removed");
+              } else {
+                note.tags.push(tag.id);
+                showToast("Tag added");
+              }
+              await dbSaveNote(note);
+              closeTagSelectorModal();
+            });
+            list.appendChild(item);
+          });
+        }
+
+        /* â”€â”€â”€ NOTES LIST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        const notesList = document.getElementById("notesList");
+        function stripHtml(html) {
+          const d = document.createElement("div");
+          d.innerHTML = html;
+          d.querySelectorAll(".sn-voice-note").forEach(function (el) {
+            el.replaceWith("[Voice Note]");
+          });
+          return d.textContent || d.innerText || "";
+        }
+        function relTime(ts) {
+          const diff = Date.now() - ts,
+            m = Math.floor(diff / 60000),
+            h = Math.floor(diff / 3600000),
+            d = Math.floor(diff / 86400000);
+          if (d > 0) return d + "d ago";
+          if (h > 0) return h + "h ago";
+          if (m > 0) return m + "m ago";
+          return "Just now";
+        }
+        function buildNoteCard(note, opts) {
+          opts = opts || {};
+          const card = document.createElement("div");
+          card.className = "note-card";
+          // Extract first image for thumbnail
+          const tmp = document.createElement("div");
+          tmp.innerHTML = note.content;
+          const firstImg = tmp.querySelector("img");
+          const thumbSrc = firstImg ? String(firstImg.getAttribute("src") || "") : "";
+          const thumbHtml = /^(data:image\/|blob:|https:)/i.test(thumbSrc)
+            ? '<img class="note-card-thumb" src="' + snEsc(thumbSrc) + '" alt="" />'
+            : "";
+          const favIcon = note.favorite
+            ? ' <icon class="note-card-fav" aria-label="Favorite">favorite</icon>'
+            : "";
+          card.innerHTML =
+            thumbHtml +
+            '<div class="note-card-title">' +
+            (note.title ? snEsc(note.title) : '<em class="note-card-placeholder">' + snEsc(window.SupaNotesT ? window.SupaNotesT('untitled') : 'Untitled') + '</em>') +
+            favIcon +
+            "</div>" +
+            '<div class="note-card-preview">' +
+            (snEsc(stripHtml(note.content).slice(0, 160)) ||
+              '<em class="note-card-placeholder">' + snEsc(window.SupaNotesT ? window.SupaNotesT('noContent') : 'No content') + '</em>') +
+            "</div>" +
+            '<div class="note-card-footer"><span class="note-card-date">' +
+            relTime(note.updatedAt) +
+            "</span>" +
+            '<div style="display:flex;align-items:center;gap:4px">' +
+            (opts.restoreIcon
+              ? '<span class="note-card-more" title="Restore"><icon style="font-size:18px">restore_from_trash</icon></span>'
+              : '<span class="note-card-more" title="More options"><icon style="font-size:20px">more_vert</icon></span>') +
+            (!opts.onDelete
+              ? ""
+              : '<span class="note-card-del" title="Delete permanently"><icon style="font-size:18px">' +
+                (opts.restoreIcon ? "delete_forever" : "delete") +
+                "</icon></span>") +
+            "</div></div>";
+
+          if (!opts.noPreview) {
+            card.addEventListener("click", function () {
+              openNotePreview(note);
+            });
+          }
+          const moreBtn = card.querySelector(".note-card-more");
+          if (moreBtn) {
+            moreBtn.addEventListener("click", function (e) {
+              e.stopPropagation();
+              if (opts.onMore) {
+                opts.onMore(e.currentTarget);
+              } else showCardMenu(note, e.currentTarget);
+            });
+          }
+          const delBtn = card.querySelector(".note-card-del");
+          if (delBtn) {
+            delBtn.addEventListener("click", function (e) {
+              e.stopPropagation();
+              if (opts.onDelete) opts.onDelete();
+            });
+          }
+          if (H.decorateCard) H.decorateCard(card, note, opts);
+          return card;
+        }
+        async function renderNotesList(filter) {
+          if (!_db) return;
+          const notes = await dbGetAllNotes();
+          const active = notes.filter(function (n) {
+            return !n.trashed;
+          });
+          const q = (
+            filter != null
+              ? filter
+              : document.getElementById("searchInput").value || ""
+          ).toLowerCase();
+          const list = q
+            ? active.filter(function (n) {
+                return (
+                  (n.title + " " + stripHtml(n.content))
+                    .toLowerCase()
+                    .indexOf(q) !== -1
+                );
+              })
+            : active;
+          const shown = H.processList ? H.processList(list, "notesPage", q) : list;
+          notesList.innerHTML = "";
+          if (!shown.length) {
+            notesList.innerHTML =
+              '<div class="notes-empty">' +
+              (q
+                ? "No notes match your search."
+                : "No notes yet. Tap <strong>New</strong> to create one!") +
+              "</div>";
+            return;
+          }
+          shown.forEach(function (note) {
+            const card = buildNoteCard(note, {});
+            notesList.appendChild(card);
+          });
+        }
+        document
+          .getElementById("searchInput")
+          .addEventListener("input", function (e) {
+            renderNotesList(e.target.value);
+          });
+
+        /* â”€â”€â”€ FAVORITES PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        async function renderFavoritesPage() {
+          if (!_db) return;
+          let notes = (await dbGetAllNotes()).filter(function (n) {
+            return n.favorite && !n.trashed;
+          });
+          if (H.processList) notes = H.processList(notes, "favoritesPage", "");
+          const container = document.getElementById("favoritesList");
+          if (!container) return;
+          container.innerHTML = "";
+          if (!notes.length) {
+            container.innerHTML =
+              '<div class="notes-empty">No favorites yet. Star a note to see it here!</div>';
+            return;
+          }
+          notes.forEach(function (note) {
+            const card = buildNoteCard(note, {});
+            container.appendChild(card);
+          });
+        }
+
+        /* â”€â”€â”€ TAGS PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        async function renderTagsPage() {
+          if (!_db) return;
+          const tags = await dbGetTags();
+          const container = document.getElementById("tagChipList");
+          if (!container) return;
+          container.innerHTML = "";
+          if (!tags.length) {
+            container.innerHTML =
+              '<div class="notes-empty" style="padding:0">No tags yet. Create one above!</div>';
+            return;
+          }
+          tags.forEach(function (tag) {
+            const chip = document.createElement("div");
+            chip.className = "tag-chip";
+            chip.innerHTML =
+              '<icon style="font-size:18px">label</icon><span>' +
+              snEsc(tag.name) +
+              "</span>" +
+              '<span class="tag-chip-del" title="Delete tag"><icon style="font-size: 18px">close</icon></span>';
+            chip
+              .querySelector(".tag-chip-del")
+              .addEventListener("click", async function (e) {
+                e.stopPropagation();
+                await dbDeleteTag(tag.id);
+                showToast("Tag deleted");
+                renderTagsPage();
+              });
+            container.appendChild(chip);
+          });
+        }
+        document
+          .getElementById("addTagBtn")
+          .addEventListener("click", async function () {
+            const input = document.getElementById("newTagInput");
+            const name = input.value.trim();
+            if (!name) {
+              showToast("Enter a tag name");
+              return;
+            }
+            await dbSaveTag({ id: "tag_" + Date.now(), name: name });
+            input.value = "";
+            showToast("Tag created");
+            renderTagsPage();
+          });
+        document
+          .getElementById("newTagInput")
+          .addEventListener("keydown", function (e) {
+            if (e.key === "Enter") document.getElementById("addTagBtn").click();
+          });
+
+        /* â”€â”€â”€ TRASH PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        async function renderTrashPage() {
+          if (!_db) return;
+          let notes = (await dbGetAllNotes()).filter(function (n) {
+            return n.trashed;
+          });
+          if (H.processList) notes = H.processList(notes, "trashPage", "");
+          const container = document.getElementById("trashList");
+          if (!container) return;
+          container.innerHTML = "";
+          if (!notes.length) {
+            container.innerHTML =
+              '<div class="notes-empty">Trash is empty.</div>';
+            return;
+          }
+          notes.forEach(function (note) {
+            const card = buildNoteCard(note, {
+              restoreIcon: true,
+              noPreview: false,
+              onMore: async function () {
+                note.trashed = false;
+                await dbSaveNote(note);
+                showToast("Note restored");
+                renderTrashPage();
+              },
+              onDelete: function () {
+                showConfirm(
+                  "Permanently delete this note? This cannot be undone.",
+                  async function () {
+                    await dbDeleteNote(note.id);
+                    showToast("Permanently deleted");
+                    renderTrashPage();
+                  },
+                );
+              },
+            });
+            container.appendChild(card);
+          });
+        }
+
+        /* â”€â”€â”€ PAGE NAVIGATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        var _currentPage = "notesPage";
+        function renderCurrentPage() {
+          var done;
+          if (_currentPage === "notesPage") done = renderNotesList();
+          else if (_currentPage === "favoritesPage") done = renderFavoritesPage();
+          else if (_currentPage === "tagsPage") done = renderTagsPage();
+          else if (_currentPage === "trashPage") done = renderTrashPage();
+          else if (H.renderPage) done = H.renderPage(_currentPage);
+          return Promise.resolve(done).then(function () {
+            if (H.afterRender) H.afterRender(_currentPage);
+          });
+        }
+
+        // Map hash to pageId
+        function hashToPageId(hash) {
+          switch (hash) {
+            case "#/tags":
+              return "tagsPage";
+            case "#/favorites":
+              return "favoritesPage";
+            case "#/trash":
+              return "trashPage";
+            case "#/notes":
+              return "notesPage";
+            default:
+              return (H.pageForHash && H.pageForHash(hash)) || "notesPage";
+          }
+        }
+
+        function showPage(pageId, updateHash) {
+          _currentPage = pageId;
+          document.querySelectorAll(".content-page").forEach(function (p) {
+            p.classList.remove("active");
+          });
+          document.querySelectorAll(".navlink").forEach(function (n) {
+            n.classList.remove("active");
+          });
+          const page = document.getElementById(pageId);
+          if (page) page.classList.add("active");
+          const navLink = document.querySelector(
+            '.navlink[data-page="' + pageId + '"]',
+          );
+          if (navLink) navLink.classList.add("active");
+          renderCurrentPage();
+          if (updateHash) {
+            let hash = "#/notes";
+            if (pageId === "tagsPage") hash = "#/tags";
+            else if (pageId === "favoritesPage") hash = "#/favorites";
+            else if (pageId === "trashPage") hash = "#/trash";
+            else if (H.hashForPage && H.hashForPage(pageId)) hash = H.hashForPage(pageId);
+            if (window.location.hash !== hash) window.location.hash = hash;
+          }
+        }
+
+        // Listen for nav clicks
+        document
+          .querySelectorAll(".navlink[data-page]")
+          .forEach(function (link) {
+            link.addEventListener("click", function () {
+              showPage(this.dataset.page, true);
+            });
+          });
+
+        /* ─── MOBILE SIDEBAR ───────────────────────── */
+        (function () {
+          var overlay = document.getElementById("mobileSidebarOverlay");
+          var closeBtn = document.getElementById("mobileSidebarClose");
+
+          function openSidebar() {
+            overlay.classList.add("active");
+            syncSidebarActive();
+          }
+          function closeSidebar() {
+            overlay.classList.remove("active");
+          }
+          function syncSidebarActive() {
+            overlay.querySelectorAll(".mobile-sidebar-navlink").forEach(function (n) {
+              n.classList.toggle("active", n.dataset.page === _currentPage);
+            });
+          }
+
+          document.getElementById("menuBtn").addEventListener("click", openSidebar);
+          closeBtn.addEventListener("click", closeSidebar);
+
+          // Close when clicking outside the sidebar panel
+          overlay.addEventListener("click", function (e) {
+            if (!e.target.closest(".mobile-sidebar")) closeSidebar();
+          });
+
+          // Close on Escape handled by existing handler; also do it here
+          overlay.querySelectorAll(".mobile-sidebar-navlink[data-page]").forEach(function (link) {
+            link.addEventListener("click", function () {
+              showPage(this.dataset.page, true);
+              closeSidebar();
+            });
+          });
+        })();
+
+        /* ─── MOBILE SEARCH ────────────────────────── */
+        (function () {
+          var mobileSearchBtn = document.getElementById("mobileSearchBtn");
+          var mobileSearchBar = document.getElementById("mobileSearchBar");
+          var mobileSearchBackBtn = document.getElementById("mobileSearchBackBtn");
+          var mobileSearchInput = document.getElementById("mobileSearchInput");
+          var desktopSearchInput = document.getElementById("searchInput");
+
+          function openMobileSearch() {
+            mobileSearchBar.style.display = "flex";
+            mobileSearchInput.focus();
+          }
+          function closeMobileSearch() {
+            mobileSearchBar.style.display = "";
+            mobileSearchInput.value = "";
+            renderNotesList("");
+          }
+
+          mobileSearchBtn.addEventListener("click", openMobileSearch);
+          mobileSearchBackBtn.addEventListener("click", closeMobileSearch);
+
+          // Sync mobile search input → notes list
+          mobileSearchInput.addEventListener("input", function (e) {
+            renderNotesList(e.target.value);
+          });
+        })();
+
+        // Listen for hash changes
+        window.addEventListener("hashchange", function () {
+          const pageId = hashToPageId(window.location.hash);
+          showPage(pageId, false);
+        });
+
+        // On load, show page based on hash
+        // On load, show page based on hash
+        document.addEventListener("DOMContentLoaded", function () {
+          const pageId = hashToPageId(window.location.hash);
+          showPage(pageId, false);
+        });
+
+        /* â”€â”€â”€ ESCAPE KEY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          const sidebarOv = document.getElementById("mobileSidebarOverlay");
+          if (sidebarOv.classList.contains("active")) {
+            sidebarOv.classList.remove("active");
+            return;
+          }
+          const mSearchBar = document.getElementById("mobileSearchBar");
+          if (mSearchBar.style.display === "flex") {
+            mSearchBar.style.display = "";
+            document.getElementById("mobileSearchInput").value = "";
+            renderNotesList("");
+            return;
+          }
+          const confirmM = document.getElementById("confirmModal");
+          if (confirmM.classList.contains("active")) {
+            confirmM.classList.remove("active");
+            _confirmCallback = null;
+            return;
+          }
+          const cardMenu = document.getElementById("cardMoreMenu");
+          if (cardMenu.classList.contains("visible")) {
+            hideCardMenu();
+            return;
+          }
+          const tagSel = document.getElementById("tagSelectorModal");
+          if (tagSel.classList.contains("active")) {
+            closeTagSelectorModal();
+            return;
+          }
+          const previewM = document.getElementById("notePreviewModal");
+          if (previewM.classList.contains("active")) {
+            closeNotePreview();
+            return;
+          }
+          if (linkModal.classList.contains("active")) {
+            closeLinkModal();
+            return;
+          }
+          if (vnModal.classList.contains("active")) {
+            vnKillAll();
+            vnModal.classList.remove("active");
+            return;
+          }
+          if (paintModal.classList.contains("active")) {
+            paintModal.classList.remove("active");
+            return;
+          }
+          if (noteModal.classList.contains("active")) {
+            closeNoteModal();
+            return;
+          }
+        });
+
+        /* â”€â”€â”€ BOOT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+        /* === SETTINGS INIT & EVENT HANDLERS === */
+        (function() {
+
+          applyButtonTabIndex();
+          applyActionKeyboardSupport();
+          observeButtonTabIndex();
+
+          /* --- Init state from localStorage --- */
+          var lightToggle = document.getElementById('lightThemeToggle');
+          if (lightToggle) lightToggle.checked = _settings.lightMode;
+          applyLightMode(_settings.lightMode);
+          applyNoteFont(_settings.noteFont, _settings.customFont);
+          applyTranslations(_settings.language);
+
+          /* --- Update font button label --- */
+          var fontBtn = document.getElementById('noteFontDropdownBtn');
+          if (fontBtn) {
+            if (_settings.noteFont === 'sans') fontBtn.textContent = 'Munetios UI v4 Font';
+            else if (_settings.noteFont === 'flex') fontBtn.textContent = 'Google Sans Flex';
+            else if (_settings.noteFont === 'serif') fontBtn.textContent = 'Serif';
+            else fontBtn.textContent = _settings.customFont || 'Custom';
+          }
+          if (_settings.noteFont === 'custom') {
+            var cfRow = document.getElementById('customFontRow');
+            var cfInput = document.getElementById('customFontInput');
+            if (cfRow) cfRow.classList.add('visible');
+            if (cfInput) cfInput.value = _settings.customFont || '';
+          }
+
+          /* --- Update language button label --- */
+          syncLanguageSelector(_settings.language);
+
+          /* --- Settings Modal open/close (no outside-click close) --- */
+          var settingsModal = document.getElementById('settingsModal');
+          document.getElementById('settingsBtn').addEventListener('click', function() {
+            settingsModal.classList.add('active');
+          });
+          document.getElementById('closeSettingsModalBtn').addEventListener('click', function() {
+            settingsModal.classList.remove('active');
+          });
+          // Escape key closes settings modal (added to existing escape handler is fine)
+
+          /* --- Help Modal open/close --- */
+          var helpModal = document.getElementById('helpModal');
+          document.getElementById('helpBtn').addEventListener('click', function() {
+            helpModal.classList.add('active');
+          });
+          document.getElementById('closeHelpModalBtn').addEventListener('click', function() {
+            helpModal.classList.remove('active');
+          });
+          helpModal.addEventListener('click', function(e) {
+            if (e.target === helpModal) helpModal.classList.remove('active');
+          });
+
+          /* --- Help Modal Tabs --- */
+          helpModal.querySelectorAll('.help-tab').forEach(function(tab) {
+            tab.addEventListener('click', function() {
+              helpModal.querySelectorAll('.help-tab').forEach(function(t) { t.classList.remove('active'); });
+              helpModal.querySelectorAll('.help-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+              tab.classList.add('active');
+              document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+          });
+
+          /* --- FAQ Accordion --- */
+          helpModal.querySelectorAll('.faq-question').forEach(function(q) {
+            q.addEventListener('click', function() {
+              var item = q.parentElement;
+              var wasOpen = item.classList.contains('open');
+              helpModal.querySelectorAll('.faq-item').forEach(function(i) { i.classList.remove('open'); });
+              if (!wasOpen) item.classList.add('open');
+            });
+          });
+
+          /* --- Font Dropdown --- */
+          var noteFontDropdown = document.getElementById('noteFontDropdown');
+          var languageDropdown = document.getElementById('languageDropdown');
+
+          function closeFontDropdown() { if (noteFontDropdown) noteFontDropdown.style.display = 'none'; }
+          function closeLangDropdown() { if (languageDropdown) languageDropdown.style.display = 'none'; }
+
+          document.getElementById('noteFontDropdownBtn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            var rect = this.getBoundingClientRect();
+            noteFontDropdown.style.position = 'fixed';
+            noteFontDropdown.style.top = (rect.bottom + 4) + 'px';
+            var right = window.innerWidth - rect.right;
+            noteFontDropdown.style.right = right + 'px';
+            noteFontDropdown.style.left = 'auto';
+            noteFontDropdown.style.display = (noteFontDropdown.style.display === 'block') ? 'none' : 'block';
+            closeLangDropdown();
+          });
+
+          document.getElementById('fontOptionDefault').addEventListener('click', function() {
+            _settings.noteFont = 'sans';
+            _settings.customFont = '';
+            localStorage.setItem('sn_noteFont', 'sans');
+            localStorage.removeItem('sn_customFont');
+            document.getElementById('noteFontDropdownBtn').textContent = 'Munetios UI v4 Font';
+            document.getElementById('customFontRow').classList.remove('visible');
+            closeFontDropdown();
+            applyNoteFont('sans', '');
+            showToast('Font: Munetios UI v4 Font');
+          });
+
+          document.getElementById('fontOptionFlex').addEventListener('click', function() {
+            _settings.noteFont = 'flex';
+            _settings.customFont = '';
+            localStorage.setItem('sn_noteFont', 'flex');
+            localStorage.removeItem('sn_customFont');
+            document.getElementById('noteFontDropdownBtn').textContent = 'Google Sans Flex';
+            document.getElementById('customFontRow').classList.remove('visible');
+            closeFontDropdown();
+            applyNoteFont('flex', '');
+            showToast('Font: Google Sans Flex');
+          });
+
+          document.getElementById('fontOptionSerif').addEventListener('click', function() {
+            _settings.noteFont = 'serif';
+            _settings.customFont = '';
+            localStorage.setItem('sn_noteFont', 'serif');
+            localStorage.removeItem('sn_customFont');
+            document.getElementById('noteFontDropdownBtn').textContent = 'Serif';
+            document.getElementById('customFontRow').classList.remove('visible');
+            closeFontDropdown();
+            applyNoteFont('serif', '');
+            showToast('Font: Serif');
+          });
+
+          document.getElementById('fontOptionCustom').addEventListener('click', function() {
+            document.getElementById('customFontRow').classList.add('visible');
+            var cfInput = document.getElementById('customFontInput');
+            if (cfInput) { cfInput.value = _settings.customFont || ''; cfInput.focus(); }
+            closeFontDropdown();
+          });
+
+          document.getElementById('customFontApplyBtn').addEventListener('click', function() {
+            var cfInput = document.getElementById('customFontInput');
+            var fontName = cfInput ? cfInput.value.trim() : '';
+            if (!fontName) { showToast('Enter a font name'); return; }
+            _settings.noteFont = 'custom';
+            _settings.customFont = fontName;
+            localStorage.setItem('sn_noteFont', 'custom');
+            localStorage.setItem('sn_customFont', fontName);
+            document.getElementById('noteFontDropdownBtn').textContent = fontName;
+            // Fonts installed on this device are used by name; nothing is downloaded.
+            applyNoteFont('custom', fontName);
+            showToast('Font: ' + fontName);
+          });
+
+          document.getElementById('customFontInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') document.getElementById('customFontApplyBtn').click();
+          });
+
+          /* --- Language Dropdown --- */
+          document.getElementById('languageDropdownBtn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            var rect = this.getBoundingClientRect();
+            languageDropdown.style.position = 'fixed';
+            languageDropdown.style.top = (rect.bottom + 4) + 'px';
+            var right = window.innerWidth - rect.right;
+            languageDropdown.style.right = right + 'px';
+            languageDropdown.style.left = 'auto';
+            languageDropdown.style.display = (languageDropdown.style.display === 'block') ? 'none' : 'block';
+            closeFontDropdown();
+          });
+
+          LANGUAGE_OPTIONS.forEach(function(pair) {
+            var el = document.getElementById(pair[0]);
+            if (!el) return;
+            el.addEventListener('click', function() {
+              var lang = pair[1];
+              _settings.language = lang;
+              localStorage.setItem('sn_language', lang);
+              closeLangDropdown();
+              applyTranslations(lang);
+              showToast(_t('languageChanged'));
+            });
+          });
+
+          /* --- Light Mode Toggle --- */
+          document.getElementById('lightThemeToggle').addEventListener('change', function() {
+            _settings.lightMode = this.checked;
+            localStorage.setItem('sn_lightMode', String(this.checked));
+            applyLightMode(this.checked);
+          });
+
+          /* --- Close dropdowns on outside click (but NOT settings modal) --- */
+          document.addEventListener('click', function(e) {
+            if (!e.target.closest('#noteFontOption') && !e.target.closest('#noteFontDropdown')) {
+              closeFontDropdown();
+            }
+            if (!e.target.closest('#languageOption') && !e.target.closest('#languageDropdown')) {
+              closeLangDropdown();
+            }
+          });
+
+          /* --- Advanced: Move All to Trash --- */
+          document.getElementById('moveToTrashAllNotesBtn').addEventListener('click', function() {
+            showConfirm(_t('moveToTrashAll') + '?', async function() {
+              var notes = await dbGetAllNotes();
+              for (var n of notes) {
+                if (!n.trashed) { n.trashed = true; await dbSaveNote(n); }
+              }
+              showToast('All notes moved to Trash');
+              renderCurrentPage();
+            });
+          });
+
+          /* --- Advanced: Export All --- */
+          document.getElementById('exportAllNotesBtn').addEventListener('click', async function() {
+            var notes = await dbGetAllNotes();
+            var json = JSON.stringify(notes, null, 2);
+            var blob = new Blob([json], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'SupaNotes_' + new Date().toISOString().slice(0, 10) + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Notes exported');
+          });
+
+          /* --- Advanced: Import Notes --- */
+          var importFileInput = document.getElementById('importNotesFileInput');
+          document.getElementById('importNotesBtn').addEventListener('click', function() {
+            importFileInput.value = '';
+            importFileInput.click();
+          });
+          importFileInput.addEventListener('change', function() {
+            var f = importFileInput.files[0];
+            if (!f) return;
+            var reader = new FileReader();
+            reader.onload = async function(ev) {
+              try {
+                var notes = JSON.parse(ev.target.result);
+                if (!Array.isArray(notes)) throw new Error('Invalid format');
+                for (var n of notes) { await dbSaveNote(H.sanitizeNote ? H.sanitizeNote(n) : n); }
+                showToast('Imported ' + notes.length + ' notes');
+                renderCurrentPage();
+              } catch(ex) {
+                showToast('Import failed: ' + ex.message);
+              }
+            };
+            reader.readAsText(f);
+          });
+
+          /* --- Advanced: Reset Encryption Key --- */
+          document.getElementById('resetEncryptionKeyBtn').addEventListener('click', function() {
+            showConfirm('Reset encryption key? Existing notes will be unreadable!', async function() {
+              await idbDel(_db, 'keys', 'main');
+              showToast('Key reset. Reloading...');
+              setTimeout(function() { location.reload(); }, 1500);
+            });
+          });
+
+          /* --- Advanced: Delete Everything --- */
+          document.getElementById('deleteAllNotesBtn').addEventListener('click', function() {
+            showConfirm('Delete EVERYTHING? This cannot be undone!', async function() {
+              var notes = await dbGetAllNotes();
+              for (var n of notes) { await dbDeleteNote(n.id); }
+              showToast('All notes deleted');
+              renderCurrentPage();
+            });
+          });
+
+
+        })();
+        window.SupaNotesApp = {
+          getAllNotes: dbGetAllNotes, saveNote: dbSaveNote, deleteNote: dbDeleteNote,
+          getTags: dbGetTags, saveTag: dbSaveTag, deleteTag: dbDeleteTag,
+          render: renderCurrentPage, showPage: showPage, currentPage: function () { return _currentPage; },
+          openEditor: openNoteModal, closeEditor: closeNoteModal, openPreview: openNotePreview, closePreview: closeNotePreview,
+          editorNote: function () { return _curNote; },
+          setEditorNote: function (note) { _curId = note.id; _curCa = note.createdAt; _curNote = note; },
+          editor: editor, titleInput: noteTitleInput, buildNoteCard: buildNoteCard, stripHtml: stripHtml, toast: showToast, confirm: showConfirm,
+          t: _t, language: function () { return _settings.language; }, applyFormat: applyFormat, applyNoteFont: applyNoteFont, settings: _settings,
+          saveSelection: saveSelection, restoreSelection: restoreSelection, updateFmtBtns: updateFmtBtns,
+          menuNote: function () { return _menuNote; }, hideCardMenu: hideCardMenu, previewNote: function () { return _previewNote; },
+          ready: null,
+        };
+        (async function () {
+          try {
+            if (document.readyState === "loading") await new Promise(function (r) { document.addEventListener("DOMContentLoaded", r, { once: true }); });
+            if (window.SupaNotesWorkspace) await window.SupaNotesWorkspace.ready;
+            _db = await openDB();
+            _cryptoKey = await loadOrGenKey(_db);
+            showPage(hashToPageId(window.location.hash), false);
+            vnDrawIdle();
+            document.dispatchEvent(new CustomEvent("supanotes-ready"));
+          } catch (e) {
+            showToast("Init error: " + e.message);
+            console.error(e);
+          }
+        })();
+      })();
+    </script>
+  </body>
+</html>

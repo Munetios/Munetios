@@ -31,7 +31,7 @@ function copyDirectory(relative) {
 
 for (const file of ['index.html', '404.html', '404.css', '404-i18n.js', 'favicon-ganetios.ico', 'ganetios-logo-icon.png', 'munetios-logo-icon.png', 'munetios-logo.png', 'ganetios-ui.css', 'ganetios-ui.js',
     'ganetios-features.js', 'ganetios-features-i18n.js', 'ganetios-locales.js', 'tone.js', 'videos.js']) copyAsset(file);
-for (const directory of ['account', 'blocked', 'calendar', 'fonts', 'mail', 'munetios-ui', 'omniwrite', 'photos', 'shared', 'signin', 'tasks', 'weather', 'webfilter']) copyDirectory(directory);
+for (const directory of ['account', 'blocked', 'calendar', 'fonts', 'mail', 'munetios-ui', 'omniwrite', 'photos', 'shared', 'signin', 'supanotes', 'tasks', 'weather', 'webfilter']) copyDirectory(directory);
 
 const music = path.join(root, 'music.mp3');
 if (statSync(music).size > maxAssetBytes) {

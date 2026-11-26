@@ -38,6 +38,9 @@
     <script defer src="/account/account-menu.js"></script>
     <script defer src="./tasks-account-i18n.js"></script>
     <script defer src="./tasks-sync.js"></script>
+    <script defer src="./tasks-features-i18n.js"></script>
+    <script defer src="./tasks-features.js"></script>
+    <link rel="stylesheet" href="./tasks-features.css" />
     <script nonce="eJwUyujDhyEcD6ro">
       document.addEventListener("DOMContentLoaded", function () {
         if (window.top !== window.self) {
@@ -64,1389 +67,16 @@
         });
       }
     </script>
-    <style>
-      :root {
-        --primary-color: #6f15ac;
-        --secondary-color: #3a056b;
-        --background-gradient: linear-gradient(135deg, #130633, #3a056b);
-        --text-color: #ffffff;
-        --btn-primary-color: #7015aca2;
-        --btn-primary-hover-color: #7015ac;
-        --munetios-blue: #1a73e8;
-      }
-
-      * {
-        box-sizing: inherit;
-        font-family: "Munetios UI v4 Font", sans-serif;
-        font-variation-settings:
-          "slnt" 0,
-          "wdth" 100,
-          "GRAD" 0,
-          "ROND" 80;
-      }
-      body {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        min-height: 100vh;
-        background: var(--background-gradient);
-        color: var(--text-color);
-        overflow-y: auto;
-      }
-      a {
-        color: var(--munetios-blue);
-      }
-      .toggle-switch {
-        position: relative;
-        display: inline-block;
-        width: 48px;
-        height: 28px;
-        vertical-align: middle;
-      }
-      .toggle-switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-      }
-      .toggle-slider {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: #ccc;
-        transition: background 0.3s;
-        border-radius: 34px;
-      }
-      .toggle-slider:before {
-        position: absolute;
-        content: "";
-        height: 22px;
-        width: 22px;
-        left: 3px;
-        bottom: 3px;
-        background: #fff;
-        transition: transform 0.3s;
-        border-radius: 50%;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-      }
-      .toggle-switch input:checked + .toggle-slider {
-        background: var(--primary-color, #6f15ac);
-      }
-      .toggle-switch input:checked + .toggle-slider:before {
-        transform: translateX(20px);
-      }
-      .toggle-slider:active:before {
-        width: 26px;
-      }
-      .btn {
-        background: linear-gradient(
-          to bottom,
-          rgba(255, 255, 255, 0.16) 0%,
-          rgba(255, 255, 255, 0.06) 22%,
-          rgba(255, 255, 255, 0.04) 50%,
-          rgba(255, 255, 255, 0.06) 78%,
-          rgba(255, 255, 255, 0.14) 100%
-        );
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-        backdrop-filter: blur(2px) saturate(190%) brightness(105%)
-          contrast(100%);
-        -webkit-backdrop-filter: blur(1.75px) saturate(200%) brightness(125%)
-          contrast(100%);
-        border-radius: 50px;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        color: var(--text-color);
-        padding: 9px 16px;
-        font-size: 1rem;
-        font-weight: 500;
-        text-align: center;
-        text-decoration: none;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-      .btn:hover {
-        background-color: rgba(255, 255, 255, 0.2);
-      }
-      .btn-primary {
-        background: var(--btn-primary-color);
-      }
-      .btn-primary:hover {
-        background-color: var(--btn-primary-hover-color);
-      }
-      .btn-outline {
-        background: transparent;
-        border: 1px solid var(--btn-primary-color);
-        color: var(--btn-primary-color);
-      }
-      .btn-outline:hover {
-        background-color: var(--btn-primary-color);
-        color: var(--text-color);
-      }
-      icon {
-        font-family: "Material Symbols Rounded";
-        font-size: 28px;
-      }
-      .topbar-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 2px 16px;
-        height: 52px;
-        box-sizing: border-box;
-        width: 100%;
-      }
-      .topbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: calc(100% - 32px);
-        position: fixed;
-        box-sizing: border-box;
-        top: 5px;
-        z-index: 1000;
-      }
-      .topbar-left {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .top-left {
-        padding: 8px 12px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .logo-container {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .logo {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-      .logo-text {
-        font-size: 1.25rem;
-        white-space: nowrap;
-        font-weight: 500;
-        gap: 8px;
-        font-feature-settings:
-          "liga" 0,
-          "ss02" 0;
-        display: flex;
-      }
-      .menu-btn {
-        padding: 8px 12px;
-        display: none;
-        align-items: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        justify-content: center;
-      }
-      .menu-btn:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-      }
-      .menu-btn icon {
-        font-size: 28px;
-      }
-      .search-bar {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        max-width: 700px;
-        width: 100%;
-        margin-left: 20px;
-        margin-right: 20px;
-        padding: 8px 12px;
-        border-radius: 50px;
-        transition: all 0.3s ease;
-      }
-      .search-bar input {
-        border: none;
-        background: transparent;
-        outline: none;
-        color: var(--text-color);
-        font-size: 1rem;
-        width: 100%;
-      }
-      .topbar-middle {
-        display: flex;
-        width: 100%;
-        min-width: 0;
-        margin: 0 auto;
-        justify-content: center;
-        align-items: center;
-      }
-      .topbar-right {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .top-right {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 5px 11px;
-      }
-      .top-right icon {
-        cursor: pointer;
-        transition: all 0.3s ease;
-        border-radius: 50%;
-        padding: 4px;
-      }
-      .top-right icon:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-      }
-      .top-right > icon,
-      .topbar-icon-btn > icon,
-      .topbar-left .menu-btn > icon {
-        display: inline-block;
-        width: 1em;
-        box-sizing: content-box;
-        overflow: hidden;
-        vertical-align: middle;
-      }
-      .top-right .account-sign-in .mu-icon {
-        display: none;
-      }
-      .sidebar {
-        width: 250px;
-        height: calc(100% - 70px);
-        position: fixed;
-        top: 70px;
-        left: 0;
-        display: flex;
-        flex-direction: column;
-        scrollbar-width: none;
-        gap: 8px;
-        overflow-y: auto;
-        padding: 16px;
-        transition: all 0.3s ease;
-        box-sizing: border-box;
-      }
-      .sidebar-items {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .sidebar-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        border-radius: 348px;
-        padding: 8px 12px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-      .sidebar-item:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-        transition: all 0.3s ease;
-      }
-      .menu-text {
-        font-size: 1rem;
-      }
-      .content-container {
-        margin-left: 250px;
-        padding: 16px;
-        box-sizing: border-box;
-        width: calc(100% - 250px);
-        transition: all 0.3s ease;
-      }
-      .content-pages {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-      }
-      .content.page {
-        display: none;
-      }
-      .content.page.active {
-        display: block;
-      }
-      @media (max-width: 1190px) {
-        .sidebar {
-          width: 60px;
-        }
-        .menu-btn {
-          display: flex;
-        }
-        .menu-text {
-          display: none;
-        }
-        .content-container {
-          margin-left: 60px;
-          width: calc(100% - 60px);
-        }
-        .sidebar-item {
-          justify-content: center;
-        }
-      }
-      @media (max-width: 950px) {
-        .search-bar {
-          max-width: 100%;
-          margin-left: 4px;
-          margin-right: 4px;
-        }
-      }
-      @media (max-width: 768px) {
-        .hide-mobile {
-          display: none;
-        }
-      }
-      #mobileSearchIcon {
-        display: none;
-      }
-      @media (max-width: 600px) {
-        #mobileSearchIcon {
-          display: block;
-        }
-        .search-bar {
-          display: none;
-        }
-      }
-      .mobile-search-bar {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        width: 100%;
-        padding: 8px 12px;
-        border-radius: 50px;
-        transition: all 0.3s ease;
-      }
-      .mobile-search-bar input {
-        border: none;
-        background: transparent;
-        outline: none;
-        color: var(--text-color);
-        font-size: 1rem;
-        width: 100%;
-      }
-      @media (max-width: 500px) {
-        .sidebar {
-          left: -500px;
-        }
-        .content-container {
-          margin-left: 0;
-          width: 100%;
-          padding: 8px;
-        }
-        .topbar {
-          padding: 0px;
-          width: calc(100% - 15px);
-        }
-        .topbar-container {
-          padding: 2px 9px;
-        }
-        .topbar-middle {
-          padding: 0px 8px;
-        }
-      }
-      @media (max-width: 412px) {
-        .logo-text {
-          display: none;
-        }
-        #appsIcon {
-          display: none;
-        }
-        .top-right {
-          gap: 4px;
-          padding-inline: 6px;
-        }
-        .top-right .account-sign-in {
-          width: 48px;
-          padding-inline: 0;
-          overflow: hidden;
-        }
-        .top-right .account-sign-in [data-signin-label] {
-          display: none;
-        }
-        .top-right .account-sign-in .mu-icon {
-          display: inline-block;
-        }
-      }
-      .calendar-date-picker-wrapper {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        position: absolute;
-        min-width: 270px;
-        background: rgba(31, 38, 135, 0.25);
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-        backdrop-filter: blur(2px) saturate(180%) brightness(110%)
-          contrast(100%);
-        -webkit-backdrop-filter: blur(2px) saturate(180%) brightness(110%)
-          contrast(100%);
-        border-radius: 18px;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        padding: 18px 18px 12px 18px;
-        z-index: 2000;
-        color: var(--text-color);
-        transition: box-shadow 0.2s;
-        max-width: 360px;
-      }
-      .calendar-date-picker-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 8px;
-        user-select: none;
-      }
-      .calendar-date-picker-arrow-left,
-      .calendar-date-picker-arrow-right {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        cursor: pointer;
-        transition: background 0.2s;
-      }
-      .calendar-date-picker-arrow-left:hover,
-      .calendar-date-picker-arrow-right:hover {
-        background: rgba(111, 21, 172, 0.12);
-      }
-      .calendar-date-picker-current-date {
-        font-size: 1.1rem;
-        font-weight: 500;
-        letter-spacing: 0.01em;
-        flex: 1;
-        text-align: center;
-        color: var(--text-color);
-      }
-      .calendar-date-picker-body {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-
-        max-width: 400px;
-      }
-      .calendar-date-picker-body > div:first-child {
-        /* Days row */
-        margin-bottom: 6px;
-      }
-      .calendar-date-picker-body button {
-        outline: none;
-        border: none;
-        background: none;
-        color: inherit;
-        font-size: 1rem;
-        font-family: inherit;
-        cursor: pointer;
-        border-radius: 50%;
-        width: 32px;
-        height: 32px;
-        transition:
-          background 0.18s,
-          color 0.18s;
-        margin: 0;
-        padding: 0;
-        position: relative;
-      }
-      .calendar-date-picker-body button:hover {
-        background: rgba(111, 21, 172, 0.18);
-        color: #fff;
-      }
-      .calendar-date-picker-body button:active {
-        background: var(--primary-color, #6f15ac);
-        color: #fff;
-      }
-      .calendar-date-picker-body button.selected,
-      .calendar-date-picker-body button[aria-current="date"] {
-        background: var(--primary-color, #6f15ac);
-        color: #fff;
-      }
-      .calendar-date-picker-body > div {
-        /* Each row of days */
-        display: flex;
-        flex-wrap: wrap;
-        gap: 2px;
-      }
-      .calendar-date-picker-body > div:first-child > div {
-        /* Day names */
-        font-size: 0.97rem;
-        font-weight: 600;
-        color: #cfcfff;
-        opacity: 0.85;
-        letter-spacing: 0.01em;
-      }
-      @media (max-width: 500px) {
-        .calendar-date-picker-wrapper {
-          min-width: 90vw;
-          padding: 10px 4vw 8px 4vw;
-        }
-      }
-      .create-task-container {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        padding: 12px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 19px;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-      }
-      .create-task-container input,
-      .create-task-container textarea {
-        width: 100%;
-        padding: 8px;
-        border-radius: 8px;
-        border: none;
-        background: transparent;
-        color: var(--text-color);
-        font-size: 1rem;
-        font-family: inherit;
-        outline: none;
-      }
-      .task-title-container {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        gap: 4px;
-      }
-      .task-title-container input {
-        flex: 1;
-      }
-      .task-title-container icon {
-        cursor: pointer;
-        transition: color 0.2s;
-      }
-      .task-title-container icon:hover {
-        color: var(--primary-color, #6f15ac);
-      }
-      .task-title-container icon:active {
-        color: var(--primary-color, #6f15ac);
-      }
-      .create-task-inputs {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .task-schedule-row {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 8px;
-      }
-      .task-time-container {
-        display: flex;
-      }
-      .time-picker-btn {
-        width: 100%;
-        padding: 10px 12px;
-        border-radius: 50px;
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        background: rgba(255, 255, 255, 0.05);
-        color: var(--text-color);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-      }
-      .time-picker-popover {
-        position: absolute;
-        display: none;
-        flex-direction: column;
-        gap: 12px;
-        min-width: 260px;
-        padding: 14px;
-        max-height: 500px;
-        overflow-y: auto;
-        border-radius: 18px;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        z-index: 4200;
-      }
-      .time-picker-popover.show {
-        display: flex;
-        animation: dropdownEnter 0.18s ease both;
-      }
-      .time-picker-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 6px;
-      }
-      .time-picker-grid.minute-grid {
-        grid-template-columns: repeat(3, 1fr);
-      }
-      .time-picker-option {
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        border-radius: 50px;
-        background: rgba(255, 255, 255, 0.06);
-        color: var(--text-color);
-        padding: 8px 10px;
-        cursor: pointer;
-        font: inherit;
-      }
-      .time-picker-option.active,
-      .time-picker-option:hover {
-        background: rgba(111, 21, 172, 0.5);
-      }
-      .time-picker-section-title {
-        font-size: 0.86rem;
-        opacity: 0.75;
-      }
-      .modal-field {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .modal-field label {
-        font-size: 0.9rem;
-        opacity: 0.84;
-      }
-      @media (min-width: 680px) {
-        .task-schedule-row {
-          grid-template-columns: minmax(0, 1fr) 180px;
-        }
-      }
-      .task-description-container {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      .task-description-container textarea {
-        resize: none;
-      }
-      .task-description-container label {
-        font-size: 0.9rem;
-        color: var(--text-color);
-      }
-      .dropdown-wrapper {
-        position: relative;
-        display: none;
-        flex-direction: column;
-        align-items: center;
-        width: auto;
-        max-width: 400px;
-        height: auto;
-        border-radius: 20px;
-        overflow-y: auto;
-        max-height: 300px;
-        padding: 4px;
-        z-index: 1000000000;
-      }
-      .dropdown-wrapper ul {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: none;
-        z-index: 1000;
-      }
-      .dropdown-wrapper ul li {
-        padding: 8px 12px;
-        cursor: pointer;
-        transition: background 0.2s;
-      }
-      .dropdown-wrapper ul li:hover {
-        background: rgba(111, 21, 172, 0.18);
-      }
-      .dropdown-wrapper ul.show {
-        display: block;
-      }
-      .create-task-options-container {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        margin-top: 16px;
-        background: rgba(255, 255, 255, 0.04);
-        border-radius: 19px;
-        padding: 12px 10px;
-        border: 1px solid rgba(255, 255, 255, 0.13);
-      }
-      .task-options {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .task-option {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        background: rgba(255, 255, 255, 0.07);
-        border-radius: 8px;
-        padding: 6px 10px;
-        transition: background 0.2s;
-      }
-      .task-option input[type="text"] {
-        flex: 1;
-        background: transparent;
-        border: none;
-        color: var(--text-color);
-        font-size: 1rem;
-        outline: none;
-        padding: 6px 0;
-      }
-      .task-option icon.remove-option {
-        cursor: pointer;
-        color: #e57373;
-        font-size: 22px;
-        transition: color 0.2s;
-      }
-      .task-option icon.remove-option:hover {
-        color: #ff1744;
-      }
-      .add-option-btn {
-        display: flex;
-        justify-content: flex-end;
-        margin-top: 4px;
-      }
-      .add-option-btn .btn {
-        padding: 6px 14px;
-        font-size: 0.97rem;
-        border-radius: 18px;
-      }
-      .create-task-button-container {
-        display: flex;
-        margin-top: 12px;
-      }
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6 {
-        font-feature-settings:
-          "liga" 0,
-          "ss02" 0;
-      }
-      .add-category-container {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-top: 16px;
-      }
-      .add-category {
-        display: flex;
-        flex-direction: row;
-        gap: 8px;
-        align-items: center;
-        width: 100%;
-      }
-      .addcategory-input {
-        padding: 6px 8px;
-        width: 100%;
-      }
-      .addcategory-input input {
-        width: 100%;
-        border: none;
-        background: transparent;
-        color: var(--text-color);
-        font-size: 1rem;
-        outline: none;
-      }
-      .addcategory-input input::placeholder {
-        color: var(--text-color);
-        opacity: 0.6;
-      }
-      .addcategory-input input:focus::placeholder {
-        opacity: 0.3;
-      }
-      #addCategoryBtn {
-        white-space: nowrap;
-      }
-      .tasks-list-container {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        margin-top: 20px;
-      }
-      .task-item {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        overflow: auto;
-        padding: 16px;
-        border-radius: 18px;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        animation: taskEnter 0.36s ease both;
-      }
-      .task-item-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-      }
-      .task-item-title {
-        font-size: 1.2rem;
-        font-weight: 500;
-        flex: 1;
-      }
-      .task-item-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .task-action-btn {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        border-radius: 50px;
-        cursor: pointer;
-        transition: background 0.2s;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      .task-action-btn:hover {
-        background: rgba(255, 255, 255, 0.1);
-      }
-      .task-action-btn icon {
-        font-size: 20px;
-      }
-      .task-action-btn.icon-only {
-        padding: 8px;
-        border-radius: 50%;
-      }
-      .task-description {
-        font-size: 0.95rem;
-        line-height: 1.5;
-        opacity: 0.85;
-        margin-top: 4px;
-      }
-      .task-image {
-        width: 100%;
-        max-height: 300px;
-        object-fit: cover;
-        border-radius: 12px;
-        margin-top: 8px;
-      }
-      .task-options-list {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-top: 8px;
-      }
-      .task-option-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        border-radius: 24px;
-        background: rgba(255, 255, 255, 0.05);
-      }
-      .task-option-item input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
-      }
-      .task-option-item icon {
-        font-size: 18px;
-        color: var(--primary-color);
-      }
-      .task-subtasks-list {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-top: 8px;
-      }
-      .task-subtask-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        border-radius: 24px;
-        background: rgba(255, 255, 255, 0.08);
-      }
-      .task-subtask-item input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
-      }
-      .edit-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 3500;
-        background-color: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(2px);
-        -webkit-backdrop-filter: blur(2px);
-        opacity: 0;
-        transition: opacity 0.22s ease;
-      }
-      .edit-modal.show {
-        display: flex;
-        opacity: 1;
-      }
-      .edit-modal-content {
-        max-width: 600px;
-        width: 90%;
-        overflow-y: auto;
-        padding: 24px;
-        border-radius: 18px;
-        transform: translateY(12px) scale(0.97);
-        animation: modalOpen 0.24s ease forwards;
-      }
-      .stacked-modal {
-        pointer-events: none;
-      }
-      .stacked-modal .edit-modal-content,
-      .stacked-modal .share-modal-content {
-        pointer-events: auto;
-      }
-      .edit-modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-      }
-      .edit-modal-title {
-        font-size: 1.5rem;
-        font-weight: 500;
-      }
-      .edit-modal-close {
-        cursor: pointer;
-        padding: 8px;
-        border-radius: 50%;
-        transition: background 0.2s;
-      }
-      .edit-modal-close:hover {
-        background: rgba(255, 255, 255, 0.1);
-      }
-      .edit-modal-body {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-      }
-      .edit-modal-actions {
-        display: flex;
-        gap: 12px;
-        justify-content: flex-end;
-        margin-top: 20px;
-      }
-      .subtask-input-container {
-        display: none;
-        margin-top: 8px;
-        padding: 8px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 24px;
-      }
-      .subtask-input-container.show {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-      .subtask-input-container input {
-        flex: 1;
-        padding: 8px 12px;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 24px;
-        color: #fff;
-        font-size: 0.95rem;
-        outline: none;
-      }
-      .confirm-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 4000;
-        backdrop-filter: blur(2px);
-      }
-      .confirm-modal.show {
-        display: flex;
-      }
-      .confirm-modal-content {
-        max-width: 400px;
-        width: 90%;
-        padding: 24px;
-        border-radius: 24px;
-      }
-      .confirm-modal-title {
-        font-size: 1.3rem;
-        font-weight: 500;
-        margin-bottom: 16px;
-      }
-      .confirm-modal-message {
-        font-size: 1rem;
-        margin-bottom: 24px;
-        opacity: 0.9;
-      }
-      .confirm-modal-actions {
-        display: flex;
-        gap: 12px;
-        justify-content: flex-end;
-      }
-      .edit-options-list {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-top: 12px;
-      }
-      .edit-option-item {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-      .edit-option-item input {
-        flex: 1;
-        padding: 8px 12px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 28px;
-        color: #fff;
-        font-size: 0.95rem;
-        outline: none;
-      }
-      .edit-option-item icon {
-        cursor: pointer;
-        font-size: 22px;
-        color: #e57373;
-      }
-      .edit-option-item icon:hover {
-        color: #ff1744;
-      }
-      .task-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 8px;
-        padding-top: 12px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      .task-category-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 12px;
-        border-radius: 50px;
-        background: rgba(111, 21, 172, 0.2);
-        border: 1px solid rgba(111, 21, 172, 0.3);
-        font-size: 0.85rem;
-      }
-      .task-due-date {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.9rem;
-        opacity: 0.8;
-      }
-      .task-due-date icon {
-        font-size: 18px;
-      }
-      .task-reminder-due {
-        color: #ffb4d3;
-      }
-      .notification-list {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        max-height: min(58vh, 520px);
-        overflow-y: auto;
-      }
-      .notification-item {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 10px;
-        padding: 12px;
-        border-radius: 24px;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-      }
-      .notification-item icon {
-        font-size: 22px;
-        color: #e8c8ff;
-      }
-      .notification-item-title {
-        font-weight: 600;
-      }
-      .notification-item-meta {
-        margin-top: 3px;
-        font-size: 0.88rem;
-        opacity: 0.76;
-      }
-      .notification-empty {
-        padding: 28px 12px;
-        text-align: center;
-        opacity: 0.72;
-      }
-      .more-dropdown {
-        position: absolute;
-        min-width: 200px;
-        padding: 8px;
-        border-radius: 24px;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        display: none;
-        flex-direction: column;
-        gap: 4px;
-        z-index: 2500;
-      }
-      .more-dropdown.show {
-        display: flex;
-        animation: dropdownEnter 0.18s ease both;
-      }
-      .more-dropdown-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 24px;
-        cursor: pointer;
-        transition: background 0.2s;
-      }
-      .more-dropdown-item:hover {
-        background: rgba(111, 21, 172, 0.2);
-      }
-      .more-dropdown-item icon {
-        font-size: 20px;
-      }
-      .print-all-btn {
-        margin-top: 20px;
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 8px;
-      }
-      @media print {
-        .topbar-container,
-        .sidebar-container,
-        .create-task-container,
-        .create-task-button-container,
-        .task-item-actions,
-        .print-all-btn {
-          display: none !important;
-        }
-        .content-container {
-          margin-left: 0;
-          width: 100%;
-        }
-        .task-item {
-          page-break-inside: avoid;
-          border: 1px solid #000;
-          margin-bottom: 20px;
-        }
-      }
-      @media (max-width: 800px) {
-        .task-action-btn span {
-          display: none;
-        }
-      }
-      @media (max-height: 900px) {
-        .edit-modal-content {
-          height: 100vh;
-        }
-      }
-      @keyframes modalOpen {
-        from {
-          opacity: 0;
-          transform: translateY(14px) scale(0.96);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
-      }
-      @keyframes taskEnter {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      @keyframes dropdownEnter {
-        from {
-          opacity: 0;
-          transform: translateY(-4px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        *,
-        *::before,
-        *::after {
-          animation-duration: 0.01ms !important;
-          animation-iteration-count: 1 !important;
-          scroll-behavior: auto !important;
-          transition-duration: 0.01ms !important;
-        }
-      }
-      /* Style for all dropdown buttons */
-      button#selectCategoryBtn,
-      button#editCategoryBtn,
-      button#dropdownBtnTheme,
-      button#dropdownBtnLanguage {
-        background: var(--btn-primary-color, #7015aca2);
-        color: var(--text-color, #fff);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 50px;
-        backdrop-filter: blur(2px) saturate(180%);
-        padding: 9px 16px;
-        font-size: 1rem;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        cursor: pointer;
-        transition:
-          background 0.2s,
-          color 0.2s;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
-      }
-
-      button#selectCategoryBtn:hover,
-      button#editCategoryBtn:hover,
-      button#dropdownBtnTheme:hover,
-      button#dropdownBtnLanguage:hover {
-        background: var(--btn-primary-hover-color, #7015ac);
-        color: #fff;
-      }
-
-      button#selectCategoryBtn icon,
-      button#editCategoryBtn icon,
-      button#dropdownBtnTheme icon,
-      button#dropdownBtnLanguage icon {
-        font-size: 24px;
-        margin-left: 8px;
-      }
-
-      .share-modal {
-        position: fixed;
-        top: 0;
-        background-color: rgba(0, 0, 0, 0.5);
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 4500;
-        backdrop-filter: blur(2px);
-      }
-      .share-modal.show {
-        display: flex;
-      }
-      .share-modal-content {
-        max-width: 600px;
-        width: 90%;
-        max-height: 90vh;
-        overflow-y: auto;
-        padding: 24px;
-        border-radius: 24px;
-      }
-      .share-modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-      }
-      .share-modal-title {
-        font-size: 1.5rem;
-        font-weight: 500;
-      }
-      .share-modal-close {
-        cursor: pointer;
-        padding: 8px;
-        border-radius: 50%;
-        transition: background 0.2s;
-      }
-      .share-modal-close:hover {
-        background: rgba(255, 255, 255, 0.1);
-      }
-      .share-task-preview {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        padding: 16px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 24px;
-        margin-bottom: 24px;
-      }
-      .share-task-preview h3 {
-        font-size: 1.3rem;
-        font-weight: 500;
-        margin: 0;
-      }
-      .share-task-preview p {
-        margin: 0;
-        opacity: 0.9;
-      }
-      .share-task-preview img {
-        width: 100%;
-        max-height: 200px;
-        object-fit: cover;
-        border-radius: 10px;
-      }
-      .share-task-detail {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.95rem;
-      }
-      .share-task-detail icon {
-        font-size: 20px;
-      }
-      .share-options-list {
-        margin-top: 8px;
-        padding-left: 28px;
-      }
-      .share-options-list li {
-        margin: 4px 0;
-      }
-      .share-buttons {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 12px;
-      }
-      .share-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 12px 16px;
-        border-radius: 32px;
-        cursor: pointer;
-        transition: all 0.2s;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-      }
-      .share-btn:hover {
-        background: rgba(255, 255, 255, 0.15);
-        transform: translateY(-2px);
-      }
-      .share-btn icon {
-        font-size: 22px;
-      }
-      @media (max-width: 600px) {
-        .share-buttons {
-          grid-template-columns: repeat(2, 1fr);
-        }
-      }
-      .topbar-icon-btn {
-        all: unset;
-        cursor: pointer;
-        transition: background 0.2s ease;
-        border-radius: 50%;
-      }
-      .topbar-icon-btn:hover {
-        background: rgba(255, 255, 255, 0.15);
-      }
-    </style>
+    <link rel="stylesheet" href="./tasks.css" />
   </head>
-  <body>
+  <body class="mu-root">
+    <a class="mu-skip-link" href="#content" data-tf="skipToTasks">Skip to tasks</a>
     <tasks-app class="main-app" id="app">
       <div class="topbar-container" id="topbar">
         <div class="topbar">
           <div class="topbar-left">
-            <div class="menu-btn liquid-glass">
-              <icon>menu</icon>
+            <div class="menu-btn liquid-glass" role="button" tabindex="0" aria-label="Menu" data-tf-label="menu">
+              <icon aria-hidden="true">menu</icon>
             </div>
             <div class="top-left liquid-glass">
               <div class="logo-container">
@@ -1463,11 +93,14 @@
           <div class="topbar-middle">
             <div class="search-bar liquid-glass">
               <icon>search</icon>
-              <input type="text" id="searchInput" placeholder="Search tasks" />
+              <input type="search" id="searchInput" placeholder="Search tasks" aria-label="Search tasks" />
             </div>
           </div>
           <div class="topbar-right">
             <div class="top-right liquid-glass">
+              <button class="topbar-icon-btn" id="tasksCommandBtn" type="button" title="Command palette (Ctrl+K)" aria-label="Command palette" data-tf-label="commandPalette">
+                <icon aria-hidden="true">bolt</icon>
+              </button>
               <icon id="mobileSearchIcon" title="Search" aria-label="Search"
                 >search</icon
               >
@@ -1507,6 +140,21 @@
               <icon>task_alt</icon>
               <div class="menu-text">Tasks</div>
             </div>
+            <div class="sidebar-item" data-page="todayPage" data-tf-nav>
+              <icon>today</icon>
+              <div class="menu-text" data-tf="today">Today</div>
+              <span class="sidebar-count" data-count="today"></span>
+            </div>
+            <div class="sidebar-item" data-page="upcomingPage" data-tf-nav>
+              <icon>date_range</icon>
+              <div class="menu-text" data-tf="upcoming">Upcoming</div>
+              <span class="sidebar-count" data-count="upcoming"></span>
+            </div>
+            <div class="sidebar-item" data-page="overduePage" data-tf-nav>
+              <icon>event_busy</icon>
+              <div class="menu-text" data-tf="overdue">Overdue</div>
+              <span class="sidebar-count" data-count="overdue"></span>
+            </div>
             <div class="sidebar-item" data-page="completedPage">
               <icon>check_circle</icon>
               <div class="menu-text">Completed</div>
@@ -1530,6 +178,23 @@
             <div class="sidebar-item" data-page="trashPage">
               <icon>delete</icon>
               <div class="menu-text">Trash</div>
+            </div>
+            <div class="sidebar-section-label" data-tf="views">Views</div>
+            <div class="sidebar-item" data-page="boardPage" data-tf-nav>
+              <icon>view_kanban</icon>
+              <div class="menu-text" data-tf="board">Board</div>
+            </div>
+            <div class="sidebar-item" data-page="calendarPage" data-tf-nav>
+              <icon>calendar_month</icon>
+              <div class="menu-text" data-tf="calendar">Calendar</div>
+            </div>
+            <div class="sidebar-item" data-page="insightsPage" data-tf-nav>
+              <icon>insights</icon>
+              <div class="menu-text" data-tf="insights">Insights</div>
+            </div>
+            <div class="sidebar-item" data-page="templatesPage" data-tf-nav>
+              <icon>library_books</icon>
+              <div class="menu-text" data-tf="templates">Templates</div>
             </div>
             <div class="sidebar-item" data-page="settingsPage">
               <icon>settings</icon>
@@ -1604,9 +269,37 @@
             </div>
             <div class="tasks-list-container" id="tasksListContainer"></div>
             <button class="btn print-all-btn" id="printAllTasksBtn">
-              <icon style="font-size: 20px; margin-right: 8px">print</icon>
+              <icon aria-hidden="true">print</icon>
               Print All Tasks
             </button>
+          </div>
+          <div class="content page" id="todayPage">
+            <h1 data-tf="today">Today</h1>
+            <div class="tasks-view-list" id="todayList"></div>
+          </div>
+          <div class="content page" id="upcomingPage">
+            <h1 data-tf="upcoming">Upcoming</h1>
+            <div class="tasks-view-list" id="upcomingList"></div>
+          </div>
+          <div class="content page" id="overduePage">
+            <h1 data-tf="overdue">Overdue</h1>
+            <div class="tasks-view-list" id="overdueList"></div>
+          </div>
+          <div class="content page" id="boardPage">
+            <h1 data-tf="board">Board</h1>
+            <div class="tasks-board" id="boardView"></div>
+          </div>
+          <div class="content page" id="calendarPage">
+            <h1 data-tf="calendar">Calendar</h1>
+            <div class="tasks-calendar" id="calendarView"></div>
+          </div>
+          <div class="content page" id="insightsPage">
+            <h1 data-tf="insights">Insights</h1>
+            <div class="tasks-insights" id="insightsView"></div>
+          </div>
+          <div class="content page" id="templatesPage">
+            <h1 data-tf="templates">Templates</h1>
+            <div class="tasks-templates" id="templatesView"></div>
           </div>
           <div class="content page" id="completedPage">
             <h1>Completed Tasks</h1>
@@ -1665,15 +358,7 @@
                 <label>Language</label>
                 <button id="dropdownBtnLanguage">Select Language</button>
               </div>
-              <div
-                class="setting-item"
-                style="
-                  display: flex;
-                  align-items: center;
-                  gap: 16px;
-                  margin-top: 16px;
-                "
-              >
+              <div class="setting-item">
                 <label for="reduceTransparencySwitch"
                   >Reduce Transparency</label
                 >
@@ -1684,12 +369,7 @@
               </div>
               <div
                 class="setting-item"
-                style="
-                  display: flex;
-                  flex-wrap: wrap;
-                  gap: 10px;
-                  margin-top: 24px;
-                "
+                class="setting-item setting-actions" id="tasksDataActions"
               >
                 <button class="btn btn-outline" id="archiveAllBtn">
                   Archive All Tasks
@@ -1709,7 +389,6 @@
                 <button
                   class="btn btn-outline"
                   id="deleteAllDataBtn"
-                  style="color: #e57373; border-color: #e57373"
                 >
                   Delete All Data
                 </button>
@@ -1852,17 +531,7 @@
           <input
             type="text"
             id="subtaskInput"
-            placeholder="Subtask name"
-            style="
-              width: 100%;
-              padding: 12px;
-              background: rgba(255, 255, 255, 0.05);
-              border: 1px solid rgba(255, 255, 255, 0.2);
-              border-radius: 28px;
-              color: #fff;
-              font-size: 1rem;
-              outline: none;
-            "
+            placeholder="Subtask name" class="tasks-input"
           />
         </div>
         <div class="edit-modal-actions">
@@ -1877,7 +546,7 @@
           <div class="edit-modal-title" id="confirmModalTitle">Confirm</div>
         </div>
         <div class="edit-modal-body">
-          <p id="confirmModalMessage" style="font-size: 1rem">Are you sure?</p>
+          <p id="confirmModalMessage" style="margin: 0">Are you sure?</p>
         </div>
         <div class="edit-modal-actions">
           <button class="btn" id="confirmModalCancel">Cancel</button>
@@ -1897,35 +566,11 @@
           <input
             type="text"
             id="editTaskTitle"
-            placeholder="Task title"
-            style="
-              width: 100%;
-              padding: 12px;
-              background: rgba(255, 255, 255, 0.05);
-              border: 1px solid rgba(255, 255, 255, 0.2);
-              border-radius: 28px;
-              color: #fff;
-              font-size: 1rem;
-              outline: none;
-              margin-bottom: 12px;
-            "
+            placeholder="Task title" class="tasks-input"
           />
           <textarea
             id="editTaskDescription"
-            placeholder="Task description"
-            style="
-              width: 100%;
-              padding: 12px;
-              background: rgba(255, 255, 255, 0.05);
-              border: 1px solid rgba(255, 255, 255, 0.2);
-              border-radius: 28px;
-              color: #fff;
-              font-size: 1rem;
-              outline: none;
-              resize: vertical;
-              min-height: 100px;
-              margin-bottom: 12px;
-            "
+            placeholder="Task description" class="tasks-input"
           ></textarea>
           <button
             class="btn"
@@ -2081,7 +726,7 @@
         <div class="edit-modal-body">
           <iframe
             src="https://www.munetios.com/apps/"
-            style="width: 100%; height: 768px; border: none; border-radius: 4px"
+            style="width: 100%; height: 768px; border: none"
             title="Munetios Apps"
           ></iframe>
         </div>
@@ -2844,18 +1489,15 @@
         const message = isCustom
           ? messageKey
           : trans.messages[messageKey] || messageKey;
-
+        const text = window.TasksFeatures?.translateToast?.(message) || message;
+        if (window.MunetiosUI?.toast) {
+          window.MunetiosUI.toast(text, { type: /error|fail|invalid|please/i.test(message) ? "error" : "success" });
+          return;
+        }
         const toast = document.createElement("div");
-        toast.className = "liquid-glass";
-        toast.style.position = "fixed";
-        toast.style.bottom = "20px";
-        toast.style.left = "50%";
-        toast.style.transform = "translateX(-50%)";
-        toast.style.padding = "12px 24px";
-        toast.style.borderRadius = "50px";
-        toast.style.color = "#fff";
-        toast.style.zIndex = "10000";
-        toast.textContent = message;
+        toast.className = "mu-toast";
+        toast.setAttribute("role", "status");
+        toast.textContent = text;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
       }
@@ -2996,7 +1638,7 @@
           if (cat) {
             const badge = document.createElement("div");
             badge.className = "task-category-badge";
-            badge.innerHTML = `<icon style="font-size: 16px;">category</icon><span>${escapedTaskText(cat.name)}</span>`;
+            badge.innerHTML = `<icon style="font-size: 18px;">category</icon><span>${escapedTaskText(cat.name)}</span>`;
             footerLeft.appendChild(badge);
           }
         }
@@ -3523,7 +2165,7 @@
               optDiv.style.cssText =
                 "display: flex; align-items: center; gap: 8px;";
               optDiv.innerHTML = `
-                <input type="text" value="${escapedTaskText(opt.text)}" data-idx="${idx}" style="flex: 1; padding: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 32px; color: #fff;" />
+                <input type="text" value="${escapedTaskText(opt.text)}" data-idx="${idx}" class="tasks-input" style="flex: 1" />
                 <button class="btn remove-edit-option" data-idx="${idx}" style="padding: 8px;">
                   <icon>close</icon>
                 </button>
@@ -3607,7 +2249,7 @@
           optDiv.style.cssText =
             "display: flex; align-items: center; gap: 8px;";
           optDiv.innerHTML = `
-            <input type="text" placeholder="New option" data-idx="new" style="flex: 1; padding: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 28px; color: #fff;" />
+            <input type="text" placeholder="New option" data-idx="new" class="tasks-input" style="flex: 1" />
             <button class="btn remove-edit-option" data-idx="new" style="padding: 8px;">
               <icon>close</icon>
             </button>
@@ -4120,6 +2762,20 @@
               return "trashPage";
             case "#/settings":
               return "settingsPage";
+            case "#/today":
+              return "todayPage";
+            case "#/upcoming":
+              return "upcomingPage";
+            case "#/overdue":
+              return "overduePage";
+            case "#/board":
+              return "boardPage";
+            case "#/calendar":
+              return "calendarPage";
+            case "#/insights":
+              return "insightsPage";
+            case "#/templates":
+              return "templatesPage";
             case "#/tasks":
             case "":
             default:
@@ -4143,6 +2799,20 @@
               return "#/trash";
             case "settingsPage":
               return "#/settings";
+            case "todayPage":
+              return "#/today";
+            case "upcomingPage":
+              return "#/upcoming";
+            case "overduePage":
+              return "#/overdue";
+            case "boardPage":
+              return "#/board";
+            case "calendarPage":
+              return "#/calendar";
+            case "insightsPage":
+              return "#/insights";
+            case "templatesPage":
+              return "#/templates";
             case "tasksPage":
             default:
               return "#/tasks";
@@ -4353,15 +3023,12 @@
         sidebarContainer.style.zIndex = "9999";
         sidebar.style.width = "250px";
         sidebar.style.height = "100vh";
-        sidebar.style.background = "rgba(31,38,135,0.25)";
-        sidebar.style.boxShadow = "0 8px 32px 0 rgba(31,38,135,0.37)";
         sidebar.style.padding = "16px";
         sidebar.style.transition = "all 0.3s ease";
         sidebar.style.overflowY = "auto";
         sidebar.style.display = "flex";
         sidebar.style.flexDirection = "column";
         sidebar.style.gap = "8px";
-        sidebar.style.borderRadius = "0 18px 18px 0";
         sidebar.style.left = "0";
         sidebar.style.top = "0";
         sidebar.style.position = "fixed";
@@ -4380,7 +3047,7 @@
           overlayBg.style.left = "0";
           overlayBg.style.width = "100vw";
           overlayBg.style.height = "100vh";
-          overlayBg.style.background = "rgba(0,0,0,0.3)";
+          overlayBg.style.background = "var(--mu-backdrop)";
           overlayBg.style.zIndex = "9998";
           overlayBg.onclick = closeSidebarOverlay;
           document.body.appendChild(overlayBg);
@@ -8484,37 +7151,15 @@
       });
 
       function applyTheme(theme, customColor = null) {
-        document.documentElement.dataset.muTheme = theme === "light" ? "light" : "dark";
         const root = document.documentElement;
-
-        if (theme === "custom" && customColor) {
-          root.style.setProperty("--primary-color", customColor);
-          root.style.setProperty("--secondary-color", customColor);
-          root.style.setProperty("--btn-primary-color", customColor + "a2");
-          root.style.setProperty("--btn-primary-hover-color", customColor);
-        } else if (themes[theme]) {
-          root.style.setProperty("--primary-color", themes[theme].primary);
-          root.style.setProperty("--secondary-color", themes[theme].secondary);
-          root.style.setProperty(
-            "--background-gradient",
-            themes[theme].gradient,
-          );
-          root.style.setProperty(
-            "--btn-primary-color",
-            themes[theme].primary + "a2",
-          );
-          root.style.setProperty(
-            "--btn-primary-hover-color",
-            themes[theme].primary,
-          );
-
-          // Light theme text adjustments
-          if (theme === "light") {
-            root.style.setProperty("--text-color", "#1a1a1a");
-          } else {
-            root.style.setProperty("--text-color", "#ffffff");
-          }
-        }
+        const accents = { default: "#8f5cff", dark: "#8f5cff", light: "#6d4aff" };
+        const preference = theme === "light" ? "light" : theme === "dark" ? "dark" : "system";
+        if (window.MunetiosUI?.theme) window.MunetiosUI.theme.set(theme === "custom" ? (window.MunetiosUI.theme.get() || "system") : preference);
+        else root.dataset.muTheme = preference === "light" ? "light" : "dark";
+        const accent = theme === "custom" && customColor ? customColor : accents[theme] || accents.default;
+        root.style.setProperty("--mu-accent", accent);
+        root.style.setProperty("--primary-color", accent);
+        document.querySelector('meta[name="theme-color"]')?.setAttribute("content", accent);
       }
 
       function applyLanguage(lang) {
@@ -8537,20 +7182,21 @@
 
         // Sidebar menu items
         const sidebarItems = document.querySelectorAll(".sidebar-item");
-        const menuTexts = [
-          "tasks",
-          "completed",
-          "favorites",
-          "categories",
-          "inProgress",
-          "archived",
-          "trash",
-          "settings",
-        ];
-        sidebarItems.forEach((item, index) => {
+        const menuTexts = {
+          tasksPage: "tasks",
+          completedPage: "completed",
+          favoritesPage: "favorites",
+          categoriesPage: "categories",
+          inProgressPage: "inProgress",
+          archivedPage: "archived",
+          trashPage: "trash",
+          settingsPage: "settings",
+        };
+        sidebarItems.forEach((item) => {
           const menuText = item.querySelector(".menu-text");
-          if (menuText && menuTexts[index]) {
-            menuText.textContent = trans.sidebar[menuTexts[index]];
+          const key = menuTexts[item.dataset.page];
+          if (menuText && key) {
+            menuText.textContent = trans.sidebar[key];
           }
         });
 
@@ -8832,23 +7478,7 @@
       }
 
       function applyTransparency(reduce) {
-        const liquidGlassElements = document.querySelectorAll(
-          ".liquid-glass, .btn, .create-task-container, .task-item",
-        );
-
-        if (reduce) {
-          liquidGlassElements.forEach((el) => {
-            el.style.backdropFilter = "blur(0px)";
-            el.style.webkitBackdropFilter = "blur(0px)";
-            el.style.background = "rgba(31, 38, 135, 0.5)";
-          });
-        } else {
-          liquidGlassElements.forEach((el) => {
-            el.style.backdropFilter = "";
-            el.style.webkitBackdropFilter = "";
-            el.style.background = "";
-          });
-        }
+        document.documentElement.classList.toggle("tasks-reduce-transparency", Boolean(reduce));
       }
       // ====== KEYBOARD SHORTCUTS ======
       document.addEventListener("keydown", (e) => {
