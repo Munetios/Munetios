@@ -22025,77 +22025,31 @@ if (isAmerica250Date && logo) {
             });
           }
 
+          // The 17 global Munetios locales. Latin American Spanish reads the es-MX overlay.
+          if (!translations["es-419"] && translations["es-MX"]) translations["es-419"] = translations["es-MX"];
+          if (!runtimeTranslationFallbacks["es-419"] && runtimeTranslationFallbacks["es-MX"]) runtimeTranslationFallbacks["es-419"] = runtimeTranslationFallbacks["es-MX"];
+          const NATIVE_LANGUAGE_NAMES = {
+            "en-US": "English (United States)", "en-GB": "English (United Kingdom)", "es-419": "Español (Latinoamérica)", "es-ES": "Español (España)",
+            "es-US": "Español (Estados Unidos)", "fr-FR": "Français (France)", "fr-CA": "Français (Canada)", de: "Deutsch", it: "Italiano",
+            "pt-BR": "Português (Brasil)", "pt-PT": "Português (Portugal)", "zh-CN": "中文（简体）", "zh-TW": "中文（繁體）", ko: "한국어", ar: "العربية", hi: "हिन्दी", co: "Corsu",
+          };
           const supportedLanguageLocales = [
             "en-US",
             "en-GB",
-            "en-AU",
-            "en-CA",
-            "en-IN",
-            "en-NZ",
-            "en-ZA",
+            "es-419",
             "es-ES",
-            "es-MX",
             "es-US",
-            "es-AR",
-            "es-CO",
             "fr-FR",
             "fr-CA",
-            "fr-BE",
-            "fr-CH",
-            "de-DE",
-            "de-AT",
-            "de-CH",
-            "it-IT",
-            "it-CH",
+            "de",
+            "it",
             "pt-BR",
             "pt-PT",
-            "nl-NL",
-            "nl-BE",
-            "ru-RU",
-            "ru-UA",
             "zh-CN",
             "zh-TW",
-            "zh-HK",
-            "ja-JP",
-            "ko-KR",
-            "ar-SA",
-            "ar-EG",
-            "ar-AE",
-            "hi-IN",
-            "bn-BD",
-            "pa-IN",
-            "tr-TR",
-            "pl-PL",
-            "sv-SE",
-            "no-NO",
-            "da-DK",
-            "fi-FI",
-            "cs-CZ",
-            "sk-SK",
-            "hu-HU",
-            "ro-RO",
-            "uk-UA",
-            "el-GR",
-            "he-IL",
-            "th-TH",
-            "vi-VN",
-            "id-ID",
-            "ms-MY",
-            "fa-IR",
-            "ur-PK",
-            "ta-IN",
-            "te-IN",
-            "mr-IN",
-            "sw-KE",
-            "af-ZA",
-            "ca-ES",
-            "hr-HR",
-            "bg-BG",
-            "lt-LT",
-            "lv-LV",
-            "et-EE",
-            "sl-SI",
-            "sr-RS",
+            "ko",
+            "ar",
+            "hi",
             "co",
           ].filter(function (langCode) {
             const normalized = canonicalLanguageCode(langCode);
@@ -22109,6 +22063,13 @@ if (isAmerica250Date && logo) {
           function resolveSupportedLanguageCode(langCode) {
             const normalized = canonicalLanguageCode(langCode);
             if (supportedLanguageLocales.includes(normalized)) return normalized;
+            const [lang, region = ""] = normalized.split("-");
+            const regionCode = region.toUpperCase();
+            if (lang === "en") return ["", "US", "CA", "PH", "PR"].includes(regionCode) ? "en-US" : "en-GB";
+            if (lang === "es") return regionCode === "ES" || !regionCode ? "es-ES" : regionCode === "US" ? "es-US" : "es-419";
+            if (lang === "fr") return regionCode === "CA" ? "fr-CA" : "fr-FR";
+            if (lang === "pt") return ["PT", "AO", "MZ", "CV", "GW", "ST", "TL", "MO"].includes(regionCode) ? "pt-PT" : "pt-BR";
+            if (lang === "zh") return ["TW", "HK", "MO", "HANT"].includes(regionCode) ? "zh-TW" : "zh-CN";
             const base = normalized.split("-")[0];
             return (
               supportedLanguageLocales.find(function (supportedLang) {
@@ -22129,7 +22090,8 @@ if (isAmerica250Date && logo) {
               const item = existingByCode[normalized] || document.createElement("div");
               item.className = "dropdown-item";
               item.dataset.lang = normalized;
-              item.textContent = getTranslationsFor(normalized).name || normalized;
+              item.textContent = NATIVE_LANGUAGE_NAMES[normalized] || getTranslationsFor(normalized).name || normalized;
+              item.lang = normalized;
               languageSelector.appendChild(item);
             });
           }
