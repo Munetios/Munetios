@@ -1,6 +1,9 @@
 import { DurableObject } from 'cloudflare:workers';
 import photosRoutes from './assets/photos/routes.js';
 import { takeWeatherRequest, weatherApiPath, weatherResponse, weatherWindowMs } from './weather-api.mjs';
+import { mapsApiPath, mapsResponse } from './maps-api.mjs';
+
+export { MapsTraffic } from './maps-api.mjs';
 
 const noStore = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
 const appRoots = new Map([
@@ -10,8 +13,9 @@ const appRoots = new Map([
     ['photos.munetios.com', '/photos'],
     ['notes.munetios.com', '/supanotes'],
     ['tasks.munetios.com', '/tasks'],
+    ['maps.munetios.com', '/maps'],
 ]);
-const sharedAssets = /^\/(?:signin|omniwrite|account|fonts|munetios-ui|shared|blocked|mail|calendar|photos|webfilter)(?:\/|$)|^\/(?:tone\.js|ganetios-logo-icon\.png|munetios-logo(?:-icon)?\.png|404(?:\.html|\.css|-i18n\.js)?)$/;
+const sharedAssets = /^\/(?:signin|omniwrite|account|fonts|munetios-ui|shared|blocked|mail|calendar|photos|webfilter|maps)(?:\/|$)|^\/(?:tone\.js|ganetios-logo-icon\.png|munetios-logo(?:-icon)?\.png|404(?:\.html|\.css|-i18n\.js)?)$/;
 const weatherAssets = /^\/(?:weather|fonts|munetios-ui)(?:\/|$)|^\/404(?:\.html|\.css|-i18n\.js)?$/;
 const siteFiles = new Set(['/sitemap.xml', '/robots.txt']);
 
@@ -70,6 +74,15 @@ export default {
         }
         if (isWeather && !weatherAssets.test(pathname) && !siteFiles.has(pathname) && pathname !== '/') {
             return new Response('Not found', { status: 404, headers: noStore });
+        }
+        // Munetios Maps: satellite tiles and live traffic.
+        if ((url.hostname === 'maps.munetios.com' || url.hostname === 'beta.munetios.com') && mapsApiPath.test(pathname)) {
+            return mapsResponse(request, env, pathname);
+        }
+        // The new Meals lives at /calendar/meals.
+        if (url.hostname === 'calendar.munetios.com' && /^\/new\/meals(?:\/|$)/.test(pathname)) {
+            url.pathname = '/calendar/meals/' + pathname.replace(/^\/new\/meals\/?/, '').replace(/^index\.html$/, '');
+            return Response.redirect(url.href, 308);
         }
         if (url.hostname === 'calendar.munetios.com' && (pathname === '/new' || pathname === '/new/')) {
             url.pathname = '/';

@@ -1250,7 +1250,8 @@
     grid.className = "mu-calendar-grid";
     grid.setAttribute("role", "grid");
     wrap.append(head, grid);
-    const first = firstDayOfWeek(locale);
+    // opts.firstDay (0 = Sunday ... 6 = Saturday) overrides the locale's first day of the week.
+    const first = Number.isInteger(Number(opts.firstDay)) && opts.firstDay !== null && opts.firstDay !== "" ? ((Number(opts.firstDay) % 7) + 7) % 7 : firstDayOfWeek(locale);
     const dow = [];
     for (let i = 0; i < 7; i++) {
       const day = new Date(2026, 10, 15 + ((first + i) % 7)); // Nov 15 2026 is a Sunday

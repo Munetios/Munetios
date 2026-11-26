@@ -1,0 +1,421 @@
+/*
+ * Munetios Maps on Munetios UI v4 (theme layer).
+ * Loads after the original Maps stylesheet and moves every surface, control,
+ * and dialog onto the v4 tokens: liquid glass with 2px blur and alpha 0.01-0.50,
+ * text 18px-48px, weight 300 headings / 400 text, pills and circles.
+ */
+:root { --maps-rail: 108px; }
+body.mu-root {
+  font-family: "Munetios UI v4 Font", system-ui, sans-serif;
+  color: var(--mu-text);
+  background: var(--mu-bg);
+}
+body.mu-root.theme-light { color: var(--mu-text); background: var(--mu-bg); }
+.mu-root :is(h1, h2, h3, h4) { font-weight: 300; }
+.mu-root :is(input, button, textarea) { font-family: inherit; }
+.mu-root icon { font-family: "Material Symbols Rounded"; font-weight: normal; line-height: 1; }
+
+/* Liquid glass: the original used 0.6 alpha; v4 keeps glass at 0.50 or less */
+.mu-root .liquid-glass,
+.mu-root.theme-light .liquid-glass {
+  background: var(--mu-glass) !important;
+  border: 1px solid var(--mu-border) !important;
+  box-shadow: var(--mu-shadow) !important;
+  backdrop-filter: var(--mu-blur) !important;
+  -webkit-backdrop-filter: var(--mu-blur) !important;
+  color: var(--mu-text) !important;
+}
+
+/* ------------------------------------------------------------ side rail */
+.mu-root .sidebar {
+  top: 12px;
+  left: 12px;
+  bottom: 12px;
+  height: auto;
+  width: var(--maps-rail);
+  padding: 10px 8px;
+  gap: 6px;
+  border-radius: var(--mu-radius-xl);
+}
+.mu-root .sidebar .menu-btn,
+.mu-root .nav-drawer-close {
+  display: grid;
+  place-items: center;
+  width: var(--mu-control-lg);
+  height: var(--mu-control-lg);
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--mu-icon);
+}
+.mu-root .sidebar .menu-btn:hover, .mu-root .nav-drawer-close:hover { background: var(--mu-hover); }
+.mu-root .sidebar-content { display: grid; gap: 4px; width: 100%; margin-top: 6px; }
+.mu-root .sidebar-item {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 4px;
+  border-radius: var(--mu-radius-md);
+  color: var(--mu-text);
+  text-align: center;
+  cursor: pointer;
+}
+.mu-root .sidebar-item:hover { background: var(--mu-hover); }
+.mu-root .sidebar-item.active { background: var(--mu-current-bg); color: var(--mu-current-text); }
+.mu-root .sidebar-item .sidebar-label {
+  max-width: 100%;
+  font-size: 18px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.mu-root .topbar-container { margin-left: calc(var(--maps-rail) + 20px); padding: 12px 16px 12px 0; gap: 12px; }
+.mu-root .left-panel-containers { left: calc(var(--maps-rail) + 12px); top: 84px; max-width: 520px; }
+
+/* ------------------------------------------------------------ top bar */
+.mu-root .search-bar {
+  min-height: 60px;
+  padding: 0 18px;
+  gap: 12px;
+  border-radius: var(--mu-radius-pill) !important;
+  max-width: 640px;
+}
+.mu-root .search-bar input { color: var(--mu-text); font-size: 18px; }
+.mu-root .search-bar input::placeholder { color: var(--mu-text-muted); }
+.mu-root .search-bar:focus-within { outline: 3px solid var(--mu-accent); outline-offset: 2px; }
+.mu-root .search-bar input:focus-visible { outline: none; }
+.mu-root .search-bar icon { color: var(--mu-icon); cursor: pointer; }
+.mu-root .top-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 60px;
+  padding: 0 8px;
+  border-radius: var(--mu-radius-pill) !important;
+}
+.mu-root .topbar-item {
+  display: inline-grid;
+  place-items: center;
+  width: var(--mu-control);
+  height: var(--mu-control);
+  border-radius: 50%;
+  color: var(--mu-icon);
+  cursor: pointer;
+}
+.mu-root .topbar-item:hover { background: var(--mu-hover); }
+.mu-root .topbar-item.active { background: var(--mu-current-bg); color: var(--mu-current-text); }
+.mu-root .munetios-account-slot { display: flex; align-items: center; margin-inline-start: 4px; }
+.mu-root .munetios-account-slot .account-sign-in .mu-icon { display: none; }
+
+/* ------------------------------------------------------------ panels */
+.mu-root :is(.home-panel, .directions-panel, .near-me-panel, .search-results-container) {
+  border-radius: var(--mu-radius-xl) !important;
+  padding: 18px 20px;
+}
+.mu-root .home-panel h2,
+.mu-root .directions-panel-header h2,
+.mu-root .near-me-panel-header h2 { font-size: var(--mu-fs-title); font-weight: 300; margin: 0 0 8px; }
+.mu-root :is(.directions-panel-header, .near-me-panel-header, .search-results-header) { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mu-root .clear-search-btn {
+  display: inline-grid;
+  place-items: center;
+  width: var(--mu-control);
+  height: var(--mu-control);
+  border-radius: 50%;
+  background: var(--mu-field);
+  color: var(--mu-icon);
+  cursor: pointer;
+}
+.mu-root .clear-search-btn:hover { background: var(--mu-field-hover); }
+.mu-root .directions-mode-tabs { display: flex; gap: 6px; padding: 6px; border-radius: var(--mu-radius-pill); background: var(--mu-field); }
+.mu-root .dir-mode-btn {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--mu-radius-pill);
+  background: transparent;
+  color: var(--mu-text-muted);
+  cursor: pointer;
+}
+.mu-root .dir-mode-btn.active { background: var(--mu-current-bg); color: var(--mu-current-text); }
+.mu-root .dir-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--mu-control);
+  padding: 0 18px;
+  border-radius: var(--mu-radius-pill);
+  border: 1px solid var(--mu-border);
+  background: var(--mu-field);
+}
+.mu-root .dir-input-row:focus-within { border-color: var(--mu-current-border); background: var(--mu-field-hover); }
+.mu-root .dir-input-row input { flex: 1 1 auto; min-width: 0; border: 0; background: transparent; color: var(--mu-text); outline: none; font-size: 18px; }
+.mu-root .dir-input-row icon { color: var(--mu-icon); }
+.mu-root .dir-swap-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--mu-border);
+  border-radius: 50%;
+  background: var(--mu-field);
+  color: var(--mu-icon);
+  cursor: pointer;
+}
+.mu-root :is(.dir-go-btn, .start-nav-btn, .draw-route-btn, .route-clear-btn, .confirm-ok-btn, .confirm-cancel-btn, .marker-editor-btn, .settings-danger-btn, .captcha-btn, .file-picker-btn) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--mu-control);
+  padding: 0 22px;
+  border-radius: var(--mu-radius-pill);
+  border: 1px solid var(--mu-border);
+  background: var(--mu-field);
+  color: var(--mu-text);
+  font-size: 18px;
+  font-weight: 400;
+  cursor: pointer;
+}
+.mu-root :is(.dir-go-btn, .start-nav-btn, .confirm-ok-btn, .marker-editor-btn.primary, .captcha-btn) {
+  background: var(--mu-accent);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--mu-accent) 32%, transparent);
+}
+.mu-root :is(.draw-route-btn, .route-clear-btn, .confirm-cancel-btn, .file-picker-btn):hover { background: var(--mu-field-hover); }
+.mu-root .settings-danger-btn { color: var(--mu-danger); border-color: color-mix(in srgb, var(--mu-danger) 45%, transparent); background: transparent; }
+.mu-root .draw-toolbar { border-radius: var(--mu-radius-lg); padding: 10px 14px; background: var(--mu-glass-flat); }
+.mu-root .draw-toolbar-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: var(--mu-radius-pill);
+  border: 1px solid var(--mu-border);
+  background: var(--mu-field);
+  color: var(--mu-text);
+  font-size: 18px;
+}
+.mu-root .draw-toolbar-actions icon { font-size: 20px !important; }
+
+/* List rows in panels and dialogs */
+.mu-root :is(.search-result-item, .history-item, .bookmark-item, .marker-item, .near-me-item, .autocomplete-item, .dir-step) {
+  border-radius: var(--mu-radius-md);
+  padding: 12px 14px;
+  gap: 12px;
+  color: var(--mu-text);
+}
+.mu-root :is(.search-result-item, .history-item, .bookmark-item, .marker-item, .near-me-item, .autocomplete-item):hover { background: var(--mu-hover); }
+.mu-root :is(.search-result-address, .history-item-time, .bookmark-item-address, .marker-item-coords, .near-me-item-addr, .autocomplete-item-addr, .dir-step-dist, .modal-empty) { color: var(--mu-text-muted); font-size: 18px; }
+.mu-root :is(.history-remove-btn, .bookmark-remove-btn, .marker-remove-btn, .result-action-btn) {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  color: var(--mu-icon);
+  cursor: pointer;
+}
+.mu-root :is(.history-remove-btn, .bookmark-remove-btn, .marker-remove-btn):hover { background: color-mix(in srgb, var(--mu-danger) 14%, transparent); color: var(--mu-danger); }
+.mu-root .result-action-btn:hover { background: var(--mu-hover); }
+.mu-root .near-me-cat-btn {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: var(--mu-radius-pill);
+  border: 1px solid var(--mu-border);
+  background: var(--mu-field);
+  color: var(--mu-text);
+  font-size: 18px;
+  cursor: pointer;
+}
+.mu-root .near-me-cat-btn.active { background: var(--mu-current-bg); border-color: var(--mu-current-border); color: var(--mu-current-text); }
+.mu-root .autocomplete-list,
+.mu-root .dropdowns-list {
+  border-radius: var(--mu-radius-lg) !important;
+  border: 1px solid var(--mu-border);
+  background: linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass) !important;
+  box-shadow: var(--mu-shadow), 0 18px 48px rgba(0, 0, 0, 0.18);
+  backdrop-filter: var(--mu-blur);
+  -webkit-backdrop-filter: var(--mu-blur);
+  color: var(--mu-text);
+  padding: 8px;
+}
+.mu-root .custom-dropdown-item {
+  min-height: 48px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  border-radius: var(--mu-radius-pill);
+  cursor: pointer;
+}
+.mu-root .custom-dropdown-item:hover { background: var(--mu-hover); }
+.mu-root .custom-dropdown-item.selected { background: var(--mu-current-bg); color: var(--mu-current-text); }
+.mu-root .custom-dropdown-btn { min-height: 44px; padding: 0 16px; border-radius: var(--mu-radius-pill); background: var(--mu-field); border: 1px solid var(--mu-border); color: var(--mu-text); }
+
+/* ------------------------------------------------------------ map controls */
+.mu-root :is(.pan-controls, .zoom-controls, .layers-selector) { border-radius: var(--mu-radius-xl) !important; }
+.mu-root :is(.pan-btn, .zoom-control, .pan-center) { color: var(--mu-icon); border-radius: 50%; }
+.mu-root :is(.pan-btn, .zoom-control):hover { background: var(--mu-hover); }
+.mu-root .layer { border-radius: var(--mu-radius-lg); color: var(--mu-text); }
+.mu-root .layer:hover { background: var(--mu-hover); }
+.mu-root .layer.active { background: var(--mu-current-bg); color: var(--mu-current-text); }
+.mu-root .layer-subtitle { color: var(--mu-text-muted); }
+.mu-root .layer-label, .mu-root .layer-subtitle { font-size: 18px; line-height: 1.2; }
+/* Tools tray: roomier tiles so labels don't wrap word by word */
+.mu-root .tools-tray {
+  border-radius: var(--mu-radius-xl) !important;
+  padding: 12px !important;
+  gap: 6px !important;
+  width: min(720px, calc(100vw - var(--maps-rail) - 60px)) !important;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+}
+.mu-root .tools-tray .layer { min-height: 72px; padding: 10px 14px; align-items: center; }
+.mu-root .tools-tray .layer-text { min-width: 0; }
+.mu-root .footer { border-radius: var(--mu-radius-pill) !important; padding: 4px 14px; }
+.mu-root .footer .attribution, .mu-root .footer .attribution a, .mu-root .footer .attribution p { font-family: "Munetios UI v4 Font", system-ui, sans-serif; font-size: 18px; color: var(--mu-text-muted); }
+
+/* ------------------------------------------------------------ dialogs */
+.mu-root .modal-backdrop,
+.mu-root .stacked-settings-backdrop {
+  background: color-mix(in srgb, var(--mu-backdrop) 45%, transparent) !important;
+  backdrop-filter: blur(2px) saturate(130%) brightness(0.96);
+  -webkit-backdrop-filter: blur(2px) saturate(130%) brightness(0.96);
+}
+.mu-root :is(.modal, .stacked-settings-modal) {
+  border-radius: var(--mu-radius-xl) !important;
+  background: linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass) !important;
+  border: 1px solid var(--mu-border) !important;
+  box-shadow: var(--mu-shadow), 0 30px 80px rgba(0, 0, 0, 0.24) !important;
+  color: var(--mu-text) !important;
+}
+.mu-root .modal { max-width: 560px; max-height: calc(100vh - 48px); }
+.mu-root :is(.modal-header, .settings-header) { padding: 20px 20px 14px 24px; border-bottom: 1px solid var(--mu-divider); gap: 12px; }
+.mu-root :is(.modal-title, .settings-title) { font-size: var(--mu-fs-section); font-weight: 300; }
+.mu-root :is(.modal-close, .settings-close, .custom-map-popup-close) {
+  display: inline-grid;
+  place-items: center;
+  width: var(--mu-control);
+  height: var(--mu-control);
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--mu-field);
+  color: var(--mu-icon);
+  opacity: 1 !important;
+  cursor: pointer;
+}
+.mu-root :is(.modal-close, .settings-close, .custom-map-popup-close):hover { background: var(--mu-field-hover); }
+.mu-root .modal-body { padding: 14px 16px 18px; gap: 6px; }
+.mu-root .settings-row { border-radius: var(--mu-radius-lg); padding: 14px 18px; }
+.mu-root .settings-tab { border-radius: var(--mu-radius-pill); min-height: 48px; padding: 0 16px; font-size: 18px; }
+.mu-root .settings-tab.active { background: var(--mu-current-bg); color: var(--mu-current-text); }
+.mu-root .settings-section-label { color: var(--mu-text-muted); font-size: 18px; letter-spacing: 0.02em; }
+.mu-root :is(.theme-opt, .pp-size-opt, .pp-tile-opt, .pp-orient-opt) { border-radius: var(--mu-radius-pill); min-height: 44px; padding: 0 16px; }
+.mu-root .marker-editor-input,
+.mu-root .custom-layer-input,
+.mu-root .captcha-input,
+.mu-root input.marker-editor-input {
+  min-height: var(--mu-control);
+  padding: 0 18px;
+  border-radius: var(--mu-radius-pill);
+  border: 1px solid var(--mu-border);
+  background: var(--mu-field);
+  color: var(--mu-text);
+  font-size: 18px;
+}
+.mu-root .custom-map-popup-card {
+  border-radius: var(--mu-radius-lg) !important;
+  background: linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass) !important;
+  border: 1px solid var(--mu-border);
+  color: var(--mu-text);
+  box-shadow: var(--mu-shadow);
+}
+.mu-root .ctx-item { min-height: 48px; padding: 0 16px; border-radius: var(--mu-radius-pill); display: flex; align-items: center; gap: 12px; }
+.mu-root .ctx-item:hover { background: var(--mu-hover); }
+.mu-root .body-tooltip { border-radius: var(--mu-radius-pill); font-size: 18px; padding: 6px 14px; background: linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass); color: var(--mu-text); border: 1px solid var(--mu-border); }
+
+/* Nav drawer */
+.mu-root .nav-drawer { border-radius: 0 var(--mu-radius-xl) var(--mu-radius-xl) 0 !important; }
+.mu-root .nav-item { border-radius: var(--mu-radius-pill); min-height: 52px; padding: 0 18px; gap: 14px; }
+.mu-root .nav-item:hover { background: var(--mu-hover); }
+.mu-root .nav-section-label { color: var(--mu-text-muted); font-size: 18px; }
+.mu-root .nav-drawer-title { font-size: var(--mu-fs-title); font-weight: 300; }
+
+/* Toasts float above every dialog */
+.mu-toast-stack { z-index: 100000 !important; }
+
+/* ------------------------------------------------------------ responsive */
+@media (max-width: 900px) {
+  :root { --maps-rail: 0px; }
+  .mu-root .topbar-container { margin-left: 0; padding: 12px; }
+  .mu-root .left-panel-containers { left: 0; top: 80px; }
+  .mu-root .tools-tray { width: calc(100vw - 24px) !important; }
+}
+@media (max-width: 560px) {
+  .mu-root .munetios-account-slot .account-sign-in { width: 48px; padding-inline: 0; overflow: hidden; }
+  .mu-root .munetios-account-slot .account-sign-in [data-signin-label] { display: none; }
+  .mu-root .munetios-account-slot .account-sign-in .mu-icon { display: inline-block; }
+  .mu-root #appsBtn, .mu-root #mfPaletteBtn { display: none; }
+  .mu-root .tools-tray { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important; }
+}
+
+/* ------------------------------------------------------------ fixes found in the UI audit */
+/* The original stylesheet forces the UI font on every element with !important; icons need their own font back. */
+.mu-root .mu-icon,
+.mu-root .material-symbols-rounded,
+.mu-icon,
+.mu-root icon {
+  font-family: "Material Symbols Rounded" !important;
+  font-weight: normal !important;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  font-feature-settings: "liga" 1;
+}
+/* The original also set wght 480 on all text, which reads as semi-bold: keep v4 weights (300 headings, 400 text). */
+.mu-root *:not(.mu-icon):not(icon):not(.material-symbols-rounded) { font-variation-settings: "ROND" 50; }
+/* The mobile menu icon belongs to phones only */
+@media (min-width: 901px) { .mu-root .show-mobile { display: none !important; } }
+@media (max-width: 900px) { .mu-root .hide-mobile { display: none !important; } .mu-root .show-mobile { display: inline-block !important; } }
+/* Side rail: wide enough for whole words at 18px */
+:root { --maps-rail: 124px; }
+.mu-root .sidebar-content { display: flex; flex-direction: column; justify-content: flex-start; gap: 4px; }
+.mu-root .sidebar-item .sidebar-label { overflow-wrap: normal; word-break: normal; hyphens: auto; }
+
+/* Phone layout (matches the original 768px breakpoint where the side rail hides) */
+@media (max-width: 900px) and (min-width: 769px) {
+  :root { --maps-rail: 124px; }
+  .mu-root .topbar-container { margin-left: calc(var(--maps-rail) + 20px); }
+  .mu-root .left-panel-containers { left: calc(var(--maps-rail) + 12px); top: 84px; }
+}
+@media (max-width: 768px) {
+  :root { --maps-rail: 0px; }
+  .mu-root .search-bar { flex: 1 1 auto; min-width: 0; margin-right: 8px; }
+  .mu-root .top-right { flex: 0 0 auto; }
+  .mu-root .tools-tray,
+  .mu-root .tools-tray.open {
+    top: 84px !important;
+    left: 12px !important;
+    right: 12px !important;
+    bottom: auto !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: calc(100vh - 120px);
+    transform: none !important;
+    z-index: 8;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 560px) {
+  .mu-root #bookmarksBtn { display: none; }
+  .mu-root .tools-tray, .mu-root .tools-tray.open { grid-template-columns: 1fr !important; }
+}

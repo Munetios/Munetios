@@ -37,6 +37,10 @@ pattern = "weather.munetios.com/*"
 zone_name = "munetios.com"
 
 [[routes]]
+pattern = "maps.munetios.com/*"
+zone_name = "munetios.com"
+
+[[routes]]
 pattern = "webfilter.munetios.com"
 custom_domain = true
 
@@ -51,9 +55,17 @@ service = "munetios-developer-beta-db"
 name = "WEATHER_RATE_LIMITER"
 class_name = "WeatherRateLimiter"
 
+[[durable_objects.bindings]]
+name = "MAPS_TRAFFIC"
+class_name = "MapsTraffic"
+
 [[migrations]]
 tag = "weather-rate-limit-v1"
 new_sqlite_classes = ["WeatherRateLimiter"]
+
+[[migrations]]
+tag = "maps-traffic-v1"
+new_sqlite_classes = ["MapsTraffic"]
 
 [assets]
 directory = "./assets"

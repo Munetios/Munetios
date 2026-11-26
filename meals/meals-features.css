@@ -1,0 +1,118 @@
+/* Munetios Meals feature styles, built on Munetios UI v4 tokens. */
+
+/* Form extras */
+.mf-when { justify-content: space-between; }
+.mf-nutrition { gap: 12px; }
+.mf-nutrition-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.mf-diet-chips, .mf-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.mf-diet-chips .mu-chip, .mf-filter-chips .mu-chip { min-height: 44px; }
+.mf-diet-chips .mu-chip[aria-pressed="true"],
+.mf-filter-chips .mu-chip[aria-pressed="true"] { background: var(--mu-current-bg); border-color: var(--mu-current-border); color: var(--mu-current-text); }
+.mf-diet-chips .mu-icon, .mf-filter-chips .mu-icon { font-size: 20px; }
+
+/* Card extras */
+.mf-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.mf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--mu-radius-pill);
+  border: 1px solid var(--mu-border);
+  background: var(--mu-field);
+  color: var(--mu-text-muted);
+  white-space: nowrap;
+}
+.mf-badge .mu-icon { font-size: 20px; }
+.mf-badge.is-kcal { color: var(--mu-text); }
+.mf-badge.is-kcal .mu-icon { color: #ff8a3d; }
+.mf-badge.is-diet { color: var(--mu-success); border-color: color-mix(in srgb, var(--mu-success) 40%, transparent); }
+.mf-rating { display: flex; gap: 2px; margin-inline-start: -8px; }
+.mf-star { display: inline-grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: transparent; color: var(--mu-text-muted); cursor: pointer; }
+.mf-star:hover { background: var(--mu-hover); color: var(--mu-warning); }
+.mf-star.is-on { color: var(--mu-warning); }
+
+/* Toolbar + today */
+.mf-toolbar { display: grid; gap: 12px; padding: 14px; border-radius: var(--mu-radius-xl); border: 1px solid var(--mu-border); background: var(--mu-glass-flat); }
+.mf-toolbar-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.mf-sort { display: flex; align-items: center; gap: 8px; flex: 0 1 320px; min-width: 220px; }
+.mf-sort > .mu-icon { color: var(--mu-icon); margin-inline-start: 6px; }
+.mf-sort .mu-select-button, .mf-sort select { width: 100%; }
+.mf-today { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; padding: 18px 22px; border-radius: var(--mu-radius-xl); }
+.mf-today[hidden] { display: none; }
+.mf-today-text { display: grid; gap: 2px; flex: 1 1 240px; }
+.mf-macros { display: flex; flex-wrap: wrap; gap: 8px; }
+#mealsList { margin-top: 2px; }
+
+/* Recipe */
+.mf-recipe { gap: 16px; }
+.mf-recipe-image { width: 100%; max-height: 280px; object-fit: cover; border-radius: var(--mu-radius-lg); }
+.mf-recipe-facts { display: flex; flex-wrap: wrap; gap: 8px; }
+.mf-servings { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 10px 10px 20px; border-radius: var(--mu-radius-pill); border: 1px solid var(--mu-border); background: var(--mu-glass-flat); }
+.mf-stepper { display: flex; align-items: center; gap: 6px; }
+.mf-servings-value { min-width: 40px; text-align: center; font-size: var(--mu-fs-title); font-variant-numeric: tabular-nums; }
+.mf-recipe-section { display: grid; gap: 10px; }
+.mf-recipe-section p { margin: 0; line-height: 1.55; }
+.mf-ingredients { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.mf-ingredients li { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 16px; border-radius: var(--mu-radius-pill); background: var(--mu-field); }
+.mf-ingredients li .mu-icon { color: var(--mu-success); }
+.mf-steps { display: grid; gap: 10px; margin: 0; padding-inline-start: 0; list-style: none; counter-reset: step; }
+.mf-steps li { position: relative; padding: 12px 16px 12px 60px; border-radius: var(--mu-radius-md); background: var(--mu-field); line-height: 1.55; counter-increment: step; }
+.mf-steps li::before { content: counter(step); position: absolute; inset-inline-start: 14px; top: 10px; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--mu-accent); color: #ffffff; }
+[dir="rtl"] .mf-steps li { padding: 12px 60px 12px 16px; }
+
+/* Week planner */
+.mf-week-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+.mf-week-head h2 { flex: 1 1 auto; text-align: center; }
+.mf-week-grid { display: grid; grid-template-columns: repeat(7, minmax(150px, 1fr)); gap: 10px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+.mf-day { display: grid; align-content: start; gap: 8px; padding: 12px; border-radius: var(--mu-radius-lg); box-shadow: none !important; }
+.mf-day.is-today { border-color: var(--mu-current-border); }
+.mf-day-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 2px 4px 8px; border-bottom: 1px solid var(--mu-divider); }
+.mf-day-name { color: var(--mu-text-muted); }
+.mf-day-num { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; }
+.mf-day.is-today .mf-day-num { background: var(--mu-accent); color: #ffffff; }
+.mf-day-head .mf-badge { min-height: 30px; padding: 0 10px; }
+.mf-slot { display: grid; gap: 6px; padding: 6px 0; }
+.mf-slot-label { color: var(--mu-text-muted); padding: 0 4px; }
+.mf-slot-meal { display: grid; gap: 0; padding: 8px 12px; border: 1px solid var(--mu-current-border); border-radius: var(--mu-radius-md); background: var(--mu-current-bg); color: var(--mu-text); text-align: start; cursor: pointer; }
+.mf-slot-meal:hover { filter: brightness(1.08); }
+.mf-slot-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mf-slot-add { display: grid; place-items: center; min-height: 40px; border: 1px dashed var(--mu-border); border-radius: var(--mu-radius-md); background: transparent; color: var(--mu-text-muted); cursor: pointer; }
+.mf-slot-add:hover { border-color: var(--mu-current-border); color: var(--mu-current-text); background: var(--mu-current-bg); }
+
+/* Shopping list */
+.mf-shop-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.mf-shop-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.mf-shop-add { display: flex; gap: 10px; margin-bottom: 14px; }
+.mf-shop-add .mu-input { flex: 1 1 auto; }
+.mf-shop-list { display: grid; gap: 8px; }
+.mf-shop-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  min-height: 60px;
+  padding: 10px 14px 10px 18px;
+  border-radius: var(--mu-radius-lg);
+  border: 1px solid var(--mu-border);
+  background: var(--mu-glass);
+  cursor: pointer;
+}
+.mf-shop-item input { width: 24px; height: 24px; margin: 0; accent-color: var(--mu-accent); flex: 0 0 auto; }
+.mf-shop-name { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+.mf-shop-meals { flex: 1 1 100%; padding-inline-start: 38px; overflow-wrap: anywhere; }
+.mf-shop-item.is-done .mf-shop-name { text-decoration: line-through; color: var(--mu-text-muted); }
+.mf-shop-item.is-done { opacity: 0.75; }
+
+@media (max-width: 715px) {
+  .mf-nutrition-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mf-shop-add { flex-direction: column; }
+  .mf-sort { flex: 1 1 100%; }
+}
+@media print {
+  body.mu-root > *:not(.mu-modal) { display: none !important; }
+  .mu-modal { position: static !important; background: none !important; backdrop-filter: none !important; }
+  .mf-recipe { box-shadow: none !important; border: 0 !important; background: #fff !important; color: #000 !important; max-height: none !important; }
+  .mf-recipe .mu-dialog-actions, .mf-recipe [data-mu-close], .mf-stepper .mu-icon-btn { display: none !important; }
+}

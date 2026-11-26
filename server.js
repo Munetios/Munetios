@@ -65,6 +65,9 @@ app.use('/api/collab', require('./collab/router').createCollabRouter({
   env: authEnv,
 }));
 
+// Munetios Maps: self-hosted satellite tiles and live traffic from anonymous, opt-in speed reports.
+app.use('/api/maps', require('./maps-server/router').createMapsRouter());
+
 app.get('/api/favicon',require('./favicon-proxy').createFaviconRoute({ lookup: dns.lookup }));
 
 const weatherApi = import('./developer-beta/weather-api.mjs').then(api => ({
@@ -79,7 +82,7 @@ app.use('/api/weather', async (req, res) => {
 });
 
 // Keep server-side files out of the static site.
-const PRIVATE_PATHS = /^\/(server\.js|favicon-proxy\.js|package(-lock)?\.json|claude\.md|(?:auth|collab|youtube|webfilter-api|mail-worker|developer-beta)(\/|$)|node_modules(\/|$)|\.)/i;
+const PRIVATE_PATHS = /^\/(server\.js|favicon-proxy\.js|package(-lock)?\.json|claude\.md|(?:auth|collab|youtube|webfilter-api|mail-worker|developer-beta|maps-server)(\/|$)|node_modules(\/|$)|\.)/i;
 app.use((req, res, next) => {
   try {
     const pathname = path.posix.normalize(decodeURIComponent(req.path).replace(/\\/g, "/"));

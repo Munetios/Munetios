@@ -1,0 +1,215 @@
+/* Munetios Maps feature styles, built on Munetios UI v4 tokens. */
+
+/* Compass, 3D, full screen */
+.mf-controls {
+  position: fixed;
+  top: 96px;
+  right: 20px;
+  z-index: 50;
+  display: grid;
+  gap: 10px;
+}
+.mf-ctrl {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--mu-icon);
+  font: inherit;
+  cursor: pointer;
+}
+.mf-ctrl:hover { background: linear-gradient(var(--mu-hover), var(--mu-hover)), var(--mu-glass); }
+.mf-ctrl[aria-pressed="true"] { background: linear-gradient(var(--mu-current-bg), var(--mu-current-bg)), var(--mu-glass); color: var(--mu-current-text); }
+.mf-ctrl-text { font-size: 18px; letter-spacing: 0.02em; }
+.mf-compass-needle { display: grid; place-items: center; transition: transform 0.12s linear; }
+.mf-compass-needle .mu-icon { color: #ff6b5e; font-size: 28px; }
+
+/* Center coordinates readout */
+.mf-readout-wrap {
+  position: fixed;
+  left: 50%;
+  bottom: 60px;
+  z-index: 40;
+  display: flex;
+  gap: 8px;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 24px);
+}
+.mf-readout, .mf-readout-format {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: var(--mu-radius-pill);
+  color: var(--mu-text);
+  font: inherit;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mf-readout .mu-icon { color: var(--mu-accent); font-size: 22px; }
+.mf-readout-format { padding: 0 16px; color: var(--mu-current-text); }
+.mf-readout:hover, .mf-readout-format:hover { background: linear-gradient(var(--mu-hover), var(--mu-hover)), var(--mu-glass); }
+
+/* MapLibre scale bar */
+.maplibregl-ctrl-bottom-left { left: calc(var(--maps-rail, 108px) + 24px) !important; bottom: 56px !important; }
+.maplibregl-ctrl-scale {
+  border: 2px solid var(--mu-text) !important;
+  border-top: 0 !important;
+  border-radius: 0 0 6px 6px;
+  background: var(--mu-glass) !important;
+  color: var(--mu-text) !important;
+  font-family: "Munetios UI v4 Font", system-ui, sans-serif !important;
+  font-size: 18px !important;
+  line-height: 1.4;
+  padding: 0 8px !important;
+}
+
+/* Measure panel */
+.mf-measure {
+  position: fixed;
+  left: 50%;
+  top: 92px;
+  z-index: 60;
+  display: grid;
+  gap: 6px;
+  width: min(440px, calc(100vw - 24px));
+  padding: 16px 18px;
+  border-radius: var(--mu-radius-xl);
+  transform: translateX(-50%);
+}
+.mf-measure[hidden] { display: none; }
+.mf-measure-head { display: flex; align-items: center; gap: 10px; }
+.mf-measure-head > .mu-icon { color: var(--mu-accent); }
+.mf-measure-head h2 { flex: 1 1 auto; }
+.mf-measure-value { font-size: var(--mu-fs-section); font-weight: 300; font-variant-numeric: tabular-nums; }
+.mf-measure-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.mf-measure-actions .mu-btn { flex: 1 1 auto; }
+
+/* Temporary pin + popup content */
+.mf-temp-pin {
+  width: 26px;
+  height: 26px;
+  border-radius: 50% 50% 50% 0;
+  background: var(--mu-accent);
+  border: 3px solid #ffffff;
+  transform: rotate(-45deg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.mf-pin-popup { display: grid; gap: 4px; }
+.mf-pin-coords { font-size: 18px; font-variant-numeric: tabular-nums; }
+
+/* Dialog bodies */
+.mf-modal .mu-dialog { gap: 16px; }
+.mf-sun { display: grid; gap: 8px; }
+.mf-sun p { margin: 0 0 4px; }
+.mf-sun-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 18px;
+  border-radius: var(--mu-radius-pill);
+  border: 1px solid var(--mu-border);
+  background: var(--mu-field);
+}
+.mf-sun-row .mu-icon { color: var(--mu-warning); }
+.mf-sun-time { font-variant-numeric: tabular-nums; }
+.mf-sun-polar { padding: 14px 18px; border-radius: var(--mu-radius-md); background: var(--mu-current-bg); color: var(--mu-current-text); }
+.mf-views-body { display: grid; gap: 14px; }
+.mf-views-body > .mu-btn { justify-self: start; }
+.mf-views { display: grid; gap: 8px; max-height: 50vh; overflow-y: auto; }
+.mf-view-row { display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: var(--mu-radius-lg); border: 1px solid var(--mu-border); background: var(--mu-glass-flat); }
+.mf-view-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--mu-radius-md);
+  background: transparent;
+  color: var(--mu-text);
+  font: inherit;
+  font-size: 18px;
+  text-align: start;
+  cursor: pointer;
+}
+.mf-view-open:hover { background: var(--mu-hover); }
+.mf-view-open > .mu-icon { color: var(--mu-accent); }
+.mf-view-text { display: grid; min-width: 0; }
+.mf-view-name, .mf-view-text .mu-muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mf-danger { color: var(--mu-danger); }
+.mf-shortcuts { display: grid; gap: 2px; }
+.mf-shortcut { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 0 6px; border-bottom: 1px solid var(--mu-divider); }
+.mf-shortcut:last-child { border-bottom: 0; }
+.mf-keys { display: inline-flex; gap: 6px; }
+
+/* Markers dialog additions */
+.mf-marker-tools { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 12px 16px 4px; }
+.mf-marker-search { grid-column: 1 / -1; }
+.mf-marker-search { min-height: 48px; }
+.mf-marker-search-input { flex: 1 1 auto; min-width: 0; border: 0; background: transparent; color: var(--mu-text); font: inherit; font-size: 18px; outline: none; }
+.mf-marker-sort { min-width: 0; }
+.mf-marker-sort .mu-select-button { width: 100%; }
+.mf-marker-actions { display: flex; gap: 8px; }
+.mf-marker-actions .mu-btn { flex: 1 1 auto; }
+.marker-item[hidden] { display: none !important; }
+.mf-marker-rename:hover { background: var(--mu-hover) !important; color: var(--mu-text) !important; }
+
+/* Undo bar */
+.mf-undo {
+  position: fixed;
+  left: 50%;
+  bottom: 120px;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 8px 8px 22px;
+  border-radius: var(--mu-radius-pill);
+  transform: translateX(-50%);
+}
+.mf-undo[hidden] { display: none; }
+.mf-undo-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Tool tiles that toggle */
+.mf-tool[aria-pressed="true"] { background: var(--mu-current-bg); color: var(--mu-current-text); }
+
+@media (max-width: 900px) {
+  .maplibregl-ctrl-bottom-left { left: 12px !important; }
+  .mf-controls { top: 88px; right: 12px; }
+  .mf-ctrl { width: 48px; height: 48px; }
+}
+@media (max-width: 560px) {
+  .mf-readout-wrap { bottom: 64px; }
+  .mf-readout { max-width: 62vw; }
+  .mf-marker-tools { grid-template-columns: 1fr; }
+  .mf-marker-sort { min-width: 0; }
+  .mf-measure { top: 84px; }
+}
+
+/* The readout steps aside while the tools tray is open */
+.mf-readout-wrap { z-index: 2; transition: opacity 0.15s ease; }
+body:has(.tools-tray.open) .mf-readout-wrap { opacity: 0; pointer-events: none; }
+@media (max-width: 768px) {
+  .mf-controls { top: 84px; left: 12px; right: auto; }
+}
+@media (max-width: 560px) {
+  .mf-readout-wrap { display: none; }
+  .maplibregl-ctrl-bottom-left { bottom: auto !important; top: 260px; left: 12px !important; }
+}
+@media (max-width: 768px) { body:has(.tools-tray.open) .mf-controls { display: none; } }
+
+/* Space around the globe when zoomed out */
+#mapCanvas { background: radial-gradient(ellipse at 50% 45%, #0d1b3d 0%, #070d22 45%, #03050d 100%); }
