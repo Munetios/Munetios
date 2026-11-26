@@ -183,6 +183,11 @@
     if (action === "workspace") {
       try {
         if (window.OmniWriteSync?.openWorkspace) { window.OmniWriteSync.openWorkspace(button.dataset.id); closeMenu(false); }
+        else if (window.MunetiosWorkspaceScope) {
+          // Apps with per-workspace data switch in place: reload into the chosen workspace.
+          closeMenu(false);
+          if (button.dataset.id !== window.MunetiosWorkspaceScope.id) { A.workspaces.setActive(button.dataset.id); location.reload(); }
+        }
         else { A.workspaces.setActive(button.dataset.id); location.href = "/omniwrite/"; }
       } catch { notify(t("workspaceOpenFailed"), "error"); }
       return;

@@ -14,6 +14,7 @@
   const OWNER_KEY = "munetios-meals-owner";
   const PREF_KEYS = ["munetios-meals-preferences", "munetios-meals-features"];
   const stashKey = (owner) => "munetios-meals-stash:" + owner;
+  const scopeSuffix = window.MunetiosWorkspaceScope?.suffix || "";
 
   // The cached account decides which local data to open; account-core confirms it once it loads.
   let owner = "guest";
@@ -23,7 +24,8 @@
   } catch {}
   try {
     const previous = localStorage.getItem(OWNER_KEY) || "guest";
-    if (previous !== owner) {
+    const storeOwner = owner + scopeSuffix;
+    if (previous !== storeOwner) {
       const stash = {};
       for (const key of PREF_KEYS) {
         const value = localStorage.getItem(key);
@@ -32,17 +34,17 @@
       }
       if (Object.keys(stash).length) localStorage.setItem(stashKey(previous), JSON.stringify(stash));
       let restore = {};
-      try { restore = JSON.parse(localStorage.getItem(stashKey(owner)) || "{}") || {}; } catch {}
+      try { restore = JSON.parse(localStorage.getItem(stashKey(storeOwner)) || "{}") || {}; } catch {}
       for (const [key, value] of Object.entries(restore)) if (PREF_KEYS.includes(key) && typeof value === "string") localStorage.setItem(key, value);
-      localStorage.removeItem(stashKey(owner));
-      localStorage.setItem(OWNER_KEY, owner);
+      localStorage.removeItem(stashKey(storeOwner));
+      localStorage.setItem(OWNER_KEY, storeOwner);
     }
   } catch {}
 
   let resolveReady;
   const workspace = {
     owner,
-    dbName: owner === "guest" ? "munetios-meals-db" : "munetios-meals-db:account:" + owner,
+    dbName: (owner === "guest" ? "munetios-meals-db" : "munetios-meals-db:account:" + owner) + (scopeSuffix ? "::" + window.MunetiosWorkspaceScope.id : ""),
     ready: new Promise((resolve) => { resolveReady = resolve; }),
   };
   window.MealsWorkspace = workspace;
@@ -51,7 +53,7 @@
   const PREFS_PREFIX = "munetios-meals-prefs:";
   const encoder = new TextEncoder();
   const hex = (buffer) => Array.from(new Uint8Array(buffer), (b) => b.toString(16).padStart(2, "0")).join("");
-  const stampKey = () => "munetios-meals-prefs-stamps:" + owner;
+  const stampKey = () => "munetios-meals-prefs-stamps:" + owner + scopeSuffix;
   // Settings change times come from content signatures, so an unchanged setting never looks newer.
   async function stamped(key, value) {
     const signature = hex(await crypto.subtle.digest("SHA-256", encoder.encode(value)));

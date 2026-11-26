@@ -43,7 +43,7 @@
   const plainSpaced = (html) => plain(String(html || "").replace(/<\/(li|p|div|h[1-6]|blockquote|pre)>|<br\s*\/?>/gi, "$& ")).replace(/\s+/g, " ").trim();
 
   /* ------------------------------------------------------------ settings */
-  const owner = () => (window.SupaNotesWorkspace && window.SupaNotesWorkspace.accountId) || "guest";
+  const owner = () => ((window.SupaNotesWorkspace && window.SupaNotesWorkspace.accountId) || "guest") + (window.MunetiosWorkspaceScope?.suffix || "");
   const VIEW = { sort: "updated", layout: "grid", tag: "all", color: "all" };
   const SHARED = { autosave: true, templates: [], updatedAt: 0 };
   const read = (key, base) => { try { return { ...base, ...JSON.parse(localStorage.getItem(key) || "{}") }; } catch { return { ...base }; } };

@@ -17,6 +17,7 @@
   ];
   const OWNER_KEY = "munetios-maps-owner";
   const stashKey = (owner) => "munetios-maps-stash:" + owner;
+  const scopeSuffix = window.MunetiosWorkspaceScope?.suffix || "";
   let owner = "guest";
   try {
     const cached = JSON.parse(localStorage.getItem("munetios-account-cache") || "null");
@@ -24,7 +25,8 @@
   } catch {}
   try {
     const previous = localStorage.getItem(OWNER_KEY) || "guest";
-    if (previous !== owner) {
+    const storeOwner = owner + scopeSuffix;
+    if (previous !== storeOwner) {
       const stash = {};
       for (const key of DATA_KEYS) {
         const value = localStorage.getItem(key);
@@ -33,11 +35,11 @@
       }
       if (Object.keys(stash).length) localStorage.setItem(stashKey(previous), JSON.stringify(stash));
       let restore = {};
-      try { restore = JSON.parse(localStorage.getItem(stashKey(owner)) || "{}") || {}; } catch {}
+      try { restore = JSON.parse(localStorage.getItem(stashKey(storeOwner)) || "{}") || {}; } catch {}
       for (const [key, value] of Object.entries(restore)) if (DATA_KEYS.includes(key) && typeof value === "string") localStorage.setItem(key, value);
-      localStorage.removeItem(stashKey(owner));
-      localStorage.setItem(OWNER_KEY, owner);
+      localStorage.removeItem(stashKey(storeOwner));
+      localStorage.setItem(OWNER_KEY, storeOwner);
     }
   } catch {}
-  window.MapsWorkspace = Object.freeze({ owner, dataKeys: DATA_KEYS });
+  window.MapsWorkspace = Object.freeze({ owner, storeOwner: owner + scopeSuffix, dataKeys: DATA_KEYS });
 })();

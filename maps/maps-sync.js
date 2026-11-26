@@ -12,7 +12,7 @@
   const KEYS = workspace.dataKeys;
   const JSON_KEYS = new Set(KEYS);
   const itemKey = (key) => PREFIX + key;
-  const stampsKey = () => "munetios-maps-stamps:" + workspace.owner;
+  const stampsKey = () => "munetios-maps-stamps:" + (workspace.storeOwner || workspace.owner);
   const encoder = new TextEncoder();
   const hash = async (text) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(text || ""))), (b) => b.toString(16).padStart(2, "0")).join("");
   const readStamps = () => { try { return JSON.parse(localStorage.getItem(stampsKey()) || "{}") || {}; } catch { return {}; } };

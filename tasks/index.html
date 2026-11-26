@@ -32,6 +32,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
     <link rel="stylesheet" href="/munetios-ui/munetios-ui-v4.css" />
     <link rel="stylesheet" href="/account/account-menu.css" />
+    <script src="/account/workspace-scope.js"></script>
     <script defer src="/munetios-ui/munetios-ui-v4.js"></script>
     <script defer src="/account/account-i18n.js"></script>
     <script defer src="/account/account-core.js"></script>
@@ -946,8 +947,9 @@
           });
         }
         workspaceAccountId = activeAccount();
-        workspaceRow = workspaceAccountId === null ? "all" : "account:" + workspaceAccountId;
-        workspaceKey = workspaceAccountId === null ? "catKey" : workspaceRow;
+        const wsSuffix = window.MunetiosWorkspaceScope?.suffix || "";
+        workspaceRow = (workspaceAccountId === null ? "all" : "account:" + workspaceAccountId) + wsSuffix;
+        workspaceKey = workspaceAccountId === null && !wsSuffix ? "catKey" : workspaceRow;
         taskWorkspace = window.MunetiosTasksSync.create({
           account, accountId: workspaceAccountId, read: readWorkspace, write: writeWorkspace,
           replace: replaceWorkspace, defaults: DEFAULT_CATEGORIES,

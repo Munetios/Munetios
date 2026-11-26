@@ -74,7 +74,9 @@
     }
     const current = () => (account?.state.account ? String(account.state.account.id) : null);
     workspace.accountId = current();
-    workspace.dbName = workspace.accountId === null ? "SupaNotes_v1" : "SupaNotes_account_" + workspace.accountId;
+    // Each Munetios workspace has its own notes database (Personal keeps the original one).
+    const baseDb = workspace.accountId === null ? "SupaNotes_v1" : "SupaNotes_account_" + workspace.accountId;
+    workspace.dbName = window.MunetiosWorkspaceScope ? window.MunetiosWorkspaceScope.local(baseDb) : baseDb;
     resolveReady(workspace.accountId);
     account?.on(() => {
       if (!account.state.ready || current() === workspace.accountId) return;

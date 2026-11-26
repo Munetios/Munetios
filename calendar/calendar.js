@@ -25,7 +25,8 @@
   const DAY_MS = 86400000;
 
   /* ================================================================ settings */
-  const SETTINGS_KEY = "munetiosCalendar:settings";
+  // Each workspace keeps its own calendars and settings (Personal keeps the original names).
+  const SETTINGS_KEY = (window.MunetiosWorkspaceScope ? window.MunetiosWorkspaceScope.local("munetiosCalendar:settings") : "munetiosCalendar:settings");
   const DEFAULTS = {
     language: "system", view: "month", weekStart: "auto", dateFormat: "locale", timeFormat: "auto", meridiem: "nm-an",
     meridiemAm: "NM", meridiemPm: "AN", timeZone: "auto", secondaryTimeZone: "", worldClocks: [], showWeekNumbers: false,
@@ -187,7 +188,7 @@
   }
 
   /* ================================================================ storage (encrypted IndexedDB) */
-  const DB_NAME = "munetios-calendar-v4";
+  const DB_NAME = (window.MunetiosWorkspaceScope ? window.MunetiosWorkspaceScope.local("munetios-calendar-v4") : "munetios-calendar-v4");
   let dbPromise = null, cryptoKey = null;
   const req = (r) => new Promise((resolve, reject) => { r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
   function openDb() {
@@ -286,7 +287,8 @@
 
   /* ---------------------------------------------------------- migration from the previous Calendar */
   async function migrateLegacy() {
-    if (store.get("munetiosCalendar:migrated")) return;
+    // The previous Calendar's data belongs to Personal.
+    if (store.get("munetiosCalendar:migrated") || (window.MunetiosWorkspaceScope && !window.MunetiosWorkspaceScope.personal)) return;
     const legacySettings = {
       language: store.get("munetiosLang"), weekStart: store.get("munetiosWeekStarts"), holidayCountry: store.get("munetiosHolidayCountry"),
       density: store.get("munetiosCalendarDensity"), notifications: store.get("munetiosNotifications") === "on" ? true : null,

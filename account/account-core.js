@@ -499,7 +499,27 @@
   // After the server says "rateLimited", no sync runs until its Retry-After time has passed.
   let rateLimitedUntil = 0;
   function schedule(delay = 1500) { if (!config.autoSync || !state.syncEnabled) return; clearTimeout(timer); timer = setTimeout(() => { if (automaticSyncAllowed()) sync().catch(() => {}); }, Math.max(delay, rateLimitedUntil - Date.now())); }
-  function register(provider) { providers.set(provider.id, provider); schedule(400); }
+  // Apps whose data belongs to one workspace. Outside Personal, their sync keys live under
+  // "ws.<workspace id>." so each workspace has its own encrypted copy; Personal keeps its keys as they were.
+  const WORKSPACE_SCOPED = new Set(["munetios-calendar", "munetios-photos", "munetios-tasks", "munetios-tasks-extras", "munetios-supanotes", "munetios-supanotes-extras", "munetios-maps", "munetios-meals", "munetios-meals-prefs"]);
+  function workspaceScoped(provider) {
+    const scope = window.MunetiosWorkspaceScope;
+    const id = scope ? scope.id : workspaces.active();
+    if (id === PERSONAL || !WORKSPACE_SCOPED.has(provider.id)) return provider;
+    const ns = `ws.${id}.`;
+    const add = key => ns + key;
+    const strip = key => (key.startsWith(ns) ? key.slice(ns.length) : key);
+    const wrapped = {};
+    for (const [name, value] of Object.entries(provider)) wrapped[name] = typeof value === "function" ? value.bind(provider) : value;
+    return Object.assign(wrapped, {
+      prefix: ns + provider.prefix,
+      workspace: id,
+      snapshot: async () => (await provider.snapshot()).map(item => ({ ...item, key: add(item.key) })),
+      apply: (list, options) => provider.apply(list.map(item => ({ ...item, key: strip(item.key) })), options),
+      retainMissingItem: provider.retainMissingItem ? key => provider.retainMissingItem(strip(key)) : undefined,
+    });
+  }
+  function register(provider) { providers.set(provider.id, workspaceScoped(provider)); schedule(400); }
   const syncStateKey = id => `munetios-sync:${id}`;
   async function syncProvider(provider, account, dataKey, syncState, owners, applied, { unchanged = false } = {}) {
     checkProvider(provider);

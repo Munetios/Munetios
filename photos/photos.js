@@ -24,7 +24,8 @@
   const LARGE_BYTES = 10 * 1024 * 1024;
 
   /* ================================================================ settings and language */
-  const SETTINGS_KEY = "munetiosPhotos:settings";
+  // Each workspace keeps its own library and settings (Personal keeps the original names).
+  const SETTINGS_KEY = (window.MunetiosWorkspaceScope ? window.MunetiosWorkspaceScope.local("munetiosPhotos:settings") : "munetiosPhotos:settings");
   const DEFAULTS = {
     language: "system", gridSize: 180, groupBy: "day", sort: "taken", order: "desc", quality: store.get("munetios_photo_quality") || "high",
     cloudBackup: true, accountSync: true, slideshowInterval: 4, slideshowTransition: "fade", showMemories: true, trashDays: 30,
@@ -92,7 +93,7 @@
   const notify = (message, type = "info") => UI.toast(message, { type });
 
   /* ================================================================ storage (IndexedDB, compatible with earlier versions) */
-  const DB_NAME = "munetios_photos", PHOTOS = "photos", ALBUMS = "albums", KEYS = "photo_keys", META = "meta";
+  const DB_NAME = (window.MunetiosWorkspaceScope ? window.MunetiosWorkspaceScope.local("munetios_photos") : "munetios_photos"), PHOTOS = "photos", ALBUMS = "albums", KEYS = "photo_keys", META = "meta";
   let dbPromise = null;
   const req = (r) => new Promise((resolve, reject) => { r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
   function openDb() {

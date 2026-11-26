@@ -97,7 +97,7 @@
   /* ------------------------------------------------------------ settings */
   const VIEW_DEFAULTS = { sort: "manual", filterPriority: "all", filterTag: "all" };
   const SHARED_DEFAULTS = { dailyGoal: 3, focusMin: 25, breakMin: 5, weekStart: 0, templates: [], updatedAt: 0 };
-  const owner = () => (typeof workspaceAccountId === "undefined" || workspaceAccountId === null ? "guest" : workspaceAccountId);
+  const owner = () => (typeof workspaceAccountId === "undefined" || workspaceAccountId === null ? "guest" : workspaceAccountId) + (window.MunetiosWorkspaceScope?.suffix || "");
   const viewKey = () => "munetios-tasks-view:" + owner();
   const sharedKey = () => "munetios-tasks-extras:" + owner();
   const readJson = (key, fallback) => { try { return { ...fallback, ...JSON.parse(localStorage.getItem(key) || "{}") }; } catch { return { ...fallback }; } };
