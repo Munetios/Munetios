@@ -37,16 +37,27 @@
   const deviceTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   let deviceZone = deviceTimezone();
   let zoneRevision = 0;
-  // Compare wall-clock and monotonic time to detect manual device clock changes.
-  // This does not adjust astronomical timestamps: changing the device date selects
-  // the corresponding real solar day, while changing the hour moves the live marker.
+  // In manual device-clock mode, track the amount the wall clock has jumped
+  // relative to monotonic elapsed time. Solar calculations remain astronomical;
+  // this offset is applied only to their displayed clock readings.
   let clockSample = { wall: Date.now(), mono: performance.now() };
+  let solarClockOffset = 0;
   function deviceClockChanged() {
     const wall = Date.now();
     const mono = performance.now();
     const drift = (wall - clockSample.wall) - (mono - clockSample.mono);
     clockSample = { wall, mono };
-    return Math.abs(drift) >= 2000;
+    if (Math.abs(drift) < 2000) return false;
+    // Treat jumps of at least two seconds as manual adjustments. Round to whole
+    // seconds so tiny scheduling discrepancies do not accumulate over time.
+    solarClockOffset += Math.round(drift / 1000) * 1000;
+    return true;
+  }
+  function solarTimeStr(ms, loc) {
+    return ms == null ? "—" : timeStr(ms + solarClockOffset, loc);
+  }
+  function solarClockStr(hour, minute) {
+    return timeStr(Date.UTC(2026, 0, 1, hour, minute ?? 0) + solarClockOffset, null);
   }
 
   // ------------------------------------------------------------ language
@@ -117,7 +128,7 @@
     const local = Date.UTC(lp.year, lp.month, lp.day, h);
     let instant = local - Sun.offsetMinutes(local, zone, loc.lon) * 60000;
     instant = local - Sun.offsetMinutes(instant, zone, loc.lon) * 60000;
-    return hourStr(instant, loc);
+    return hourStr(instant + solarClockOffset, loc);
   }
   function dateStr(ms, loc, opts) {
     const zone = zoneOf(loc);
@@ -847,8 +858,8 @@
     const lp = Sun.localParts(ms, zoneOf(loc), loc.lon);
     const info = Sun.day(lp.year, lp.month, lp.day, loc.lat, loc.lon, zoneOf(loc));
     const st = sunTimes(loc, info, lp.year, lp.month, lp.day);
-    const rise = info.polarDay ? clockStr(0, 0) : info.polarNight ? clockStr(12, 0) : st.riseText;
-    const set = info.polarDay ? clockStr(0, 0) : info.polarNight ? clockStr(12, 0) : st.setText;
+    const rise = info.polarDay ? solarClockStr(0, 0) : info.polarNight ? solarClockStr(12, 0) : st.riseText;
+    const set = info.polarDay ? solarClockStr(0, 0) : info.polarNight ? solarClockStr(12, 0) : st.setText;
     $("#dayModalTitle").textContent = dateStr(ms, loc, { weekday: "long", month: "long", day: "numeric" });
     $("#dayModalIcon").innerHTML = iconHtml(condIcon(dl.weather_code[i], true));
     const row = (icon, label, value) => `<div class="gw-day-row">${iconHtml(icon)}<span>${esc(label)}</span><span>${value}</span></div>`;
@@ -940,7 +951,7 @@
         if (p.sunrise && (!p.sunset || p.sunrise > p.sunset)) { rise = p.sunrise; riseShift = -1; }
       }
     }
-    const label = (ms, shift) => (ms ? timeStr(ms, loc) + (shift > 0 ? " (+1)" : shift < 0 ? " (−1)" : "") : t("doesNotOccur"));
+    const label = (ms, shift) => (ms ? solarTimeStr(ms, loc) + (shift > 0 ? " (+1)" : shift < 0 ? " (−1)" : "") : t("doesNotOccur"));
     return { rise, set, riseText: label(rise, riseShift), setText: label(set, setShift) };
   }
   function renderSun() {
@@ -1074,7 +1085,7 @@
       hover.querySelector("circle").setAttribute("cx", x(ms));
       hover.querySelector("circle").setAttribute("cy", y(pos.altitude));
       tip.hidden = false;
-      tip.innerHTML = `<div class="gw-tip-time">${esc(timeStr(ms, loc))}</div><div class="gw-tip-row"><span>${esc(t("sunAltitude"))}</span><span>${esc(num(pos.altitude, 1))}°</span></div><div class="gw-tip-row"><span>${esc(t("sunAzimuth"))}</span><span>${esc(num(pos.azimuth, 0) + "° " + compass(pos.azimuth))}</span></div>`;
+      tip.innerHTML = `<div class="gw-tip-time">${esc(solarTimeStr(ms, loc))}</div><div class="gw-tip-row"><span>${esc(t("sunAltitude"))}</span><span>${esc(num(pos.altitude, 1))}°</span></div><div class="gw-tip-row"><span>${esc(t("sunAzimuth"))}</span><span>${esc(num(pos.azimuth, 0) + "° " + compass(pos.azimuth))}</span></div>`;
       tip.style.left = clamp((x(ms) / W) * r.width + 12, 8, r.width - tip.offsetWidth - 8) + "px";
     };
     svgEl.addEventListener("pointermove", (e) => show(e.clientX));
@@ -1083,8 +1094,8 @@
   }
   function renderSunEvents(loc, info, lp) {
     const prev = Sun.day(lp.year, lp.month, lp.day - 1, loc.lat, loc.lon, zoneOf(loc));
-    const polarRise = info.polarDay ? clockStr(0, 0) : info.polarNight ? clockStr(12, 0) : null;
-    const tm = (ms, fallback) => (ms ? timeStr(ms, loc) : fallback);
+    const polarRise = info.polarDay ? solarClockStr(0, 0) : info.polarNight ? solarClockStr(12, 0) : null;
+    const tm = (ms, fallback) => (ms ? solarTimeStr(ms, loc) : fallback);
     const none = t("doesNotOccur");
     const st = sunTimes(loc, info, lp.year, lp.month, lp.day);
     const rows = [
@@ -1113,8 +1124,8 @@
       const segs = Sun.daySegments(info);
       const bar = segs.map((s) => `<span class="${s.day ? "is-day" : "is-night"}" style="inset-inline-start:${(s.from * 100).toFixed(2)}%;inline-size:${((s.to - s.from) * 100).toFixed(2)}%"></span>`).join("");
       let times;
-      if (info.polarDay) times = `<span class="gw-polar-tag is-day">${esc(t("polarDay"))}</span><span class="mu-muted">${esc(clockStr(0, 0) + " – " + clockStr(0, 0))}</span>`;
-      else if (info.polarNight) times = `<span class="gw-polar-tag is-night">${esc(t("polarNight"))}</span><span class="mu-muted">${esc(clockStr(12, 0) + " – " + clockStr(12, 0))}</span>`;
+      if (info.polarDay) times = `<span class="gw-polar-tag is-day">${esc(t("polarDay"))}</span><span class="mu-muted">${esc(solarClockStr(0, 0) + " – " + solarClockStr(0, 0))}</span>`;
+      else if (info.polarNight) times = `<span class="gw-polar-tag is-night">${esc(t("polarNight"))}</span><span class="mu-muted">${esc(solarClockStr(12, 0) + " – " + solarClockStr(12, 0))}</span>`;
       else { const st = sunTimes(loc, info, year, m, dayN); times = `<span>${esc(st.riseText + " – " + st.setText)}</span><span class="mu-muted">${esc(durationStr(info.daylight))}</span>`; }
       const label = fmt.format(new Date(Date.UTC(year, m, dayN))) + " " + num(dayN);
       return `<li class="gw-month${today.month === m && today.year === year ? " is-current" : ""}"><span class="gw-month-name">${esc(label)}</span><span class="gw-month-bar" aria-hidden="true">${bar}<i class="gw-month-noon"></i></span><span class="gw-month-times">${times}</span></li>`;
