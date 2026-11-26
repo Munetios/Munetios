@@ -1,7 +1,7 @@
 'use strict';
 
 const sharedDomain = 'munetios.com';
-const sharedOrigins = new Set(['https://write.munetios.com', 'https://accounts.munetios.com', 'https://webfilter.munetios.com', 'https://notes.munetios.com', 'https://tasks.munetios.com']);
+const sharedOrigins = new Set(['https://write.munetios.com', 'https://accounts.munetios.com', 'https://webfilter.munetios.com', 'https://notes.munetios.com', 'https://tasks.munetios.com', 'https://maps.munetios.com']);
 
 function requestOrigin(req) {
     return new URL(`${req.protocol}://${req.get('host')}`).origin;
