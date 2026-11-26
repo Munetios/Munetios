@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="dark light">
   <meta name="referrer" content="same-origin">
   <title>Account settings · Munetios</title>
-  <link rel="icon" href="/favicon-ganetios.ico">
+  <link rel="icon" href="/munetios-logo-icon.png" type="image/png">
   <link rel="stylesheet" href="https://api.munetios.com/beautiful-css/beautiful.css">
   <link rel="stylesheet" href="/munetios-ui/munetios-ui-v4.css">
   <link rel="stylesheet" href="/account/account-menu.css">
@@ -21,6 +21,9 @@
   <header class="mu-topbar account-topbar">
     <a class="mu-btn mu-glass liquid-glass account-back" href="/" id="backLink">
       <span class="mu-icon" aria-hidden="true">arrow_back</span><span data-t="back">Back</span>
+    </a>
+    <a class="mu-icon-btn mu-glass liquid-glass" href="/apps/supervidplayer" id="superVidPlayerLink" aria-label="SuperVidPlayer" hidden>
+      <span class="mu-icon" aria-hidden="true">play_circle</span>
     </a>
     <span class="mu-topbar-title" aria-hidden="true"></span>
     <button type="button" class="mu-icon-btn mu-icon-btn-soft mu-glass liquid-glass" id="themeButton" aria-label="Switch to light theme">
@@ -81,6 +84,17 @@
               <input class="mu-input" id="displayName" maxlength="80" autocomplete="name" dir="auto">
               <span class="mu-field-help" data-t="nameHelp">Shown in your account menu.</span>
             </div>
+            <div class="mu-field">
+              <span class="mu-field-label" id="birthdayLabel" data-t="birthday">Birthday (optional)</span>
+              <div class="account-birthday">
+                <button type="button" class="mu-picker-field" id="birthdayButton" aria-labelledby="birthdayLabel birthdayValue" aria-describedby="birthdayHelp">
+                  <span class="mu-icon" aria-hidden="true">cake</span>
+                  <span class="mu-picker-value" id="birthdayValue" data-placeholder="Choose a date"></span>
+                </button>
+                <button type="button" class="mu-icon-btn mu-icon-btn-soft" id="birthdayClear" hidden><span class="mu-icon" aria-hidden="true">close</span></button>
+              </div>
+              <span class="mu-field-help" id="birthdayHelp" data-t="birthdayHelp">Shown on your birthday in Munetios Calendar</span>
+            </div>
             <div class="account-actions"><button type="submit" class="mu-btn mu-btn-primary" data-t="save">Save</button></div>
           </form>
           <div class="mu-group account-rows">
@@ -120,6 +134,7 @@
           </form>
           <div class="mu-group account-rows">
             <div class="mu-row"><span class="mu-icon" aria-hidden="true">shield_lock</span><div class="mu-row-info"><span class="mu-row-title" data-t="twoFactor">Two-factor authentication</span><span class="mu-row-subtitle" id="twoFactorStatus"></span></div><button class="mu-btn" type="button" id="twoFactorButton" data-t="enable2fa">Set up authenticator</button></div>
+            <div class="mu-row" id="recoveryCodesRow" hidden><span class="mu-icon" aria-hidden="true">key</span><div class="mu-row-info"><span class="mu-row-title" data-t="recoveryCodes">Recovery codes</span></div><button class="mu-btn" type="button" id="recoveryCodesButton" data-t="newRecoveryCodes">Generate new codes</button></div>
             <div class="mu-row"><span class="mu-icon" aria-hidden="true">alternate_email</span><div class="mu-row-info"><span class="mu-row-title" data-t="recoveryEmail">Recovery email</span><span class="mu-row-subtitle" id="recoveryValue"></span></div><button class="mu-btn" type="button" id="recoveryButton" data-t="edit">Edit</button></div>
           </div>
           <p class="mu-muted account-text" data-t="recoverySetupHelp"></p>
@@ -139,7 +154,7 @@
               <button type="button" class="mu-btn mu-btn-primary" id="syncNow"><span class="mu-icon" aria-hidden="true">sync</span><span data-t="syncNow">Sync now</span></button>
             </div>
           </div>
-          <div class="account-actions"><button class="mu-btn" type="button" id="toggleSync" data-t="turnOffSync">Turn off sync</button></div>
+          <div class="account-actions"><a class="mu-btn mu-btn-primary" id="syncAddPassword" href="/signin/?forgot=1" hidden data-t="addPassword">Add password</a><button class="mu-btn" type="button" id="toggleSync" data-t="turnOffSync">Turn off sync</button></div>
           <div class="mu-storage">
             <div class="mu-storage-heading"><h3 class="mu-h-title" data-t="syncStorage">Sync storage</h3><span id="storageSummary" aria-live="polite"></span></div>
             <div class="mu-storage-bar" id="storageBar" role="img"></div>
@@ -173,6 +188,10 @@
           <div class="mu-group account-rows account-setting-rows" id="dataSettings"></div>
           <p class="account-error" id="dataSettingsError" role="alert" hidden></p>
           <div class="mu-group account-rows">
+            <div class="mu-row">
+              <div class="mu-row-info"><label class="mu-row-title" for="picturePrivacy" data-t="picturePrivacy">Show my profile picture to everyone</label></div>
+              <label class="mu-switch"><input id="picturePrivacy" type="checkbox" role="switch"><span class="mu-switch-track" aria-hidden="true"></span></label>
+            </div>
             <div class="mu-row">
               <div class="mu-row-info"><span class="mu-row-title" data-t="exportTitle">Export your data</span><span class="mu-row-subtitle" data-t="exportBody"></span></div>
               <button type="button" class="mu-btn" id="exportData"><span class="mu-icon" aria-hidden="true">download</span><span data-t="export">Export</span></button>

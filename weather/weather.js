@@ -179,6 +179,21 @@
 
   // ------------------------------------------------------------ network
   const WEATHER_API = "/api/weather";
+  // Place search and names come straight from Photon; the Weather server is only the backup
+  // (it retries Photon and then Open-Meteo's geocoder).
+  const PHOTON = "https://photon.komoot.io";
+  async function photonJSON(path, params, signal) {
+    try {
+      const res = await fetch(PHOTON + path + "?" + params, { signal, referrerPolicy: "no-referrer", credentials: "omit", mode: "cors" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if (!Array.isArray(data?.features)) throw new Error("Invalid Photon response");
+      return data;
+    } catch (error) {
+      if (error?.name === "AbortError") throw error;
+      return getJSON(WEATHER_API + (path === "/api/" ? "/search?" : "/reverse?") + params, { signal });
+    }
+  }
   let retryWeatherAt = 0;
   async function getJSON(url, opts) {
     if (Date.now() < retryWeatherAt) throw Object.assign(new Error("HTTP 429"), { status: 429 });
@@ -301,7 +316,7 @@
     const active = activeLocation();
     const p = photonParams({ q });
     if (active) { p.set("lat", active.lat.toFixed(2)); p.set("lon", active.lon.toFixed(2)); }
-    const res = await getJSON(WEATHER_API + "/search?" + p, { signal });
+    const res = await photonJSON("/api/", p, signal);
     if (!Array.isArray(res?.features)) throw new Error("Invalid search results");
     const seen = new Set();
     return res.features.map(photonToPlace).filter((pl) => {
@@ -314,13 +329,13 @@
   }
   async function reversePlace(lat, lon, signal) {
     try {
-      const res = await getJSON(WEATHER_API + "/reverse?" + photonParams({ lat: lat.toFixed(5), lon: lon.toFixed(5) }), { signal });
+      const res = await photonJSON("/reverse", photonParams({ lat: lat.toFixed(5), lon: lon.toFixed(5) }), signal);
       const f = (res.features || [])[0];
       if (f) {
         const pl = photonToPlace(f);
         return Object.assign(pl, { lat, lon });
       }
-      const res2 = await getJSON(WEATHER_API + "/reverse?" + new URLSearchParams({ lat: lat.toFixed(5), lon: lon.toFixed(5) }), { signal });
+      const res2 = await photonJSON("/reverse", new URLSearchParams({ lat: lat.toFixed(5), lon: lon.toFixed(5) }), signal);
       const g = (res2.features || [])[0];
       if (g) {
         const pr = g.properties || {};

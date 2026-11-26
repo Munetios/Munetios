@@ -48,6 +48,8 @@
     root.dir = locale === "ar" ? "rtl" : "ltr";
     document.title = `${t("accountSettings")} · Munetios`;
     document.querySelectorAll("[data-t]").forEach(element => { element.textContent = t(element.dataset.t); });
+    // The birthday shows in the chosen language (skipped while the page is still starting up).
+    try { paintBirthday(); } catch {}
     $("accountNav").setAttribute("aria-label", t("accountSettings"));
     applyTheme();
     renderAccountSettings();
@@ -127,15 +129,48 @@
     $("emailValue").textContent = account.email;
     $("passwordUsername").value = account.email;
     if (document.activeElement !== $("displayName")) $("displayName").value = account.displayName || "";
+    if (!birthdayDirty) { birthday = account.birthday || ""; paintBirthday(); }
     $("memberSince").textContent = account.createdAt ? t("memberSince", { date: A.formatDate(account.createdAt) }) : "";
     $("memberSince").closest(".mu-row").hidden = !account.createdAt;
   }
+  /* Birthday (optional): Munetios Calendar shows it every year. */
+  let birthday = "", birthdayDirty = false;
+  const todayIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  function paintBirthday() {
+    $("birthdayValue").dataset.placeholder = t("birthdayPlaceholder");
+    $("birthdayClear").setAttribute("aria-label", t("birthdayClear"));
+    $("birthdayClear").title = t("birthdayClear");
+    $("birthdayClear").hidden = !birthday;
+    if (!birthday) { $("birthdayValue").textContent = ""; return; }
+    const [y, m, d] = birthday.split("-").map(Number);
+    try { $("birthdayValue").textContent = new Intl.DateTimeFormat(A.locale?.() || document.documentElement.lang || undefined, { dateStyle: "long", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, d))); }
+    catch { $("birthdayValue").textContent = birthday; }
+  }
+  $("birthdayButton").addEventListener("click", () => {
+    if (!window.MunetiosUI?.pickDate) return;
+    const max = todayIso();
+    window.MunetiosUI.pickDate({
+      anchor: $("birthdayButton"),
+      value: birthday || `${new Date().getFullYear() - 25}-01-01`,
+      min: "1900-01-01",
+      max,
+      locale: A.locale?.() || document.documentElement.lang || undefined,
+      allowClear: Boolean(birthday),
+      labels: { previous: t("pickerPrevious"), next: t("pickerNext"), today: t("pickerToday"), clear: t("birthdayClear"), date: t("birthday") },
+      onPick: (iso) => { if (iso === undefined) return; birthday = iso && iso <= max ? iso : ""; birthdayDirty = true; paintBirthday(); $("birthdayButton").focus(); },
+    });
+  });
+  $("birthdayClear").addEventListener("click", () => { birthday = ""; birthdayDirty = true; paintBirthday(); $("birthdayButton").focus(); });
   $("profileForm").addEventListener("submit", async event => {
     event.preventDefault();
     const button = event.submitter || $("profileForm").querySelector('[type="submit"]');
     button.disabled = true;
-    try { await A.updateProfile($("displayName").value.trim()); notify(t("nameSaved"), "success"); }
-    catch { notify(t("nameFailed"), "error"); }
+    try {
+      await A.updateProfile($("displayName").value.trim(), { birthday: birthday || null });
+      birthdayDirty = false;
+      notify(t("profileSaved"), "success");
+    }
+    catch (failure) { notify(t(failure?.code === "birthdayInvalid" ? "birthdayInvalid" : "nameFailed"), "error"); }
     finally { button.disabled = false; }
   });
   const pictureBusy = busy => { $("changePicture").disabled = $("removePicture").disabled = busy; };

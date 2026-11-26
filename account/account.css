@@ -83,3 +83,8 @@
     .account-setting-rows .mu-row > .mu-input,
     .account-setting-rows .mu-row > .mu-select-button { width: 100%; }
 }
+
+/* Birthday picker row (Profile) */
+.account-birthday { display: flex; align-items: center; gap: 8px; }
+.account-birthday .mu-picker-field { flex: 1 1 auto; min-width: 0; }
+.account-birthday .mu-picker-field .mu-icon { color: var(--mu-accent); }

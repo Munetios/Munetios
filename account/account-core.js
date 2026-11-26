@@ -213,8 +213,8 @@
   const listeners = new Set();
   let sessionRequest = 0;
   function cacheAccount(account) {
-    const { id, email, displayName, picture, showProfilePictureToEveryone } = account;
-    store.set(accountCacheKey, JSON.stringify({ id, email, displayName, picture, showProfilePictureToEveryone }));
+    const { id, email, displayName, birthday, picture, showProfilePictureToEveryone } = account;
+    store.set(accountCacheKey, JSON.stringify({ id, email, displayName, birthday, picture, showProfilePictureToEveryone }));
   }
   function emit() {
     for (const listener of listeners) { try { listener(state); } catch {} }
@@ -369,8 +369,9 @@
     store.remove(`munetios-sync:${account.id}`); store.remove(`munetios-last-synced:${account.id}`);
     await refresh({ deliberate: true });
   }
-  async function updateProfile(displayName) {
-    const result = await api("/profile", { displayName });
+  // Pass { birthday } to set it ("YYYY-MM-DD") or clear it (null); leaving it out keeps the saved birthday.
+  async function updateProfile(displayName, extra = {}) {
+    const result = await api("/profile", { displayName, ...("birthday" in extra ? { birthday: extra.birthday || null } : {}) });
     state.account = result.account;
     cacheAccount(state.account);
     emit();

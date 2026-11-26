@@ -882,5 +882,25 @@
   for (const [locale, values] of Object.entries(factorStrings)) {
     factorKeys.forEach((key, index) => { catalog[locale][key] = values[index]; });
   }
+  // Account settings: birthday (optional).
+  const birthdayKeys = ["birthday", "birthdayHelp", "birthdayPlaceholder", "birthdayClear", "birthdayInvalid", "profileSaved", "pickerPrevious", "pickerNext", "pickerToday"];
+  const birthdayStrings = {
+    "en": ["Birthday (optional)", "Shown on your birthday in Munetios Calendar", "Choose a date", "Remove birthday", "Choose a valid birthday.", "Profile saved", "Previous month", "Next month", "Today"],
+    "es-ES": ["Cumpleaños (opcional)", "Se muestra el día de tu cumpleaños en Munetios Calendar", "Elige una fecha", "Quitar cumpleaños", "Elige un cumpleaños válido.", "Perfil guardado", "Mes anterior", "Mes siguiente", "Hoy"],
+    "es-419": ["Cumpleaños (opcional)", "Se muestra el día de tu cumpleaños en Munetios Calendar", "Elige una fecha", "Quitar cumpleaños", "Elige un cumpleaños válido.", "Perfil guardado", "Mes anterior", "Mes siguiente", "Hoy"],
+    "fr": ["Anniversaire (facultatif)", "Affiché le jour de votre anniversaire dans Munetios Calendar", "Choisir une date", "Supprimer l’anniversaire", "Choisissez une date d’anniversaire valide.", "Profil enregistré", "Mois précédent", "Mois suivant", "Aujourd’hui"],
+    "de": ["Geburtstag (optional)", "Wird an deinem Geburtstag in Munetios Calendar angezeigt", "Datum auswählen", "Geburtstag entfernen", "Wähle einen gültigen Geburtstag.", "Profil gespeichert", "Vorheriger Monat", "Nächster Monat", "Heute"],
+    "it": ["Compleanno (facoltativo)", "Mostrato il giorno del tuo compleanno in Munetios Calendar", "Scegli una data", "Rimuovi compleanno", "Scegli una data di compleanno valida.", "Profilo salvato", "Mese precedente", "Mese successivo", "Oggi"],
+    "pt-BR": ["Aniversário (opcional)", "Mostrado no dia do seu aniversário no Munetios Calendar", "Escolha uma data", "Remover aniversário", "Escolha uma data de aniversário válida.", "Perfil salvo", "Mês anterior", "Próximo mês", "Hoje"],
+    "pt-PT": ["Aniversário (opcional)", "Apresentado no dia do seu aniversário no Munetios Calendar", "Escolha uma data", "Remover aniversário", "Escolha uma data de aniversário válida.", "Perfil guardado", "Mês anterior", "Mês seguinte", "Hoje"],
+    "ja": ["誕生日（任意）", "Munetios Calendar の誕生日に表示されます", "日付を選択", "誕生日を削除", "有効な誕生日を選択してください。", "プロフィールを保存しました", "前の月", "次の月", "今日"],
+    "ko": ["생일(선택 사항)", "Munetios Calendar의 생일 날짜에 표시됩니다", "날짜 선택", "생일 삭제", "올바른 생일을 선택하세요.", "프로필을 저장했습니다", "이전 달", "다음 달", "오늘"],
+    "zh-CN": ["生日（可选）", "将在 Munetios Calendar 中你的生日当天显示", "选择日期", "移除生日", "请选择有效的生日。", "个人资料已保存", "上个月", "下个月", "今天"],
+    "zh-TW": ["生日（選填）", "將在 Munetios Calendar 中你的生日當天顯示", "選擇日期", "移除生日", "請選擇有效的生日。", "個人資料已儲存", "上個月", "下個月", "今天"],
+    "ru": ["День рождения (необязательно)", "Отображается в ваш день рождения в Munetios Calendar", "Выберите дату", "Удалить день рождения", "Выберите правильную дату рождения.", "Профиль сохранён", "Предыдущий месяц", "Следующий месяц", "Сегодня"],
+    "hi": ["जन्मदिन (वैकल्पिक)", "Munetios Calendar में आपके जन्मदिन पर दिखाया जाता है", "तारीख चुनें", "जन्मदिन हटाएँ", "मान्य जन्मदिन चुनें।", "प्रोफ़ाइल सेव हो गई", "पिछला महीना", "अगला महीना", "आज"],
+    "ar": ["تاريخ الميلاد (اختياري)", "يظهر في يوم ميلادك في Munetios Calendar", "اختر تاريخًا", "إزالة تاريخ الميلاد", "اختر تاريخ ميلاد صالحًا.", "تم حفظ الملف الشخصي", "الشهر السابق", "الشهر التالي", "اليوم"],
+  };
+  for (const [locale, values] of Object.entries(birthdayStrings)) birthdayKeys.forEach((key, index) => { catalog[locale][key] = values[index]; });
   window.MunetiosAccountStrings = { catalog, resolveLocale, locales: Object.keys(catalog) };
 })();

@@ -38,6 +38,38 @@ export function createLocalWeatherLimit() {
     };
 }
 
+// Place search fallback: Photon sometimes refuses requests from shared cloud servers, so the same
+// search goes to Open-Meteo's geocoder and comes back in Photon's GeoJSON shape (the page needs no changes).
+async function searchFallback(url) {
+    const q = (url.searchParams.get('q') || '').trim();
+    if (q.length < 2) return null;
+    const target = new URL('https://geocoding-api.open-meteo.com/v1/search');
+    target.searchParams.set('name', q);
+    target.searchParams.set('count', '10');
+    target.searchParams.set('language', url.searchParams.get('lang') || 'en');
+    target.searchParams.set('format', 'json');
+    const response = await fetch(target, {
+        signal: AbortSignal.timeout(8000),
+        headers: { Accept: 'application/json', 'User-Agent': 'Munetios Weather (https://weather.munetios.com/)' },
+        cf: { cacheEverything: true, cacheTtl: 3600 },
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    const features = (Array.isArray(data?.results) ? data.results : [])
+        .filter(r => Number.isFinite(r.latitude) && Number.isFinite(r.longitude) && typeof r.name === 'string')
+        .map(r => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [r.longitude, r.latitude] },
+            properties: {
+                osm_key: 'place',
+                osm_value: String(r.feature_code || '').startsWith('PPL') ? 'city' : 'locality',
+                type: String(r.feature_code || '').startsWith('PPL') ? 'city' : 'locality',
+                name: r.name, state: r.admin1 || '', county: r.admin2 || '', country: r.country || '', countrycode: r.country_code || '',
+            },
+        }));
+    return Response.json({ type: 'FeatureCollection', features }, { headers: { ...responseHeaders, 'Cache-Control': 'public, max-age=3600' } });
+}
+
 function weatherError(error, status, headers) {
     return Response.json({ error }, { status, headers: { ...responseHeaders, ...headers } });
 }
@@ -65,26 +97,35 @@ export async function weatherResponse(url, method, take) {
         return weatherError('unavailable', 503);
     }
 
+    const isSearch = path === '/search';
+    const fallback = async () => {
+        if (!isSearch) return weatherError('providerUnavailable', 502);
+        try { return (await searchFallback(url)) || weatherError('providerUnavailable', 502); }
+        catch { return weatherError('providerUnavailable', 502); }
+    };
     try {
         const upstream = await fetch(target, {
             redirect: 'manual',
-            signal: AbortSignal.timeout(10000),
+            signal: AbortSignal.timeout(isSearch ? 6000 : 10000),
             headers: {
                 Accept: target.hostname === 'api.weather.gov' ? 'application/geo+json' : 'application/json',
                 'User-Agent': 'Munetios Weather (https://weather.munetios.com/)',
             },
+            // Place searches are cached at the edge for an hour, so repeated searches don't reach the provider.
+            ...(isSearch ? { cf: { cacheEverything: true, cacheTtl: 3600 } } : {}),
         });
         const contentType = upstream.headers.get('Content-Type') || '';
         if ((upstream.status >= 300 && upstream.status < 400) ||
-            !/^application\/(?:[\w.-]+\+)?json(?:;|$)/i.test(contentType)) {
+            !/^application\/(?:[\w.-]+\+)?json(?:;|$)/i.test(contentType) ||
+            (isSearch && !upstream.ok)) {
             await upstream.body?.cancel();
-            return weatherError('providerUnavailable', 502);
+            return fallback();
         }
         return new Response(upstream.body, {
             status: upstream.status,
             headers: { ...responseHeaders, 'Content-Type': contentType },
         });
     } catch {
-        return weatherError('providerUnavailable', 502);
+        return fallback();
     }
 }
