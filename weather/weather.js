@@ -66,7 +66,11 @@
       clockSample = { wall: Date.now(), mono: performance.now() };
       if (offset !== solarClockOffset) {
         solarClockOffset = offset;
-        if (activeLocation()) renderSun();
+        if (activeLocation()) {
+          // A clock correction changes solar labels and which forecast hour is "Now".
+          renderAll();
+          renderLocations();
+        }
       }
     } catch (e) { /* Offline: retain the locally detected offset. */ }
     finally { referencePending = false; }
@@ -531,6 +535,23 @@
     const next = times.findIndex((x) => x > now);
     return next < 0 ? Math.max(0, times.length - 1) : Math.max(0, next - 1);
   }
+  // Hourly forecast data describes an actual forecast hour. Only use it as
+  // current conditions if the selected device hour is within its valid window.
+  function forecastNow(loc, d) {
+    const h = d?.hourly;
+    if (!h?.time?.length) return null;
+    const i = currentHourIndex(d);
+    const now = Date.now() / 1000;
+    const ts = h.time[i];
+    if (!Number.isFinite(ts) || now < ts || now >= ts + 3600 ||
+        h.temperature_2m?.[i] == null || h.weather_code?.[i] == null) return null;
+    return {
+      temperature_2m: h.temperature_2m[i],
+      apparent_temperature: h.apparent_temperature?.[i],
+      weather_code: h.weather_code[i],
+      is_day: h.is_day?.[i] ?? (Sun.position(now * 1000, loc.lat, loc.lon).altitude >= Sun.H.sunrise)
+    };
+  }
   function renderAll() {
     const loc = activeLocation();
     const d = loc && store.data[loc.id];
@@ -583,14 +604,17 @@
   }
 
   function renderNow(loc, d) {
-    const c = d.current;
-    $("#nowTemp").textContent = deg(c.temperature_2m);
-    $("#nowTemp").setAttribute("aria-label", t("temperatureIs", { v: num(Math.round(c.temperature_2m)) + tempUnit() }));
-    $("#nowCond").textContent = condText(c.weather_code);
+    // A changed device clock may point to an earlier/later forecast hour.
+    // Prefer hourly conditions for that hour; do not invent a missing forecast.
+    const c = forecastNow(loc, d);
+    const available = !!c;
+    $("#nowTemp").textContent = available ? deg(c.temperature_2m) : "—";
+    $("#nowTemp").setAttribute("aria-label", available ? t("temperatureIs", { v: num(Math.round(c.temperature_2m)) + tempUnit() }) : "");
+    $("#nowCond").textContent = available ? condText(c.weather_code) : t("forecastUnavailable") === "forecastUnavailable" ? "" : t("forecastUnavailable");
     $("#nowHiLo").textContent = t("hiLo", { hi: deg(d.daily.temperature_2m_max[0]), lo: deg(d.daily.temperature_2m_min[0]) });
-    $("#nowFeels").textContent = t("feelsLikeValue", { v: deg(c.apparent_temperature) });
-    $("#nowIcon").innerHTML = c.is_day ? iconHtml(condIcon(c.weather_code, true), "mu-icon-filled") : nightIcon(c.weather_code, Date.now(), loc.lat, 72);
-    $("#nowcast").textContent = nowcastText(d);
+    $("#nowFeels").textContent = available && c.apparent_temperature != null ? t("feelsLikeValue", { v: deg(c.apparent_temperature) }) : "";
+    $("#nowIcon").innerHTML = available ? (c.is_day ? iconHtml(condIcon(c.weather_code, true), "mu-icon-filled") : nightIcon(c.weather_code, Date.now(), loc.lat, 72)) : "";
+    $("#nowcast").textContent = available ? nowcastText(d) : "";
   }
   function nowcastText(d) {
     const m = d.minutely_15;
@@ -627,7 +651,7 @@
     items.sort((a, b) => a.t - b.t);
     $("#hourly").innerHTML = items.map((it, n) => {
       if (it.kind !== "hour") {
-        return `<div class="gw-hour is-sun" role="listitem"><span class="gw-hour-time">${esc(timeStr(it.t, loc))}</span>${iconHtml(it.kind === "sunrise" ? "wb_twilight" : "wb_twilight", "gw-sun-icon is-" + it.kind)}<span class="gw-hour-temp">${esc(t(it.kind))}</span></div>`;
+        return `<div class="gw-hour is-sun" role="listitem"><span class="gw-hour-time">${esc(solarTimeStr(it.t, loc))}</span>${iconHtml(it.kind === "sunrise" ? "wb_twilight" : "wb_twilight", "gw-sun-icon is-" + it.kind)}<span class="gw-hour-temp">${esc(t(it.kind))}</span></div>`;
       }
       const i = it.i;
       const isDay = h.is_day[i];
@@ -1609,7 +1633,7 @@
       if (changed) syncSolarClock();
       const loc = activeLocation();
       if (!loc || document.hidden || !changed) return;
-      renderAll(); // Recompute dawn, sunrise, solar noon, sunset, dusk and the sky for the device date.
+      renderAll(); // Refresh solar events and the available forecast for the device hour.
       renderLocations();
     }, 1000);
     // Keep clocks, the sun, and the sky moving; refresh data every 15 minutes.
@@ -1622,7 +1646,7 @@
       updateSky();
       const d = store.data[loc.id];
       if (d && Date.now() - d.fetchedAt > 15 * 60000) refresh(true);
-      else if (d) { renderHourly(loc, d); $("#nowcast").textContent = nowcastText(d); }
+      else if (d) { renderNow(loc, d); renderHourly(loc, d); }
     }, 60000);
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) return;
@@ -1634,11 +1658,11 @@
         if (settings.useDeviceTimezone) { onTimezoneChange(); return; }
       }
       if (changed) { renderAll(); renderLocations(); }
-      else { renderSun(); updateSky(); }
+      else { renderSun(); updateSky(); const loc = activeLocation(); if (loc && store.data[loc.id]) { renderNow(loc, store.data[loc.id]); renderHourly(loc, store.data[loc.id]); } }
       const d = store.data[activeId];
       if (d && Date.now() - d.fetchedAt > 15 * 60000) refresh(true);
     });
-    window.addEventListener("focus", () => { if (deviceClockChanged() && activeLocation()) renderSun(); syncSolarClock(); });
+    window.addEventListener("focus", () => { if (deviceClockChanged() && activeLocation()) { renderAll(); renderLocations(); } syncSolarClock(); });
     window.addEventListener("online", () => { syncSolarClock(); refresh(true); });
     setInterval(() => { if (!document.hidden) syncSolarClock(); }, 60000);
     syncSolarClock();
