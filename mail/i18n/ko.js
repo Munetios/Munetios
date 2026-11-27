@@ -67,6 +67,7 @@
     attach: "첨부", uploadFromDevice: "기기에서 업로드", selectFromPhotos: "Munetios Photos에서 선택", insertInlineImage: "메일에 이미지 삽입", pasteFromClipboard: "클립보드에서 붙여넣기",
     signature: "서명", templates: "템플릿", priority: "우선순위", priority_low: "낮음", priority_normal: "보통", priority_high: "높음",
     saveDraftNow: "지금 임시 저장", saveAsTemplate: "템플릿으로 저장", sendTest: "테스트 메일 보내기", exportHtml: "HTML 내보내기", exportEml: ".eml 내보내기", discardDraft: "임시 저장 메일 삭제",
+    viewHtml: "HTML 보기",
     writeMessage: "메일 내용 작성", htmlTools: "HTML 도구", formatHtml: "HTML 서식 정리", inlineCss: "CSS 인라인 적용", validateHtml: "HTML 검사", findReplace: "찾기 및 바꾸기", importHtml: "HTML 파일 가져오기", copyHtml: "HTML 복사",
     cssInlined: "CSS가 요소에 적용되었습니다.", copied: "복사됨", copyFailed: "복사할 수 없습니다.", validation: "HTML 검사", designer: "디자이너", template_newsletter: "뉴스레터", template_business: "비즈니스", template_invitation: "초대장", template_announcement: "공지",
     useTemplate: "템플릿 사용", replaceDesignMessage: "현재 디자인을 이 템플릿으로 바꿀까요?", replace: "바꾸기", livePreview: "실시간 미리보기", previewDevice: "미리보기 크기", desktop: "데스크톱", tablet: "태블릿", mobile: "휴대전화",

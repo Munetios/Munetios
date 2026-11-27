@@ -67,6 +67,7 @@
     attach: "Allega", uploadFromDevice: "Carica dal dispositivo", selectFromPhotos: "Scegli da Munetios Photos", insertInlineImage: "Inserisci immagine nel messaggio", pasteFromClipboard: "Incolla dagli appunti",
     signature: "Firma", templates: "Modelli", priority: "Priorità", priority_low: "Bassa", priority_normal: "Normale", priority_high: "Alta",
     saveDraftNow: "Salva bozza ora", saveAsTemplate: "Salva come modello", sendTest: "Invia un’email di prova", exportHtml: "Esporta HTML", exportEml: "Esporta .eml", discardDraft: "Elimina bozza",
+    viewHtml: "Visualizza HTML",
     writeMessage: "Scrivi il tuo messaggio", htmlTools: "Strumenti HTML", formatHtml: "Formatta HTML", inlineCss: "Incorpora CSS", validateHtml: "Controlla HTML", findReplace: "Trova e sostituisci", importHtml: "Importa file HTML", copyHtml: "Copia HTML",
     cssInlined: "Il CSS è stato applicato agli elementi.", copied: "Copiato", copyFailed: "Impossibile copiare.", validation: "Controlli HTML", designer: "Designer", template_newsletter: "Newsletter", template_business: "Lavoro", template_invitation: "Invito", template_announcement: "Annuncio",
     useTemplate: "Usa modello", replaceDesignMessage: "Sostituire il design attuale con questo modello?", replace: "Sostituisci", livePreview: "Anteprima dal vivo", previewDevice: "Dimensione dell’anteprima", desktop: "Computer", tablet: "Tablet", mobile: "Telefono",

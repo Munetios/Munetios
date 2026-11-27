@@ -67,6 +67,7 @@
     attach: "Anhängen", uploadFromDevice: "Vom Gerät hochladen", selectFromPhotos: "Aus Munetios Photos auswählen", insertInlineImage: "Bild in die Nachricht einfügen", pasteFromClipboard: "Aus der Zwischenablage einfügen",
     signature: "Signatur", templates: "Vorlagen", priority: "Priorität", priority_low: "Niedrig", priority_normal: "Normal", priority_high: "Hoch",
     saveDraftNow: "Entwurf jetzt speichern", saveAsTemplate: "Als Vorlage speichern", sendTest: "Test-E-Mail senden", exportHtml: "HTML exportieren", exportEml: ".eml exportieren", discardDraft: "Entwurf verwerfen",
+    viewHtml: "HTML anzeigen",
     writeMessage: "Schreibe deine Nachricht", htmlTools: "HTML-Werkzeuge", formatHtml: "HTML formatieren", inlineCss: "CSS einbetten", validateHtml: "HTML prüfen", findReplace: "Suchen und ersetzen", importHtml: "HTML-Datei importieren", copyHtml: "HTML kopieren",
     cssInlined: "CSS wurde auf die Elemente übertragen.", copied: "Kopiert", copyFailed: "Konnte nicht kopiert werden.", validation: "HTML-Prüfung", designer: "Designer", template_newsletter: "Newsletter", template_business: "Geschäftlich", template_invitation: "Einladung", template_announcement: "Ankündigung",
     useTemplate: "Vorlage verwenden", replaceDesignMessage: "Das aktuelle Design durch diese Vorlage ersetzen?", replace: "Ersetzen", livePreview: "Live-Vorschau", previewDevice: "Vorschaugröße", desktop: "Computer", tablet: "Tablet", mobile: "Smartphone",

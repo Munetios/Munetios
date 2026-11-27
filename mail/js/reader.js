@@ -83,6 +83,7 @@ function toolbar(message) {
     const more = iconButton("more_vert", t("more"), () => menu(more, [
         { icon: "print", label: t("print"), action: () => window.print() },
         { icon: "download", label: t("downloadEml"), action: () => downloadEml(message) },
+        message.html ? { icon: "html", label: t("viewHtml"), action: () => showHtml(message) } : null,
         { icon: "code", label: t("showOriginal"), action: () => showHeaders(message) },
         { icon: "shield", label: t("privacyInfo"), action: () => privacyDialog(message) },
         { icon: "flag", label: t("followUp"), action: () => actions.followUpMenu(more, ids) },
@@ -177,6 +178,7 @@ function messageCard(message, primary) {
         message.cc?.length ? el("span", { class: "mu-muted", text: t("ccLine", { names: people(message.cc) }) }) : null,
         message.bcc?.length ? el("span", { class: "mu-muted", text: t("bccLine", { names: people(message.bcc) }) }) : null);
     const actionsNode = el("div", { class: "mail-message-actions" }, el("span", { class: "mu-muted", text: formatDateTime(message.date), style: undefined }),
+        !primary && message.html ? iconButton("html", t("viewHtml"), () => showHtml(message)) : null,
         primary ? null : iconButton("reply", t("reply"), () => emit("reply", { item: message, mode: "reply" })));
     const head = el("div", { class: "mail-message-head" }, stamp(message.from?.name, message.from?.email), who, actionsNode);
     if (!primary) head.addEventListener("click", event => { if (!event.target.closest("button")) card.classList.toggle("is-collapsed"); });
@@ -357,6 +359,13 @@ async function downloadEml(message) {
     catch (error) { toast(actions.errorText(error), "error"); }
 }
 
+function showHtml(message) {
+    const title = t("viewHtml");
+    const source = el("pre", { class: "mail-plain", dir: "ltr", tabindex: "0", "aria-label": title, style: "max-height:60vh;overflow:auto", text: message.html });
+    const d = dialog({ title, iconName: "html", size: "mu-dialog-lg", content: [source],
+        actions: [button(t("close"), () => d.close(), { primary: true })] });
+}
+
 function showHeaders(message) {
     const text = (message.headers || []).map(([key, value]) => `${key}: ${value}`).join("\n") || t("noHeaders");
     const d = dialog({ title: t("showOriginal"), iconName: "code", size: "mu-dialog-lg", content: [el("pre", { class: "mail-plain", style: "max-height:60vh;overflow:auto", text })],
@@ -414,6 +423,7 @@ async function openDevice(id) {
     const toolbarNode = el("div", { class: "mail-reader-toolbar", role: "toolbar", "aria-label": t("messageActions") },
         iconButton("arrow_back", t("back"), () => closeReader()),
         button(t("moveToMailbox"), () => moveDeviceToMailbox(message), { iconName: "cloud_upload" }),
+        message.html ? iconButton("html", t("viewHtml"), () => showHtml(message)) : null,
         iconButton("download", t("downloadEml"), () => download(new Blob([Uint8Array.from(atob(message.raw), c => c.charCodeAt(0))], { type: "message/rfc822" }), (message.subject || "message").replace(/[\\/:*?"<>|]+/g, "_").slice(0, 80) + ".eml")),
         iconButton("reply", t("reply"), () => emit("reply", { item: { ...message, id: null, mailboxId: message.mailboxId, folder: "device" }, mode: "reply" })),
         el("span", { class: "mail-spacer" }),

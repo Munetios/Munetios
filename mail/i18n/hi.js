@@ -67,6 +67,7 @@
     attach: "संलग्न करें", uploadFromDevice: "डिवाइस से अपलोड करें", selectFromPhotos: "Munetios Photos से चुनें", insertInlineImage: "संदेश में चित्र डालें", pasteFromClipboard: "क्लिपबोर्ड से चिपकाएँ",
     signature: "हस्ताक्षर", templates: "टेम्पलेट", priority: "प्राथमिकता", priority_low: "कम", priority_normal: "सामान्य", priority_high: "उच्च",
     saveDraftNow: "ड्राफ़्ट अभी सहेजें", saveAsTemplate: "टेम्पलेट के रूप में सहेजें", sendTest: "परीक्षण संदेश भेजें", exportHtml: "HTML निर्यात करें", exportEml: ".eml निर्यात करें", discardDraft: "ड्राफ़्ट हटाएँ",
+    viewHtml: "HTML देखें",
     writeMessage: "अपना संदेश लिखें", htmlTools: "HTML टूल", formatHtml: "HTML फ़ॉर्मैट करें", inlineCss: "CSS इनलाइन करें", validateHtml: "HTML जाँचें", findReplace: "ढूँढें और बदलें", importHtml: "HTML फ़ाइल आयात करें", copyHtml: "HTML कॉपी करें",
     cssInlined: "CSS तत्वों पर लागू कर दी गई।", copied: "कॉपी किया गया", copyFailed: "कॉपी नहीं हो सका।", validation: "HTML जाँच", designer: "डिज़ाइनर", template_newsletter: "न्यूज़लेटर", template_business: "व्यवसाय", template_invitation: "निमंत्रण", template_announcement: "घोषणा",
     useTemplate: "टेम्पलेट उपयोग करें", replaceDesignMessage: "मौजूदा डिज़ाइन को इस टेम्पलेट से बदलें?", replace: "बदलें", livePreview: "लाइव पूर्वावलोकन", previewDevice: "पूर्वावलोकन आकार", desktop: "डेस्कटॉप", tablet: "टैबलेट", mobile: "फ़ोन",

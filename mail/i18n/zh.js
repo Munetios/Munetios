@@ -67,6 +67,7 @@
     attach: "添加附件", uploadFromDevice: "从设备上传", selectFromPhotos: "从 Munetios Photos 选择", insertInlineImage: "在邮件中插入图片", pasteFromClipboard: "从剪贴板粘贴",
     signature: "签名", templates: "模板", priority: "优先级", priority_low: "低", priority_normal: "普通", priority_high: "高",
     saveDraftNow: "立即保存草稿", saveAsTemplate: "另存为模板", sendTest: "发送测试邮件", exportHtml: "导出 HTML", exportEml: "导出 .eml", discardDraft: "舍弃草稿",
+    viewHtml: "查看 HTML",
     writeMessage: "撰写邮件内容", htmlTools: "HTML 工具", formatHtml: "格式化 HTML", inlineCss: "内联 CSS", validateHtml: "检查 HTML", findReplace: "查找和替换", importHtml: "导入 HTML 文件", copyHtml: "复制 HTML",
     cssInlined: "CSS 已应用到元素上。", copied: "已复制", copyFailed: "无法复制。", validation: "HTML 检查", designer: "设计器", template_newsletter: "简报", template_business: "商务", template_invitation: "邀请函", template_announcement: "公告",
     useTemplate: "使用模板", replaceDesignMessage: "要用此模板替换当前设计吗？", replace: "替换", livePreview: "实时预览", previewDevice: "预览尺寸", desktop: "电脑", tablet: "平板电脑", mobile: "手机",

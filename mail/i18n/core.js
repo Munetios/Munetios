@@ -68,6 +68,7 @@
     attach: "Attach", uploadFromDevice: "Upload from device", selectFromPhotos: "Select from Munetios Photos", insertInlineImage: "Insert inline image", pasteFromClipboard: "Paste from clipboard",
     signature: "Signature", templates: "Templates", priority: "Priority", priority_low: "Low", priority_normal: "Normal", priority_high: "High",
     saveDraftNow: "Save draft now", saveAsTemplate: "Save as template", sendTest: "Send a test email", exportHtml: "Export HTML", exportEml: "Export .eml", discardDraft: "Discard draft",
+    viewHtml: "View HTML",
     writeMessage: "Write your message", htmlTools: "HTML tools", formatHtml: "Format HTML", inlineCss: "Inline CSS", validateHtml: "Check HTML", findReplace: "Find and replace", importHtml: "Import HTML file", copyHtml: "Copy HTML",
     cssInlined: "CSS moved onto elements.", copied: "Copied", copyFailed: "Couldn't copy.", validation: "HTML checks", designer: "Designer", template_newsletter: "Newsletter", template_business: "Business", template_invitation: "Invitation", template_announcement: "Announcement",
     useTemplate: "Use template", replaceDesignMessage: "Replace the current design with this template?", replace: "Replace", livePreview: "Live preview", previewDevice: "Preview size", desktop: "Desktop", tablet: "Tablet", mobile: "Mobile",

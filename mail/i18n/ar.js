@@ -67,6 +67,7 @@
     attach: "إرفاق", uploadFromDevice: "تحميل من الجهاز", selectFromPhotos: "الاختيار من Munetios Photos", insertInlineImage: "إدراج صورة في الرسالة", pasteFromClipboard: "لصق من الحافظة",
     signature: "التوقيع", templates: "القوالب", priority: "الأولوية", priority_low: "منخفضة", priority_normal: "عادية", priority_high: "عالية",
     saveDraftNow: "حفظ المسودة الآن", saveAsTemplate: "حفظ كقالب", sendTest: "إرسال رسالة تجريبية", exportHtml: "تصدير HTML", exportEml: "تصدير ‎.eml", discardDraft: "تجاهل المسودة",
+    viewHtml: "عرض HTML",
     writeMessage: "اكتب رسالتك", htmlTools: "أدوات HTML", formatHtml: "تنسيق HTML", inlineCss: "تضمين CSS", validateHtml: "فحص HTML", findReplace: "بحث واستبدال", importHtml: "استيراد ملف HTML", copyHtml: "نسخ HTML",
     cssInlined: "تم تطبيق CSS على العناصر.", copied: "تم النسخ", copyFailed: "تعذّر النسخ.", validation: "فحص HTML", designer: "المصمم", template_newsletter: "نشرة إخبارية", template_business: "أعمال", template_invitation: "دعوة", template_announcement: "إعلان",
     useTemplate: "استخدام القالب", replaceDesignMessage: "هل تريد استبدال التصميم الحالي بهذا القالب؟", replace: "استبدال", livePreview: "معاينة مباشرة", previewDevice: "حجم المعاينة", desktop: "سطح المكتب", tablet: "جهاز لوحي", mobile: "هاتف",
