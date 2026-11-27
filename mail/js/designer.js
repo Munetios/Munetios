@@ -8,6 +8,17 @@ const uid = () => "b" + Math.random().toString(36).slice(2, 10);
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const safeUrl = value => /^(https?:|mailto:|tel:|cid:)/i.test(String(value || "").trim()) ? String(value).trim() : "";
 const color = value => /^#[0-9a-f]{6}$/i.test(value || "") ? value : "";
+const DESIGN_FONTS = [
+    "'Munetios UI v4 Font', Arial, Helvetica, sans-serif",
+    "'Google Sans Flex', Arial, Helvetica, sans-serif",
+    "Arial, Helvetica, sans-serif",
+    "Georgia, serif",
+    "'Trebuchet MS', sans-serif",
+    "Verdana, sans-serif",
+    "'Times New Roman', serif",
+    "'Courier New', monospace",
+];
+const googleSansFeatures = font => font === DESIGN_FONTS[1] ? ";font-feature-settings:'ss01' 1" : "";
 
 export const BLOCKS = {
     header: () => ({ type: "header", props: { text: t("designerHeaderText"), logo: "", align: "center", background: "#6d4aff", color: "#ffffff", padding: 28, size: 28 } }),
@@ -24,7 +35,7 @@ export const BLOCKS = {
 const BLOCK_ICONS = { header: "title", text: "notes", image: "image", button: "smart_button", divider: "horizontal_rule", spacer: "height", columns: "view_column", table: "table", footer: "call_to_action", html: "code" };
 
 export function emptyDesign() {
-    return { version: 1, settings: { background: "#eef0f6", contentBackground: "#ffffff", width: 600, font: "Arial, Helvetica, sans-serif", textColor: "#1d2433", linkColor: "#5b3df5", padding: 24, radius: 16, preheader: "" }, blocks: [] };
+    return { version: 1, settings: { background: "#eef0f6", contentBackground: "#ffffff", width: 600, font: DESIGN_FONTS[0], textColor: "#1d2433", linkColor: "#5b3df5", padding: 24, radius: 16, preheader: "" }, blocks: [] };
 }
 
 export function templateDesign(kind) {
@@ -87,7 +98,7 @@ function blockHtml(block, settings) {
 }
 
 export function designToHtml(design) {
-    const s = design.settings;
+    const s = { ...design.settings, font: design.settings?.font || DESIGN_FONTS[0] };
     const rows = design.blocks.map(block => blockHtml(block, s)).join("\n");
     return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -107,7 +118,7 @@ ${s.preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${color(s.background)}">
 <tr><td align="center" style="padding:${Number(s.padding)}px 12px">
 <!--[if mso]><table role="presentation" width="${Number(s.width)}" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
-<table role="presentation" class="mail-container" width="${Number(s.width)}" cellpadding="0" cellspacing="0" border="0" style="width:${Number(s.width)}px;max-width:100%;background-color:${color(s.contentBackground)};border-radius:${Number(s.radius)}px;overflow:hidden;font-family:${s.font};color:${color(s.textColor)}">
+<table role="presentation" class="mail-container" width="${Number(s.width)}" cellpadding="0" cellspacing="0" border="0" style="width:${Number(s.width)}px;max-width:100%;background-color:${color(s.contentBackground)};border-radius:${Number(s.radius)}px;overflow:hidden;font-family:${s.font}${googleSansFeatures(s.font)};color:${color(s.textColor)}">
 ${rows}
 </table>
 <!--[if mso]></td></tr></table><![endif]-->
@@ -121,6 +132,7 @@ ${rows}
 export class Designer {
     constructor({ design = null, onChange = () => {}, onImage = async () => null, onSaveComponent = null, components = [] } = {}) {
         this.design = design && Array.isArray(design.blocks) ? structuredClone(design) : emptyDesign();
+        this.design.settings = { ...emptyDesign().settings, ...this.design.settings, font: this.design.settings?.font || DESIGN_FONTS[0] };
         this.onChange = onChange;
         this.onImage = onImage;
         this.onSaveComponent = onSaveComponent;
@@ -214,7 +226,7 @@ export class Designer {
     }
 
     render() {
-        const page = el("div", { class: "mail-designer-page", style: `max-width:${this.design.settings.width}px;background:${this.design.settings.contentBackground};font-family:${this.design.settings.font};color:${this.design.settings.textColor};border-radius:${this.design.settings.radius}px` });
+        const page = el("div", { class: "mail-designer-page", style: `max-width:${this.design.settings.width}px;background:${this.design.settings.contentBackground};font-family:${this.design.settings.font}${googleSansFeatures(this.design.settings.font)};color:${this.design.settings.textColor};border-radius:${this.design.settings.radius}px` });
         const renderList = (list, container) => {
             if (!list.length) {
                 const empty = el("div", { class: "mail-designer-empty mail-column-drop", text: t("dropBlocksHere") });
@@ -302,7 +314,7 @@ export class Designer {
                     this.input(t("linkColor"), s.linkColor, value => setS("linkColor", value), "color"),
                     this.input(t("contentWidth"), s.width, value => setS("width", Math.min(800, Math.max(320, value))), "number", { min: 320, max: 800 }),
                     this.input(t("cornerRadius"), s.radius, value => setS("radius", value), "number", { min: 0, max: 40 }),
-                    field(t("font"), select(t("font"), ["Arial, Helvetica, sans-serif", "Georgia, serif", "'Trebuchet MS', sans-serif", "Verdana, sans-serif", "'Times New Roman', serif", "'Courier New', monospace"].map(value => ({ value, label: value.split(",")[0].replace(/'/g, "") })), s.font, value => setS("font", value))),
+                    field(t("font"), select(t("font"), DESIGN_FONTS.map(value => ({ value, label: value.split(",")[0].replace(/'/g, "") })), s.font, value => setS("font", value))),
                     this.input(t("preheader"), s.preheader, value => setS("preheader", value))),
                 el("div", { class: "mail-props-group" }, el("div", { class: "mu-field-label", text: t("variables") }), el("p", { class: "mu-muted", style: "margin:0", text: VARIABLES.map(name => `{{${name}}}`).join(" ") })));
             return;
