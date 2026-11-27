@@ -33,11 +33,11 @@ binding = "ACCOUNTS_DB"
 database_name = "munetios-developer-beta"
 database_id = "ef28124a-df15-4a19-b9bf-d1ad5bbf509f"
 
-# New: Munetios Mail database. Create it, then replace database_id (see README).
+# New: Munetios Mail database.
 [[d1_databases]]
 binding = "MAIL_DB"
 database_name = "munetios-mail"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "cdc7ecc4-346f-49da-a8eb-54cbb014ab3e"
 migrations_dir = "migrations"
 
 # New: private bucket for MIME messages, bodies, attachments, drafts, templates, assets, and exports.
