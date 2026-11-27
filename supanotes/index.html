@@ -1664,6 +1664,11 @@
 
         /* â”€â”€â”€ EDITOR + SELECTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
         const editor = document.getElementById("noteContent");
+        let formattingRange = null;
+        function editorSelection() {
+          const range = saveSelection();
+          return range && editor.contains(range.startContainer) && editor.contains(range.endContainer) ? range : null;
+        }
         function saveSelection() {
           const sel = window.getSelection();
           return sel && sel.rangeCount > 0
@@ -1679,8 +1684,11 @@
 
         /* â”€â”€â”€ FORMATTING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
         function applyFormat(cmd, val) {
+          const range = editorSelection() || formattingRange;
           editor.focus();
+          if (range) restoreSelection(range);
           document.execCommand(cmd, false, val || null);
+          formattingRange = editorSelection();
           updateFmtBtns();
         }
         function updateFmtBtns() {
@@ -1772,6 +1780,8 @@
         editor.addEventListener("keyup", updateFmtBtns);
         editor.addEventListener("mouseup", updateFmtBtns);
         document.addEventListener("selectionchange", function () {
+          const range = editorSelection();
+          if (range) formattingRange = range;
           if (document.activeElement === editor) updateFmtBtns();
         });
         editor.addEventListener("keydown", function (e) {
@@ -2358,9 +2368,7 @@
           noteModal.classList.add("active");
           if (H.onOpenEditor) H.onOpenEditor(note);
           updateFmtBtns();
-          setTimeout(function () {
-            noteTitleInput.focus();
-          }, 80);
+          noteTitleInput.focus();
         }
         function closeNoteModal() {
           if (H.onCloseEditor) H.onCloseEditor();
@@ -2368,6 +2376,7 @@
           _curId = null;
           _curCa = null;
           _curNote = null;
+          formattingRange = null;
           noteTitleInput.value = "";
           editor.innerHTML = "";
         }
@@ -2379,8 +2388,15 @@
         document
           .getElementById("closeNewNoteModalBtn")
           .addEventListener("click", closeNoteModal);
+        let backdropPress = false;
+        noteModal.addEventListener("pointerdown", function (e) {
+          backdropPress = e.isPrimary && e.button === 0 && e.target === noteModal;
+        });
+        noteModal.addEventListener("pointercancel", function () { backdropPress = false; });
         noteModal.addEventListener("click", function (e) {
-          if (e.target === noteModal) closeNoteModal();
+          const dismiss = backdropPress && e.target === noteModal;
+          backdropPress = false;
+          if (dismiss) closeNoteModal();
         });
         document
           .getElementById("newNoteButton")

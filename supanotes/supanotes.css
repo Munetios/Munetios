@@ -362,6 +362,7 @@ body.mu-root { overflow-x: hidden; }
   outline: none;
 }
 .note-content-editor:focus { border-color: var(--mu-current-border); }
+:is(.note-content-editor, .npreview-body) :is(b, strong) { font-weight: 700; }
 .note-content-editor:empty::before { content: attr(placeholder); color: var(--mu-text-muted); pointer-events: none; }
 .note-content-editor img { max-width: 100%; border-radius: var(--mu-radius-sm); }
 .formatting-actionsbar {
