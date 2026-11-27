@@ -391,7 +391,8 @@ body[data-density="spacious"] { --mail-row-pad: 18px; --mail-gap: 16px; }
 .mail-settings-nav .mu-nav-item { min-height: 46px; padding: 6px 14px; font-size: var(--mu-fs-body); }
 .mail-settings-body { display: flex; flex-direction: column; min-height: 0; }
 .mail-settings-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--mu-divider); }
-.mail-settings-content { flex: 1 1 auto; overflow-y: auto; padding: 18px 22px 28px; display: grid; align-content: start; gap: 14px; }
+.mail-settings-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 18px 22px 28px; display: flex; flex-direction: column; gap: 14px; }
+.mail-settings-content > * { flex-shrink: 0; min-width: 0; }
 .mail-settings-content h3 { margin: 10px 0 0; font-size: 22px; }
 .mail-settings-content .mu-row { gap: 16px; flex-wrap: wrap; }
 .mail-settings-content .mu-row .mu-row-info { flex: 1 1 260px; }
