@@ -121,6 +121,30 @@ test("incoming MIME is parsed, stored with attachments and inline images, dedupl
     assert.deepEqual([...eml.data], [...raw], "original MIME is preserved");
 });
 
+test("Primary inbox includes Updates and Forums while their tabs keep their own messages", async () => {
+    const { env, ada, adaBox } = await setup();
+    const path = `/messages?mailbox=${adaBox.id}&view=inbox`;
+    const categories = ["primary", "updates", "forums", "social", "promotions"];
+    for (const category of categories) {
+        assert.equal((await deliver(env, mime({ subject: category, id: `<${category}@example.org>` }))).status, "delivered");
+    }
+    const inbox = await ada("GET", path);
+    for (const message of inbox.data.messages) {
+        assert.equal((await ada("POST", "/messages/update", { body: { ids: [message.id], patch: { category: message.subject } } })).status, 200);
+    }
+    for (const threads of ["0", "1"]) {
+        const primary = await ada("GET", path + `&category=primary&threads=${threads}&limit=2`);
+        assert.equal(primary.data.total, 3);
+        assert.equal(primary.data.messages.length, 2);
+        const nextPage = await ada("GET", path + `&category=primary&threads=${threads}&limit=2&offset=2`);
+        assert.deepEqual([...primary.data.messages, ...nextPage.data.messages].map(message => message.category).sort(), ["forums", "primary", "updates"]);
+    }
+    for (const category of categories.slice(1)) {
+        const tab = await ada("GET", path + "&category=" + category);
+        assert.deepEqual(tab.data.messages.map(message => message.category), [category]);
+    }
+});
+
 test("unknown recipients and oversized messages are rejected, never dropped", async () => {
     const { env } = await setup();
     const unknown = await deliver(env, mime({ to: "nobody@munetios.com" }), "nobody@munetios.com");
