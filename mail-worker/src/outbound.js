@@ -170,7 +170,7 @@ export async function saveDraft(env, session, execCtx, mailbox, input) {
     }
     const attachmentBytes = kept.reduce((sum, item) => sum + item.size, 0) + uploadRows.reduce((sum, item) => sum + item.size, 0);
     const visible = draft.attachments.filter(item => !item.inline).length;
-    const text = draft.text || htmlToText(draft.html);
+    const text = draft.text?.trim() ? draft.text : htmlToText(draft.html);
     const meta = [draft.subject, draft.from, JSON.stringify(draft.to), JSON.stringify(draft.cc), JSON.stringify(draft.bcc), snippetOf(text), at, contentBytes.byteLength + attachmentBytes, visible, attachmentBytes, draft.priority];
     if (row) {
         statements.unshift(db.prepare("DELETE FROM messages_fts WHERE rowid = ?").bind(row.num));
@@ -231,7 +231,7 @@ export async function sendMessage(env, session, execCtx, mailbox, input) {
     const messageId = saved.draftId;
     const { results: attachments } = await db.prepare("SELECT size, disposition, content_id FROM attachments WHERE message_id = ?").bind(messageId).all();
     const deliveryHtml = draft.mode === "plain" ? "" : sanitizeEmailHtml(draft.html);
-    const text = draft.text || htmlToText(deliveryHtml);
+    const text = draft.text?.trim() ? draft.text : htmlToText(deliveryHtml);
     const estimated = Math.ceil((attachments.reduce((sum, item) => sum + item.size, 0) + utf8(deliveryHtml).length + utf8(text).length) * 4 / 3) + 16_384;
     if (estimated > MAX_MESSAGE_BYTES) fail(413, "messageTooLarge", { limitBytes: MAX_MESSAGE_BYTES });
     const body = await storeBlob(env, mailbox.id, utf8(JSON.stringify({ html: deliveryHtml, text })), { contentType: "application/json" });
@@ -353,7 +353,7 @@ export async function processSend(env, outboundId) {
     const payload = {
         from: name ? { email: message.from_addr, name } : message.from_addr,
         to: parseJson(message.to_json, []).map(formatRecipient), cc: parseJson(message.cc_json, []).map(formatRecipient), bcc: parseJson(message.bcc_json, []).map(formatRecipient),
-        subject: message.subject, text: body.text || " ", ...(body.html ? { html: body.html } : {}),
+        subject: message.subject, text: body.text?.trim() ? body.text : (htmlToText(body.html) || " "), ...(body.html ? { html: body.html } : {}),
         ...(attachments.length ? { attachments } : {}), ...(Object.keys(headers).length ? { headers } : {}),
     };
     for (const field of ["to", "cc", "bcc"]) if (!payload[field].length) delete payload[field];
@@ -537,7 +537,7 @@ export async function processForward(env, { mailboxId, messageId, address }) {
     try {
         await env.EMAIL.send({
             to: address, from: mailbox.display_name ? { email: mailbox.address, name: mailbox.display_name } : mailbox.address,
-            subject: message.subject, text: body.text || " ", ...(body.html ? { html: body.html } : {}),
+            subject: message.subject, text: body.text?.trim() ? body.text : (htmlToText(body.html) || " "), ...(body.html ? { html: body.html } : {}),
             ...(message.from_addr && validEmail(message.from_addr) ? { replyTo: message.from_addr } : {}),
             ...(attachments.length ? { attachments } : {}), headers: { "X-Munetios-Forwarded": "1", "Auto-Submitted": "auto-forwarded" },
         });
