@@ -536,7 +536,7 @@
     if (!skipPull && BigInt(remote.seq) < BigInt(syncState.seq || "0")) {
       // The account's synced data was deleted: upload everything again.
       syncState.items = {}; syncState.cursor = {}; syncState.seq = "0"; syncState.pulled = {};
-      if (since !== "0") remote = await getItems("0");
+      if (since !== "0") { since = "0"; remote = await getItems("0"); }
     }
     // Fetch every page before applying changes or uploading local documents.
     if (remote.hasMore) {
