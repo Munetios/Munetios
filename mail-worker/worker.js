@@ -1,5 +1,14 @@
 import PostalMime from "postal-mime";
 import { mailHtml } from "./template.js";
+import { handleApi, API_PREFIX } from "./src/api.js";
+import { deliverInbound } from "./src/inbound.js";
+import { processSend, processDeliveryEvent, processForward } from "./src/outbound.js";
+import { processExport } from "./src/transfer.js";
+import { processBlobDeletions } from "./src/storage.js";
+import { everyMinute, hourly, deleteMailboxJob } from "./src/maintenance.js";
+import { opsLog } from "./src/util.js";
+
+export { MailboxHub } from "./src/hub.js";
 
 const EMAIL = /^[!-~]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/;
 const internal = email => email.endsWith("@munetios.com");
@@ -56,10 +65,30 @@ function messageFor(pathname, data, env) {
     html: mailHtml({ title: data.subject || "Munetios Mail", body: data.body }) };
 }
 
+// Queue jobs from the Mail API, inbound processing, and cron. Transient failures retry with exponential backoff.
+export async function runJob(body, env) {
+  switch (body?.type) {
+    case "send": return processSend(env, body.outboundId);
+    case "forward": await processForward(env, body); return {};
+    case "export": {
+      const result = await processExport(env, body.exportId);
+      if (result.continue) await env.MAIL_JOBS.send({ type: "export", exportId: body.exportId });
+      return {};
+    }
+    case "blob-deletions": await processBlobDeletions(env, 500); return {};
+    case "delete-mailbox": return deleteMailboxJob(env, body.mailboxId);
+    default: return {};
+  }
+}
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const { pathname } = new URL(request.url);
     if (pathname === "/health" && request.method === "GET") return Response.json({ ok: true });
+    if (pathname === API_PREFIX || pathname.startsWith(API_PREFIX + "/")) {
+      if (!env.MAIL_DB || !env.MAIL_STORE) return Response.json({ error: "unavailable" }, { status: 503, headers: { "Cache-Control": "no-store" } });
+      return handleApi(request, env, ctx);
+    }
     if (request.method !== "POST" || !["/send", "/verification", "/password-reset", "/forgot-email"].includes(pathname)) return new Response(null, { status: 404 });
     if (!await authorized(request, env.MAIL_BRIDGE_SECRET)) return Response.json({ error: "unauthorized" }, { status: 401 });
     if (Number(request.headers.get("Content-Length")) > 2 * 1024 * 1024) return Response.json({ error: "tooLarge" }, { status: 413 });
@@ -74,7 +103,16 @@ export default {
     }
   },
 
-  async email(message, env) {
+  async email(message, env, ctx) {
+    if (env.MAIL_DB && env.MAIL_STORE) {
+      // Munetios Mail storage: parse, check quota and rules, and store; otherwise reject with an SMTP error.
+      await deliverInbound(env, {
+        from: message.from, to: message.to, rawSize: message.rawSize,
+        raw: async () => new Uint8Array(await new Response(message.raw).arrayBuffer()),
+        reject: reason => message.setReject(reason),
+      }, ctx);
+      return;
+    }
     const recipient = normalize(message.to);
     const sender = normalize(message.from);
     if (!valid(recipient) || !internal(recipient) || !valid(sender) || message.rawSize > 5 * 1024 * 1024) {
@@ -99,5 +137,30 @@ export default {
     });
     if (response.status === 404) message.setReject("Mailbox unavailable.");
     else if (!response.ok) throw new Error("Mail delivery to the inbox failed");
+  },
+
+  async queue(batch, env) {
+    for (const message of batch.messages) {
+      try {
+        const body = message.body;
+        // Cloudflare Email Sending events (delivered, bounced, ...) arrive on the events queue.
+        if (typeof body?.type === "string" && body.type.startsWith("cf.email.sending.")) {
+          await processDeliveryEvent(env, body);
+          message.ack();
+          continue;
+        }
+        const result = await runJob(body, env);
+        if (result?.retryDelaySeconds) message.retry({ delaySeconds: Math.min(43200, result.retryDelaySeconds) });
+        else message.ack();
+      } catch (error) {
+        await opsLog(env.MAIL_DB, "queue", error?.name || "error");
+        message.retry({ delaySeconds: Math.min(3600, 15 * 2 ** Math.min(8, message.attempts || 1)) });
+      }
+    }
+  },
+
+  async scheduled(controller, env, ctx) {
+    if (!env.MAIL_DB || !env.MAIL_STORE) return;
+    ctx.waitUntil(controller.cron === "17 * * * *" ? hourly(env) : everyMinute(env));
   },
 };

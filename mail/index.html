@@ -2,72 +2,102 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://api.munetios.com; font-src 'self' https://api.munetios.com; img-src 'self' data: https:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#110736">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://api.munetios.com; font-src 'self' https://api.munetios.com blob:; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' wss: ws:; frame-src 'self' blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>Munetios Mail</title>
+  <link rel="manifest" href="/mail/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/mail/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/mail/icons/mail-192.png">
+  <link rel="apple-touch-icon" href="/mail/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="https://api.munetios.com/beautiful-css/beautiful.css">
   <link rel="stylesheet" href="/munetios-ui/munetios-ui-v4.css">
   <link rel="stylesheet" href="/account/account-menu.css">
   <link rel="stylesheet" href="/mail/mail.css">
+  <script src="/account/workspace-scope.js"></script>
 </head>
-<body class="mu-root mail-app">
-  <header class="mu-topbar mail-topbar">
-    <div class="mu-capsule liquid-glass">
-      <span class="mu-topbar-title" translate="no">Munetios Mail</span>
-      <span class="mu-badge mu-badge-warning" data-label="incomplete">Incomplete</span>
+<body class="mu-root mail-app" data-density="comfortable" data-pane="right">
+  <a class="mu-skip-link" href="#mailList" data-label="skipToList">Skip to messages</a>
+  <div class="mail-backdrop" aria-hidden="true"></div>
+
+  <header class="mail-header" id="mailHeader">
+    <div class="mu-capsule mail-brand">
+      <button type="button" class="mu-icon-btn" id="navToggle" data-label-aria="toggleNavigation" aria-expanded="true" aria-controls="mailSidebar"><span class="mu-icon" aria-hidden="true">menu</span></button>
+      <img class="mail-logo" src="/mail/icons/mail-192.png" alt="" width="48" height="48">
+      <span class="mail-brand-name" translate="no">Munetios Mail</span>
     </div>
-    <div class="mu-capsule liquid-glass" data-munetios-account></div>
+    <div class="mu-capsule mail-command" role="search">
+      <label class="mu-search mail-search">
+        <span class="mu-icon" aria-hidden="true">search</span>
+        <input id="searchInput" type="search" autocomplete="off" spellcheck="false" data-label-placeholder="searchPlaceholder" data-label-aria="searchMail" aria-controls="searchSuggestions" aria-expanded="false">
+      </label>
+      <button type="button" class="mu-icon-btn" id="advancedSearchButton" data-label-aria="advancedSearch" data-tip><span class="mu-icon" aria-hidden="true">tune</span></button>
+    </div>
+    <div class="mu-capsule mail-header-actions">
+      <span class="mail-connection" id="connectionStatus" role="status" aria-live="polite" hidden><span class="mu-icon" aria-hidden="true">cloud_off</span><span data-label="offline">Offline</span></span>
+      <button type="button" class="mu-icon-btn" id="customizeButton" data-label-aria="customize"><span class="mu-icon" aria-hidden="true">palette</span></button>
+      <button type="button" class="mu-icon-btn" id="settingsButton" data-label-aria="settings"><span class="mu-icon" aria-hidden="true">settings</span></button>
+    </div>
+    <div class="mu-capsule" data-munetios-account></div>
   </header>
-  <main class="mail-main">
-    <p id="mailStatus" class="mu-muted" role="status" aria-live="polite" hidden></p>
-    <div id="mailWorkspace" hidden>
-      <p id="mailForwarding" class="mu-muted" hidden><span data-label="forwardTo">Forward messages to</span> <strong id="mailForwardingAddress" dir="ltr"></strong></p>
-      <nav class="mail-toolbar">
-        <div class="mu-segmented">
-          <button type="button" data-folder="inbox" aria-pressed="true" data-label="inbox">Inbox</button>
-          <button type="button" data-folder="sent" aria-pressed="false" data-label="sent">Sent</button>
+
+  <div class="mail-shell" id="mailShell">
+    <aside class="mail-sidebar mu-glass" id="mailSidebar" data-mu-resizable="mail-sidebar" data-label-resize="resizeSidebar" aria-labelledby="sidebarHeading">
+      <h2 class="mu-visually-hidden" id="sidebarHeading" data-label="mailNavigation">Mail navigation</h2>
+      <button type="button" class="mail-write mu-btn mu-btn-primary mu-btn-lg" id="composeButton"><span class="mu-icon" aria-hidden="true">edit_square</span><span data-label="write">Write</span></button>
+      <div class="mail-mailbox-picker" id="mailboxPicker"></div>
+      <nav class="mail-nav mu-scroll" id="mailNav" aria-labelledby="sidebarHeading"></nav>
+      <section class="mail-storage-mini" id="storageMini" aria-live="polite"></section>
+    </aside>
+
+    <main class="mail-main" id="mailMain">
+      <section class="mail-list-pane mu-glass" id="listPane" aria-labelledby="listHeading">
+        <div class="mail-list-head">
+          <div class="mail-list-title">
+            <h1 class="mu-h-title" id="listHeading"></h1>
+            <span class="mu-muted mail-list-count" id="listCount"></span>
+          </div>
+          <div class="mail-list-tools" role="toolbar" id="listToolbar" data-label-aria="messageActions"></div>
         </div>
-        <div class="mail-actions">
-          <button type="button" id="mailRefresh" class="mu-btn" data-label="refresh">Refresh</button>
-          <button type="button" id="mailCompose" class="mu-btn mu-btn-primary" data-mu-open="composeDialog" data-label="compose">Compose</button>
-        </div>
-      </nav>
-      <div class="mail-layout">
-        <section class="mu-glass mu-panel mail-panel">
-          <h1 class="mu-h-title" id="mailFolder"></h1>
-          <p class="mu-muted" id="mailEmpty" data-label="empty" hidden>No messages.</p>
-          <div id="mailList" class="mail-list"></div>
-          <button type="button" class="mu-btn" id="mailMore" data-label="more" hidden>Load more</button>
-        </section>
-        <article class="mu-glass mu-panel mail-panel" id="mailMessage" hidden>
-          <h2 class="mu-h-title" id="mailSubject"></h2>
-          <p class="mu-muted" id="mailMetadata"></p>
-          <button type="button" class="mu-btn" id="mailShowImages" data-label="showImages" hidden>Show remote images</button>
-          <div id="mailText"></div>
-        </article>
-      </div>
-    </div>
-  </main>
-  <div class="mu-modal" id="composeDialog" hidden>
-    <form class="mu-dialog" id="composeForm" role="dialog" aria-labelledby="composeTitle">
-      <div class="mu-dialog-header">
-        <h2 id="composeTitle" data-label="compose">Compose</h2>
-        <button type="button" class="mu-icon-btn" data-mu-close aria-label="Close" data-label-aria="close"><span class="mu-icon" aria-hidden="true">close</span></button>
-      </div>
-      <label class="mu-field"><span class="mu-field-label" data-label="to">To</span><input class="mu-input" name="recipient" type="email" required autocomplete="email" dir="ltr"></label>
-      <label class="mu-field"><span class="mu-field-label" data-label="subject">Subject</span><input class="mu-input" name="subject" maxlength="500"></label>
-      <label class="mu-field"><span class="mu-field-label" data-label="message">Message</span><textarea class="mu-textarea" name="body" rows="8" required></textarea></label>
-      <p class="mu-inline-error" id="composeError" role="alert" hidden></p>
-      <div class="mu-dialog-actions"><button type="submit" class="mu-btn mu-btn-primary" data-label="send">Send</button></div>
-    </form>
+        <div class="mail-categories" id="categoryTabs" role="tablist" hidden></div>
+        <div class="mail-alerts" id="listAlerts"></div>
+        <div class="mail-list mu-scroll" id="mailList" tabindex="-1" role="listbox" aria-multiselectable="true" data-label-aria="messages"></div>
+      </section>
+      <div class="mail-pane-resizer" id="paneResizer" role="separator" tabindex="0" data-label-aria="resizeReadingPane"></div>
+      <section class="mail-reader-pane mu-glass" id="readerPane" aria-live="polite" data-label-aria="readingPane">
+        <div class="mail-tabs" id="readerTabs" role="tablist" hidden></div>
+        <div class="mail-reader mu-scroll" id="reader"></div>
+      </section>
+    </main>
   </div>
+
+  <div class="mail-compose-dock" id="composeDock" aria-live="polite"></div>
+  <div class="mail-undo" id="undoBar" role="status" aria-live="polite" hidden></div>
+  <ul class="mu-menu mu-menu-floating mail-suggestions" id="searchSuggestions" role="listbox" hidden></ul>
+  <div class="mail-drop-hint" id="dropHint" hidden><span class="mu-icon" aria-hidden="true">upload_file</span><span data-label="dropToAttach">Drop files to attach</span></div>
+  <div id="modalRoot"></div>
+
   <script src="/munetios-ui/munetios-ui-v4.js"></script>
   <script src="/account/account-i18n.js"></script>
   <script src="/account/account-core.js"></script>
   <script src="/account/account-menu.js"></script>
   <script src="/shared/munetios-locales.js"></script>
+  <script src="/shared/cloud-i18n.js"></script>
+  <script src="/shared/munetios-cloud.js"></script>
+  <script src="/mail/i18n/core.js"></script>
+  <script src="/mail/i18n/fr.js"></script>
+  <script src="/mail/i18n/es.js"></script>
+  <script src="/mail/i18n/de.js"></script>
+  <script src="/mail/i18n/it.js"></script>
+  <script src="/mail/i18n/pt.js"></script>
+  <script src="/mail/i18n/zh.js"></script>
+  <script src="/mail/i18n/ko.js"></script>
+  <script src="/mail/i18n/ar.js"></script>
+  <script src="/mail/i18n/hi.js"></script>
   <script src="/mail/strings.js"></script>
-  <script src="/mail/mail.js"></script>
+  <script type="module" src="/mail/js/app.js"></script>
 </body>
 </html>

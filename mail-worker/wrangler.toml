@@ -1,9 +1,83 @@
 name = "munetios-mail"
 main = "worker.js"
 compatibility_date = "2026-11-19"
+workers_dev = true
+preview_urls = false
+
+[observability]
+# Mail content must never reach logs; the Worker only logs error class names.
+enabled = false
 
 [vars]
 MAIL_VERIFICATION_FROM = "verify@munetios.com"
+MAIL_DOMAIN = "munetios.com"
+# 20 GB (decimal) per mailbox.
+MAIL_QUOTA_BYTES = "20000000000"
+# Per-account sending and upload limits.
+MAIL_SENDS_PER_HOUR = "300"
+MAIL_RECIPIENTS_PER_DAY = "2000"
+MAIL_UPLOADS_PER_HOUR = "600"
 
+# Existing: Cloudflare Email Service binding used for verification codes and mail.
 [[send_email]]
 name = "EMAIL"
+
+# Existing: accounts backend (sessions are validated there; this Worker never sees passwords).
+[[services]]
+binding = "ACCOUNTS"
+service = "munetios-developer-beta-db"
+
+# Existing: accounts database, read only here (mailbox entitlement, forwarding addresses, legacy messages).
+[[d1_databases]]
+binding = "ACCOUNTS_DB"
+database_name = "munetios-developer-beta"
+database_id = "ef28124a-df15-4a19-b9bf-d1ad5bbf509f"
+
+# New: Munetios Mail database. Create it, then replace database_id (see README).
+[[d1_databases]]
+binding = "MAIL_DB"
+database_name = "munetios-mail"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+# New: private bucket for MIME messages, bodies, attachments, drafts, templates, assets, and exports.
+[[r2_buckets]]
+binding = "MAIL_STORE"
+bucket_name = "munetios-mail-store"
+
+# New: background jobs (delivery with retries, forwarding, exports, deletions).
+[[queues.producers]]
+binding = "MAIL_JOBS"
+queue = "munetios-mail-jobs"
+
+[[queues.consumers]]
+queue = "munetios-mail-jobs"
+max_batch_size = 10
+max_batch_timeout = 2
+max_retries = 10
+dead_letter_queue = "munetios-mail-jobs-dlq"
+
+# New: Email Sending events (delivered, deferred, bounced, rejected, complained) for munetios.com.
+[[queues.consumers]]
+queue = "munetios-mail-events"
+max_batch_size = 50
+max_batch_timeout = 5
+max_retries = 5
+
+# New: real-time mailbox notifications over hibernating WebSockets.
+[[durable_objects.bindings]]
+name = "MAIL_HUB"
+class_name = "MailboxHub"
+
+[[migrations]]
+tag = "mail-hub-v1"
+new_sqlite_classes = ["MailboxHub"]
+
+# New: per-account API rate limiting (Workers Rate Limiting).
+[[ratelimits]]
+name = "API_LIMITER"
+namespace_id = "4120"
+simple = { limit = 600, period = 60 }
+
+[triggers]
+crons = ["* * * * *", "17 * * * *"]

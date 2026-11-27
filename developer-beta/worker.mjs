@@ -114,6 +114,10 @@ export default {
             response.headers.set('Cache-Control', 'no-store, no-transform');
             return response;
         }
+        // Munetios Mail API (mail-worker) is a separate Worker reached over a service binding.
+        if (/^\/api\/mail\/v1(?:\/|$)/.test(pathname) && env.MAIL_API) {
+            try { return await env.MAIL_API.fetch(request); } catch { return unavailable(true); }
+        }
         try {
             const upstream = await env.BETA_BACKEND.fetch(request);
             const response = new Response(upstream.body, upstream);

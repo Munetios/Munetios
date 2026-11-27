@@ -31,3 +31,5 @@ coverage/
 !/developer-beta/d1/0003_account_mail.sql
 !/developer-beta/d1/0004_email_settings.sql
 !/developer-beta/d1/0005_collaboration_directory.sql
+.local-mail/
+!/mail-worker/migrations/*.sql

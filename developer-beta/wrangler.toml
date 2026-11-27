@@ -51,6 +51,10 @@ enabled = false
 binding = "BETA_BACKEND"
 service = "munetios-developer-beta-db"
 
+[[services]]
+binding = "MAIL_API"
+service = "munetios-mail"
+
 [[durable_objects.bindings]]
 name = "WEATHER_RATE_LIMITER"
 class_name = "WeatherRateLimiter"

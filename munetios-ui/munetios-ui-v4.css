@@ -1703,3 +1703,34 @@ html.mu-resizing, html.mu-resizing * { cursor: col-resize !important; user-selec
     .mu-topbar-search.is-open input { flex: 1 1 auto; height: calc(var(--mu-topbar-search-size, 68px) - 4px); }
     .mu-topbar-search.is-open .mu-topbar-search-close { display: grid; }
 }
+
+/* ===================================================================== Code editor (Munetios Mail HTML studio)
+   A textarea layered over a highlighted <pre>, with a line-number gutter. Markup:
+   <div class="mu-code-editor"><div class="mail-code-body"><div class="mail-code-gutter"></div>
+   <div class="mail-code-stack"><pre class="mail-code-layer"></pre><textarea class="mail-code-input"></textarea></div></div>
+   <div class="mail-code-status"></div></div> */
+.mu-code-editor { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 220px; background: #14111d; color: #e9e6f3; border-radius: 0; }
+.mu-code-editor .mail-code-body { position: relative; display: flex; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.mu-code-editor .mail-code-gutter { flex: none; width: 66px; overflow: hidden; padding: 12px 0; background: rgba(255, 255, 255, 0.04); color: rgba(233, 230, 243, 0.45); font: 400 18px/28px 'Google Sans Code', ui-monospace, monospace; text-align: end; user-select: none; }
+.mu-code-editor .mail-code-line { position: relative; height: 28px; padding-inline-end: 18px; cursor: default; }
+.mu-code-editor .mail-code-line[data-fold] { cursor: pointer; }
+.mu-code-editor .mail-code-line.is-error { background: rgba(255, 107, 94, 0.22); color: #ffb3ab; }
+.mu-code-editor .mail-code-line.is-warning { background: rgba(255, 207, 74, 0.14); color: #ffe39a; }
+.mu-code-editor .mail-code-fold { position: absolute; inset-inline-end: 0; top: 1px; font-size: 18px !important; }
+.mu-code-editor .mail-code-stack { position: relative; flex: 1 1 auto; min-width: 0; }
+.mu-code-editor .mail-code-layer, .mu-code-editor .mail-code-input { position: absolute; inset: 0; margin: 0; padding: 12px 14px; border: 0; font: 400 18px/28px 'Google Sans Code', ui-monospace, monospace; tab-size: 2; white-space: pre; overflow: auto; letter-spacing: 0; font-feature-settings: normal; }
+.mu-code-editor .mail-code-layer { pointer-events: none; color: #e9e6f3; overflow: hidden; }
+.mu-code-editor .mail-code-input { resize: none; background: transparent; color: transparent; caret-color: #ffffff; outline: none; }
+.mu-code-editor .mail-code-input::selection { background: rgba(143, 92, 255, 0.45); color: transparent; }
+.mu-code-editor .c-tag { color: #c4a7ff; }
+.mu-code-editor .c-attr { color: #8fd3ff; }
+.mu-code-editor .c-string { color: #b8f08a; }
+.mu-code-editor .c-comment { color: #8a8599; font-style: italic; }
+.mu-code-editor .c-prop { color: #ffb86b; }
+.mu-code-editor .c-color { color: #ff8fc1; }
+.mu-code-editor .c-var { color: #ffe066; }
+.mu-code-editor .c-fold { padding: 0 6px; border-radius: 6px; background: rgba(143, 92, 255, 0.3); color: #fff; }
+.mu-code-editor .mail-code-status { padding: 4px 14px; font: 400 18px/1.6 'Google Sans Code', ui-monospace, monospace; color: rgba(233, 230, 243, 0.65); border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.mu-code-editor .mail-code-complete { position: absolute; z-index: 5; min-width: 220px; max-height: 240px; overflow-y: auto; margin: 0; list-style: none; }
+.mu-code-editor .mail-code-complete .mu-menu-item { min-height: 40px; font: 400 18px/1.4 'Google Sans Code', ui-monospace, monospace; }
+.mu-visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

@@ -4,9 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test worker.test.js"
+    "test": "node --test worker.test.js test/*.test.js"
   },
   "dependencies": {
     "postal-mime": "4.2.1"
+  },
+  "engines": {
+    "node": ">=22.5"
   }
 }

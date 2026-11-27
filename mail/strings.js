@@ -1,178 +1,22 @@
+// Munetios Mail translations for all 17 Munetios locales.
+// Sources: /mail/i18n/core.js (American English) plus one file per language. MunetiosLocales.compose() derives the
+// regional variants (en-GB, es-ES/es-419/es-US, fr-CA, pt-PT, zh-TW) and applies the Munetios wording rules:
+// Configuración in es-419/es-US (Ajustes in es-ES), Configurações and Buscar in pt-BR.
+// Munetios Mail uses Definições for Settings in European Portuguese.
 (() => {
   "use strict";
-  const keys = [
-    "incomplete",
-    "inbox",
-    "sent",
-    "refresh",
-    "compose",
-    "empty",
-    "more",
-    "close",
-    "to",
-    "subject",
-    "message",
-    "send",
-    "noSubject",
-    "loading",
-    "mailboxUnavailable",
-    "unavailable",
-    "sentNow",
-    "sentWithoutHistory",
-    "sendFailed",
-  ];
-  const messages = {
-    en: [
-      "Incomplete",
-      "Inbox",
-      "Sent",
-      "Refresh",
-      "Compose",
-      "No messages.",
-      "Load more",
-      "Close",
-      "To",
-      "Subject",
-      "Message",
-      "Send",
-      "No subject",
-      "Loading mail…",
-      "This account does not have a Munetios mailbox.",
-      "Mail is unavailable. Try again later.",
-      "Message sent.",
-      "Message sent. It didn’t save to Sent.",
-      "Failed to send the message.",
-    ],
-    "es-419": [
-      "Incompleto",
-      "Recibidos",
-      "Enviados",
-      "Actualizar",
-      "Redactar",
-      "No hay mensajes.",
-      "Cargar más",
-      "Cerrar",
-      "Para",
-      "Asunto",
-      "Mensaje",
-      "Enviar",
-      "Sin asunto",
-      "Cargando correo…",
-      "Esta cuenta no tiene buzón de Munetios.",
-      "El correo no está disponible. Inténtalo más tarde.",
-      "Mensaje enviado.",
-      "El mensaje se envió, pero no se guardó en Enviados.",
-      "No se pudo enviar el mensaje.",
-    ],
-    "es-ES": [
-      "Incompleto",
-      "Recibidos",
-      "Enviados",
-      "Actualizar",
-      "Redactar",
-      "No hay mensajes.",
-      "Cargar más",
-      "Cerrar",
-      "Para",
-      "Asunto",
-      "Mensaje",
-      "Enviar",
-      "Sin asunto",
-      "Cargando correo…",
-      "Esta cuenta no tiene buzón de Munetios.",
-      "El correo no está disponible. Inténtalo más tarde.",
-      "Mensaje enviado.",
-      "El mensaje se ha enviado, pero no se ha guardado en Enviados.",
-      "No se ha podido enviar el mensaje.",
-    ],
-    "pt-BR": [
-      "Incompleto",
-      "Caixa de entrada",
-      "Enviados",
-      "Atualizar",
-      "Escrever",
-      "Nenhuma mensagem.",
-      "Carregar mais",
-      "Fechar",
-      "Para",
-      "Assunto",
-      "Mensagem",
-      "Enviar",
-      "Sem assunto",
-      "Carregando e-mails…",
-      "Esta conta não tem uma caixa de correio do Munetios.",
-      "O e-mail está indisponível. Tente mais tarde.",
-      "Mensagem enviada.",
-      "A mensagem foi enviada, mas não foi salva em Enviados.",
-      "Falha ao enviar a mensagem.",
-    ],
-    "pt-PT": [
-      "Incompleto",
-      "Caixa de entrada",
-      "Enviados",
-      "Atualizar",
-      "Escrever",
-      "Sem mensagens.",
-      "Carregar mais",
-      "Fechar",
-      "Para",
-      "Assunto",
-      "Mensagem",
-      "Enviar",
-      "Sem assunto",
-      "A carregar correio…",
-      "Esta conta não tem uma caixa de correio Munetios.",
-      "O correio está indisponível. Tente mais tarde.",
-      "Mensagem enviada.",
-      "A mensagem foi enviada, mas não foi guardada em Enviados.",
-      "Falha ao enviar a mensagem.",
-    ],
-    fr: [
-      "Incomplet",
-      "Boîte de réception",
-      "Envoyés",
-      "Actualiser",
-      "Rédiger",
-      "Aucun message.",
-      "Afficher plus",
-      "Fermer",
-      "À",
-      "Objet",
-      "Message",
-      "Envoyer",
-      "Sans objet",
-      "Chargement du courrier…",
-      "Ce compte ne dispose pas d’une boîte Munetios.",
-      "Le courrier est indisponible. Réessayez plus tard.",
-      "Message envoyé.",
-      "Le message a été envoyé, mais n’a pas été enregistré dans Envoyés.",
-      "Échec de l’envoi du message.",
-    ],
-  };
-  const privacy = {
-    en: ['Show remote images', 'Forward messages to'],
-    'es-419': ['Mostrar imágenes externas', 'Reenvía los mensajes a'],
-    'es-ES': ['Mostrar imágenes externas', 'Reenvía los mensajes a'],
-    'pt-BR': ['Mostrar imagens externas', 'Encaminhe mensagens para'],
-    'pt-PT': ['Mostrar imagens externas', 'Reencaminha as mensagens para'],
-    fr: ['Afficher les images distantes', 'Transférez les messages vers'],
-  };
-  // Remaining global Munetios locales (zh-TW, es-US, fr-CA, and en-GB are derived in compose()).
-  Object.assign(messages, {
-    de: ["Unvollständig", "Posteingang", "Gesendet", "Aktualisieren", "Verfassen", "Keine Nachrichten.", "Mehr laden", "Schließen", "An", "Betreff", "Nachricht", "Senden", "Kein Betreff", "E-Mails werden geladen…", "Dieses Konto hat kein Munetios-Postfach.", "Mail ist nicht verfügbar. Versuche es später erneut.", "Nachricht gesendet.", "Nachricht gesendet. Sie wurde nicht unter „Gesendet“ gespeichert.", "Die Nachricht konnte nicht gesendet werden."],
-    it: ["Incompleto", "Posta in arrivo", "Inviati", "Aggiorna", "Scrivi", "Nessun messaggio.", "Carica altri", "Chiudi", "A", "Oggetto", "Messaggio", "Invia", "Nessun oggetto", "Caricamento della posta…", "Questo account non ha una casella Munetios.", "La posta non è disponibile. Riprova più tardi.", "Messaggio inviato.", "Messaggio inviato. Non è stato salvato in Inviati.", "Impossibile inviare il messaggio."],
-    "zh-CN": ["未完成", "收件箱", "已发送", "刷新", "写邮件", "没有邮件。", "加载更多", "关闭", "收件人", "主题", "正文", "发送", "无主题", "正在加载邮件…", "此账户没有 Munetios 邮箱。", "邮件暂时不可用，请稍后重试。", "邮件已发送。", "邮件已发送，但未保存到“已发送”。", "邮件发送失败。"],
-    ko: ["미완료", "받은편지함", "보낸편지함", "새로고침", "편지 쓰기", "메일이 없습니다.", "더 불러오기", "닫기", "받는 사람", "제목", "내용", "보내기", "제목 없음", "메일을 불러오는 중…", "이 계정에는 Munetios 메일함이 없습니다.", "메일을 사용할 수 없습니다. 나중에 다시 시도하세요.", "메일을 보냈습니다.", "메일을 보냈지만 보낸편지함에 저장되지 않았습니다.", "메일을 보내지 못했습니다."],
-    ar: ["غير مكتمل", "البريد الوارد", "المرسَل", "تحديث", "إنشاء رسالة", "لا توجد رسائل.", "تحميل المزيد", "إغلاق", "إلى", "الموضوع", "الرسالة", "إرسال", "بلا موضوع", "جارٍ تحميل البريد…", "لا يملك هذا الحساب صندوق بريد Munetios.", "البريد غير متاح. حاول مرة أخرى لاحقًا.", "تم إرسال الرسالة.", "تم إرسال الرسالة، لكنها لم تُحفظ في المرسَل.", "تعذّر إرسال الرسالة."],
-    hi: ["अधूरा", "इनबॉक्स", "भेजे गए", "रीफ़्रेश करें", "लिखें", "कोई संदेश नहीं।", "और लोड करें", "बंद करें", "प्रति", "विषय", "संदेश", "भेजें", "कोई विषय नहीं", "मेल लोड हो रहा है…", "इस खाते में Munetios मेलबॉक्स नहीं है।", "मेल उपलब्ध नहीं है। बाद में फिर से कोशिश करें।", "संदेश भेजा गया।", "संदेश भेजा गया, लेकिन भेजे गए में सहेजा नहीं गया।", "संदेश भेजा नहीं जा सका।"],
-    co: ["Incumpletu", "Ricevuti", "Mandati", "Rinfriscà", "Scrive", "Nisunu messaghju.", "Caricà altri", "Chjode", "À", "Oggettu", "Messaghju", "Mandà", "Senza oggettu", "Caricamentu di a posta…", "Stu contu ùn hà micca casella Munetios.", "A posta ùn hè micca dispunibule. Pruvate torna più tardi.", "Messaghju mandatu.", "Messaghju mandatu. Ùn hè micca statu arregistratu in i Mandati.", "Ùn hè micca statu pussibule di mandà u messaghju."],
-  });
-  Object.assign(privacy, {
-    de: ["Externe Bilder anzeigen", "Nachrichten weiterleiten an"], it: ["Mostra immagini remote", "Inoltra i messaggi a"], "zh-CN": ["显示远程图片", "将邮件转发到"],
-    ko: ["외부 이미지 표시", "메일 전달 대상"], ar: ["إظهار الصور البعيدة", "إعادة توجيه الرسائل إلى"], hi: ["दूरस्थ इमेज दिखाएँ", "संदेश इस पते पर अग्रेषित करें"], co: ["Mustrà l’imagine distante", "Trasferisce i messaghji à"],
-  });
-  const own = Object.fromEntries(Object.entries(messages).map(([locale, values]) => [locale,
-    { ...Object.fromEntries(keys.map((key, index) => [key, values[index]])), showImages: privacy[locale][0], forwardTo: privacy[locale][1] }]));
+  const S = window.MunetiosMailI18n || {};
+  const own = { en: S.en || {}, es: S.es, fr: S.fr, de: S.de, it: S.it, pt: S.pt, "zh-CN": S.zh, ko: S.ko, ar: S.ar, hi: S.hi, co: S.co };
+  for (const key of Object.keys(own)) if (!own[key]) delete own[key];
   const L = window.MunetiosLocales;
-  window.MunetiosMailTranslations = Object.freeze(L ? L.compose(own, {}, {}) : own);
+  const out = L ? L.compose(own, {}, { es: "419", pt: "BR" }) : { "en-US": own.en };
+  const pt = out["pt-PT"];
+  if (pt) {
+    for (const [key, value] of Object.entries(pt)) {
+      if (typeof value !== "string") continue;
+      pt[key] = value.replace(/\bdos ajustes\b/g, "das definições").replace(/\bnos ajustes\b/g, "nas definições").replace(/\bos ajustes\b/g, "as definições").replace(/\bOs ajustes\b/g, "As definições")
+        .replace(/\bAjustes\b/g, "Definições").replace(/\bajustes\b/g, "definições");
+    }
+  }
+  window.MunetiosMailTranslations = Object.freeze(out);
 })();

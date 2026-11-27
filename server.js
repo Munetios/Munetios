@@ -51,6 +51,19 @@ const requireWebFilterPage = auth.requireBrowserPage("/webfilter/");
 const requireMailPage = auth.requireBrowserPage("/mail/");
 app.post('/api/mail/inbound', express.json({ limit: '2mb' }), auth.mailInbound);
 app.use('/api/auth', auth);
+
+// Munetios Mail API: the same code the Mail Worker runs, with local SQLite and file storage in .local-mail/.
+const localMail = import('./mail-worker/src/local/express.js')
+  .then(module => module.createLocalMail({ auth, env: authEnv }))
+  .catch(error => {
+    console.error('Munetios Mail API is unavailable. Run "npm ci --prefix mail-worker" (Node.js 22.5+ is required).', error.code || error.name);
+    return null;
+  });
+app.use('/api/mail/v1', async (req, res, next) => {
+  const handler = await localMail;
+  if (!handler) return res.status(503).set('Cache-Control', 'no-store').json({ error: 'unavailable' });
+  return handler(req, res, next);
+});
 app.use('/api/webfilter', require('./webfilter-api/router').createWebFilterRouter({
   dataFile: process.env.WEBFILTER_DATA_FILE || path.join(__dirname, 'webfilter-api', 'data', 'store.json'),
   requireDashboardSession: auth.requireBrowserSession,

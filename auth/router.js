@@ -273,6 +273,8 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
 
     // Signed-in account or null, for APIs that also serve signed-out visitors (shared links).
     router.optionalAccount = async (req, res) => (await browserSession(req, res)).account;
+    // Active account plus the other accounts signed in on this browser (Munetios Mail's unified inbox).
+    router.sessionAccounts = (req, res) => browserSession(req, res);
     router.database = db;
 
     router.lookupAccountByEmail = async email => {
