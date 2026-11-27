@@ -423,7 +423,12 @@ body[data-density="spacious"] { --mail-row-pad: 18px; --mail-gap: 16px; }
 .mail-suggestions .mu-menu-item small { margin-inline-start: auto; color: var(--mu-text-muted); }
 .mail-drop-hint { position: fixed; inset: 0; z-index: 1250; display: grid; place-content: center; justify-items: center; gap: 10px; font-size: 26px; color: #fff; background: color-mix(in srgb, var(--mu-accent) 40%, rgba(6,2,20,0.6)); pointer-events: none; }
 .mail-drop-hint .mu-icon { font-size: 64px; }
-.mail-kbd-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px 18px; }
+.mail-kbd-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: 6px 18px; }
+.mu-row:has(.mail-kbd-list) { flex-direction: column; align-items: stretch; gap: 14px; }
+.mu-row:has(.mail-kbd-list):hover { background: transparent; }
+.mu-row:has(.mail-kbd-list) > .mu-row-info { flex: none !important; }
+.mu-row:has(.mail-kbd-list) > .mail-setting-control { flex: none !important; width: 100%; }
+.mail-kbd-list .mu-shortcut { flex-wrap: wrap; padding-inline: 12px; }
 .mail-inline-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
 .mail-inline-form > * { flex: 1 1 180px; }
 .mail-list-editor { display: grid; gap: 6px; }
