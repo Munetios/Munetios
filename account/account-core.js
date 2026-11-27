@@ -538,11 +538,17 @@
       syncState.items = {}; syncState.cursor = {}; syncState.seq = "0"; syncState.pulled = {};
       if (since !== "0") remote = await getItems("0");
     }
-    if (replace && remote.hasMore) {
+    // Fetch every page before applying changes or uploading local documents.
+    if (remote.hasMore) {
       const complete = [...remote.items];
       while (remote.hasMore) {
         checkProvider(provider);
-        remote = await getItems(complete.at(-1).version);
+        if (!remote.items.length) throw new Error("invalidSyncPage");
+        const nextCursor = String(remote.items.at(-1).version);
+        if (!/^\d{1,19}$/.test(nextCursor) || BigInt(nextCursor) <= BigInt(since)) throw new Error("invalidSyncPage");
+        since = nextCursor;
+        remote = await getItems(since);
+        if (!Array.isArray(remote.items)) throw new Error("invalidSyncPage");
         complete.push(...remote.items);
       }
       remote = { ...remote, items: complete };
@@ -604,7 +610,6 @@
     if (BigInt(remote.seq) > BigInt(syncState.seq || "0")) syncState.seq = remote.seq;
     if (!skipPull && !remote.hasMore) syncState.pulled[provider.prefix] = true;
 
-    if (remote.hasMore) return { more: true, conflicts: 0, full: false, blocked: false };
     const pushes = [];
     let deferred = false;
     const present = new Set();
@@ -691,13 +696,9 @@
       const owners = store.json("munetios-sync-owner", {});
       const applied = new Set();
       let conflicts = 0, blocked = false, full = false, pushed = 0;
-      // One request tells whether anything changed on the server since this device last synced.
-      // Servers without this route (or any failure other than a rate limit) fall back to a full sync.
-      let unchanged = false;
-      try {
-        const { seq } = await api("/sync/state");
-        unchanged = /^\d{1,19}$/.test(String(seq)) && BigInt(seq) === BigInt(syncState.seq || "0");
-      } catch (error) { if (!error.status || error.status === 401 || error.status === 429) throw error; }
+      // An account-wide sequence is not a substitute for a per-provider cursor.
+      // Always reconcile each provider before reporting a successful sync.
+      const unchanged = false;
       for (const provider of providers.values()) {
         if (!providerEnabled(provider)) continue;
         let result;
