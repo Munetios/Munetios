@@ -243,9 +243,10 @@
   async function checkDeviceData(accountId, syncState) {
     let marker;
     try { marker = await guardRead(accountId); }
-    catch { return false; } // IndexedDB unavailable here: nothing to compare against
+    catch { return null; } // Without a readable marker, do not infer deletions.
     if (!syncState.device) {
-      // First sync with the guard (or a fresh sync state): remember this device.
+      // Older sync state cannot prove that its IndexedDB data still exists.
+      forgetSynced(syncState, key => !key.startsWith("ls:"));
       syncState.device = hex(crypto.getRandomValues(new Uint8Array(16)));
       try { await guardWrite(accountId, syncState.device); } catch {}
       return false;
@@ -673,11 +674,13 @@
       snapshot: async () => (await provider.snapshot()).map(item => ({ ...item, key: add(item.key) })),
       apply: (list, options) => provider.apply(list.map(item => ({ ...item, key: strip(item.key) })), options),
       retainMissingItem: provider.retainMissingItem ? key => provider.retainMissingItem(strip(key)) : undefined,
+      onDeleted: provider.onDeleted ? (key, accountId) => provider.onDeleted(strip(key), accountId) : undefined,
+      onSynced: provider.onSynced ? (key, accountId, data) => provider.onSynced(strip(key), accountId, data) : undefined,
     });
   }
   function register(provider) { providers.set(provider.id, workspaceScoped(provider)); schedule(400); }
   const syncStateKey = id => `munetios-sync:${id}`;
-  async function syncProvider(provider, account, dataKey, syncState, owners, applied, { unchanged = false, recovered = new Set() } = {}) {
+  async function syncProvider(provider, account, dataKey, syncState, owners, applied, { unchanged = false, recovered = new Set(), deviceVerified = true } = {}) {
     checkProvider(provider);
     if (state.revocation) throw signedOutError();
     if (!state.syncEnabled) throw Object.assign(new Error("syncDisabled"), { code: "syncDisabled" });
@@ -726,6 +729,7 @@
       // keep this device's copy until that account syncs again.
       const previousState = store.json(syncStateKey(owners[provider.id]), { items: {} });
       for (const item of localNow.values()) {
+        if (item.deleted) continue;
         if (previousState.items[item.key]?.h === await hashData(item.data)) continue;
         if (!provider.keepLocalChange?.(item)) return { conflicts: 0, blocked: true };
       }
@@ -751,8 +755,12 @@
           continue;
         }
         const localHash = local ? await hashData(local.data) : null;
+        if (local?.deleted) {
+          syncState.items[item.key] = { v: item.version, h: item.deleted ? null : await hashData(item.data) };
+          continue;
+        }
         const localChanged = previous ? localHash !== previous.h : Boolean(local);
-        const remoteWins = !localChanged || (!item.deleted && (item.updatedAt || 0) >= (local?.updatedAt || 0));
+        const remoteWins = (!local && provider.recoverMissing) || !localChanged || (!item.deleted && (item.updatedAt || 0) >= (local?.updatedAt || 0));
         if (remoteWins) {
           toApply.push(item);
           syncState.items[item.key] = { v: item.version, h: item.deleted ? null : await hashData(item.data) };
@@ -772,10 +780,15 @@
     const present = new Set();
     for (const item of await provider.snapshot()) {
       present.add(item.key);
-      const hash = await hashData(item.data);
       const previous = syncState.items[item.key];
+      if (item.deleted) {
+        if (previous?.h === null) await provider.onDeleted?.(item.key, account.id);
+        else pushes.push({ key: item.key, baseVersion: previous?.v || "0", deleted: true, hash: null });
+        continue;
+      }
+      const hash = await hashData(item.data);
       if (provider.canPush && !provider.canPush(item.data, syncState.items)) { deferred = true; continue; }
-      if (previous?.h === hash) provider.onSynced?.(item.key, account.id);
+      if (previous?.h === hash) await provider.onSynced?.(item.key, account.id, item.data);
       else pushes.push({ key: item.key, baseVersion: previous?.v || "0", data: item.data, updatedAt: item.updatedAt || Date.now(), hash });
     }
     // Items synced before but missing here are deletions, unless nearly everything this provider synced
@@ -785,7 +798,7 @@
       .filter(([key, previous]) => key.startsWith(provider.prefix) && previous.h !== null && !provider.retainMissingItem?.(key)).map(([key]) => key);
     const missing = remembered.filter(key => !present.has(key));
     // Each provider keeps at most two fixed keys (such as settings), which survive a lost database.
-    const lostLocalData = missing.length >= 5 && remembered.length - missing.length <= 2;
+    const lostLocalData = missing.length > 0 && (provider.recoverMissing || !deviceVerified || (missing.length >= 5 && remembered.length - missing.length <= 2));
     if (lostLocalData && !recovered.has(provider.prefix)) {
       recovered.add(provider.prefix);
       const lost = new Set(missing);
@@ -822,8 +835,8 @@
           syncState.items[result.key] = { v: result.version, h: sent.hash, ...(provider.mergeable && sent.data ? { d: sent.data } : {}) };
           if (!sent.deleted) {
             provider.onPushed?.(result.key, account.id);
-            provider.onSynced?.(result.key, account.id);
-          }
+            await provider.onSynced?.(result.key, account.id, sent.data);
+          } else await provider.onDeleted?.(result.key, account.id);
         }
         else if (result.status === "quotaExceeded") full = true;
         else conflicts++;
@@ -869,7 +882,7 @@
       const owners = store.json("munetios-sync-owner", {});
       // IndexedDB was cleared since the last sync: download synced data again instead of deleting it.
       // Saved right away, so an interrupted sync still downloads everything again next time.
-      await checkDeviceData(account.id, syncState);
+      const deviceVerified = (await checkDeviceData(account.id, syncState)) !== null;
       store.set(syncStateKey(account.id), JSON.stringify(syncState));
       const recovered = new Set();
       const applied = new Set();
@@ -882,7 +895,7 @@
         let result;
         do {
           const beforeProvider = structuredClone(syncState);
-          try { result = await syncProvider(provider, account, dataKey, syncState, owners, applied, { unchanged, recovered }); }
+          try { result = await syncProvider(provider, account, dataKey, syncState, owners, applied, { unchanged, recovered, deviceVerified }); }
           catch (error) { if (error.code === 'syncCategoryDisabled') { Object.assign(syncState, beforeProvider); break; } throw error; }
           full = full || result.full;
           pushed += result.pushed || 0;

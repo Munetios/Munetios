@@ -239,15 +239,15 @@ function cloudServer() {
     },
   };
 }
-async function syncedNotes(count, { restores = true } = {}) {
+async function syncedNotes(count, { restores = true, recoverMissing = false } = {}) {
   const dataKey = await webcrypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
   const server = cloudServer();
   const f = fixture({ initialKey: dataKey, respond: (url, options) => server.respond(url, options) });
   const local = new Map();
   for (let i = 1; i <= count; i++) local.set('notes:' + i, { title: 'Note ' + i });
   f.A.sync.register({
-    id: 'notes', prefix: 'notes:',
-    snapshot: async () => [...local].map(([key, data]) => ({ key, data, updatedAt: 1 })),
+    id: 'notes', prefix: 'notes:', recoverMissing,
+    snapshot: async () => [...local].map(([key, data]) => data.deleted ? { key, deleted: true } : { key, data, updatedAt: 1 }),
     apply: async items => { if (!restores) return false; for (const item of items) item.deleted ? local.delete(item.key) : local.set(item.key, item.data); return true; },
   });
   assert.equal(await f.A.sync.now(), true);
@@ -276,6 +276,31 @@ test('an app whose synced data vanished all at once gets it back from the cloud'
   assert.deepEqual(deletesSent(), []);
   assert.ok([...server.items.values()].every(item => !item.deleted));
   assert.equal(local.size, 6);
+});
+
+test('Photos sync restores a single missing item and accepts explicit deletions', async () => {
+  const { A, local, server, deletesSent } = await syncedNotes(2, { recoverMissing: true });
+  local.delete('notes:1');
+  assert.equal(await A.sync.now(), true);
+  assert.equal(local.get('notes:1').title, 'Note 1');
+  assert.deepEqual(deletesSent(), []);
+
+  local.set('notes:1', { deleted: true });
+  assert.equal(await A.sync.now(), true);
+  assert.equal(server.items.get('notes:1').deleted, true);
+  assert.deepEqual(deletesSent(), ['notes:1']);
+});
+
+test('older sync state without a device marker cannot delete data after IndexedDB is cleared', async () => {
+  const { A, local, values, guard, deletesSent } = await syncedNotes(1);
+  const syncState = JSON.parse(values.get('munetios-sync:one'));
+  delete syncState.device;
+  values.set('munetios-sync:one', JSON.stringify(syncState));
+  local.clear();
+  guard.clear();
+  assert.equal(await A.sync.now(), true);
+  assert.equal(local.get('notes:1').title, 'Note 1');
+  assert.deepEqual(deletesSent(), []);
 });
 
 test('deleting items normally still deletes them from the cloud', async () => {

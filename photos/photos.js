@@ -432,8 +432,9 @@
         onProgress: (sent, total) => job.entry.progress(total ? sent / total : 1, t("uploadProgress", { done: bytes(sent), total: bytes(total) })),
       });
       const fresh = photos.get(job.id);
-      if (!fresh) { Cloud.deleteBlob(ref.blobId).catch(() => {}); return; }
+      if (!fresh) { job.entry.remove(); uploads.delete(job.id); updateTrayTitle(); return; }
       fresh.cloud = Object.assign(ref, { uploadedAt: Date.now() });
+      fresh.backupPending = true;
       fresh.updatedAt = Date.now();
       await putRecord(PHOTOS, fresh);
       job.entry.done(t("uploaded"));
@@ -454,10 +455,10 @@
     if (!signedIn()) return requireSignIn();
     let n = 0;
     for (const p of photos.values()) if (!p.cloud && !p.locked && !p.trashed) { queueUpload(p, { force: true }); n++; }
-    if (!n) notify(t("allBackedUp"), "success");
+    if (!n && ![...photos.values()].some((p) => p.backupPending)) notify(t("allBackedUp"), "success");
   }
   async function freeUpSpace() {
-    const list = [...photos.values()].filter((p) => p.cloud && p.data);
+    const list = [...photos.values()].filter((p) => p.cloud && !p.backupPending && p.data);
     if (!list.length) { notify(t("nothingToFree"), "info"); return; }
     const total = list.reduce((s, p) => s + toBytes(p.data).byteLength, 0);
     if (!(await confirmDialog({ icon: "cleaning_services", title: t("freeUpSpace"), text: t("freeUpSpaceConfirm", { n: num(list.length), size: bytes(total) }), confirm: t("freeUpSpace") }))) return;
@@ -484,14 +485,48 @@
 
   /* ================================================================ Munetios Account sync (end-to-end encrypted metadata) */
   const PREFIX = "munetios-photos:";
+  const ITEM_PREFIX = PREFIX + "item:";
+  const deletionPrefix = (accountId) => `cloud-delete:${accountId}:`;
   const SYNC_FIELDS = ["cloudId", "name", "type", "date", "takenAt", "favorite", "screenshots", "tags", "notes", "isVideo", "archived", "rating", "size", "hash", "exif", "thumb", "width", "height", "color", "duration", "editedAt", "trashed", "trashedAt", "cloud", "updatedAt"];
   function registerSync() {
     if (!A?.sync?.register || !settings.accountSync || window.__munetiosPhotosSync) return;
     window.__munetiosPhotosSync = true;
+    const pendingBackups = new Map();
     A.sync.register({
-      id: "munetios-photos", prefix: PREFIX,
+      id: "munetios-photos", prefix: PREFIX, paginated: true, recoverMissing: true,
+      enabled: () => settings.accountSync,
+      async onSynced(key, accountId, data) {
+        if (!key.startsWith(ITEM_PREFIX) || A.state.account?.id !== accountId) return;
+        const photo = photos.get(pendingBackups.get(key));
+        if (!photo?.cloud || photo.cloud.blobId !== data?.cloud?.blobId) return;
+        if (photo.backupPending) {
+          await putRecord(PHOTOS, { ...photo, backupPending: false });
+          photo.backupPending = false;
+          updateTile(photo);
+          renderCloudStatus();
+        }
+        const previous = photo.previousCloudBlob;
+        if (previous && previous !== photo.cloud.blobId) {
+          try {
+            await Cloud.deleteBlob(previous);
+            if (photo.previousCloudBlob === previous) {
+              delete photo.previousCloudBlob;
+              await putRecord(PHOTOS, photo);
+            }
+          } catch {}
+        }
+      },
+      async onDeleted(key, accountId) {
+        if (!key.startsWith(ITEM_PREFIX) || A.state.account?.id !== accountId) return;
+        const id = deletionPrefix(accountId) + key.slice(ITEM_PREFIX.length);
+        const entry = await getRecord(META, id);
+        if (!entry) return;
+        await Cloud.deleteBlob(entry.blobId);
+        await deleteRecord(META, id);
+      },
       async snapshot() {
         if (!settings.accountSync) return [];
+        pendingBackups.clear();
         const out = [];
         const albumList = [...albums.values()].filter((a) => !a.sharedWithMe).map((a) => ({ uid: a.uid, name: a.name, created: a.created, description: a.description || "", cover: photos.get(a.cover)?.cloudId || "", sort: a.sort || "newest", spaceId: a.spaceId || "", updatedAt: a.updatedAt || 0 }));
         out.push({ key: PREFIX + "albums", data: albumList, updatedAt: Math.max(0, ...albumList.map((a) => a.updatedAt)) });
@@ -501,7 +536,16 @@
           if (!p.cloud || p.locked) continue;
           const data = Object.fromEntries(SYNC_FIELDS.map((f) => [f, p[f]]));
           data.albumUids = (p.albums || []).map((id) => albums.get(id)?.uid).filter(Boolean);
-          out.push({ key: PREFIX + "item:" + p.cloudId, data, updatedAt: p.updatedAt || 0 });
+          const key = ITEM_PREFIX + p.cloudId;
+          if (p.backupPending || p.previousCloudBlob) pendingBackups.set(key, p.id);
+          out.push({ key, data, updatedAt: p.updatedAt || 0 });
+        }
+        const accountId = A.state.account?.id;
+        if (accountId) {
+          const prefix = deletionPrefix(accountId);
+          for (const entry of await allRecords(META)) {
+            if (entry.id.startsWith(prefix)) out.push({ key: ITEM_PREFIX + entry.id.slice(prefix.length), deleted: true });
+          }
         }
         return out;
       },
@@ -510,7 +554,8 @@
         let changed = false;
         const seen = new Set();
         const albumByUid = () => new Map([...albums.values()].map((a) => [a.uid, a]));
-        for (const entry of list) {
+        const albumEntry = list.find((entry) => entry.key === PREFIX + "albums");
+        for (const entry of albumEntry ? [albumEntry, ...list.filter((item) => item !== albumEntry)] : list) {
           if (entry.key === PREFIX + "albums" && Array.isArray(entry.data)) {
             const byUid = albumByUid();
             for (const a of entry.data) {
@@ -525,11 +570,12 @@
             settings = Object.assign({}, settings, entry.data, { lockedHash: settings.lockedHash, lockedSalt: settings.lockedSalt });
             try { store.set(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
             changed = true;
-          } else if (entry.key.startsWith(PREFIX + "item:")) {
-            const cloudId = entry.key.slice((PREFIX + "item:").length);
+          } else if (entry.key.startsWith(ITEM_PREFIX)) {
+            const cloudId = entry.key.slice(ITEM_PREFIX.length);
             seen.add(cloudId);
             const local = [...photos.values()].find((p) => p.cloudId === cloudId);
             if (entry.deleted) { if (local) { photos.delete(local.id); await deleteRecord(PHOTOS, local.id); changed = true; } continue; }
+            if (!entry.data?.cloud?.blobId) continue;
             if (local && (local.updatedAt || 0) >= (entry.data.updatedAt || 0)) continue;
             const byUid = albumByUid();
             const record = Object.assign(local || { id: Date.now() * 1000 + Math.floor(Math.random() * 1000), data: null, encryption: null, cloudOnly: true, secure: true, locked: false }, entry.data);
@@ -669,7 +715,7 @@
     if (!signedIn()) { box.innerHTML = `${device}<p class="mu-muted">${esc(t("cloudSignedOut"))}</p><a class="mu-btn mu-btn-primary" href="/signin?continue=${encodeURIComponent(location.pathname)}">${esc(t("signIn"))}</a>`; return; }
     if (fetch && !cloudUsage) refreshCloudUsage();
     const total = [...photos.values()].filter((p) => !p.locked && !p.trashed).length;
-    const backed = [...photos.values()].filter((p) => p.cloud && !p.locked && !p.trashed).length;
+    const backed = [...photos.values()].filter((p) => p.cloud && !p.backupPending && !p.locked && !p.trashed).length;
     const pct = cloudUsage?.quota ? Math.min(100, cloudUsage.used / cloudUsage.quota * 100) : 0;
     const usage = cloudUsage?.error
       ? `<div class="ph-usage-line mu-muted"><span class="mu-icon" aria-hidden="true">cloud_off</span><span>${esc(t("cloudStorage"))}: —</span></div>`
@@ -678,7 +724,8 @@
         ? `<div class="ph-usage"><div class="ph-usage-line"><span class="mu-icon" aria-hidden="true">cloud</span><span>${esc(t("usedOf", { used: bytes(cloudUsage.used), total: bytes(cloudUsage.quota) }))}</span></div><div class="mu-progress${pct >= 90 ? " is-warning" : ""}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}" aria-label="${esc(t("cloudStorage"))}"><span style="width:${Math.max(pct ? 1 : 0, pct).toFixed(1)}%"></span></div></div>`
         : `<div class="ph-usage-line"><span class="mu-icon" aria-hidden="true">cloud</span><span>${esc(t("cloudStorage"))} · ${esc(bytes(cloudUsage.used))}</span></div>`
       : `<div class="ph-usage-line mu-muted"><span class="mu-icon" aria-hidden="true">cloud</span><span>${esc(t("loading"))}</span></div>`;
-    box.innerHTML = `${usage}${device}<div class="ph-cloud-line"><span class="mu-icon" aria-hidden="true">${backed === total ? "cloud_done" : settings.cloudBackup ? "cloud_sync" : "cloud_off"}</span><span>${esc(backed === total ? t("allBackedUp") : t("backedUpCount", { done: num(backed), total: num(total) }))}</span></div><button type="button" class="mu-btn mu-btn-ghost ph-usage-link" data-section="storage"><span class="mu-icon" aria-hidden="true">storage</span>${esc(t("manageStorage"))}</button>`;
+    const backupStatus = total ? `<div class="ph-cloud-line"><span class="mu-icon" aria-hidden="true">${backed === total ? "cloud_done" : settings.cloudBackup ? "cloud_sync" : "cloud_off"}</span><span>${esc(backed === total ? t("allBackedUp") : t("backedUpCount", { done: num(backed), total: num(total) }))}</span></div>` : "";
+    box.innerHTML = `${usage}${device}${backupStatus}<button type="button" class="mu-btn mu-btn-ghost ph-usage-link" data-section="storage"><span class="mu-icon" aria-hidden="true">storage</span>${esc(t("manageStorage"))}</button>`;
   }
   const FILTERS = ["all", "photos", "videos", "favorites", "edited", "rated", "large", "cloud", "local"];
   const COLOR_FILTERS = ["#e53935", "#fb8c00", "#fdd835", "#43a047", "#1e88e5", "#8e24aa", "#ec407a", "#795548", "#212121", "#f5f5f5"];
@@ -707,7 +754,7 @@
     return fmtDate(ms, { weekday: "short", month: "long", day: "numeric", year: new Date(ms).getFullYear() === today.getFullYear() ? undefined : "numeric" });
   }
   function tile(p) {
-    const state = uploads.get(p.id)?.entry.state === "active" ? "uploading" : p.cloud ? (p.data ? "backed" : "cloud") : "";
+    const state = p.backupPending || uploads.get(p.id)?.entry.state === "active" ? "uploading" : p.cloud ? (p.data ? "backed" : "cloud") : "";
     return `<div class="ph-tile${selection.has(p.id) ? " is-selected" : ""}" data-id="${p.id}" style="--ph-color:${esc(p.color || "#444")}">
       <button type="button" class="ph-tile-open" data-open="${p.id}" aria-label="${esc(p.name)}${p.isVideo ? ", " + esc(t("video")) : ""}">${p.thumb ? `<img src="${esc(p.thumb)}" alt="" loading="lazy" decoding="async">` : `<span class="ph-tile-placeholder" data-needs-thumb="${p.id}"><span class="mu-icon" aria-hidden="true">${p.isVideo ? "movie" : "image"}</span></span>`}</button>
       <label class="ph-tile-check mu-check" aria-label="${esc(t("selectItem", { name: p.name }))}"><input type="checkbox" data-select="${p.id}" ${selection.has(p.id) ? "checked" : ""}></label>
@@ -897,8 +944,10 @@
     try {
       const ref = await Cloud.uploadBlob(blob, { onProgress: (s, total) => entry.progress(total ? s / total : 1, t("uploadProgress", { done: bytes(s), total: bytes(total) })) });
       p.cloud = Object.assign(ref, { uploadedAt: Date.now() });
+      p.backupPending = true;
       p.updatedAt = Date.now();
       await putRecord(PHOTOS, p);
+      A.sync.schedule(1200);
       entry.done(t("uploaded"));
       setTimeout(() => entry.remove(), 5000);
       return p.cloud;
@@ -1361,9 +1410,15 @@
         const p = photos.get(id);
         if (!p) continue;
         if (p.encryption?.keyId) await deleteRecord(KEYS, p.encryption.keyId).catch(() => {});
-        if (p.cloud && signedIn()) await Cloud.deleteBlob(p.cloud.blobId).catch(() => {});
+        if (p.cloud && !signedIn()) { requireSignIn(); continue; }
+        if (p.cloud) {
+          const db = await openDb();
+          const transaction = db.transaction([PHOTOS, META], "readwrite");
+          transaction.objectStore(META).put({ id: deletionPrefix(A.state.account.id) + p.cloudId, blobId: p.cloud.blobId });
+          transaction.objectStore(PHOTOS).delete(id);
+          await new Promise((resolve, reject) => { transaction.oncomplete = resolve; transaction.onabort = () => reject(transaction.error); });
+        } else await deleteRecord(PHOTOS, id);
         for (const info of shared.values()) if (info.space.content.items?.[p.cloudId] && info.space.role !== "view") await info.space.update((c) => { delete c.items[p.cloudId]; }).catch(() => {});
-        await deleteRecord(PHOTOS, id);
         photos.delete(id);
         blobCache.delete(id);
       }
@@ -1450,7 +1505,7 @@
     const all = [...photos.values()];
     const local = all.filter((p) => p.data).reduce((s, p) => s + toBytes(p.data).byteLength, 0);
     const cloudCount = all.filter((p) => p.cloud).length;
-    const freeable = all.filter((p) => p.cloud && p.data);
+    const freeable = all.filter((p) => p.cloud && !p.backupPending && p.data);
     const large = sorted(all.filter((p) => !p.trashed && !p.locked && size(p) >= LARGE_BYTES), "").sort((a, b) => size(b) - size(a));
     let estimate = null;
     try { estimate = await navigator.storage?.estimate?.(); } catch {}
@@ -1594,10 +1649,10 @@
             if (r.encryption?.keyId) await deleteRecord(KEYS, r.encryption.keyId).catch(() => {});
             const info = await describeMedia(edited, false);
             const oldCloud = r.cloud;
+            if (oldCloud && !r.previousCloudBlob) r.previousCloudBlob = oldCloud.blobId;
             Object.assign(r, info, { data: enc.data, encryption: enc.encryption, type, size: edited.size, editedAt: new Date().toISOString(), cloud: null, cloudOnly: false, hash: await sha256(bytesEdited), updatedAt: Date.now() });
             await putRecord(PHOTOS, r);
             blobCache.delete(r.id);
-            if (oldCloud && signedIn()) Cloud.deleteBlob(oldCloud.blobId).catch(() => {});
             queueUpload(r);
           }
           notify(t("editSaved"), "success");
