@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="/shared/test-error.js"></script>
         <script nonce="erjntgeryfheusjfhbdffeshF34YUH34yuhfuew8ufh34uidIRFEh3ui">
         try {
             var pendingLanguage = sessionStorage.getItem('omniwrite-pending-language');
@@ -2643,10 +2644,10 @@ if ('serviceWorker' in navigator) {
                 }
                 const managerModal = document.getElementById('workspacesManagerModal');
                 if (managerModal && typeof managerModal._renderManagerList === 'function') managerModal._renderManagerList();
-                showToast(_t('workspace_updated'), { type: 'success' });
+                omniSyncedToast(_t('workspace_updated'));
             } else {
                 await createWorkspace(name);
-                showToast(_t('workspace_created'), { type: 'success' });
+                omniSyncedToast(_t('workspace_created'));
             }
             modal.remove();
         };
@@ -2773,7 +2774,7 @@ if ('serviceWorker' in navigator) {
                     renderDocumentsList();
                     renderFoldersList();
                     if (parentModal && typeof parentModal._renderManagerList === 'function') parentModal._renderManagerList();
-                    showToast(_t('workspace_deleted'), { type: 'success' });
+                    omniSyncedToast(_t('workspace_deleted'));
                 } catch(e) {
                     console.error('Failed to delete workspace:', e);
                     showToast(_t('failed_delete_workspace'), { type: 'error' });
@@ -4173,7 +4174,7 @@ if ('serviceWorker' in navigator) {
         const account = window.MunetiosAccount;
         const doc = getOpenLocalDocument();
         if (!doc || !isSaved || !account?.state.ready || manualDocumentSync || navigator.onLine === false) return;
-        if (!account.state.account || account.state.revocation) {
+        if (!account.state.account) {
             window.OmniLocalSignIn.start('/signin?continue=' + encodeURIComponent(location.pathname + location.search + location.hash));
             return;
         }
@@ -4194,7 +4195,7 @@ if ('serviceWorker' in navigator) {
                 delete doc.localOnly;
                 delete doc.localSyncOwner;
                 await saveDocuments();
-            } else if (account.state.account?.id === request.accountId && !account.state.revocation) {
+            } else if (account.state.account?.id === request.accountId) {
                 showToast(_t('sync_failed_saved_locally'), { type: 'error' });
             }
         } finally {
@@ -4367,21 +4368,12 @@ if ('serviceWorker' in navigator) {
             let lastStatus = account.state.status;
             let lastRevocation;
             const renderAccountSync = state => {
+                // An invalid session still shows as signed in: documents stay, and sync reports the failure.
                 if (state.revocation?.id !== lastRevocation) {
                     lastRevocation = state.revocation?.id;
                     hiddenCloudDocuments.clear();
-                    if (state.revocation) {
-                        for (const id of account.cloudItems('omniwrite:doc:', 'omniwrite')) hiddenCloudDocuments.add(id);
-                        if (hiddenCloudDocuments.has(getCurrentDocIdFromHash()) || isSplitView) {
-                            if (isSplitView) exitSplitView();
-                            history.replaceState(null, '', getWorkspaceHashPrefix() + '/');
-                            switchPage('selectArea');
-                        }
-                        showToast(account.t('cloudDocumentsUnavailable'), { type: 'error' });
-                    }
                     renderDocumentsList();
                     renderFoldersList();
-                    if (document.getElementById('trashApp')?.classList.contains('active')) switchPage('selectArea');
                     updateSavingStatus(_t('e2e_encrypted'));
                 }
                 if (isSaved && (state.status !== lastStatus || getOpenLocalDocument())) {
@@ -4425,7 +4417,7 @@ if ('serviceWorker' in navigator) {
             status = manuallySyncing ? account.t('syncing') : _t('document_status_local');
             iconOverride = manuallySyncing ? 'sync' : 'devices';
         } else if (isSaved && account?.state.revocation) {
-            status = window.MunetiosAccount.t('sessionSyncPaused');
+            status = _t('sync_failed_saved_locally');
             iconOverride = 'cloud_off';
         } else if (isSaved && window.MunetiosAccount?.state.status === 'syncing') {
             status = window.MunetiosAccount.t('syncing');
@@ -5296,7 +5288,7 @@ if ('serviceWorker' in navigator) {
         doc.timestamp = Date.now();
         refreshSidebarDocumentUi(doc);
         scheduleDocumentSave();
-        showToast(_t(doc.pinned ? 'document_pinned' : 'document_unpinned'), { type: 'success' });
+        omniSyncedToast(_t(doc.pinned ? 'document_pinned' : 'document_unpinned'));
     }
 
     function renameSidebarDocument(docId) {
@@ -5330,7 +5322,7 @@ if ('serviceWorker' in navigator) {
             doc.timestamp = Date.now();
             refreshSidebarDocumentUi(doc);
             debouncedSaveDocuments(100);
-            showToast(_t('document_renamed'), { type: 'success' });
+            omniSyncedToast(_t('document_renamed'));
             close();
         };
         modal.querySelector('#closeSidebarRenameDocumentModal').onclick = close;
@@ -5372,7 +5364,7 @@ if ('serviceWorker' in navigator) {
         renderDocumentsList();
         scheduleDocumentSave();
         openDocument(newDoc.id);
-        showToast(_t('document_duplicated'), { type: 'success' });
+        omniSyncedToast(_t('document_duplicated'));
     }
 
     function moveSidebarDocumentToTrash(docId) {
@@ -5394,7 +5386,7 @@ if ('serviceWorker' in navigator) {
                 window.location.hash = '#/trash';
                 switchPage('trashApp');
             }
-            showToast(_t('document_moved_to_trash'), { type: 'success' });
+            omniSyncedToast(_t('document_moved_to_trash'));
         };
         if (typeof showConfirm === 'function') {
             showConfirm(_t('delete_document_confirm'), runDelete);
@@ -8745,10 +8737,10 @@ Q4: 22</textarea>
         const text = pinBtn.querySelector('.menu-text');
         if (doc.pinned) {
             text.textContent = _t('unpin_document');
-            showToast(_t('document_pinned'), { type: 'success' });
+            omniSyncedToast(_t('document_pinned'));
         } else {
             text.textContent = _t('pin_document');
-            showToast(_t('document_unpinned'), { type: 'success' });
+            omniSyncedToast(_t('document_unpinned'));
         }
         
         // Re-render documents list to show updated order
@@ -8836,7 +8828,7 @@ Q4: 22</textarea>
                     renderDocumentsList();
                     renderFoldersList();
                     modal.remove();
-                    showToast(_t('document_moved_to_workspace'), { type: 'success' });
+                    omniSyncedToast(_t('document_moved_to_workspace'));
                     openDocument(doc.id);
                 };
                 if (isWorkspaceLocked(targetWorkspace)) {
@@ -9432,7 +9424,7 @@ Q4: 22</textarea>
         renderDocumentsList();
         openDocument(newDoc.id);
         scheduleDocumentSave();
-        showToast(_t('document_duplicated'), { type: 'success' });
+        omniSyncedToast(_t('document_duplicated'));
     });
     // --- Delete Document ---
     document.getElementById('deleteMoreOptionsBtn').addEventListener('mousedown', async function (e) {
@@ -9485,7 +9477,7 @@ Q4: 22</textarea>
                 if (el) el.remove();
                 // Go back to select area
                 window.location.hash = '';
-                showToast(_t('document_deleted'), { type: 'success' });
+                omniSyncedToast(_t('document_deleted'));
             }
             modal.remove();
         };
@@ -12242,7 +12234,7 @@ try {
                 scheduleFolderSave();
                 renderFoldersList();
                 MunetiosUI.closeModal(modal);
-                showToast(isEdit ? _t('folder_updated') : _t('folder_created'), { type: 'success' });
+                omniSyncedToast(isEdit ? _t('folder_updated') : _t('folder_created'));
             } catch (e) {
                 console.error('Failed to save folder:', e);
                 showToast(_t('failed_save_folder'), { type: 'error' });
@@ -12308,7 +12300,7 @@ try {
             scheduleFolderSave();
             renderFoldersList();
             MunetiosUI.closeModal(modal);
-            showToast(_t(entry.kind === 'doc' ? 'document_moved_to_folder' : 'folder_updated'), { type: 'success' });
+            omniSyncedToast(_t(entry.kind === 'doc' ? 'document_moved_to_folder' : 'folder_updated'));
         });
         MunetiosUI.openModal(modal.id);
     }
@@ -12389,7 +12381,7 @@ try {
                     await saveFolders();
                     renderFoldersList();
                     confirmModal.remove();
-                    showToast(_t('folder_deleted'), { type: 'success' });
+                    omniSyncedToast(_t('folder_deleted'));
                 }
             } catch (e) {
                 console.error('Failed to delete folder:', e);
@@ -13444,7 +13436,7 @@ try {
                         renderDocumentsList();
                         openDocument(newDoc.id);
                         scheduleDocumentSave();
-                        showToast(_t('file_imported'), { type: 'success' });
+                        omniSyncedToast(_t('file_imported'));
                     } catch (e) {
                         console.error('Failed to create doc from import:', e);
                         showToast(_t('failed_import_file'), { type: 'error' });
@@ -14542,6 +14534,15 @@ try {
          * @param {string} message - The message to display.
          * @param {object} [options] - Optional settings: { duration: ms, type: 'success'|'error'|'info' }
          */
+        // Data changes confirm after syncing; if sync fails the toast says so:
+        // "Folder created. It's saved on this device, but it couldn't sync."
+        window.omniSyncedToast = function(message) {
+            const account = window.MunetiosAccount;
+            if (!account?.sync?.report || !window.__omniWriteSyncStarted) { showToast(message, { type: 'success' }); return; }
+            let lang = 'en';
+            try { lang = localStorage.getItem('omniwrite-lang') || localStorage.getItem('munetiosLanguage') || navigator.language; } catch (e) {}
+            account.sync.report(message, { locale: lang, show: (text, type) => showToast(text, { type }) });
+        };
         function showToast(message, options = {}) {
             const msg = _t(message);
             const toast = showStackedToastMessage(msg, options);

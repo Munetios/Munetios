@@ -13,7 +13,15 @@ Use an empty staging D1 database for import. Apply `0001_accounts.sql` before im
 Apply `0003_account_mail.sql` before deploying the backend with Google sign-in, password reset, and HTML mail support.
 Apply `0004_email_settings.sql` before deploying verified recovery addresses and email changes.
 
-Apply `0005_collaboration_directory.sql` before deploying the OmniWrite Shared page. D1 stores invitation metadata. Existing invitations are indexed when an owner or invited collaborator next opens the file. Restricted shares use the key in the original share link.
+Apply `0005_collaboration_directory.sql` before deploying the OmniWrite Shared page. D1 stores invitation metadata. Each file's Durable Object stores its invitation key for active invitees. The owner's browser provisions missing keys for older restricted shares when opening the file.
+
+Apply `0007_calendar_reminders.sql` before enabling Calendar background reminders. Set the backend Worker secrets `CALENDAR_PUSH_PUBLIC_KEY` to the base64url-encoded uncompressed P-256 public point and `CALENDAR_PUSH_PRIVATE_JWK` to its matching private JWK. Keep the same key pair across deployments so existing subscriptions continue to work. Deploy the backend's minute cron trigger with the Worker. Deliver the Calendar assets and `/api/calendar-reminders` from the same origin.
+
+Apply `0008_cloud_media.sql` before deploying Photo and video backup. The beta stores client-encrypted chunks in D1 and uses `CLOUD_STORAGE_QUOTA` as the per-account and total media reservation budget. Keep room for the account database and the base64 encoding overhead when changing the budget.
+
+Apply `0009_cloud_objects.sql` before deploying the R2-capable media Worker. To enable 20 GB per account, bind a private R2 bucket as `CLOUD_MEDIA` in Wrangler. New chunks use R2, and previously uploaded D1 chunks remain readable. The existing cron trigger removes unreferenced objects.
+
+Apply `0010_omniwrite_objects.sql` before deploying OmniWrite object storage. With `CLOUD_MEDIA` bound, encrypted personal sync payloads and shared document contents are stored in the private bucket. Set `OMNIWRITE_R2_BACKFILL=true` to move existing personal sync records in scheduled batches. Shared documents move on their next authorized read or save.
 
 Create a Google OAuth Web application client with the authorized redirect URI `https://beta.munetios.com/api/auth/google/callback`. Set `GOOGLE_CLIENT_URL` to that exact redirect URI. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` on the backend Worker. For local testing, use `.env` and register the local callback URI separately.
 

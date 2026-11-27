@@ -157,7 +157,8 @@ export function closeMenu() {
 }
 
 // items: [{ icon, label, action, danger, checked, disabled, shortcut, children }] or "sep"
-export function menu(anchor, items, { point = null, label = "" } = {}) {
+// focus: false keeps the keyboard in the anchor (autocomplete suggestions); ArrowDown moves into the menu.
+export function menu(anchor, items, { point = null, label = "", focus = true } = {}) {
     closeMenu();
     const node = el("div", { class: "mu-menu mu-menu-floating mu-menu-context", role: "menu", "aria-label": label || undefined });
     const buttons = [];
@@ -201,7 +202,7 @@ export function menu(anchor, items, { point = null, label = "" } = {}) {
     setTimeout(() => document.addEventListener("pointerdown", onDown, true));
     window.addEventListener("resize", closeMenu, { once: true });
     openMenu = { node, restore: anchor, cleanup: () => { document.removeEventListener("pointerdown", onDown, true); } };
-    focusAt(0);
+    if (focus) focusAt(0);
     return node;
 }
 

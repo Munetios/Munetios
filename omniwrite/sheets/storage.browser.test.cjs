@@ -230,8 +230,19 @@ test('Sheets downloads and reopens .msheet workbooks with formulas and formattin
     await page.waitForFunction(() => document.body.textContent.includes(OmniSheets.t('sheets_import_failed')));
     assert.equal(await page.evaluate(() => OmniSheets.books.length), bookCount);
 });
-test('the grid reuses visible cells and unloads distant rows and columns', async t => {
-    const page = await newBook(await context(t));
+test('the grid reuses its canvas and paints only nearby cells and visible frozen panes', async t => {
+    const page = await newBook(await context(t, () => {
+        window.gridPaint = new WeakMap();
+        const { clearRect, fillText } = CanvasRenderingContext2D.prototype;
+        CanvasRenderingContext2D.prototype.clearRect = function (...args) {
+            if (this.canvas.closest('.sheets-cells')) window.gridPaint.set(this.canvas, []);
+            return clearRect.apply(this, args);
+        };
+        CanvasRenderingContext2D.prototype.fillText = function (...args) {
+            window.gridPaint.get(this.canvas)?.push(args[0]);
+            return fillText.apply(this, args);
+        };
+    }));
     const box = page.locator('#sheetsNameBox');
     const viewport = page.locator('#sheetsViewport');
     const go = async address => { await box.fill(address); await box.press('Enter'); };
@@ -242,26 +253,29 @@ test('the grid reuses visible cells and unloads distant rows and columns', async
     await go('A1');
     await cell(page, 'first cell');
     await page.locator('#sheetsCellEditor').press('Shift+Enter');
-    await page.waitForFunction(() => document.querySelector('#sheetsCells [data-r="0"][data-c="0"]')?.textContent === 'first cell');
+    await page.waitForFunction(() => window.gridPaint.get(document.querySelector('#sheetsCells canvas'))?.includes('first cell'));
     const retained = await viewport.evaluate(async grid => {
-        const cell = document.querySelector('#sheetsCells [data-r="0"][data-c="0"]');
+        const canvas = document.querySelector('#sheetsCells canvas');
+        const paint = window.gridPaint.get(canvas);
         const { r, c } = OmniSheets.editor.sel;
         const scrolled = new Promise(resolve => grid.addEventListener('scroll', () => requestAnimationFrame(resolve), { once: true }));
         grid.scrollTo(1, 1);
         await scrolled;
-        return cell.isConnected && OmniSheets.editor.sel.r === r && OmniSheets.editor.sel.c === c;
+        return canvas.isConnected && paint === window.gridPaint.get(canvas) && OmniSheets.editor.sel.r === r && OmniSheets.editor.sel.c === c;
     });
     assert.equal(retained, true);
     await viewport.focus();
     await page.keyboard.press('F2');
     const editor = page.locator('#sheetsCellEditor');
     await editor.evaluate(field => field.setSelectionRange(3, 3));
-    const scanCount = await viewport.evaluate(async (grid, scroll) => {
+    const scans = await viewport.evaluate(async (grid, scroll) => {
+        await document.fonts.ready;
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         const query = document.querySelectorAll;
-        let scans = 0;
+        const scans = [];
         document.querySelectorAll = function (selector) {
             if (selector === '.dropdown-wrapper[id], #virtualKeyboardPanel' ||
-                selector === '.dropdown-wrapper, .omni-ctx-menu, .omni-custom-palette') scans++;
+                selector === '.dropdown-wrapper, .omni-ctx-menu, .omni-custom-palette') scans.push(new Error(selector).stack);
             return query.call(this, selector);
         };
         try {
@@ -275,29 +289,68 @@ test('the grid reuses visible cells and unloads distant rows and columns', async
             document.querySelectorAll = query;
         }
     }, farScroll);
-    assert.equal(scanCount, 0);
-    await page.waitForFunction(() => document.querySelector('#sheetsCells [data-r="19999"][data-c="701"]')?.textContent === 'far cell');
-    assert.equal(await page.locator('#sheetsCells [data-r="0"][data-c="0"]').count(), 0);
+    assert.deepEqual(scans, []);
+    await page.waitForFunction(() => window.gridPaint.get(document.querySelector('#sheetsCells canvas'))?.includes('far cell'));
+    assert.deepEqual(await page.locator('#sheetsCells canvas').evaluate(canvas => window.gridPaint.get(canvas)), ['far cell']);
     assert.equal(await page.locator('#sheetsRowHeadersInner [data-row="0"]').count(), 0);
     assert.equal(await page.locator('#sheetsColHeadersInner [data-col="0"]').count(), 0);
-    assert.ok(await page.locator('#sheetsCells .sheets-cell').count() < 1000);
+    assert.equal(await page.locator('#sheetsCells .sheets-cell').count(), 0);
+    assert.equal(await viewport.getAttribute('aria-activedescendant'), 'sheetsAccessibleCell');
+    assert.equal(await page.locator('#sheetsAccessibleCell').textContent(), 'first cell');
     assert.deepEqual(await editor.evaluate(field => ({
         focused: document.activeElement === field, caret: field.selectionStart,
         r: OmniSheets.editor.sel.r, c: OmniSheets.editor.sel.c
     })), { focused: true, caret: 3, r: 0, c: 0 });
     await viewport.evaluate(grid => grid.scrollTo(0, 0));
-    await page.waitForFunction(() => document.querySelector('#sheetsCells [data-r="0"][data-c="0"]')?.textContent === 'first cell');
-    assert.equal(await page.locator('#sheetsCells [data-r="19999"][data-c="701"]').count(), 0);
+    await page.waitForFunction(() => window.gridPaint.get(document.querySelector('#sheetsCells canvas'))?.includes('first cell'));
+    assert.deepEqual(await page.locator('#sheetsCells canvas').evaluate(canvas => window.gridPaint.get(canvas)), ['first cell']);
     await editor.press('Escape');
 
     await viewport.evaluate(grid => {
         OmniSheets.editor.sheet.freeze = { rows: 19000, cols: 650 };
         grid.dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: -1, bubbles: true, cancelable: true }));
     });
-    await page.waitForFunction(() => document.querySelector('#sheetsPaneCorner .sheets-cell'));
-    assert.ok(await page.locator('#sheetsGridCard .sheets-cell').count() < 1000);
+    await page.waitForFunction(() => window.gridPaint.get(document.querySelector('#sheetsPaneCorner canvas'))?.includes('first cell'));
+    assert.equal(await page.locator('#sheetsGridCard .sheets-cell').count(), 0);
     assert.equal(await page.locator('#sheetsRowHeadersFrozen [data-row="18999"]').count(), 0);
     assert.equal(await page.locator('#sheetsColHeadersFrozen [data-col="649"]').count(), 0);
+});
+test('canvas cells paint formatted values and still support editing and cell controls', async t => {
+    const page = await newBook(await context(t));
+    await page.locator('#shImportFileInput').setInputFiles(nativeFile('msheet', {
+        title: 'Canvas controls', activeSheet: 'grid', sheets: [{
+            id: 'grid', name: 'Grid', rows: 100, cols: 26,
+            cells: {
+                '0:0': { v: '=2+3' },
+                '0:1': { v: 'FALSE', chk: true },
+                '0:2': { v: 'First', dd: ['First', 'Second'] },
+                '1:0': { v: '2026-11-24', s: { fmt: { t: 'date' } } }
+            },
+            cf: [{ id: 'color', range: 'A1', type: 'gt', a: '0', bg: '#e9ddff' }]
+        }]
+    }, 'canvas-controls.msheet'));
+    await page.waitForFunction(() => OmniSheets.editor.book?.title === 'Canvas controls');
+    const grid = page.locator('#sheetsViewport');
+    const canvas = page.locator('#sheetsCells canvas');
+    const checkbox = grid.locator('[data-check]');
+    await checkbox.waitFor();
+    const color = await canvas.evaluate(el => Array.from(el.getContext('2d').getImageData(4, 4, 1, 1).data));
+    assert.deepEqual(color, [233, 221, 255, 255]);
+    await checkbox.click();
+    await page.waitForFunction(() => OmniSheets.editor.sheet.cells['0:1'].v === 'TRUE');
+    await grid.locator('[data-dd]').click();
+    await page.getByRole('menuitemradio', { name: /Second/ }).click();
+    await page.waitForFunction(() => OmniSheets.editor.sheet.cells['0:2'].v === 'Second');
+
+    await grid.dblclick({ position: { x: 40, y: 50 } });
+    await page.locator('.mu-picker[role="dialog"]').waitFor();
+    await page.keyboard.press('Escape');
+    await grid.dblclick({ position: { x: 40, y: 17 } });
+    const field = page.locator('#sheetsCellEditor');
+    assert.equal(await field.inputValue(), '=2+3');
+    await field.fill('=9+1');
+    await field.press('Enter');
+    await page.waitForFunction(() => OmniSheets.editor.evaluator.value(OmniSheets.editor.sheet, 0, 0) === 10);
 });
 test('row and column handles resize across redraws and support undo and redo', async t => {
     const page = await newBook(await context(t));

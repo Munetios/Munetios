@@ -430,7 +430,9 @@
         ? "check_circle"
         : type === "error"
           ? "error"
-          : "info");
+          : type === "warning"
+            ? "warning"
+            : "info");
     const el = document.createElement("div");
     el.className = "mu-toast is-" + type;
     el.innerHTML =
@@ -1009,6 +1011,7 @@
     previous: "Previous month", next: "Next month", hour: "Hour", minute: "Minute",
     color: "Color", hex: "Hex color", hue: "Hue", area: "Saturation and brightness",
     eyedropper: "Pick a color from the screen", date: "Date", time: "Time",
+    chooseYear: "Choose year", chooseMonth: "Choose month",
   };
   // OmniWrite's named color dots, in the same order.
   const PICKER_SWATCHES = [
@@ -1245,7 +1248,15 @@
     const title = document.createElement("span");
     title.className = "mu-calendar-title";
     title.setAttribute("aria-live", "polite");
+    // The month and the year in the header open a month grid and a year grid, so any date
+    // (a birthday decades back) is a few clicks away instead of one month per click.
+    const monthBtn = button("mu-calendar-pick", "", { "aria-label": L.chooseMonth, "aria-expanded": "false" });
+    const yearBtn = button("mu-calendar-pick", "", { "aria-label": L.chooseYear, "aria-expanded": "false" });
+    title.append(monthBtn, yearBtn);
     head.append(prev, title, next);
+    let mode = "days"; // "days" | "months" | "years"
+    const minYear = opts.min ? Number(String(opts.min).slice(0, 4)) : new Date().getFullYear() - 120;
+    const maxYear = opts.max ? Number(String(opts.max).slice(0, 4)) : new Date().getFullYear() + 50;
     const grid = document.createElement("div");
     grid.className = "mu-calendar-grid";
     grid.setAttribute("role", "grid");
@@ -1259,8 +1270,44 @@
     }
     let longFmt;
     try { longFmt = new Intl.DateTimeFormat(locale, { dateStyle: "full" }); } catch (e) { longFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "full" }); }
+    const yearText = (y) => { try { return new Intl.NumberFormat(locale, { useGrouping: false }).format(y); } catch (e) { return String(y); } };
+    const monthText = (m, style = "long") => { try { return new Intl.DateTimeFormat(locale, { month: style, timeZone: "UTC" }).format(new Date(Date.UTC(2026, m, 1))); } catch (e) { return String(m + 1); } };
+    function renderYears(focus) {
+      grid.className = "mu-calendar-grid is-years";
+      grid.setAttribute("role", "listbox");
+      grid.setAttribute("aria-label", L.chooseYear);
+      let html = "";
+      for (let y = maxYear; y >= minYear; y--) html += '<button type="button" class="mu-calendar-option" role="option" data-year="' + y + '" aria-selected="' + (y === view.getFullYear()) + '" tabindex="' + (y === view.getFullYear() ? "0" : "-1") + '">' + yearText(y) + "</button>";
+      grid.innerHTML = html;
+      const current = grid.querySelector('[aria-selected="true"]');
+      if (current) { grid.scrollTop = current.offsetTop - grid.clientHeight / 2 + current.offsetHeight / 2; if (focus) current.focus({ preventScroll: true }); }
+    }
+    function renderMonths(focus) {
+      grid.className = "mu-calendar-grid is-months";
+      grid.setAttribute("role", "listbox");
+      grid.setAttribute("aria-label", L.chooseMonth);
+      let html = "";
+      for (let m = 0; m < 12; m++) {
+        const lastDay = isoDate(new Date(view.getFullYear(), m + 1, 0)), firstDay = isoDate(new Date(view.getFullYear(), m, 1));
+        const disabled = (opts.min && lastDay < opts.min) || (opts.max && firstDay > opts.max);
+        html += '<button type="button" class="mu-calendar-option" role="option" data-month="' + m + '" aria-selected="' + (m === view.getMonth()) + '" tabindex="' + (m === view.getMonth() ? "0" : "-1") + '"' + (disabled ? " disabled" : "") + ">" + monthText(m, "short") + "</button>";
+      }
+      grid.innerHTML = html;
+      if (focus) grid.querySelector('[aria-selected="true"]')?.focus({ preventScroll: true });
+    }
     function render(focus) {
-      try { title.textContent = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(view); } catch (e) { title.textContent = view.getFullYear() + "-" + pad2(view.getMonth() + 1); }
+      monthBtn.textContent = monthText(view.getMonth());
+      yearBtn.textContent = yearText(view.getFullYear());
+      monthBtn.setAttribute("aria-expanded", String(mode === "months"));
+      yearBtn.setAttribute("aria-expanded", String(mode === "years"));
+      prev.hidden = next.hidden = mode === "years";
+      prev.setAttribute("aria-label", mode === "months" ? String(view.getFullYear() - 1) : L.previous);
+      next.setAttribute("aria-label", mode === "months" ? String(view.getFullYear() + 1) : L.next);
+      if (mode === "years") return renderYears(focus);
+      if (mode === "months") return renderMonths(focus);
+      grid.className = "mu-calendar-grid";
+      grid.setAttribute("role", "grid");
+      grid.removeAttribute("aria-label");
       let html = dow.map((d) => '<span class="mu-calendar-dow" aria-hidden="true">' + d + "</span>").join("");
       const offset = (view.getDay() - first + 7) % 7;
       const start = new Date(view.getFullYear(), view.getMonth(), 1 - offset);
@@ -1276,9 +1323,31 @@
       if (focus) grid.querySelector('[tabindex="0"]')?.focus({ preventScroll: true });
     }
     const shift = (months) => { view = new Date(view.getFullYear(), view.getMonth() + months, 1); focusDate = new Date(view.getFullYear(), view.getMonth(), Math.min(focusDate.getDate(), 28)); render(); };
-    prev.addEventListener("click", () => shift(-1));
-    next.addEventListener("click", () => shift(1));
-    grid.addEventListener("click", (e) => { const day = e.target.closest("[data-date]"); if (day && !day.disabled) onSelect(day.dataset.date); });
+    // On the month grid the arrows move a whole year.
+    prev.addEventListener("click", () => shift(mode === "months" ? -12 : -1));
+    next.addEventListener("click", () => shift(mode === "months" ? 12 : 1));
+    monthBtn.addEventListener("click", () => { mode = mode === "months" ? "days" : "months"; render(true); });
+    yearBtn.addEventListener("click", () => { mode = mode === "years" ? "days" : "years"; render(true); });
+    grid.addEventListener("click", (e) => {
+      const year = e.target.closest("[data-year]");
+      if (year) { view = new Date(Number(year.dataset.year), view.getMonth(), 1); mode = "months"; render(true); return; }
+      const month = e.target.closest("[data-month]");
+      if (month && !month.disabled) { view = new Date(view.getFullYear(), Number(month.dataset.month), 1); focusDate = new Date(view.getFullYear(), view.getMonth(), Math.min(focusDate.getDate(), 28)); mode = "days"; render(true); return; }
+      const day = e.target.closest("[data-date]");
+      if (day && !day.disabled) onSelect(day.dataset.date);
+    });
+    // Arrow keys move through the year and month grids; Escape goes back to the days.
+    grid.addEventListener("keydown", (e) => {
+      if (mode === "days") return;
+      const items = [...grid.querySelectorAll("button:not([disabled])")];
+      const i = items.indexOf(document.activeElement);
+      const cols = 3;
+      const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -cols, ArrowDown: cols }[e.key];
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); mode = "days"; render(true); return; }
+      if (step === undefined || i < 0) return;
+      e.preventDefault();
+      items[Math.max(0, Math.min(items.length - 1, i + step))].focus();
+    });
     grid.addEventListener("keydown", (e) => {
       const day = e.target.closest("[data-date]");
       if (!day) return;

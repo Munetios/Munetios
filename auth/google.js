@@ -2,7 +2,7 @@
 
 const { createHash, createHmac, createPublicKey, randomBytes, verify } = require('node:crypto');
 const { normalizeEmail, validEmail, isInternalEmail, secureEqual } = require('./mail');
-const { sharedDomain, sharedOrigins, requestOrigin, usesSharedSession } = require('./public-hosts');
+const { sharedDomain, isSharedOrigin, requestOrigin, usesSharedSession } = require('./public-hosts');
 const authEndpoint = 'https://accounts.google.com/o/oauth2/v2/auth';
 const tokenEndpoint = 'https://oauth2.googleapis.com/token';
 const keysEndpoint = 'https://www.googleapis.com/oauth2/v3/certs';
@@ -91,12 +91,35 @@ async function avatar(source) {
     } catch { return null; }
 }
 
-function googleAuth({ router, env, db, small, fail, requireSession, reauthenticate, readCookie, startSession, writeCookies }) {
+function googleAuth({ router, env, db, small, fail, throttle, requireSession, reauthenticate, readCookie, startSession, writeCookies, consumeSecondFactor }) {
     const config = configuration(env);
     const shared = env.GOOGLE_SHARED_CLIENT_URL ? configuration({ ...env, GOOGLE_CLIENT_URL: env.GOOGLE_SHARED_CLIENT_URL }) : config;
     const cookieOptions = { httpOnly: true, sameSite: 'lax', secure: config?.redirect.protocol === 'https:', path: '/api/auth/google' };
     const sharedOptions = { ...cookieOptions, secure: true, domain: sharedDomain };
     const sign = value => createHmac('sha256', config.secret).update('google-state:' + value).digest('base64url');
+    const factorCookie = 'munetios-google-factor';
+    const signFactor = value => sign('factor:' + value);
+    async function complete(connection, req, res, accountId, state) {
+        const session = await startSession(connection, req, accountId, state.add, Boolean(state.share));
+        writeCookies(res, session.token, session.others, Boolean(state.share));
+        res.cookie(state.share ? 'munetios-shared-google-sync' : 'munetios-google-sync', String(accountId), {
+            sameSite: 'lax', secure: cookieOptions.secure, path: '/', maxAge: cookieAge,
+            ...(state.share ? { domain: sharedDomain } : {})
+        });
+        return state.share ? state.continueTo : returnPath(state.continueTo);
+    }
+    router.post('/google/factor', small, throttle, async (req, res) => {
+        if (!config) return fail(res, 401, 'invalidCredentials');
+        const [value, signature] = (readCookie(req, factorCookie) || '').split('.');
+        if (!value || !signature || !secureEqual(signature, signFactor(value))) return fail(res, 401, 'invalidCredentials');
+        const state = decode(value);
+        if (Date.now() >= state.expires || state.origin !== requestOrigin(req)) return fail(res, 401, 'invalidCredentials');
+        const connection = await db();
+        const [[security]] = await connection.execute('SELECT * FROM munetios_account_security WHERE account_id = ?', [state.accountId]);
+        if (!security?.totp_enabled || !await consumeSecondFactor(connection, state.accountId, security, req.body.code)) return fail(res, 401, 'twoFactorRequired');
+        res.clearCookie(factorCookie, cookieOptions);
+        res.json({ continueTo: await complete(connection, req, res, state.accountId, state) });
+    });
     router.get('/google/config', (req, res) => res.json({ enabled: Boolean(config) }));
     router.get('/google/start', (req, res, next) => req.query.unlock === '1' ? requireSession(req, res, next) : next(), (req, res) => {
         const share = usesSharedSession(req, env);
@@ -128,7 +151,7 @@ function googleAuth({ router, env, db, small, fail, requireSession, reauthentica
             }).find(Boolean);
             if (!state || state.linking || Date.now() >= state.expires || typeof req.query.code !== 'string') return res.redirect(failLocation);
             const oauth = state.share ? shared : config;
-            if (!oauth || (state.share && (env.AUTH_SHARE_MUNETIOS_SESSION !== 'true' || !sharedOrigins.has(state.origin) ||
+            if (!oauth || (state.share && (env.AUTH_SHARE_MUNETIOS_SESSION !== 'true' || !isSharedOrigin(state.origin) ||
                 requestOrigin(req) !== oauth.redirect.origin))) return res.redirect(failLocation);
             res.clearCookie(state.share ? sharedCookie : cookie, state.share ? sharedOptions : cookieOptions);
             const identity = await profile(oauth, state, req.query.code);
@@ -161,14 +184,14 @@ function googleAuth({ router, env, db, small, fail, requireSession, reauthentica
                 accountId = created.account_id;
             }
             const [[security]] = await connection.execute('SELECT totp_enabled FROM munetios_account_security WHERE account_id = ?', [accountId]);
-            if (security?.totp_enabled) return res.redirect(failLocation);
-            const session = await startSession(connection, req, accountId, state.add, Boolean(state.share));
-            writeCookies(res, session.token, session.others, Boolean(state.share));
-            res.cookie(state.share ? 'munetios-shared-google-sync' : 'munetios-google-sync', String(accountId), {
-                sameSite: 'lax', secure: cookieOptions.secure, path: '/', maxAge: cookieAge,
-                ...(state.share ? { domain: sharedDomain } : {})
-            });
-            res.redirect(state.share ? state.continueTo : returnPath(state.continueTo));
+            if (security?.totp_enabled) {
+                const ttl = 5 * 60 * 1000;
+                const value = encode({ accountId: String(accountId), add: state.add, share: state.share,
+                    origin: requestOrigin(req), continueTo: state.continueTo, expires: Date.now() + ttl });
+                res.cookie(factorCookie, `${value}.${signFactor(value)}`, { ...cookieOptions, maxAge: ttl });
+                return res.redirect('/signin/?google=factor');
+            }
+            res.redirect(await complete(connection, req, res, accountId, state));
         } catch { res.redirect(failLocation); }
     });
 
@@ -176,6 +199,16 @@ function googleAuth({ router, env, db, small, fail, requireSession, reauthentica
         const { account, connection } = req.session;
         const [[row]] = await connection.execute('SELECT g.subject, a.password_hash FROM munetios_accounts a LEFT JOIN munetios_google_identities g ON g.account_id = a.id WHERE a.id = ?', [account.id]);
         res.json({ enabled: Boolean(config), linked: Boolean(row?.subject), hasPassword: Boolean(row && row.password_hash !== 'google-only') });
+    });
+    // Google-only accounts have no password to protect the sync data key, so the server derives a stable
+    // per-account secret instead. Accounts with a password never receive one and keep password-based keys.
+    router.get('/google/sync-secret', requireSession, async (req, res) => {
+        if (!config) return fail(res, 404, 'unavailable');
+        const { account, connection } = req.session;
+        const [[row]] = await connection.execute('SELECT g.subject, a.password_hash FROM munetios_accounts a LEFT JOIN munetios_google_identities g ON g.account_id = a.id WHERE a.id = ?', [account.id]);
+        if (!row?.subject || row.password_hash !== 'google-only') return fail(res, 404, 'unavailable');
+        res.set('Cache-Control', 'no-store');
+        res.json({ secret: createHmac('sha256', config.secret).update('google-sync-key:' + account.id).digest('hex') });
     });
     router.post('/google/disconnect', small, requireSession, reauthenticate, async (req, res) => {
         const { account, connection } = req.session;

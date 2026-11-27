@@ -242,9 +242,10 @@ export async function saveMailboxSettings(env, mailbox, input) {
 export function publicSettings(settings) {
     const copy = structuredClone(settings);
     if (copy.forwarding) { delete copy.forwarding.codeHash; delete copy.forwarding.codeExpires; }
-    delete copy.legacyCursor;
+    // Only the address and expiry of a pending link are shown; the code hash stays on the server.
     if (copy.linkPending) copy.linkPending = { address: copy.linkPending.address, expires: copy.linkPending.codeExpires };
     if (!Array.isArray(copy.linked)) copy.linked = [];
+    delete copy.legacyCursor;
     return copy;
 }
 

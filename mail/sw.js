@@ -1,7 +1,7 @@
 // Munetios Mail service worker. It caches only the public application shell (HTML, CSS, scripts, fonts) so Mail
 // opens offline. It never caches /api responses, attachments, or anything containing mailbox data; offline mail is
 // kept encrypted in IndexedDB by the page and cleared when the account signs out.
-const CACHE = "munetios-mail-shell-v2";
+const CACHE = "munetios-mail-shell-v9";
 const SHELL = [
     "/mail/", "/mail/mail.css", "/mail/manifest.json", "/munetios-ui/munetios-ui-v4.css", "/munetios-ui/munetios-ui-v4.js", "/account/account-menu.css", "/account/account-i18n.js",
     "/account/account-core.js", "/account/account-menu.js", "/account/workspace-scope.js", "/shared/munetios-locales.js", "/shared/cloud-i18n.js", "/shared/munetios-cloud.js", "/mail/strings.js",
@@ -9,7 +9,7 @@ const SHELL = [
     "/mail/i18n/hi.js", "/mail/js/app.js", "/mail/js/api.js", "/mail/js/state.js", "/mail/js/i18n.js", "/mail/js/ui.js", "/mail/js/theme-schema.js", "/mail/js/customize.js",
     "/mail/js/list.js", "/mail/js/reader.js", "/mail/js/sidebar.js", "/mail/js/actions.js", "/mail/js/sync.js", "/mail/js/offline.js", "/mail/js/search.js", "/mail/js/render-email.js",
     "/mail/js/compose.js", "/mail/js/editor.js", "/mail/js/code-editor.js", "/mail/js/designer.js", "/mail/js/html-tools.js", "/mail/js/photos-picker.js", "/mail/js/settings.js",
-    "/mail/js/studio.js", "/mail/js/storage-view.js", "/fonts/google-sans-flex/munetios-ui-v4-font.ttf", "/mail/icons/mail-192.png", "/mail/icons/favicon-32.png",
+    "/mail/js/studio.js", "/mail/js/storage-view.js", "/fonts/google-sans-flex/munetios-ui-v4-font.ttf",
 ];
 
 self.addEventListener("install", event => {

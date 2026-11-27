@@ -1,9 +1,12 @@
 node_modules/
 .env
 .env.*
+!.env.example
 
 auth/.security-key
 webfilter-api/data/
+cloud/data/
+supervidplayer-server/data/
 
 # Local configuration and generated files
 .envrc
@@ -31,5 +34,12 @@ coverage/
 !/developer-beta/d1/0003_account_mail.sql
 !/developer-beta/d1/0004_email_settings.sql
 !/developer-beta/d1/0005_collaboration_directory.sql
+!/developer-beta/d1/0006_profile_picture_privacy.sql
+!/developer-beta/d1/0007_calendar_reminders.sql
+!/developer-beta/d1/0008_cloud_media.sql
+!/developer-beta/d1/0009_cloud_objects.sql
+!/developer-beta/d1/0010_omniwrite_objects.sql
+!/developer-beta/d1/0011_recovery_codes.sql
+!/developer-beta/d1/0012_profile_birthdays.sql
 .local-mail/
 !/mail-worker/migrations/*.sql

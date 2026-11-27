@@ -14,11 +14,16 @@
   const here = () => location.pathname + location.search + location.hash;
   const initial = account => ([...(account?.displayName || account?.email || "?").trim()][0] || "?").toLocaleUpperCase();
   const avatar = (account, large) => `<span class="mu-account-avatar${large ? " is-lg" : ""}" aria-hidden="true">${A.settings.get('showPictures') && account?.picture && /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(account.picture) ? `<img src="${esc(account.picture)}" alt="">` : esc(initial(account))}</span>`;
+  // Invalid session: the avatar keeps showing, with a red error badge on its bottom corner.
+  const revoked = () => Boolean(A.state.revocation && A.state.account);
+  const errorBadge = () => (revoked() ? '<span class="mu-account-badge" aria-hidden="true"><span class="mu-icon mu-icon-filled">error</span></span>' : "");
+  const signInHref = () => `/signin?${new URLSearchParams({ continue: here() })}`;
   let menu = null, trigger = null, expanded = { workspaces: false, accounts: false }, cleanup = null;
 
   function status() {
+    if (revoked()) return { key: "signedout", icon: "error", text: t("sessionSignedOut"), plain: t("sessionSignInToSync"), signIn: true };
     switch (A.state.status) {
-      case "paused": return { key: "paused", icon: "cloud_off", text: t(A.state.revocation ? "sessionSyncPaused" : "syncOff") };
+      case "paused": return { key: "paused", icon: "cloud_off", text: t("syncOff") };
       case "full": return { key: "full", icon: "cloud_off", text: t("storageFull") };
       case "synced": return { key: "ok", icon: "cloud_done", text: t("synced"), sub: t("e2e") };
       case "error": return { key: "error", icon: "cloud_off", text: t("syncFailed") };
@@ -33,17 +38,7 @@
     let signIn = slot.querySelector(".account-sign-in");
     let button = slot.querySelector(".mu-account-trigger");
     const account = A.state.account;
-    let paused = slot.querySelector("[data-session-sync-status]");
-    if (A.state.revocation && slot.dataset.accountPlacement !== "sidebar") {
-      if (!paused) {
-        paused = document.createElement("span");
-        paused.className = "mu-status";
-        paused.dataset.sessionSyncStatus = "";
-        paused.setAttribute("role", "status");
-        slot.append(paused);
-      }
-      paused.textContent = t("sessionSyncPaused");
-    } else paused?.remove();
+    slot.querySelector("[data-session-sync-status]")?.remove();
     if (slot.dataset.accountPlacement === "topbar" && account) { if (signIn) signIn.hidden = true; button?.remove(); return; }
     if (slot.dataset.accountPlacement === "sidebar") { slot.hidden = !account; if (!account) { button?.remove(); return; } }
     if (!account) {
@@ -72,7 +67,7 @@
     button.dataset.status = s.key;
     button.setAttribute("aria-label", `${t("accountMenu")}: ${account.displayName || A.displayEmail(account)}. ${s.text}`);
     if (slot.dataset.accountPlacement === "sidebar") button.title = account.displayName || A.displayEmail(account);
-    button.innerHTML = `${avatar(account)}${slot.dataset.accountPlacement === "sidebar" ? `<span class="mu-account-sidebar-name">${esc(account.displayName || A.displayEmail(account))}</span><span class="mu-icon" aria-hidden="true">expand_less</span>` : ""}`;
+    button.innerHTML = `<span class="mu-account-avatar-wrap">${avatar(account)}${errorBadge()}</span>${slot.dataset.accountPlacement === "sidebar" ? `<span class="mu-account-sidebar-name">${esc(account.displayName || A.displayEmail(account))}</span><span class="mu-icon" aria-hidden="true">expand_less</span>` : ""}`;
   }
   function renderSlots() {
     const sidebar = document.querySelector('.sidebar__bottom-actions');
@@ -120,13 +115,15 @@
       <div class="mu-account-head">${avatar(account, true)}<div class="mu-account-who">${account.displayName ? `<span class="mu-account-name">${esc(account.displayName)}</span>` : ""}<span class="mu-account-email">${esc(A.displayEmail(account))}</span></div><button type="button" class="mu-btn mu-account-manage" data-action="settings"><span class="mu-icon" aria-hidden="true">manage_accounts</span><span>${esc(t("accountSettings"))}</span></button></div>
       <div class="mu-account-status is-${s.key}" role="status">
         <span class="mu-icon mu-icon-filled" aria-hidden="true">${s.icon}</span>
-        <span class="mu-account-status-text"><span>${esc(s.text)}</span>${s.sub ? `<span class="mu-account-status-sub"><span class="mu-icon" aria-hidden="true">lock</span>${esc(s.sub)}</span>` : ""}</span>
+        <span class="mu-account-status-text"><span>${esc(s.text)}</span>${s.sub ? `<span class="mu-account-status-sub"><span class="mu-icon" aria-hidden="true">lock</span>${esc(s.sub)}</span>` : ""}${s.plain ? `<span class="mu-account-status-sub">${esc(s.plain)}</span>` : ""}</span>
+        ${s.signIn ? `<a class="mu-btn mu-btn-primary mu-account-unlock" role="menuitem" href="${esc(signInHref())}"><span class="mu-icon" aria-hidden="true">login</span><span>${esc(t("signIn"))}</span></a>` : ""}
         ${s.action ? `<button type="button" class="mu-btn mu-btn-primary mu-account-unlock" data-action="unlock">${esc(t("unlockSync"))}</button>` : ""}
         ${addPassword ? `<button type="button" class="mu-btn mu-account-unlock" data-action="add-password"><span class="mu-icon" aria-hidden="true">password</span><span>${esc(t("addPassword"))}</span></button>` : ""}
       </div>
       <div class="mu-menu-sep"></div>
       ${item("toggle-workspaces", "workspaces", t("workspaces"), `aria-expanded="${expanded.workspaces}"`).replace("</button>", `<span class="mu-icon mu-account-chevron" aria-hidden="true">${expanded.workspaces ? "expand_less" : "expand_more"}</span></button>`)}
-      ${expanded.workspaces ? `<div class="mu-account-sub" role="group" aria-label="${esc(t("workspaces"))}">${list.map(ws => `<button type="button" class="mu-menu-item${ws.id === active ? " is-selected" : ""}" role="menuitemradio" aria-checked="${ws.id === active}" data-action="workspace" data-id="${esc(ws.id)}"><span class="mu-account-ws-initial" aria-hidden="true">${esc(([...A.workspaces.label(ws)][0] || "?").toLocaleUpperCase())}</span><span class="mu-account-item-label">${esc(A.workspaces.label(ws))}</span>${ws.id === active ? '<span class="mu-icon mu-menu-check" aria-hidden="true">check</span>' : ""}</button>`).join("")}</div>` : ""}
+      ${expanded.workspaces && revoked() ? `<div class="mu-account-sub" role="group" aria-label="${esc(t("workspaces"))}"><p class="mu-account-empty mu-account-load-error" role="alert"><span class="mu-icon" aria-hidden="true">error</span><span>${esc(t("wsLoadFailed"))}</span></p></div>` : ""}
+      ${expanded.workspaces && !revoked() ? `<div class="mu-account-sub" role="group" aria-label="${esc(t("workspaces"))}">${list.map(ws => `<button type="button" class="mu-menu-item${ws.id === active ? " is-selected" : ""}" role="menuitemradio" aria-checked="${ws.id === active}" data-action="workspace" data-id="${esc(ws.id)}"><span class="mu-account-ws-initial" aria-hidden="true">${esc(([...A.workspaces.label(ws)][0] || "?").toLocaleUpperCase())}</span><span class="mu-account-item-label">${esc(A.workspaces.label(ws))}</span>${ws.id === active ? '<span class="mu-icon mu-menu-check" aria-hidden="true">check</span>' : ""}</button>`).join("")}</div>` : ""}
       ${item("toggle-accounts", "switch_account", t("switchAccounts"), `aria-expanded="${expanded.accounts}"`).replace("</button>", `<span class="mu-icon mu-account-chevron" aria-hidden="true">${expanded.accounts ? "expand_less" : "expand_more"}</span></button>`)}
       ${expanded.accounts ? `<div class="mu-account-sub" role="group" aria-label="${esc(t("switchAccounts"))}">${others.length ? others.map(other => `<button type="button" class="mu-menu-item" role="menuitem" data-action="switch" data-id="${esc(other.id)}">${avatar(other)}<span class="mu-account-item-label">${esc(other.displayName || A.displayEmail(other))}</span></button>`).join("") : `<p class="mu-account-empty">${esc(t("noOtherAccounts"))}</p>`}</div>` : ""}
       ${item("add", "person_add", t("addAccount"))}
@@ -207,14 +204,60 @@
       catch (error) { button.disabled = false; notify(t(error.code === "switchBlocked" ? "switchBlocked" : "switchFailed"), "error"); }
       return;
     }
-    if (action === "signout") {
-      button.disabled = true;
-      try {
-        await A.signOut();
-        closeMenu(false);
-        if (A.state.account) location.reload(); // another signed-in account is now active
-      } catch { button.disabled = false; notify(t("signOutFailed"), "error"); }
+    if (action === "signout") { closeMenu(false); confirmSignOut(); }
+  }
+
+  /* ---------------------------------------------------------- sign out (confirm first) */
+  // After Sign out is confirmed, the dialog shows "Signing out of this account. Please wait…".
+  // If the server fails or is too slow, the session is marked invalid on this device instead:
+  // the account stays shown as signed in with the error badge, and the signed-out dialog explains it.
+  function confirmSignOut({ onSignedOut } = {}) {
+    if (!A.state.account) return;
+    if (!window.MunetiosUI?.openModal) { if (window.confirm(t("signOutConfirmTitle"))) runSignOut(null, onSignedOut); return; }
+    document.getElementById("munetiosSignOutModal")?.remove();
+    const modal = document.createElement("div");
+    modal.className = "mu-modal";
+    modal.id = "munetiosSignOutModal";
+    modal.hidden = true;
+    modal.innerHTML = `<section class="mu-dialog" role="dialog" aria-modal="true" aria-labelledby="munetiosSignOutTitle" aria-describedby="munetiosSignOutBody">
+      <div class="mu-dialog-header"><div class="mu-dialog-heading"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">logout</span></span><h2 id="munetiosSignOutTitle">${esc(t("signOutConfirmTitle"))}</h2></div></div>
+      <p class="mu-muted mu-account-dialog-text" id="munetiosSignOutBody">${esc(t("signOutConfirmBody"))}</p>
+      <div class="mu-account-signing-out" role="status" aria-live="polite" hidden>
+        <div class="spinner-container is-sm" aria-hidden="true"><svg class="google-spinner" viewBox="0 0 50 50" focusable="false"><circle class="spinner-circle" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg></div>
+        <span>${esc(t("signingOut"))}</span>
+      </div>
+      <div class="mu-dialog-actions">
+        <button type="button" class="mu-btn" data-mu-close>${esc(t("cancel"))}</button>
+        <button type="button" class="mu-btn mu-btn-danger" data-signout-confirm><span class="mu-icon" aria-hidden="true">logout</span><span>${esc(t("signOut"))}</span></button>
+      </div>
+    </section>`;
+    document.body.append(modal);
+    const shown = window.MunetiosUI.openModal(modal.id) || modal;
+    shown.querySelector("[data-signout-confirm]").addEventListener("click", () => runSignOut(shown, onSignedOut));
+  }
+  let signingOut = false;
+  async function runSignOut(dialog, onSignedOut) {
+    if (signingOut) return;
+    signingOut = true;
+    const busy = event => { if (event.key === "Escape") { event.preventDefault(); event.stopImmediatePropagation(); } };
+    if (dialog) {
+      dialog.querySelector(".mu-account-signing-out").hidden = false;
+      dialog.querySelector("#munetiosSignOutBody").hidden = true;
+      dialog.querySelectorAll(".mu-dialog-actions button").forEach(button => { button.disabled = true; });
+      dialog.querySelector(".mu-dialog").setAttribute("aria-busy", "true");
+      document.addEventListener("keydown", busy, true);
     }
+    const close = () => { document.removeEventListener("keydown", busy, true); if (dialog?.isConnected && !dialog.hidden) window.MunetiosUI?.closeModal?.(dialog); dialog?.remove(); };
+    try {
+      await A.signOut();
+      close();
+      if (onSignedOut) onSignedOut();
+      else if (A.state.account) location.reload(); // another signed-in account is now active
+    } catch (error) {
+      close();
+      // signOutPending: the session is now invalid here and the signed-out dialog opens on its own.
+      if (error?.code !== "signOutPending") notify(t("signOutFailed"), "error");
+    } finally { signingOut = false; }
   }
 
   /* ---------------------------------------------------------- turn on sync */
@@ -289,14 +332,15 @@
     modal.className = "mu-modal";
     modal.id = "munetiosSignedOutModal";
     modal.hidden = true;
+    // The account still shows as signed in, so signing in again replaces this session instead of adding one.
     const params = new URLSearchParams({ continue: here() });
-    if (A.state.account) params.set("add", "1");
-    modal.innerHTML = `<section class="mu-dialog" role="dialog" aria-modal="true" aria-labelledby="munetiosSignedOutTitle">
-      <div class="mu-dialog-header"><h2 id="munetiosSignedOutTitle">${esc(t("sessionSignedOut"))}</h2></div>
-      <p class="mu-muted">${esc(t("sessionSyncPaused"))}</p>
+    if (A.state.account && String(A.state.account.id) !== String(revoked.accountId)) params.set("add", "1");
+    modal.innerHTML = `<section class="mu-dialog" role="dialog" aria-modal="true" aria-labelledby="munetiosSignedOutTitle" aria-describedby="munetiosSignedOutBody">
+      <div class="mu-dialog-header"><div class="mu-dialog-heading"><span class="mu-icon-circle mu-account-error-circle"><span class="mu-icon" aria-hidden="true">error</span></span><h2 id="munetiosSignedOutTitle">${esc(t("sessionSignedOut"))}</h2></div></div>
+      <p class="mu-muted mu-account-dialog-text" id="munetiosSignedOutBody">${esc(t("sessionSignedOutBody"))}</p>
       <div class="mu-dialog-actions">
         <button type="button" class="mu-btn" data-mu-close>${esc(t("sessionStayHere"))}</button>
-        <a class="mu-btn mu-btn-primary" href="/signin?${esc(params.toString())}">${esc(t("signIn"))}</a>
+        <a class="mu-btn mu-btn-primary" href="/signin?${esc(params.toString())}"><span class="mu-icon" aria-hidden="true">login</span><span>${esc(t("signIn"))}</span></a>
       </div>
     </section>`;
     document.getElementById(modal.id)?.remove();
@@ -307,5 +351,5 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", renderRevocation, { once: true }); else renderRevocation();
   document.addEventListener("munetios-workspaces-changed", renderMenu);
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", renderSlots, { once: true }); else renderSlots();
-  window.MunetiosAccountMenu = { render: renderSlots, openUnlock };
+  window.MunetiosAccountMenu = { render: renderSlots, openUnlock, confirmSignOut };
 })();

@@ -1,6 +1,7 @@
 'use strict';
 const express = require('express');
 const mysql = require('mysql2/promise');
+const qrcode = require('qrcode-generator');
 const { randomBytes, scrypt, timingSafeEqual, createHash } = require('node:crypto');
 const { promisify } = require('node:util');
 const { readFileSync } = require('node:fs');
@@ -10,13 +11,18 @@ const { passwordReset } = require('./password-reset');
 const { googleAuth } = require('./google');
 const { emailSettings } = require('./email-settings');
 const { sharedDomain, usesSharedSession, expectedBrowserOrigin } = require('./public-hosts');
+const { syncRateLimitFromEnv } = require('./rate-limit');
 const { normalizeEmail, validEmail, isInternalEmail, secureEqual, reservedPersonalMailboxes, isReservedMailbox, createMailTransport, createEmailVerification } = require('./mail');
 const SYNC_QUOTA = 50_000_000_000;
 const SYNC_DB_PART_BYTES = 256 * 1024;
 const derive = promisify(scrypt);
 const COOKIE = 'munetios_session';
 const OTHERS_COOKIE = 'munetios_others'; // other signed-in accounts on this browser
-const SESSION_MS = 7 * 24 * 60 * 60 * 1000;
+// Holds no secret: it only records that this browser has signed in, so an expired or revoked session opens the app
+// with the "You've been signed out" dialog (and offline data) instead of redirecting. Signing out clears it.
+const SEEN_COOKIE = 'munetios_seen';
+const SEEN_MS = 400 * 24 * 60 * 60 * 1000;
+const SESSION_MS = 30 * 24 * 60 * 60 * 1000;
 const SCRYPT_OPTIONS = { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
 const HEX64 = /^[a-f0-9]{64}$/;
 const ITEM_KEY = /^[A-Za-z0-9:._-]{1,191}$/;
@@ -49,7 +55,7 @@ function validKeys(keys) {
 }
 const keysOf = row => row && row.kdf_salt ? { salt: row.kdf_salt, iv: row.wrap_iv, wrapped: row.wrapped_key } : null;
 
-function createAuthRouter({ env = process.env, database, mailTransport = createMailTransport(env), emailVerification = createEmailVerification(env, mailTransport) } = {}) {
+function createAuthRouter({ env = process.env, database, syncObjects, onBrowserSessionChange, mailTransport = createMailTransport(env), emailVerification = createEmailVerification(env, mailTransport) } = {}) {
     const router = express.Router();
     const vault = securityVault(env);
     const reservedMailboxes = reservedPersonalMailboxes(env);
@@ -62,15 +68,35 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
     const cookieOptions = { httpOnly: true, secure, sameSite: 'lax', path: '/', maxAge: SESSION_MS };
     const sharedCookie = '__Secure-munetios-shared-session';
     const sharedOthers = '__Secure-munetios-shared-others';
+    // On shared hosts the host-only cookie from before sessions were shared still counts, until it is upgraded.
     function sessionToken(req, share = usesSharedSession(req, env)) {
-        const value = readCookie(req, share ? sharedCookie : COOKIE);
+        const value = readCookie(req, share ? sharedCookie : COOKIE) || (share ? readCookie(req, COOKIE) : null);
         return HEX64.test(value || '') ? value : null;
     }
+    const hasLegacyCookies = req => Boolean(readCookie(req, COOKIE) || readCookie(req, OTHERS_COOKIE));
+    // Updating and syncing share one per-session budget (default 200 requests per 10 minutes).
+    const syncLimit = syncRateLimitFromEnv(env, req => { const token = sessionToken(req); return token ? tokenHash(token) : null; });
     function otherTokens(req, share = usesSharedSession(req, env)) {
-        const name = share ? sharedOthers : OTHERS_COOKIE;
-        return [...new Set((readCookie(req, name) || '').split('.').filter(token => HEX64.test(token)))];
+        const raw = share ? [readCookie(req, sharedOthers), readCookie(req, OTHERS_COOKIE)] : [readCookie(req, OTHERS_COOKIE)];
+        return [...new Set(raw.filter(Boolean).join('.').split('.').filter(token => HEX64.test(token)))];
     }
     const fail = (res, status, code) => res.status(status).json({ error: code });
+    // Display names: no control characters, 1–80 characters after trimming.
+    const cleanDisplayName = value => {
+        if (typeof value !== 'string') return '';
+        const name = value.replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim();
+        return name && [...name].length <= 80 ? name : '';
+    };
+    // Birthdays: a real calendar date (YYYY-MM-DD) from 1900 up to today.
+    const validBirthday = value => {
+        const match = typeof value === 'string' && /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+        if (!match) return false;
+        const [year, month, day] = match.slice(1).map(Number);
+        const date = new Date(Date.UTC(year, month - 1, day));
+        if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return false;
+        if (year < 1900 || date.getTime() > Date.now()) return false;
+        return value;
+    };
     const small = express.json({ limit: '16kb', strict: true });
     const large = express.json({ limit: '64mb', strict: true }); // encrypted documents can be large
 
@@ -93,6 +119,13 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
                 if (env.AUTH_AUTO_MIGRATE === 'false') return;
                 const statements = readFileSync(path.join(__dirname, 'schema.sql'), 'utf8').split(';').map(sql => sql.replace(/^\s*--.*$/gm, '').trim()).filter(Boolean);
                 for (const sql of statements) await pool.query(sql);
+                if (pool.pool) {
+                    const [columns] = await pool.query("SHOW COLUMNS FROM munetios_account_security WHERE Field = 'recovery_codes'");
+                    if (!columns.length) {
+                        try { await pool.query('ALTER TABLE munetios_account_security ADD COLUMN recovery_codes VARCHAR(1024) CHARACTER SET ascii COLLATE ascii_bin NULL'); }
+                        catch (error) { if (error.code !== 'ER_DUP_FIELDNAME') throw error; }
+                    }
+                }
             })().catch(error => { schemaReady = null; throw error; });
         }
         await schemaReady;
@@ -137,10 +170,14 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
     async function accountFor(connection, token) {
         if (!token) return null;
         const [rows] = await connection.execute(
-            'SELECT a.id, a.email, a.created_at, p.display_name, v.picture, k.account_id AS key_owner FROM munetios_accounts a JOIN munetios_sessions s ON s.account_id = a.id LEFT JOIN munetios_profiles p ON p.account_id = a.id LEFT JOIN munetios_profile_pictures v ON v.account_id = a.id LEFT JOIN munetios_account_keys k ON k.account_id = a.id WHERE s.token_hash = ? AND s.expires_at > UTC_TIMESTAMP()',
+            'SELECT a.id, a.email, a.created_at, p.display_name, b.birthday, v.picture, k.account_id AS key_owner, COALESCE(q.show_to_everyone, 1) AS show_picture ' +
+            'FROM munetios_accounts a JOIN munetios_sessions s ON s.account_id = a.id LEFT JOIN munetios_profiles p ON p.account_id = a.id ' +
+            'LEFT JOIN munetios_profile_birthdays b ON b.account_id = a.id ' +
+            'LEFT JOIN munetios_profile_pictures v ON v.account_id = a.id LEFT JOIN munetios_account_keys k ON k.account_id = a.id ' +
+            'LEFT JOIN munetios_profile_picture_privacy q ON q.account_id = a.id WHERE s.token_hash = ? AND s.expires_at > UTC_TIMESTAMP()',
             [tokenHash(token)]);
         const row = rows[0];
-        return row ? { id: String(row.id), email: row.email, displayName: row.display_name || '', picture: row.picture || null, createdAt: row.created_at, hasKeys: Boolean(row.key_owner) } : null;
+        return row ? { id: String(row.id), email: row.email, displayName: row.display_name || '', birthday: row.birthday || null, picture: row.picture || null, showProfilePictureToEveryone: Boolean(row.show_picture), createdAt: row.created_at, hasKeys: Boolean(row.key_owner) } : null;
     }
     async function issueSession(connection, accountId, req) {
         const token = randomBytes(32).toString('hex');
@@ -161,6 +198,13 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
         const clear = { ...options, maxAge: undefined };
         if (active) res.cookie(activeName, active, options); else res.clearCookie(activeName, clear);
         if (others.length) res.cookie(othersName, others.join('.'), options); else res.clearCookie(othersName, clear);
+        if (active) res.cookie(SEEN_COOKIE, '1', { ...options, maxAge: SEEN_MS });
+        // Moving to the shared cookie: drop this host's old host-only cookies.
+        if (share && hasLegacyCookies(res.req)) {
+            res.clearCookie(COOKIE, { ...cookieOptions, maxAge: undefined });
+            res.clearCookie(OTHERS_COOKIE, { ...cookieOptions, maxAge: undefined });
+        }
+        onBrowserSessionChange?.(res);
     }
     function newSessionStatement(token, accountExpression, accountValue, req) {
         return [
@@ -190,7 +234,7 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
         }
         return { token, others: keep.map(item => item.token) };
     }
-    async function createD1Account(database, req, email, passwordHash, keys, internal) {
+    async function createD1Account(database, req, email, passwordHash, keys, internal, profile = {}) {
         const token = randomBytes(32).toString('hex');
         const previous = sessionToken(req);
         let others = await resolveOthers(database, otherTokens(req));
@@ -209,6 +253,8 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
             [email, keys.salt, keys.iv, keys.wrapped],
         ]);
         if (internal) statements.push(['INSERT INTO munetios_mailboxes (account_id) VALUES (' + account + ')', [email]]);
+        if (profile.displayName) statements.push(['INSERT INTO munetios_profiles (account_id, display_name) VALUES (' + account + ', ?)', [email, profile.displayName]]);
+        if (profile.birthday) statements.push(['INSERT INTO munetios_profile_birthdays (account_id, birthday) VALUES (' + account + ', ?)', [email, profile.birthday]]);
         statements.push(
             newSessionStatement(token, account, email, req),
             ['INSERT INTO munetios_session_devices (token_hash, device) VALUES (?, ?)', [tokenHash(token), deviceLabel(req.get('user-agent'))]],
@@ -233,16 +279,23 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
         const others = await resolveOthers(connection, otherTokens(req).filter(token => token !== excludeToken));
         const [next, ...rest] = others;
         writeCookies(res, next?.token || null, rest.map(item => item.token));
+        // No account left (sign-out of the last account, or account deletion): signed out completely.
+        if (!next) res.clearCookie(SEEN_COOKIE, { ...seenOptions(req), maxAge: undefined });
         return { account: next?.account || null, accounts: rest.map(item => item.account) };
     }
 
+    // "Signed out completely" (a deliberate sign-out of every account) clears the seen cookie. While it is still
+    // present without a valid session, the session is only invalid: apps keep the user in place with the
+    // "You've been signed out" dialog instead of sending them to the sign-in page.
+    const seenOptions = req => usesSharedSession(req, env) ? { ...cookieOptions, secure: true, domain: sharedDomain, maxAge: SEEN_MS } : { ...cookieOptions, maxAge: SEEN_MS };
     async function browserSession(req, res) {
         const token = sessionToken(req);
         const others = otherTokens(req);
-        if (!token && !others.length) return { account: null, accounts: [] };
+        const seen = Boolean(readCookie(req, SEEN_COOKIE));
+        if (!token && !others.length) return { account: null, accounts: [], ...(seen ? { sessionRevoked: true } : {}) };
         const connection = await db();
         let account = await accountFor(connection, token);
-        const sessionRevoked = Boolean(token && !account);
+        const sessionRevoked = Boolean(token && !account) || (!account && seen);
         let list = await resolveOthers(connection, others, account?.id);
         if (!account && list.length) { // the active session expired: switch to the next account
             const [next, ...rest] = list;
@@ -250,9 +303,11 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
             writeCookies(res, next.token, rest.map(item => item.token));
         } else if (!account) {
             writeCookies(res, null, []);
-        } else if (list.length !== others.length) {
+        } else if (list.length !== others.length || (usesSharedSession(req, env) && hasLegacyCookies(req))) {
             writeCookies(res, token, list.map(item => item.token));
         }
+        // Sessions that started before the seen cookie existed get it now, so a later invalid session is recognized.
+        if (account && !seen) res.cookie(SEEN_COOKIE, '1', seenOptions(req));
         return { account, accounts: list.map(item => item.account), ...(sessionRevoked ? { sessionRevoked: true } : {}) };
     }
 
@@ -276,6 +331,7 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
     // Active account plus the other accounts signed in on this browser (Munetios Mail's unified inbox).
     router.sessionAccounts = (req, res) => browserSession(req, res);
     router.database = db;
+    router.syncRateLimit = syncLimit;
 
     router.lookupAccountByEmail = async email => {
         const connection = await db();
@@ -287,6 +343,8 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
         res.set('Cache-Control', 'no-store').vary('Cookie');
         try {
             if (!(await browserSession(req, res)).account) {
+                // Signed in on this browser before: open the page; it shows the signed-out dialog and offline data.
+                if (readCookie(req, SEEN_COOKIE)) return next();
                 const queryAt = req.originalUrl.indexOf('?');
                 const returnTo = returnPath + (queryAt < 0 ? '' : req.originalUrl.slice(queryAt));
                 return res.redirect('/signin?continue=' + encodeURIComponent(returnTo));
@@ -300,16 +358,41 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
     router.get('/session', async (req, res) => {
         res.json(await browserSession(req, res));
     });
-    googleAuth({ router, env, db, small, fail, requireSession, reauthenticate, readCookie, startSession, writeCookies });
+    async function consumeSecondFactor(connection, id, security, factor) {
+        const code = String(factor || '').trim();
+        if (/^\d{6}$/.test(code)) {
+            const counter = verifyCode(vault.open(security.totp_secret, id), code, security.last_counter);
+            if (counter === null) return false;
+            const [result] = await connection.execute('UPDATE munetios_account_security SET last_counter = ? WHERE account_id = ? AND last_counter < ? AND totp_enabled = 1 AND totp_secret = ?', [counter, id, counter, security.totp_secret]);
+            return Boolean(result.affectedRows);
+        }
+        if (!/^[a-f0-9]{8}(?:-?[a-f0-9]{8})$/i.test(code)) return false;
+        const hash = vault.recoveryHash(code.replace('-', '').toLowerCase(), id);
+        for (let attempt = 0; attempt < 3; attempt++) {
+            const hashes = JSON.parse(security?.recovery_codes || '[]');
+            if (!security?.totp_enabled || !hashes.includes(hash)) return false;
+            const [result] = await connection.execute(
+                'UPDATE munetios_account_security SET recovery_codes = ? WHERE account_id = ? AND totp_enabled = 1 AND recovery_codes = ?',
+                [JSON.stringify(hashes.filter(value => value !== hash)), id, security.recovery_codes]);
+            if (result.affectedRows) return true;
+            [[security]] = await connection.execute('SELECT * FROM munetios_account_security WHERE account_id = ?', [id]);
+        }
+        return false;
+    }
+    function generateRecoveryCodes(id) {
+        const raw = Array.from({ length: 10 }, () => randomBytes(8).toString('hex'));
+        return {
+            codes: raw.map(code => code.slice(0, 8) + '-' + code.slice(8)),
+            hashes: JSON.stringify(raw.map(code => vault.recoveryHash(code, id))),
+        };
+    }
+    googleAuth({ router, env, db, small, fail, throttle, requireSession, reauthenticate, readCookie, startSession, writeCookies, consumeSecondFactor });
     emailSettings({ router, env, db, small, throttle, fail, requireSession, reauthenticate, verifyPassword, hashPassword, tokenHash, vault, mailTransport, reserved });
     passwordReset({ router, env, db, small, throttle, fail, hashPassword, mailTransport,
         async verifySecondFactor(connection, id, factor) {
             const [[security]] = await connection.execute('SELECT * FROM munetios_account_security WHERE account_id = ?', [id]);
             if (!security?.totp_enabled) return { ok: true };
-            const counter = verifyCode(vault.open(security.totp_secret, id), factor, security.last_counter);
-            if (counter === null) return { ok: false };
-            const [result] = await connection.execute('UPDATE munetios_account_security SET last_counter = ? WHERE account_id = ? AND last_counter < ?', [counter, id, counter]);
-            return { ok: Boolean(result.affectedRows) };
+            return { ok: await consumeSecondFactor(connection, id, security, factor) };
         },
     });
     router.post('/email-code', small, throttle, async (req, res) => {
@@ -336,12 +419,7 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
             return res.status(401).json({ error: 'invalidCredentials', ...(row && !row.kdf_salt && upgrade === undefined ? { upgradeAvailable: true } : {}) });
         }
         const [[security]] = await connection.execute('SELECT * FROM munetios_account_security WHERE account_id = ?', [row.id]);
-        if (security?.totp_enabled) {
-            const counter = verifyCode(vault.open(security.totp_secret, row.id), req.body.code, security.last_counter);
-            if (counter === null) return fail(res, 401, 'twoFactorRequired');
-            const [used] = await connection.execute('UPDATE munetios_account_security SET last_counter = ? WHERE account_id = ? AND last_counter < ?', [counter, row.id, counter]);
-            if (!used.affectedRows) return fail(res, 401, 'twoFactorRequired');
-        }
+        if (security?.totp_enabled && !await consumeSecondFactor(connection, row.id, security, req.body.code)) return fail(res, 401, 'twoFactorRequired');
         if (upgrade !== undefined) {
             // One-time move to end-to-end encryption: only for accounts that never set up keys.
             if (!HEX64.test(String(upgrade)) || row.kdf_salt) return fail(res, 401, 'invalidCredentials');
@@ -355,6 +433,11 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
         const { email, password } = req.accountCredentials;
         if (!validEmail(email)) return fail(res, 400, 'invalidCredentials');
         if ([...password].length < 12) return fail(res, 400, 'passwordWeak');
+        // New accounts need a display name so nobody appears without a name; earlier accounts keep theirs.
+        const displayName = cleanDisplayName(req.body.displayName);
+        if (!displayName) return fail(res, 400, 'displayNameRequired');
+        const birthday = req.body.birthday === undefined || req.body.birthday === null || req.body.birthday === '' ? null : validBirthday(req.body.birthday);
+        if (birthday === false) return fail(res, 400, 'birthdayInvalid');
         const keys = req.body.keys === undefined ? null : validKeys(req.body.keys);
         if (req.body.keys !== undefined && !keys) return fail(res, 400, 'invalidRequest');
         const internal = isInternalEmail(email);
@@ -365,9 +448,9 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
         const passwordHash = await hashPassword(password);
         if (pooled.atomic) {
             try {
-                const { id, token, others } = await createD1Account(pooled, req, email, passwordHash, keys, internal);
+                const { id, token, others } = await createD1Account(pooled, req, email, passwordHash, keys, internal, { displayName, birthday });
                 writeCookies(res, token, others);
-                return res.status(201).json({ account: { id, email, displayName: '', hasKeys: Boolean(keys) }, keys });
+                return res.status(201).json({ account: { id, email, displayName, birthday, hasKeys: Boolean(keys) }, keys });
             } catch (error) {
                 if (error.code === 'ER_DUP_ENTRY' || error.code === 'D1_WRITE_CONFLICT') return fail(res, 409, 'createFailed');
                 throw error;
@@ -383,10 +466,12 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
             const [result] = await connection.execute('INSERT INTO munetios_accounts (email, password_hash) VALUES (?, ?)', [email, passwordHash]);
             if (keys) await connection.execute('INSERT INTO munetios_account_keys (account_id, kdf_salt, wrap_iv, wrapped_key) VALUES (?, ?, ?, ?)', [result.insertId, keys.salt, keys.iv, keys.wrapped]);
             if (internal) await connection.execute('INSERT INTO munetios_mailboxes (account_id) VALUES (?)', [result.insertId]);
+            await connection.execute('INSERT INTO munetios_profiles (account_id, display_name) VALUES (?, ?)', [result.insertId, displayName]);
+            if (birthday) await connection.execute('INSERT INTO munetios_profile_birthdays (account_id, birthday) VALUES (?, ?)', [result.insertId, birthday]);
             const { token, others } = await startSession(connection, req, result.insertId, req.body.add === true);
             await connection.commit();
             writeCookies(res, token, others);
-            res.status(201).json({ account: { id: String(result.insertId), email, displayName: '', hasKeys: Boolean(keys) }, keys });
+            res.status(201).json({ account: { id: String(result.insertId), email, displayName, birthday, hasKeys: Boolean(keys) }, keys });
         } catch (error) {
             await connection.rollback();
             if (error.code === 'ER_DUP_ENTRY') return fail(res, 409, 'createFailed');
@@ -535,6 +620,15 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
     });
 
     /* ---------- account ---------- */
+    router.post('/profile-picture/privacy', small, requireSession, async (req, res) => {
+        const { showProfilePictureToEveryone } = req.body || {};
+        if (typeof showProfilePictureToEveryone !== 'boolean') return fail(res, 400, 'invalidRequest');
+        await req.session.connection.execute(
+            'INSERT INTO munetios_profile_picture_privacy (account_id, show_to_everyone) VALUES (?, ?) ON DUPLICATE KEY UPDATE show_to_everyone = VALUES(show_to_everyone)',
+            [req.session.account.id, showProfilePictureToEveryone ? 1 : 0]);
+        res.json({ showProfilePictureToEveryone });
+    });
+
     router.post('/profile-picture', express.json({ limit: '768kb', strict: true }), requireSession, async (req, res) => {
         const picture = req.body?.picture;
         if (picture !== null) {
@@ -552,8 +646,15 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
     router.post('/profile', small, requireSession, async (req, res) => {
         const name = typeof req.body?.displayName === 'string' ? req.body.displayName.replace(/[\u0000-\u001f\u007f]/g, '').trim() : null;
         if (name === null || [...name].length > 80) return fail(res, 400, 'invalidRequest');
+        const hasBirthday = Object.prototype.hasOwnProperty.call(req.body, 'birthday');
+        const birthday = !hasBirthday || req.body.birthday === null || req.body.birthday === '' ? null : validBirthday(req.body.birthday);
+        if (birthday === false) return fail(res, 400, 'birthdayInvalid');
         await req.session.connection.execute('INSERT INTO munetios_profiles (account_id, display_name) VALUES (?, ?) ON DUPLICATE KEY UPDATE display_name = VALUES(display_name)', [req.session.account.id, name]);
-        res.json({ account: { ...req.session.account, displayName: name } });
+        if (hasBirthday) {
+            if (birthday) await req.session.connection.execute('INSERT INTO munetios_profile_birthdays (account_id, birthday) VALUES (?, ?) ON DUPLICATE KEY UPDATE birthday = VALUES(birthday)', [req.session.account.id, birthday]);
+            else await req.session.connection.execute('DELETE FROM munetios_profile_birthdays WHERE account_id = ?', [req.session.account.id]);
+        }
+        res.json({ account: { ...req.session.account, displayName: name, birthday: hasBirthday ? birthday : req.session.account.birthday ?? null } });
     });
     router.post('/password', small, throttle, requireSession, async (req, res) => {
         const { currentPassword, newPassword } = req.body || {};
@@ -638,7 +739,11 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
         await connection.execute('INSERT INTO munetios_account_security (account_id, totp_secret, setup_expires) VALUES (?, ?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL 10 MINUTE)) ON DUPLICATE KEY UPDATE totp_secret = IF(totp_enabled = 0, VALUES(totp_secret), totp_secret), setup_expires = IF(totp_enabled = 0, VALUES(setup_expires), setup_expires)', [account.id, sealed]);
         const [[row]] = await connection.execute('SELECT * FROM munetios_account_security WHERE account_id = ?', [account.id]);
         if (row.totp_enabled || row.totp_secret !== sealed) return fail(res, 409, 'invalidRequest');
-        res.set('Cache-Control', 'no-store').json({ secret, uri: `otpauth://totp/${encodeURIComponent('Munetios:' + account.email)}?secret=${secret}&issuer=Munetios&algorithm=SHA1&digits=6&period=30` });
+        const uri = `otpauth://totp/${encodeURIComponent('Munetios:' + account.email)}?secret=${secret}&issuer=Munetios&algorithm=SHA1&digits=6&period=30`;
+        const qr = qrcode(0, 'M');
+        qr.addData(uri);
+        qr.make();
+        res.json({ secret, uri, qr: qr.createDataURL(5, 20) });
     });
     router.post('/security/enable', small, throttle, requireSession, reauthenticate, async (req, res) => {
         const { connection, account } = req.session;
@@ -646,22 +751,34 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
         if (!row?.totp_secret || row.totp_enabled || !row.setup_expires || new Date(row.setup_expires).getTime() <= Date.now()) return fail(res, 400, 'invalidRequest');
         const counter = verifyCode(vault.open(row.totp_secret, account.id), req.body.code);
         if (counter === null) return fail(res, 400, 'twoFactorRequired');
-        const [result] = await connection.execute('UPDATE munetios_account_security SET totp_enabled = 1, last_counter = ?, setup_expires = NULL WHERE account_id = ? AND totp_enabled = 0 AND totp_secret = ? AND setup_expires > UTC_TIMESTAMP()', [counter, account.id, row.totp_secret]);
+        const recovery = generateRecoveryCodes(account.id);
+        const [result] = await connection.execute('UPDATE munetios_account_security SET totp_enabled = 1, last_counter = ?, setup_expires = NULL, recovery_codes = ? WHERE account_id = ? AND totp_enabled = 0 AND totp_secret = ? AND setup_expires > UTC_TIMESTAMP()', [counter, recovery.hashes, account.id, row.totp_secret]);
         if (!result.affectedRows) return fail(res, 409, 'invalidRequest');
         await connection.execute('DELETE FROM munetios_sessions WHERE account_id = ? AND token_hash <> ?', [account.id, tokenHash(req.session.token)]);
-        res.json({ ok: true });
+        res.json({ ok: true, recoveryCodes: recovery.codes });
+    });
+    router.post('/security/recovery-codes', small, throttle, requireSession, reauthenticate, async (req, res) => {
+        const { connection, account } = req.session;
+        const [[row]] = await connection.execute('SELECT * FROM munetios_account_security WHERE account_id = ?', [account.id]);
+        if (!row?.totp_enabled || !await consumeSecondFactor(connection, account.id, row, req.body.code)) return fail(res, 400, 'twoFactorRequired');
+        const recovery = generateRecoveryCodes(account.id);
+        const [result] = await connection.execute('UPDATE munetios_account_security SET recovery_codes = ? WHERE account_id = ? AND totp_enabled = 1 AND totp_secret = ?', [recovery.hashes, account.id, row.totp_secret]);
+        if (!result.affectedRows) return fail(res, 409, 'invalidRequest');
+        res.json({ recoveryCodes: recovery.codes });
     });
     router.post('/security/disable', small, throttle, requireSession, reauthenticate, async (req, res) => {
         const { connection, account } = req.session;
         const [[row]] = await connection.execute('SELECT * FROM munetios_account_security WHERE account_id = ?', [account.id]);
         const counter = row?.totp_enabled ? verifyCode(vault.open(row.totp_secret, account.id), req.body.code, row.last_counter) : null;
         if (counter === null) return fail(res, 400, 'twoFactorRequired');
-        const [result] = await connection.execute('UPDATE munetios_account_security SET totp_enabled = 0, totp_secret = NULL, last_counter = -1 WHERE account_id = ? AND totp_enabled = 1 AND last_counter < ?', [account.id, counter]);
+        const [result] = await connection.execute('UPDATE munetios_account_security SET totp_enabled = 0, totp_secret = NULL, last_counter = -1, recovery_codes = NULL WHERE account_id = ? AND totp_enabled = 1 AND last_counter < ?', [account.id, counter]);
         if (!result.affectedRows) return fail(res, 409, 'twoFactorRequired');
         res.json({ ok: true });
     });
-    router.get('/sync/storage', requireSession, async (req, res) => {
-        const [rows] = await req.session.connection.execute("SELECT item_key, OCTET_LENGTH(ciphertext) AS bytes FROM munetios_sync_items WHERE account_id = ? AND deleted = 0 UNION ALL SELECT c.item_key, OCTET_LENGTH(c.ciphertext) AS bytes FROM munetios_sync_item_chunks c JOIN munetios_sync_items i ON i.account_id = c.account_id AND i.item_key = c.item_key WHERE c.account_id = ? AND i.deleted = 0", [req.session.account.id, req.session.account.id]);
+    const syncUsageRows = 'SELECT item_key, ' + (syncObjects ? 'COALESCE(object_bytes, OCTET_LENGTH(ciphertext))' : 'OCTET_LENGTH(ciphertext)') +
+        ' AS bytes FROM munetios_sync_items WHERE account_id = ? AND deleted = 0 UNION ALL SELECT c.item_key, OCTET_LENGTH(c.ciphertext) AS bytes FROM munetios_sync_item_chunks c JOIN munetios_sync_items i ON i.account_id = c.account_id AND i.item_key = c.item_key WHERE c.account_id = ? AND i.deleted = 0';
+    router.get('/sync/storage', syncLimit, requireSession, async (req, res) => {
+        const [rows] = await req.session.connection.execute(syncUsageRows, [req.session.account.id, req.session.account.id]);
         const groups = {};
         for (const row of rows) {
             const key = row.item_key.startsWith('omniwrite-media:image:') ? 'images' : row.item_key.startsWith('omniwrite-media:video:') ? 'videos' : row.item_key.startsWith('omniwrite-media:audio:') ? 'audio' : row.item_key.startsWith('omniwrite:') ? 'documents' : row.item_key.startsWith('omniwrite-sheets:') ? 'spreadsheets' : row.item_key.split(':').slice(0, 2).join(':');
@@ -671,7 +788,12 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
     });
 
     /* ---------- end-to-end encrypted sync ---------- */
-    router.get('/sync/items', requireSession, async (req, res) => {
+    // One cheap request that tells a device whether anything changed since its last sync.
+    router.get('/sync/state', syncLimit, requireSession, async (req, res) => {
+        const [[keyRow]] = await req.session.connection.execute('SELECT sync_seq FROM munetios_account_keys WHERE account_id = ?', [req.session.account.id]);
+        res.json({ seq: String(keyRow?.sync_seq ?? 0) });
+    });
+    router.get('/sync/items', syncLimit, requireSession, async (req, res) => {
         const prefix = String(req.query.prefix || '');
         const since = String(req.query.since || '0');
         if (!/^[A-Za-z0-9:._-]{0,100}$/.test(prefix) || !/^\d{1,19}$/.test(since)) return fail(res, 400, 'invalidRequest');
@@ -679,12 +801,15 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
         const [[keyRow]] = await connection.execute('SELECT sync_seq FROM munetios_account_keys WHERE account_id = ?', [account.id]);
         const like = prefix.replace(/[\\%_]/g, character => `\\${character}`) + '%';
         const pageSize = connection.atomic ? 4 : req.query.paged === '1' ? 8 : 0;
-        const [rows] = await connection.execute('SELECT i.item_key, i.version, i.deleted, i.iv, i.ciphertext, c.part_index, c.ciphertext AS part_ciphertext FROM (SELECT account_id, item_key, version, deleted, iv, ciphertext FROM munetios_sync_items WHERE account_id = ? AND version > ? AND item_key LIKE ? ORDER BY version' + (pageSize ? ' LIMIT ' + pageSize : '') + ') i LEFT JOIN munetios_sync_item_chunks c ON c.account_id = i.account_id AND c.item_key = i.item_key ORDER BY i.version, c.part_index', [account.id, since, like]);
+        const [rows] = await connection.execute('SELECT i.item_key, i.version, i.deleted, i.iv, i.ciphertext, c.part_index, c.ciphertext AS part_ciphertext' +
+            (syncObjects ? ', i.object_key' : '') + ' FROM (SELECT account_id, item_key, version, deleted, iv, ciphertext' +
+            (syncObjects ? ', object_key' : '') + ' FROM munetios_sync_items WHERE account_id = ? AND version > ? AND item_key LIKE ? ORDER BY version' +
+            (pageSize ? ' LIMIT ' + pageSize : '') + ') i LEFT JOIN munetios_sync_item_chunks c ON c.account_id = i.account_id AND c.item_key = i.item_key ORDER BY i.version, c.part_index', [account.id, since, like]);
         const found = new Map();
         for (const row of rows) {
             let item = found.get(row.item_key);
             if (!item) {
-                item = { key: row.item_key, version: String(row.version), deleted: Boolean(row.deleted), iv: row.iv, ciphertext: row.ciphertext, parts: [] };
+                item = { key: row.item_key, version: String(row.version), deleted: Boolean(row.deleted), iv: row.iv, ciphertext: row.ciphertext, objectKey: row.object_key, parts: [] };
                 found.set(row.item_key, item);
             }
             if (row.part_index !== null && row.part_index !== undefined) {
@@ -692,26 +817,37 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
                 item.parts.push(row.part_ciphertext);
             }
         }
-        const items = [...found.values()].map(({ parts, ...item }) => {
-            if (!item.deleted && item.ciphertext === null) {
+        const items = [];
+        for (const { parts, objectKey, ...item } of found.values()) {
+            if (!item.deleted && objectKey) {
+                item.ciphertext = await syncObjects.read(objectKey);
+            } else if (!item.deleted && item.ciphertext === null) {
                 if (!parts.length) throw Object.assign(new Error('Missing encrypted sync item'), { code: 'SYNC_ITEM_INCOMPLETE' });
                 item.ciphertext = parts.join('');
             }
-            return item;
-        });
+            items.push(item);
+        }
         res.json({ seq: String(keyRow?.sync_seq ?? 0), ...(pageSize ? { hasMore: items.length === pageSize } : {}), items });
     });
-    const syncUsageSql = 'SELECT COALESCE(SUM(bytes), 0) AS bytes FROM (SELECT OCTET_LENGTH(ciphertext) AS bytes FROM munetios_sync_items WHERE account_id = ? AND deleted = 0 UNION ALL SELECT OCTET_LENGTH(c.ciphertext) AS bytes FROM munetios_sync_item_chunks c JOIN munetios_sync_items i ON i.account_id = c.account_id AND i.item_key = c.item_key WHERE c.account_id = ? AND i.deleted = 0) usage_bytes';
-    const syncItemSql = 'SELECT version, COALESCE(OCTET_LENGTH(ciphertext), (SELECT SUM(OCTET_LENGTH(c.ciphertext)) FROM munetios_sync_item_chunks c WHERE c.account_id = munetios_sync_items.account_id AND c.item_key = munetios_sync_items.item_key), 0) AS bytes FROM munetios_sync_items WHERE account_id = ? AND item_key = ?';
+    const syncUsageSql = 'SELECT COALESCE(SUM(bytes), 0) AS bytes FROM (' + syncUsageRows + ') usage_bytes';
+    const syncItemSql = 'SELECT version, COALESCE(' + (syncObjects ? 'object_bytes, ' : '') + 'OCTET_LENGTH(ciphertext), (SELECT SUM(OCTET_LENGTH(c.ciphertext)) FROM munetios_sync_item_chunks c WHERE c.account_id = munetios_sync_items.account_id AND c.item_key = munetios_sync_items.item_key), 0) AS bytes FROM munetios_sync_items WHERE account_id = ? AND item_key = ?';
 
-    function syncItemWrites(accountId, item, version, size) {
+    function syncItemWrites(accountId, item, version, size, objectKey = null) {
         const deleted = item.deleted === true;
-        const split = size > SYNC_DB_PART_BYTES;
+        const split = !objectKey && size > SYNC_DB_PART_BYTES;
         const writes = [
             ['INSERT INTO munetios_sync_items (account_id, item_key, version, deleted, iv, ciphertext) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE version = VALUES(version), deleted = VALUES(deleted), iv = VALUES(iv), ciphertext = VALUES(ciphertext)',
-                [accountId, item.key, version, Number(deleted), deleted ? null : item.iv, deleted || split ? null : item.ciphertext]],
+                [accountId, item.key, version, Number(deleted), deleted ? null : item.iv, deleted || split || objectKey ? null : item.ciphertext]],
             ['DELETE FROM munetios_sync_item_chunks WHERE account_id = ? AND item_key = ?', [accountId, item.key]],
         ];
+        if (syncObjects) {
+            if (objectKey) writes.push(
+                ['INSERT INTO munetios_write_check (value) SELECT EXISTS(SELECT 1 FROM munetios_cloud_objects WHERE object_key = ? AND delete_after > ?)', [objectKey, Date.now()]],
+                ['UPDATE munetios_cloud_objects SET delete_after = NULL WHERE object_key = ?', [objectKey]],
+            );
+            writes.push(['UPDATE munetios_sync_items SET object_key = ?, object_bytes = ? WHERE account_id = ? AND item_key = ?',
+                [objectKey, objectKey ? size : null, accountId, item.key]]);
+        }
         if (split) {
             for (let offset = 0, index = 0; offset < size; offset += SYNC_DB_PART_BYTES, index++) {
                 writes.push(['INSERT INTO munetios_sync_item_chunks (account_id, item_key, part_index, ciphertext) VALUES (?, ?, ?, ?)',
@@ -723,6 +859,7 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
 
     async function saveD1SyncBatch(database, accountId, items) {
         const keys = [...new Set(items.map(item => item.key))];
+        const staged = new Map();
         for (let attempt = 0; attempt < 3; attempt++) {
             const [[key], [usage], ...records] = await database.atomic([
                 ['SELECT sync_seq, sync_revision FROM munetios_account_keys WHERE account_id = ?', [accountId]],
@@ -751,7 +888,10 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
                 used = next;
                 const nextVersion = String(++sequence);
                 currentItems.set(item.key, { version: nextVersion, bytes: size });
-                writes.push(...syncItemWrites(accountId, item, nextVersion, size));
+                if (size && syncObjects?.appliesTo(item.key) && !staged.has(item)) {
+                    staged.set(item, await syncObjects.stage(item.ciphertext));
+                }
+                writes.push(...syncItemWrites(accountId, item, nextVersion, size, staged.get(item)));
                 results.push({ key: item.key, status: 'ok', version: nextVersion });
             }
             try {
@@ -767,7 +907,7 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
             }
         }
     }
-    router.post('/sync/batch', large, requireSession, async (req, res) => {
+    router.post('/sync/batch', syncLimit, large, requireSession, async (req, res) => {
         const items = Array.isArray(req.body?.items) ? req.body.items : null;
         if (!items) return fail(res, 400, 'invalidRequest');
         for (const item of items) {
@@ -812,7 +952,7 @@ function createAuthRouter({ env = process.env, database, mailTransport = createM
         finally { connection.release(); }
         res.json({ results });
     });
-    router.post('/sync/reset', small, requireSession, async (req, res) => {
+    router.post('/sync/reset', syncLimit, small, requireSession, async (req, res) => {
         const { connection, account } = req.session;
         if (connection.atomic) {
             await connection.atomic([

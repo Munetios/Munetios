@@ -280,37 +280,6 @@
       "Os seus dados sincronizados são encriptados ponto a ponto com uma chave que só a sua palavra-passe pode desbloquear.",
       "Voltar",
     ],
-    ja: [
-      "Munetios アカウント",
-      "ログイン",
-      "あなたのアカウント。あなたの空間。",
-      "メールアドレス",
-      "パスワード",
-      "パスワードを表示",
-      "パスワードを非表示",
-      "メールアドレスを入力してください。",
-      "有効なメールアドレスを入力してください。",
-      "パスワードを入力してください。",
-      "現在ログインできません。後でもう一度お試しください。",
-      "プライバシーを重視した設計",
-      "言語",
-      "ライトテーマに切り替え",
-      "ダークテーマに切り替え",
-      "アカウントを作成",
-      "パスワードを確認",
-      "パスワードが一致しません。",
-      "12文字以上で入力してください。",
-      "この情報ではアカウントを作成できません。",
-      "メールアドレスまたはパスワードが正しくありません。",
-      "試行回数が多すぎます。15分後にお試しください。",
-      "お待ちください…",
-      "ログインしました",
-      "続ける",
-      "ログアウト",
-      "ログインまたはアカウントを作成",
-      "同期されたデータは、パスワードでしか解除できない鍵でエンドツーエンド暗号化されます。",
-      "戻る",
-    ],
     ko: [
       "Munetios 계정",
       "로그인",
@@ -404,37 +373,6 @@
       "你的同步資料經過端對端加密，金鑰只能用你的密碼解鎖。",
       "返回",
     ],
-    ru: [
-      "Аккаунт Munetios",
-      "Войти",
-      "Ваш аккаунт. Ваше пространство.",
-      "Электронная почта",
-      "Пароль",
-      "Показать пароль",
-      "Скрыть пароль",
-      "Введите адрес электронной почты.",
-      "Введите корректный адрес электронной почты.",
-      "Введите пароль.",
-      "Вход сейчас недоступен. Повторите попытку позже.",
-      "Конфиденциальность по замыслу",
-      "Язык",
-      "Включить светлую тему",
-      "Включить тёмную тему",
-      "Создать аккаунт",
-      "Подтвердите пароль",
-      "Пароли не совпадают.",
-      "Используйте не менее 12 символов.",
-      "Невозможно создать аккаунт с этими данными.",
-      "Неверная почта или пароль.",
-      "Слишком много попыток. Повторите через 15 минут.",
-      "Подождите…",
-      "Вы вошли в аккаунт",
-      "Продолжить",
-      "Выйти",
-      "Вход или создание аккаунта",
-      "Синхронизируемые данные защищены сквозным шифрованием: ключ открывается только вашим паролем.",
-      "Назад",
-    ],
     hi: [
       "Munetios खाता",
       "साइन इन करें",
@@ -508,11 +446,9 @@
     "it": ["Codice di verifica via email","Invia codice","Controlla la tua email per il codice.","Inserisci il codice di sei cifre.","Il codice non è valido o è scaduto.","Attendi un minuto prima di richiedere un altro codice.","L’invio di email non è disponibile. Riprova più tardi."],
     "pt-BR": ["Código de verificação por e-mail","Enviar código","Confira o código no seu e-mail.","Digite o código de seis dígitos.","O código é inválido ou expirou.","Aguarde um minuto antes de solicitar outro código.","O envio de e-mail está indisponível. Tente mais tarde."],
     "pt-PT": ["Código de verificação por e-mail","Enviar código","Consulte o seu e-mail para obter o código.","Introduza o código de seis dígitos.","O código é inválido ou expirou.","Aguarde um minuto antes de pedir outro código.","O envio de e-mail está indisponível. Tente mais tarde."],
-    "ja": ["メール確認コード","コードを送信","メールでコードを確認してください。","6桁のコードを入力してください。","コードが無効か期限切れです。","新しいコードを要求する前に1分お待ちください。","メールを送信できません。時間をおいて再試行してください。"],
     "ko": ["이메일 인증 코드","코드 보내기","이메일에서 코드를 확인하세요.","6자리 코드를 입력하세요.","코드가 올바르지 않거나 만료되었습니다.","새 코드를 요청하려면 1분 기다리세요.","이메일을 보낼 수 없습니다. 나중에 다시 시도하세요."],
     "zh-CN": ["电子邮件验证码","发送验证码","请查看电子邮件中的验证码。","请输入六位验证码。","验证码无效或已过期。","请等待一分钟，然后再请求新验证码。","暂时无法发送邮件。请稍后重试。"],
     "zh-TW": ["電子郵件驗證碼","傳送驗證碼","請查看電子郵件中的驗證碼。","請輸入六位數驗證碼。","驗證碼無效或已過期。","請等待一分鐘，再要求新的驗證碼。","暫時無法傳送郵件。請稍後再試。"],
-    "ru": ["Код подтверждения из письма","Отправить код","Проверьте почту, чтобы получить код.","Введите шестизначный код.","Код неверен или срок его действия истёк.","Подождите минуту, прежде чем запросить новый код.","Отправка писем недоступна. Повторите попытку позже."],
     "hi": ["ईमेल सत्यापन कोड","कोड भेजें","कोड के लिए अपना ईमेल देखें।","छह अंकों का कोड दर्ज करें।","कोड अमान्य है या उसकी समय सीमा समाप्त हो गई है।","दूसरा कोड माँगने से पहले एक मिनट रुकें।","ईमेल भेजना उपलब्ध नहीं है। बाद में फिर कोशिश करें।"],
     "ar": ["رمز التحقق بالبريد الإلكتروني","إرسال الرمز","راجع بريدك الإلكتروني للحصول على الرمز.","أدخل الرمز المكوّن من ستة أرقام.","الرمز غير صالح أو منتهي الصلاحية.","انتظر دقيقة قبل طلب رمز آخر.","إرسال البريد غير متاح. حاول لاحقًا."],
   };
@@ -526,25 +462,23 @@
     it: ['Password dimenticata?', 'Reimposta la password', 'Inserisci la tua email per ricevere un codice per reimpostare la password.', 'Nuova password', 'Password reimpostata. Ora puoi accedere.', 'Accedi con Google', 'Accesso con Google non riuscito. Riprova o usa la tua password.'],
     'pt-BR': ['Esqueceu a senha?', 'Redefinir senha', 'Digite seu e-mail para receber um código de redefinição de senha.', 'Nova senha', 'Senha redefinida. Agora você pode entrar.', 'Entrar com o Google', 'Não foi possível entrar com o Google. Tente novamente ou use sua senha.'],
     'pt-PT': ['Esqueceste-te da palavra-passe?', 'Repor palavra-passe', 'Introduz o teu e-mail para receber um código de reposição.', 'Nova palavra-passe', 'Palavra-passe reposta. Já podes iniciar sessão.', 'Iniciar sessão com o Google', 'Não foi possível iniciar sessão com o Google. Tenta novamente ou utiliza a tua palavra-passe.'],
-    ja: ['パスワードをお忘れですか？', 'パスワードを再設定', 'メールアドレスを入力して再設定コードを受け取ってください。', '新しいパスワード', 'パスワードを再設定しました。ログインできます。', 'Google でログイン', 'Google でのログインに失敗しました。再試行するか、パスワードを使用してください。'],
     ko: ['비밀번호를 잊으셨나요?', '비밀번호 재설정', '재설정 코드를 받으려면 이메일을 입력하세요.', '새 비밀번호', '비밀번호가 재설정되었습니다. 이제 로그인할 수 있습니다.', 'Google로 로그인', 'Google 로그인에 실패했습니다. 다시 시도하거나 비밀번호를 사용하세요.'],
     'zh-CN': ['忘记密码？', '重置密码', '输入电子邮件地址以接收密码重置验证码。', '新密码', '密码已重置，现在可以登录。', '使用 Google 登录', 'Google 登录失败。请重试或使用密码登录。'],
     'zh-TW': ['忘記密碼？', '重設密碼', '輸入電子郵件地址以接收密碼重設驗證碼。', '新密碼', '密碼已重設，現在可以登入。', '使用 Google 登入', 'Google 登入失敗。請重試或使用密碼登入。'],
-    ru: ['Забыли пароль?', 'Сбросить пароль', 'Введите адрес электронной почты, чтобы получить код для сброса пароля.', 'Новый пароль', 'Пароль сброшен. Теперь можно войти.', 'Войти через Google', 'Не удалось войти через Google. Повторите попытку или войдите с паролем.'],
     hi: ['पासवर्ड भूल गए?', 'पासवर्ड रीसेट करें', 'पासवर्ड रीसेट कोड पाने के लिए अपना ईमेल डालें।', 'नया पासवर्ड', 'पासवर्ड रीसेट हो गया है। अब आप साइन इन कर सकते हैं।', 'Google से साइन इन करें', 'Google से साइन इन नहीं हो सका। फिर कोशिश करें या अपना पासवर्ड इस्तेमाल करें।'],
     ar: ['هل نسيت كلمة المرور؟', 'إعادة تعيين كلمة المرور', 'أدخل بريدك الإلكتروني لتلقي رمز إعادة تعيين كلمة المرور.', 'كلمة مرور جديدة', 'أُعيد تعيين كلمة المرور. يمكنك تسجيل الدخول الآن.', 'تسجيل الدخول باستخدام Google', 'تعذّر تسجيل الدخول باستخدام Google. حاول مرة أخرى أو استخدم كلمة المرور.'],
   };
   const verificationTitles = {
     en: 'Email verification', 'es-ES': 'Verificación del correo', 'es-419': 'Verificación del correo',
     fr: 'Vérification de l’adresse e-mail', de: 'E-Mail-Bestätigung', it: 'Verifica dell’email',
-    'pt-BR': 'Verificação de e-mail', 'pt-PT': 'Verificação de e-mail', ja: 'メールアドレスの確認',
-    ko: '이메일 인증', 'zh-CN': '电子邮件验证', 'zh-TW': '電子郵件驗證', ru: 'Подтверждение почты',
+    'pt-BR': 'Verificação de e-mail', 'pt-PT': 'Verificação de e-mail',
+    ko: '이메일 인증', 'zh-CN': '电子邮件验证', 'zh-TW': '電子郵件驗證',
     hi: 'ईमेल सत्यापन', ar: 'التحقق من البريد الإلكتروني',
   };
   const signInSeparators = {
     en: 'or', 'es-ES': 'o', 'es-419': 'o', fr: 'ou', de: 'oder', it: 'oppure',
-    'pt-BR': 'ou', 'pt-PT': 'ou', ja: 'または', ko: '또는', 'zh-CN': '或',
-    'zh-TW': '或', ru: 'или', hi: 'या', ar: 'أو',
+    'pt-BR': 'ou', 'pt-PT': 'ou', ko: '또는', 'zh-CN': '或',
+    'zh-TW': '或', hi: 'या', ar: 'أو',
   };
   const localKeys = ["localSignInTitle", "localDataDetected", "localSignInBody", "localDeleteAction", "localDeleteTitle", "localDeleteBody", "localDeleteCloseTabs", "localDeleteFailed"];
   const localMessages = {
@@ -556,48 +490,128 @@
     "it": ["Quando accedi, i tuoi documenti potrebbero apparire nel tuo account", "Dati locali rilevati", "Puoi conservare i file di OmniWrite in questo browser e sincronizzare quelli compatibili con il tuo account oppure eliminare i dati locali prima di accedere.", "Accedi ed elimina i dati locali", "Eliminare i dati locali di OmniWrite?", "Documenti, fogli di calcolo, note e contenuti multimediali saranno eliminati definitivamente da questo browser. Potrai scaricare di nuovo i file già sincronizzati con il tuo account.", "Chiudi le altre schede o finestre di OmniWrite e riprova.", "Impossibile eliminare i dati locali di OmniWrite. Riprova."],
     "pt-BR": ["Ao entrar, seus documentos podem aparecer na sua conta", "Dados locais detectados", "Você pode manter os arquivos do OmniWrite neste navegador e sincronizar os arquivos compatíveis com sua conta ou excluir os dados locais antes de entrar.", "Entrar e excluir dados locais", "Excluir os dados locais do OmniWrite?", "Os documentos, planilhas, notas e arquivos de mídia serão excluídos permanentemente deste navegador. Você poderá baixar novamente os arquivos já sincronizados com sua conta.", "Feche as outras abas ou janelas do OmniWrite e tente de novo.", "Não foi possível excluir os dados locais do OmniWrite. Tente de novo."],
     "pt-PT": ["Ao iniciar sessão, os seus documentos poderão aparecer na sua conta", "Foram detetados dados locais", "Pode manter os ficheiros do OmniWrite neste navegador e sincronizar os ficheiros compatíveis com a sua conta ou eliminar os dados locais antes de iniciar sessão.", "Iniciar sessão e eliminar dados locais", "Eliminar os dados locais do OmniWrite?", "Os documentos, folhas de cálculo, notas e ficheiros multimédia serão eliminados permanentemente deste navegador. Pode transferir novamente os ficheiros já sincronizados com a sua conta.", "Feche os outros separadores ou janelas do OmniWrite e tente novamente.", "Não foi possível eliminar os dados locais do OmniWrite. Tente novamente."],
-    "ja": ["ログインすると、ドキュメントがアカウントに表示されることがあります", "ローカルデータが見つかりました", "OmniWrite のファイルをこのブラウザに残して対象ファイルをアカウントと同期するか、ログイン前にローカルデータを削除できます。", "ローカルデータを削除してログイン", "OmniWrite のローカルデータを削除しますか？", "ドキュメント、スプレッドシート、メモ、メディアがこのブラウザから完全に削除されます。同期済みのファイルは再度ダウンロードできます。", "OmniWrite のほかのタブやウィンドウを閉じてから、もう一度お試しください。", "OmniWrite のローカルデータを削除できませんでした。もう一度お試しください。"],
     "ko": ["로그인하면 문서가 계정에 표시될 수 있습니다", "로컬 데이터가 감지되었습니다", "OmniWrite 파일을 이 브라우저에 보관하고 지원되는 파일을 계정에 동기화하거나, 로그인하기 전에 로컬 데이터를 삭제할 수 있습니다.", "로그인하고 로컬 데이터 삭제", "OmniWrite 로컬 데이터를 삭제하시겠습니까?", "이 브라우저의 문서, 스프레드시트, 메모 및 미디어가 영구적으로 삭제됩니다. 계정에 이미 동기화된 파일은 다시 다운로드할 수 있습니다.", "다른 OmniWrite 탭이나 창을 닫고 다시 시도하세요.", "OmniWrite 로컬 데이터를 삭제하지 못했습니다. 다시 시도하세요."],
     "zh-CN": ["登录后，您的文档可能会显示在账户中", "检测到本地数据", "您可以保留此浏览器中的 OmniWrite 文件并将受支持的文件同步到账户，也可以在登录前删除本地数据。", "登录并删除本地数据", "删除 OmniWrite 本地数据？", "此浏览器中的文档、电子表格、笔记和媒体文件将被永久删除。已同步到账户的文件可以重新下载。", "请关闭其他 OmniWrite 标签页或窗口，然后重试。", "无法删除 OmniWrite 本地数据。请重试。"],
     "zh-TW": ["登入後，您的文件可能會出現在帳戶中", "偵測到本機資料", "您可以保留此瀏覽器中的 OmniWrite 檔案並將支援的檔案同步至帳戶，或在登入前刪除本機資料。", "登入並刪除本機資料", "要刪除 OmniWrite 本機資料嗎？", "此瀏覽器中的文件、試算表、筆記及媒體檔案將永久刪除。已同步至帳戶的檔案可以重新下載。", "請關閉其他 OmniWrite 分頁或視窗，然後重試。", "無法刪除 OmniWrite 本機資料。請重試。"],
-    "ru": ["После входа документы могут появиться в вашем аккаунте", "Обнаружены локальные данные", "Можно сохранить файлы OmniWrite в этом браузере и синхронизировать поддерживаемые файлы с аккаунтом либо удалить локальные данные перед входом.", "Войти и удалить локальные данные", "Удалить локальные данные OmniWrite?", "Документы, таблицы, заметки и медиафайлы будут удалены из этого браузера без возможности восстановления. Уже синхронизированные файлы можно скачать снова.", "Закройте другие вкладки или окна OmniWrite и повторите попытку.", "Не удалось удалить локальные данные OmniWrite. Повторите попытку."],
     "hi": ["साइन इन करने पर आपके दस्तावेज़ खाते में दिखाई दे सकते हैं", "लोकल डेटा मिला", "आप इस ब्राउज़र में OmniWrite फ़ाइलें रखकर समर्थित फ़ाइलों को अपने खाते से सिंक कर सकते हैं या साइन इन करने से पहले लोकल डेटा मिटा सकते हैं।", "साइन इन करें और लोकल डेटा मिटाएँ", "OmniWrite का लोकल डेटा मिटाएँ?", "इस ब्राउज़र के दस्तावेज़, स्प्रेडशीट, नोट और मीडिया हमेशा के लिए मिट जाएँगे। खाते से पहले से सिंक की गई फ़ाइलें दोबारा डाउनलोड की जा सकती हैं।", "अन्य OmniWrite टैब या विंडो बंद करके फिर कोशिश करें।", "OmniWrite का लोकल डेटा नहीं मिटा सके। फिर कोशिश करें।"],
     "ar": ["قد تظهر مستنداتك في حسابك بعد تسجيل الدخول", "تم العثور على بيانات محلية", "يمكنك الاحتفاظ بملفات OmniWrite في هذا المتصفح ومزامنة الملفات المتوافقة مع حسابك، أو حذف البيانات المحلية قبل تسجيل الدخول.", "تسجيل الدخول وحذف البيانات المحلية", "هل تريد حذف بيانات OmniWrite المحلية؟", "ستُحذف المستندات وجداول البيانات والملاحظات والوسائط نهائيًا من هذا المتصفح. يمكنك تنزيل الملفات التي سبقت مزامنتها مع حسابك مرة أخرى.", "أغلق علامات تبويب أو نوافذ OmniWrite الأخرى ثم حاول مجددًا.", "تعذّر حذف بيانات OmniWrite المحلية. حاول مجددًا."],
   };
   // Create account: display name and optional birthday.
-  const profileKeys = ["displayName", "displayNameRequired", "birthday", "birthdayHint", "birthdayPlaceholder", "birthdayClear", "birthdayInvalid", "pickerPrevious", "pickerNext", "pickerToday"];
+  const profileKeys = ["displayName", "displayNameRequired", "birthday", "birthdayHint", "birthdayPlaceholder", "birthdayClear", "birthdayInvalid", "pickerPrevious", "pickerNext", "pickerToday", "pickerChooseYear", "pickerChooseMonth", "emailSuggestMunetios"];
   const profileMessages = {
-    "en": ["Display name", "Enter a display name.", "Birthday (optional)", "Shown on your birthday in Munetios Calendar", "Choose a date", "Remove birthday", "Choose a valid birthday.", "Previous month", "Next month", "Today"],
-    "es-419": ["Nombre visible", "Ingresa un nombre visible.", "Cumpleaños (opcional)", "Se muestra el día de tu cumpleaños en Munetios Calendar", "Elige una fecha", "Quitar cumpleaños", "Elige un cumpleaños válido.", "Mes anterior", "Mes siguiente", "Hoy"],
-    "es-ES": ["Nombre visible", "Introduce un nombre visible.", "Cumpleaños (opcional)", "Se muestra el día de tu cumpleaños en Munetios Calendar", "Elige una fecha", "Quitar cumpleaños", "Elige un cumpleaños válido.", "Mes anterior", "Mes siguiente", "Hoy"],
-    "fr": ["Nom affiché", "Saisissez un nom affiché.", "Anniversaire (facultatif)", "Affiché le jour de votre anniversaire dans Munetios Calendar", "Choisir une date", "Supprimer l’anniversaire", "Choisissez une date d’anniversaire valide.", "Mois précédent", "Mois suivant", "Aujourd’hui"],
-    "de": ["Anzeigename", "Gib einen Anzeigenamen ein.", "Geburtstag (optional)", "Wird an deinem Geburtstag in Munetios Calendar angezeigt", "Datum auswählen", "Geburtstag entfernen", "Wähle einen gültigen Geburtstag.", "Vorheriger Monat", "Nächster Monat", "Heute"],
-    "it": ["Nome visualizzato", "Inserisci un nome visualizzato.", "Compleanno (facoltativo)", "Mostrato il giorno del tuo compleanno in Munetios Calendar", "Scegli una data", "Rimuovi compleanno", "Scegli una data di compleanno valida.", "Mese precedente", "Mese successivo", "Oggi"],
-    "pt-BR": ["Nome de exibição", "Digite um nome de exibição.", "Aniversário (opcional)", "Mostrado no dia do seu aniversário no Munetios Calendar", "Escolha uma data", "Remover aniversário", "Escolha uma data de aniversário válida.", "Mês anterior", "Próximo mês", "Hoje"],
-    "pt-PT": ["Nome a apresentar", "Introduza um nome a apresentar.", "Aniversário (opcional)", "Apresentado no dia do seu aniversário no Munetios Calendar", "Escolha uma data", "Remover aniversário", "Escolha uma data de aniversário válida.", "Mês anterior", "Mês seguinte", "Hoje"],
-    "ja": ["表示名", "表示名を入力してください。", "誕生日（任意）", "Munetios Calendar の誕生日に表示されます", "日付を選択", "誕生日を削除", "有効な誕生日を選択してください。", "前の月", "次の月", "今日"],
-    "ko": ["표시 이름", "표시 이름을 입력하세요.", "생일(선택 사항)", "Munetios Calendar의 생일 날짜에 표시됩니다", "날짜 선택", "생일 삭제", "올바른 생일을 선택하세요.", "이전 달", "다음 달", "오늘"],
-    "zh-CN": ["显示名称", "请输入显示名称。", "生日（可选）", "将在 Munetios Calendar 中你的生日当天显示", "选择日期", "移除生日", "请选择有效的生日。", "上个月", "下个月", "今天"],
-    "zh-TW": ["顯示名稱", "請輸入顯示名稱。", "生日（選填）", "將在 Munetios Calendar 中你的生日當天顯示", "選擇日期", "移除生日", "請選擇有效的生日。", "上個月", "下個月", "今天"],
-    "ru": ["Отображаемое имя", "Введите отображаемое имя.", "День рождения (необязательно)", "Отображается в ваш день рождения в Munetios Calendar", "Выберите дату", "Удалить день рождения", "Выберите правильную дату рождения.", "Предыдущий месяц", "Следующий месяц", "Сегодня"],
-    "hi": ["प्रदर्शित नाम", "प्रदर्शित नाम दर्ज करें।", "जन्मदिन (वैकल्पिक)", "Munetios Calendar में आपके जन्मदिन पर दिखाया जाता है", "तारीख चुनें", "जन्मदिन हटाएँ", "मान्य जन्मदिन चुनें।", "पिछला महीना", "अगला महीना", "आज"],
-    "ar": ["الاسم المعروض", "أدخل اسمًا معروضًا.", "تاريخ الميلاد (اختياري)", "يظهر في يوم ميلادك في Munetios Calendar", "اختر تاريخًا", "إزالة تاريخ الميلاد", "اختر تاريخ ميلاد صالحًا.", "الشهر السابق", "الشهر التالي", "اليوم"],
+    "en": ["Display name", "Enter a display name.", "Birthday (optional)", "Shown on your birthday in Munetios Calendar", "Choose a date", "Remove birthday", "Choose a valid birthday.", "Previous month", "Next month", "Today", "Choose year", "Choose month", "Use {address}"],
+    "es-419": ["Nombre visible", "Ingresa un nombre visible.", "Cumpleaños (opcional)", "Se muestra el día de tu cumpleaños en Munetios Calendar", "Elige una fecha", "Quitar cumpleaños", "Elige un cumpleaños válido.", "Mes anterior", "Mes siguiente", "Hoy", "Elegir año", "Elegir mes", "Usar {address}"],
+    "es-ES": ["Nombre visible", "Introduce un nombre visible.", "Cumpleaños (opcional)", "Se muestra el día de tu cumpleaños en Munetios Calendar", "Elige una fecha", "Quitar cumpleaños", "Elige un cumpleaños válido.", "Mes anterior", "Mes siguiente", "Hoy", "Elegir año", "Elegir mes", "Usar {address}"],
+    "fr": ["Nom affiché", "Saisissez un nom affiché.", "Anniversaire (facultatif)", "Affiché le jour de votre anniversaire dans Munetios Calendar", "Choisir une date", "Supprimer l’anniversaire", "Choisissez une date d’anniversaire valide.", "Mois précédent", "Mois suivant", "Aujourd’hui", "Choisir l’année", "Choisir le mois", "Utiliser {address}"],
+    "de": ["Anzeigename", "Gib einen Anzeigenamen ein.", "Geburtstag (optional)", "Wird an deinem Geburtstag in Munetios Calendar angezeigt", "Datum auswählen", "Geburtstag entfernen", "Wähle einen gültigen Geburtstag.", "Vorheriger Monat", "Nächster Monat", "Heute", "Jahr auswählen", "Monat auswählen", "{address} verwenden"],
+    "it": ["Nome visualizzato", "Inserisci un nome visualizzato.", "Compleanno (facoltativo)", "Mostrato il giorno del tuo compleanno in Munetios Calendar", "Scegli una data", "Rimuovi compleanno", "Scegli una data di compleanno valida.", "Mese precedente", "Mese successivo", "Oggi", "Scegli l’anno", "Scegli il mese", "Usa {address}"],
+    "pt-BR": ["Nome de exibição", "Digite um nome de exibição.", "Aniversário (opcional)", "Mostrado no dia do seu aniversário no Munetios Calendar", "Escolha uma data", "Remover aniversário", "Escolha uma data de aniversário válida.", "Mês anterior", "Próximo mês", "Hoje", "Escolher ano", "Escolher mês", "Usar {address}"],
+    "pt-PT": ["Nome a apresentar", "Introduza um nome a apresentar.", "Aniversário (opcional)", "Apresentado no dia do seu aniversário no Munetios Calendar", "Escolha uma data", "Remover aniversário", "Escolha uma data de aniversário válida.", "Mês anterior", "Mês seguinte", "Hoje", "Escolher ano", "Escolher mês", "Utilizar {address}"],
+    "ko": ["표시 이름", "표시 이름을 입력하세요.", "생일(선택 사항)", "Munetios Calendar의 생일 날짜에 표시됩니다", "날짜 선택", "생일 삭제", "올바른 생일을 선택하세요.", "이전 달", "다음 달", "오늘", "연도 선택", "월 선택", "{address} 사용"],
+    "zh-CN": ["显示名称", "请输入显示名称。", "生日（可选）", "将在 Munetios Calendar 中你的生日当天显示", "选择日期", "移除生日", "请选择有效的生日。", "上个月", "下个月", "今天", "选择年份", "选择月份", "使用 {address}"],
+    "zh-TW": ["顯示名稱", "請輸入顯示名稱。", "生日（選填）", "將在 Munetios Calendar 中你的生日當天顯示", "選擇日期", "移除生日", "請選擇有效的生日。", "上個月", "下個月", "今天", "選擇年份", "選擇月份", "使用 {address}"],
+    "hi": ["प्रदर्शित नाम", "प्रदर्शित नाम दर्ज करें।", "जन्मदिन (वैकल्पिक)", "Munetios Calendar में आपके जन्मदिन पर दिखाया जाता है", "तारीख चुनें", "जन्मदिन हटाएँ", "मान्य जन्मदिन चुनें।", "पिछला महीना", "अगला महीना", "आज", "वर्ष चुनें", "महीना चुनें", "{address} इस्तेमाल करें"],
+    "ar": ["الاسم المعروض", "أدخل اسمًا معروضًا.", "تاريخ الميلاد (اختياري)", "يظهر في يوم ميلادك في Munetios Calendar", "اختر تاريخًا", "إزالة تاريخ الميلاد", "اختر تاريخ ميلاد صالحًا.", "الشهر السابق", "الشهر التالي", "اليوم", "اختيار السنة", "اختيار الشهر", "استخدام {address}"],
   };
-  window.MunetiosSigninTranslations = Object.freeze(
-    Object.fromEntries(
-      Object.entries(messages).map(([locale, values]) => {
-        if (values.length !== keys.length || verification[locale]?.length !== verificationKeys.length || flows[locale]?.length !== flowKeys.length)
-          throw new Error(`Incomplete sign-in translations: ${locale}`);
-        return [
-          locale,
-          Object.freeze(
-            { ...Object.fromEntries(keys.concat(verificationKeys, flowKeys).map((key, index) => [key, values.concat(verification[locale], flows[locale])[index]])),
-              ...Object.fromEntries(localKeys.map((key, index) => [key, localMessages[locale][index]])),
-              ...Object.fromEntries(profileKeys.map((key, index) => [key, (profileMessages[locale] || profileMessages.en)[index]])),
-              emailVerificationTitle: verificationTitles[locale], signInOr: signInSeparators[locale] },
-          ),
-        ];
-      }),
-    ),
+  const built = Object.fromEntries(
+    Object.entries(messages).map(([locale, values]) => {
+      if (values.length !== keys.length || verification[locale]?.length !== verificationKeys.length || flows[locale]?.length !== flowKeys.length)
+        throw new Error(`Incomplete sign-in translations: ${locale}`);
+      return [
+        locale,
+        { ...Object.fromEntries(keys.concat(verificationKeys, flowKeys).map((key, index) => [key, values.concat(verification[locale], flows[locale])[index]])),
+          ...Object.fromEntries(localKeys.map((key, index) => [key, localMessages[locale][index]])),
+          ...Object.fromEntries(profileKeys.map((key, index) => [key, (profileMessages[locale] || profileMessages.en)[index]])),
+          emailVerificationTitle: verificationTitles[locale], signInOr: signInSeparators[locale] },
+      ];
+    }),
   );
+  // The 17 global Munetios locales (shared/munetios-locales.js).
+  // en-GB: "Could not …" and British spelling.
+  const britishWords = [["Couldn't", "Could not"], ["couldn't", "could not"], ["Couldn’t", "Could not"], ["couldn’t", "could not"], ["Favorites", "Favourites"], ["favorites", "favourites"], ["Color", "Colour"], ["color", "colour"]];
+  const toBritish = text => britishWords.reduce((out, [us, gb]) => out.replace(new RegExp(`(?<![\\p{L}])${us}(?![\\p{L}])`, "gu"), gb), String(text));
+  built["en-GB"] = Object.fromEntries(Object.entries(built.en).map(([key, value]) => [key, toBritish(value)]));
+  // es-US follows Latin American wording; fr-CA says "courriel" instead of "e-mail".
+  built["es-US"] = { ...built["es-419"] };
+  const toCanadianFrench = text => String(text).replace(/d’e-mails/g, "de courriels").replace(/e-mails/g, "courriels").replace(/e-mail/g, "courriel");
+  built["fr-CA"] = Object.fromEntries(Object.entries(built.fr).map(([key, value]) => [key, toCanadianFrench(value)]));
+  built.co = {
+    "account": "Contu Munetios",
+    "signIn": "Cunnettesi",
+    "intro": "U vostru contu. U vostru spaziu.",
+    "email": "Indirizzu elettronicu",
+    "password": "Parolla d’intesa",
+    "showPassword": "Mustrà a parolla d’intesa",
+    "hidePassword": "Piattà a parolla d’intesa",
+    "emailRequired": "Scrivite u vostru indirizzu elettronicu.",
+    "emailInvalid": "Scrivite un indirizzu elettronicu validu.",
+    "passwordRequired": "Scrivite a vostra parolla d’intesa.",
+    "unavailable": "Ùn avemu micca pussutu trattà a vostra cunnessione. Pruvate torna più tardi.",
+    "privacy": "Privatu per cuncepimentu",
+    "language": "Lingua",
+    "lightTheme": "Passà à u tema chjaru",
+    "darkTheme": "Passà à u tema scuru",
+    "createAccount": "Creà un contu",
+    "confirmPassword": "Cunfirmà a parolla d’intesa",
+    "passwordMismatch": "E parolle d’intesa ùn currispondenu micca.",
+    "passwordWeak": "Aduprate almenu 12 caratteri.",
+    "createFailed": "Ùn si pò micca creà un contu cù sti dati.",
+    "invalidCredentials": "L’indirizzu elettronicu o a parolla d’intesa hè sbagliatu.",
+    "tooManyAttempts": "Troppu tentativi. Pruvate torna trà 15 minuti.",
+    "working": "Aspettate…",
+    "signedIn": "Site cunnessu",
+    "continue": "Cuntinuà",
+    "signOut": "Scunnettesi",
+    "modeLabel": "Cunnettesi o creà un contu",
+    "privacyDetail": "I vostri dati sincrunizati sò cifrati da una estremità à l’altra cù una chjave chì solu a vostra parolla d’intesa pò sbluccà.",
+    "back": "Ritornu",
+    "emailCodeLabel": "Codice di verificazione di l’indirizzu elettronicu",
+    "sendEmailCode": "Mandà u codice",
+    "emailCodeSent": "Fighjate i vostri messaghji elettronichi per u codice.",
+    "emailCodeRequired": "Scrivite u codice à sei cifre ricevutu per messaghju elettronicu.",
+    "emailCodeInvalid": "U codice ricevutu per messaghju elettronicu hè invalidu o scadutu.",
+    "emailCodeCooldown": "Aspettate un minutu nanzu di dumandà un altru codice.",
+    "emailDeliveryUnavailable": "L’inviu di messaghji elettronichi ùn hè micca dispunibule. Pruvate torna più tardi.",
+    "forgotPassword": "Parolla d’intesa scurdata ?",
+    "resetPasswordTitle": "Reinizià a parolla d’intesa",
+    "resetEmailPrompt": "Scrivite u vostru indirizzu elettronicu per riceve un codice di reinizializazione di a parolla d’intesa.",
+    "newPassword": "Parolla d’intesa nova",
+    "passwordResetDone": "Parolla d’intesa reiniziata. Pudete cunnettevi avà.",
+    "googleSignIn": "Cunnettesi cù Google",
+    "googleSignInFailed": "A cunnessione cù Google hà fiascatu. Pruvate torna o cunnettitevi cù a vostra parolla d’intesa.",
+    "localSignInTitle": "Cunnettendevi, i vostri ducumenti ponu apparisce in u contu",
+    "localDataDetected": "Dati lucali rilevati",
+    "localSignInBody": "Ci sò schedarii OmniWrite arregistrati in stu navigatore. Cunnettitevi per tenelli nant’à st’apparechju è permette à i schedarii cumpatibili di sincrunizassi cù u vostru contu, o squassate i dati lucali nanzu di cunnettevi.",
+    "localDeleteAction": "Cunnettesi è squassà i dati lucali",
+    "localDeleteTitle": "Squassà i dati lucali d’OmniWrite ?",
+    "localDeleteBody": "Què caccia definitivamente i ducumenti, i fogli di calculu, e note è i media arregistrati in stu navigatore. I schedarii digià sincrunizati cù u vostru contu ponu esse scaricati torna.",
+    "localDeleteCloseTabs": "Chjudite tutte l’altre unghjette o finestre d’OmniWrite nant’à stu situ, po pruvate torna.",
+    "localDeleteFailed": "Ùn s’hè micca pussutu squassà i dati lucali d’OmniWrite. Pruvate torna.",
+    "displayName": "Nome affissatu",
+    "displayNameRequired": "Scrivite un nome affissatu.",
+    "birthday": "Anniversariu (facultativu)",
+    "birthdayHint": "Affissatu u ghjornu di u vostru anniversariu in Munetios Calendar",
+    "birthdayPlaceholder": "Sciglite una data",
+    "birthdayClear": "Caccià l’anniversariu",
+    "birthdayInvalid": "Sciglite una data d’anniversariu valida.",
+    "pickerPrevious": "Mese precedente",
+    "pickerNext": "Mese seguente",
+    "pickerToday": "Oghje",
+    "pickerChooseYear": "Sceglie l’annu",
+    "pickerChooseMonth": "Sceglie u mese",
+    "emailSuggestMunetios": "Aduprà {address}",
+    "emailVerificationTitle": "Verificazione di l’indirizzu elettronicu",
+    "signInOr": "o"
+  };
+  const codes = ["en-US", "en-GB", "es-419", "es-ES", "es-US", "fr-FR", "fr-CA", "de", "it", "pt-BR", "pt-PT", "zh-CN", "zh-TW", "ko", "ar", "hi", "co"];
+  const renamed = { "en-US": built.en, "fr-FR": built.fr };
+  const translations = {};
+  for (const code of codes) {
+    const catalog = renamed[code] || built[code];
+    if (!catalog || Object.keys(catalog).length !== Object.keys(built.en).length) throw new Error(`Incomplete sign-in translations: ${code}`);
+    translations[code] = Object.freeze(catalog);
+  }
+  // Older saved languages ("en", "fr") and callers still find their catalogs.
+  Object.defineProperties(translations, { en: { value: translations["en-US"], enumerable: false }, fr: { value: translations["fr-FR"], enumerable: false } });
+  window.MunetiosSigninTranslations = Object.freeze(translations);
 })();

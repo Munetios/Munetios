@@ -5,7 +5,7 @@ import { buildSearch } from "./search.js";
 import { changeStatement, scheduleNotify } from "./mailbox.js";
 import { dropRefStatements, readBlobBytes, readBlobJson } from "./storage.js";
 import { buildMime } from "./mime.js";
-import { fail, now, parseJson, MOVABLE_FOLDERS, bool, domainOf, id } from "./util.js";
+import { fail, now, parseJson, MOVABLE_FOLDERS, bool, domainOf, id, normalizeEmail, validEmail } from "./util.js";
 
 const VIEWS = new Set(["inbox", "starred", "important", "snoozed", "sent", "drafts", "scheduled", "outbox", "all", "archive", "spam", "trash", "followup", "pinned"]);
 const CATEGORIES = new Set(["primary", "social", "promotions", "updates", "forums"]);
@@ -62,7 +62,20 @@ export async function listMessages(env, mailboxes, params) {
             default: where.push("m.folder = ?"); values.push(view);
         }
     } else fail(400, "invalidRequest");
-    if (CATEGORIES.has(params.category) && view === "inbox") { where.push("m.category = ?"); values.push(params.category); }
+    if (view === "inbox" && CATEGORIES.has(params.category)) {
+        if (params.category === "primary") {
+            where.push("m.category IN ('primary', 'updates', 'forums')");
+        } else {
+            where.push("m.category = ?");
+            values.push(params.category);
+        }
+    }
+    // Mail sent to one address (an address at another provider that forwards here): exact match in To or Cc.
+    const address = normalizeEmail(params.address);
+    if (params.address && validEmail(address)) {
+        const pattern = '%"email":"' + address.replace(/[\\%_]/g, character => "\\" + character) + '"%';
+        where.push("(m.to_json LIKE ? ESCAPE '\\' OR m.cc_json LIKE ? ESCAPE '\\')"); values.push(pattern, pattern);
+    }
     for (const filter of String(params.filter || "").split(",")) {
         if (filter === "unread") where.push("m.is_read = 0");
         if (filter === "starred") where.push("m.is_starred = 1");

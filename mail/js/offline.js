@@ -11,6 +11,12 @@ let keyPromise = null;
 
 const requestPromise = request => new Promise((resolve, reject) => { request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
 
+// Accounts with mail saved on this device (database names are "munetios-mail:<account id>").
+export async function savedAccountIds() {
+    if (!indexedDB.databases) return [];
+    return (await indexedDB.databases()).map(item => item.name || "").filter(name => name.startsWith("munetios-mail:")).map(name => name.slice("munetios-mail:".length)).filter(Boolean);
+}
+
 export function openFor(accountId) {
     const name = "munetios-mail:" + accountId;
     if (dbName === name && dbPromise) return dbPromise;

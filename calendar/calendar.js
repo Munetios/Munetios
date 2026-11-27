@@ -605,6 +605,8 @@
     setTimeout(() => document.addEventListener("pointerdown", (event) => { if (!el.contains(event.target)) closeMenu(); }, { once: true }), 0);
   }
   const notify = (message, type = "info") => UI.toast(message, { type });
+  // Changes confirm after syncing; if sync fails: "Event created. It's saved on this device, but it couldn't sync."
+  const notifySynced = (message) => (A?.sync?.report ? A.sync.report(message, { locale: language(), show: (text, type) => notify(text, type) }) : notify(message, "success"));
   const pickerLabels = () => ({ done: t("done"), cancel: t("cancel"), clear: t("clear"), today: t("today"), now: t("now"), previous: t("previousMonth"), next: t("nextMonth"), hour: t("hour"), minute: t("minute"), date: t("date"), time: t("time"), color: t("color"), hex: t("hexColor") });
 
   /* ================================================================ rendering */
@@ -951,7 +953,7 @@
         if (!scope) return;
         if (scope === "one") {
           const updated = Object.assign({}, item, { exceptions: [...(item.exceptions || []), o.occurrence] });
-          try { await commitItem(updated); render(); notify(t("eventDeleted"), "success"); } catch { notify(t("errorGeneric"), "error"); }
+          try { await commitItem(updated); render(); notifySynced(t("eventDeleted")); } catch { notify(t("errorGeneric"), "error"); }
           return;
         }
       }
@@ -1183,7 +1185,7 @@
         await commitItem(draft);
         d.close();
         render();
-        notify(t(isNew ? "eventCreated" : "eventSaved"), "success");
+        notifySynced(t(isNew ? "eventCreated" : "eventSaved"));
         scheduleNotifications();
       } catch {
         btn.disabled = false;
@@ -1215,7 +1217,7 @@
     d.q("[data-save]").addEventListener("click", async () => {
       Object.assign(item, { name: form.name.value.trim(), date: d.q('[data-field="date"]').dataset.value, yearKnown: !form.yearUnknown.checked, calendarId: form.calendarId.value, reminder: form.reminder.checked, color: d.q(".cal-swatches").dataset.value || "", notes: form.notes.value.trim() });
       if (!item.name) { form.name.focus(); notify(t("errorName"), "error"); return; }
-      try { await commitItem(item); d.close(); render(); notify(t(isNew ? "birthdayCreated" : "birthdaySaved"), "success"); }
+      try { await commitItem(item); d.close(); render(); notifySynced(t(isNew ? "birthdayCreated" : "birthdaySaved")); }
       catch { notify(t(isNew ? "errorCreateBirthday" : "errorSaveBirthday"), "error"); }
     });
     d.q("[data-del]")?.addEventListener("click", () => { d.close(); trashItem(source); });
@@ -1252,7 +1254,7 @@
         if (isNew) calendars.push(draft); else Object.assign(cal, draft);
         await saveCalendars();
         d.close(); render();
-        notify(t(isNew ? "calendarCreated" : "calendarSaved"), "success");
+        notifySynced(t(isNew ? "calendarCreated" : "calendarSaved"));
       } catch { notify(t(isNew ? "errorCreateCalendar" : "errorGeneric"), "error"); }
     });
     setTimeout(() => form.name.focus(), 30);
@@ -1278,7 +1280,7 @@
       calendars = calendars.filter((c) => c !== cal);
       await saveCalendars();
       render();
-      notify(t("calendarDeleted"), "success");
+      notifySynced(t("calendarDeleted"));
     } catch { notify(t("errorGeneric"), "error"); }
   }
 
@@ -2062,7 +2064,7 @@
         const shift = daysBetween(item.allDay ? item.start : zoneParts(toInstant(item.start, item.startTime, item.tz || displayTz()), displayTz()).date, newDate);
         Object.assign(updated, { start: addDays(item.start, shift), end: addDays(item.start, shift + span), allDay: target.classList.contains("cal-allday-cell") ? true : updated.allDay });
       }
-      try { await commitItem(updated); render(); notify(t("eventMoved", { date: formatDate(newDate) }), "success"); } catch { notify(t("errorSaveEvent"), "error"); }
+      try { await commitItem(updated); render(); notifySynced(t("eventMoved", { date: formatDate(newDate) })); } catch { notify(t("errorSaveEvent"), "error"); }
     });
 
     // Keyboard shortcuts

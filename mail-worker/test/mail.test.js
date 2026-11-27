@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { LocalD1, LocalR2 } from "../src/local/adapters.js";
 import { handleApi } from "../src/api.js";
 import { deliverInbound } from "../src/inbound.js";
@@ -21,7 +22,7 @@ const ACCOUNTS = {
 
 function makeEnv({ quota = 20_000_000_000 } = {}) {
     const db = new LocalD1();
-    db.migrate(new URL("../migrations/0001_mail.sql", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+    db.migrate(fileURLToPath(new URL("../migrations/0001_mail.sql", import.meta.url)));
     const jobs = [];
     const sent = [];
     const env = {
@@ -119,6 +120,30 @@ test("incoming MIME is parsed, stored with attachments and inline images, dedupl
     assert.equal((await grace("GET", `/messages?mailbox=${adaBox.id}`)).status, 404);
     const eml = await ada("GET", `/messages/${item.id}/eml`);
     assert.deepEqual([...eml.data], [...raw], "original MIME is preserved");
+});
+
+test("Primary inbox includes Updates and Forums while their tabs keep their own messages", async () => {
+    const { env, ada, adaBox } = await setup();
+    const path = `/messages?mailbox=${adaBox.id}&view=inbox`;
+    const categories = ["primary", "updates", "forums", "social", "promotions"];
+    for (const category of categories) {
+        assert.equal((await deliver(env, mime({ subject: category, id: `<${category}@example.org>` }))).status, "delivered");
+    }
+    const inbox = await ada("GET", path);
+    for (const message of inbox.data.messages) {
+        assert.equal((await ada("POST", "/messages/update", { body: { ids: [message.id], patch: { category: message.subject } } })).status, 200);
+    }
+    for (const threads of ["0", "1"]) {
+        const primary = await ada("GET", path + `&category=primary&threads=${threads}&limit=2`);
+        assert.equal(primary.data.total, 3);
+        assert.equal(primary.data.messages.length, 2);
+        const nextPage = await ada("GET", path + `&category=primary&threads=${threads}&limit=2&offset=2`);
+        assert.deepEqual([...primary.data.messages, ...nextPage.data.messages].map(message => message.category).sort(), ["forums", "primary", "updates"]);
+    }
+    for (const category of categories.slice(1)) {
+        const tab = await ada("GET", path + "&category=" + category);
+        assert.deepEqual(tab.data.messages.map(message => message.category), [category]);
+    }
 });
 
 test("unknown recipients and oversized messages are rejected, never dropped", async () => {
@@ -227,7 +252,7 @@ test("drafts save, sync attachments, detect conflicts, and send through Email Se
     const { env, ada, adaBox, jobs, sent } = await setup();
     const upload = (await ada("POST", `/uploads?mailbox=${adaBox.id}`, { raw: new TextEncoder().encode("hello file"), headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent("notes ✓.txt"), "X-File-Type": "text/plain" } })).data;
     const draft = { mailboxId: adaBox.id, from: "ada@munetios.com", to: [{ email: "lin@example.org", name: "Lin" }], bcc: [{ email: "secret@example.org" }],
-        subject: "Plan", mode: "rich", html: '<p onclick="x()">Hi <script>alert(1)</script><a href="javascript:bad()">x</a></p>', attachments: [{ kind: "upload", id: upload.id }] };
+        subject: "Plan", mode: "rich", text: "Stale plain-text copy", html: '<p onclick="x()">Hi <script>alert(1)</script><a href="javascript:bad()">x</a><br><a href="https://ok.example/?x=1&amp;y=2">Details</a></p>', attachments: [{ kind: "upload", id: upload.id }] };
     const saved = (await ada("POST", "/drafts", { body: draft })).data;
     assert.ok(saved.draftId);
     const loaded = (await ada("GET", `/drafts/${saved.draftId}`)).data.draft;
@@ -258,6 +283,8 @@ test("drafts save, sync attachments, detect conflicts, and send through Email Se
     assert.deepEqual(message.bcc, ["secret@example.org"]);
     assert.ok(!JSON.stringify(message.headers || {}).toLowerCase().includes("bcc"));
     assert.doesNotMatch(message.html, /script|onclick|javascript:/i);
+    assert.match(message.html, /href="https:\/\/ok\.example\/\?x=1&amp;y=2"/);
+    assert.equal(message.text, "Hi x\nDetails (https://ok.example/?x=1&y=2)");
     assert.equal(message.attachments[0].filename, "notes ✓.txt");
     const after = (await ada("GET", `/messages/${again.data.messageId}`)).data.message;
     assert.equal(after.folder, "sent");
@@ -352,6 +379,7 @@ test("the delivery sanitizer removes scripts, handlers, unsafe URLs, forms, and 
     assert.match(clean, /href="https:\/\/ok\.example" rel="noopener noreferrer"/);
     assert.match(clean, /color:red/);
     assert.match(clean, /url\("https:\/\/img\.example\/a\.png"\)/);
+    assert.equal(sanitizeEmailHtml('<link rel="stylesheet" href="https://ok.example/a.css"><p>Hello</p>'), "<p>Hello</p>");
 });
 
 test("the remote content proxy refuses private, local, and non-HTTPS addresses", () => {

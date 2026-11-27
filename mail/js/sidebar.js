@@ -37,7 +37,7 @@ function count(view) {
 }
 
 function navItem(view, label, iconName, { color = null, drop = null, onMenu = null, total = false, draggable = false, hint = "" } = {}) {
-    const current = state.view === view;
+    const current = state.view === view && !(view === "inbox" && state.address);
     const n = count(view);
     const node = el("button", { type: "button", class: "mu-nav-item", "aria-current": current ? "page" : undefined, "data-view": view, title: hint ? `${label} · ${hint}` : label },
         color ? el("span", { class: "mu-icon", "aria-hidden": "true", style: `color:${color}`, text: iconName }) : icon(iconName, current),
@@ -148,7 +148,7 @@ function labelItem(label, hint = "") {
 
 export async function deleteFolder(folder) {
     if (!await confirmDialog({ title: t("deleteFolder"), message: t("deleteFolderMessage", { name: folder.name }), confirm: t("delete"), danger: true })) return false;
-    try { await del(`/folders/${folder.id}`); } catch (error) { toast(actions.errorText(error), "error"); return false; }
+    try { await del(`/folders/${folder.id}`); } catch (error) { toast(actions.failText(error, "errDeleteFolder"), "error"); return false; }
     if (state.view === folder.id) navigate("inbox");
     emit("refreshBoot");
     return true;
@@ -156,7 +156,7 @@ export async function deleteFolder(folder) {
 
 export async function deleteLabel(label) {
     if (!await confirmDialog({ title: t("deleteLabel"), message: t("deleteLabelMessage", { name: label.name }), confirm: t("delete"), danger: true })) return false;
-    try { await del(`/labels/${label.id}`); } catch (error) { toast(actions.errorText(error), "error"); return false; }
+    try { await del(`/labels/${label.id}`); } catch (error) { toast(actions.failText(error, "errDeleteLabel"), "error"); return false; }
     if (state.view === "label:" + label.id) navigate("inbox");
     emit("refreshBoot");
     return true;
@@ -190,7 +190,7 @@ function editor({ title, iconName, item, kind, parentId, mailboxId }) {
                 if (item) await put(`/${kind}s/${item.id}`, body);
                 else await post(`/${kind}s`, { ...body, mailboxId: targetBox, ...(parentId ? { parentId } : {}) });
                 d.close(); emit("refreshBoot");
-            } catch (error) { toast(actions.errorText(error), "error"); }
+            } catch (error) { toast(actions.failText(error, kind === "folder" ? (item ? "errSaveFolder" : "errCreateFolder") : (item ? "errSaveLabel" : "errCreateLabel")), "error"); }
         }, { primary: true }),
     ] });
     setTimeout(() => name.focus(), 50);
@@ -214,13 +214,25 @@ function avatarFor(box) {
 function renderMailboxes() {
     const container = document.getElementById("mailboxPicker");
     const boxes = mailboxes();
-    if (boxes.length <= 1) { container.replaceChildren(); return; }
-    const items = [el("button", { type: "button", class: "mu-nav-item", "aria-current": state.scope === "all" ? "true" : undefined, title: t("allInboxes"), onclick: () => emit("scope", "all") },
-        icon("stacks"), el("span", { class: "mail-nav-label", text: t("allInboxes") }))];
+    const linkedOf = box => (box.settings?.linked || []).map(item => item.address).filter(Boolean);
+    const hasLinked = boxes.some(box => linkedOf(box).length);
+    if (boxes.length <= 1 && !hasLinked) { container.replaceChildren(); return; }
+    const items = boxes.length > 1 ? [el("button", { type: "button", class: "mu-nav-item", "aria-current": state.scope === "all" ? "true" : undefined, title: t("allInboxes"), onclick: () => emit("scope", "all") },
+        icon("stacks"), el("span", { class: "mail-nav-label", text: t("allInboxes") }))] : [];
     for (const box of boxes) {
-        items.push(el("button", { type: "button", class: "mu-nav-item", "aria-current": state.scope === box.id ? "true" : undefined, title: box.address, onclick: () => emit("scope", box.id) },
+        const showingLinked = Boolean(state.address) && linkedOf(box).includes(state.address);
+        items.push(el("button", { type: "button", class: "mu-nav-item", "aria-current": state.scope === box.id && !showingLinked ? "true" : undefined, title: box.address, onclick: () => emit("scope", box.id) },
             avatarFor(box), el("span", { class: "mail-nav-label", text: box.displayName || box.address }),
             (state.counts[box.id]?.folders?.inbox || 0) ? el("span", { class: "mail-count", text: formatNumber(state.counts[box.id].folders.inbox) }) : null));
+        // Addresses at other providers that forward into this mailbox: each opens that address's inbox
+        // (every category; the category tabs, including All, still apply).
+        for (const address of linkedOf(box)) {
+            const current = state.view === "inbox" && state.address === address && (state.scope === box.id || boxes.length === 1);
+            items.push(el("button", { type: "button", class: "mu-nav-item mail-nav-linked", "aria-current": current ? "true" : undefined, title: t("linkedForwardsTo", { address: box.address }),
+                onclick: () => emit("openLinked", { mailboxId: box.id, address }) },
+                el("span", { class: "mail-avatar-sm", style: `background:${colorFor(address)}` }, initials("", address)),
+                el("span", { class: "mail-nav-label", dir: "ltr", text: address })));
+        }
     }
     container.replaceChildren(el("div", { class: "mu-nav" }, items));
 }

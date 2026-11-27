@@ -22,6 +22,12 @@ CREATE TABLE IF NOT EXISTS munetios_collab_link_keys (
   CONSTRAINT collab_link_keys_document FOREIGN KEY (document_id) REFERENCES munetios_collab_documents(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS munetios_collab_invitation_keys (
+  document_id CHAR(22) CHARACTER SET ascii COLLATE ascii_bin NOT NULL PRIMARY KEY,
+  content_key CHAR(43) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  CONSTRAINT collab_invitation_keys_document FOREIGN KEY (document_id) REFERENCES munetios_collab_documents(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- Roles: edit (Editor), suggest (Suggest), view (View only). The owner is implied by owner_id.
 CREATE TABLE IF NOT EXISTS munetios_collab_members (
   document_id CHAR(22) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -39,7 +45,8 @@ CREATE TABLE IF NOT EXISTS munetios_collab_members (
 CREATE TABLE IF NOT EXISTS munetios_collab_suggestions (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   document_id CHAR(22) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  account_id BIGINT UNSIGNED NOT NULL,
+  account_id BIGINT UNSIGNED NULL,
+  token_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL,
   base_version BIGINT UNSIGNED NOT NULL,
   iv CHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   status ENUM('open', 'accepted', 'rejected') NOT NULL DEFAULT 'open',

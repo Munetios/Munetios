@@ -14,20 +14,25 @@ const acceptedFixtureCode = { consume: async (_db, _email, code) => code === '12
 // In-memory stand-in for the MySQL tables the router uses.
 function fixtureDatabase() {
     const emailCodes = new Map(), mailboxes = new Set(), messages = [], aliases = new Map();
-    const state = { parts: new Map(), security: new Map(), accounts: [], sessions: new Map(), keys: new Map(), profiles: new Map(), pictures: new Map(), devices: new Map(), items: new Map() };
+    const state = { parts: new Map(), security: new Map(), accounts: [], sessions: new Map(), keys: new Map(), profiles: new Map(), pictures: new Map(), picturePrivacy: new Map(), devices: new Map(), items: new Map() };
     let snapshot;
     const live = session => session && session.expires > new Date();
-    const clone = () => ({ parts: new Map(state.parts), security: new Map([...state.security].map(([k,v]) => [k,{...v}])), accounts: state.accounts.map(a => ({ ...a })), sessions: new Map(state.sessions), keys: new Map([...state.keys].map(([k, v]) => [k, { ...v }])), profiles: new Map(state.profiles), pictures: new Map(state.pictures), devices: new Map(state.devices), items: new Map(state.items) });
+    const clone = () => ({ parts: new Map(state.parts), security: new Map([...state.security].map(([k,v]) => [k,{...v}])), accounts: state.accounts.map(a => ({ ...a })), sessions: new Map(state.sessions), keys: new Map([...state.keys].map(([k, v]) => [k, { ...v }])), profiles: new Map(state.profiles), pictures: new Map(state.pictures), picturePrivacy: new Map(state.picturePrivacy), devices: new Map(state.devices), items: new Map(state.items) });
     const accountRow = token => {
         const session = state.sessions.get(token);
         const account = live(session) && state.accounts.find(a => a.id === session.accountId);
-        return account ? [{ id: account.id, email: account.email, created_at: account.created, display_name: state.profiles.get(account.id) || '', picture: state.pictures.get(account.id) || null, key_owner: state.keys.has(account.id) ? account.id : null }] : [];
+        return account ? [{ id: account.id, email: account.email, created_at: account.created, display_name: state.profiles.get(account.id) || '', picture: state.pictures.get(account.id) || null, show_picture: state.picturePrivacy.get(account.id) ?? 1, key_owner: state.keys.has(account.id) ? account.id : null }] : [];
     };
     const storedBytes = (accountId, item) => item.bytes ?? (item.ciphertext?.length || [...state.parts].filter(([key]) => key.startsWith(`${accountId}|${item.key}|`)).reduce((sum, [, value]) => sum + value.length, 0));
     const db = {
         ...state,
         emailCodes,
-        async query(sql) { assert.match(sql, /^CREATE TABLE IF NOT EXISTS/); return [[]]; },
+        async query(sql) {
+            // Schema setup: table creation plus the recovery_codes column check (the fixture already has that column).
+            if (sql.startsWith('SHOW COLUMNS FROM munetios_account_security')) return [[{ Field: 'recovery_codes' }]];
+            assert.match(sql, /^CREATE TABLE IF NOT EXISTS/, 'unexpected schema statement: ' + sql.slice(0, 120));
+            return [[]];
+        },
         async getConnection() { return db; },
         async beginTransaction() { snapshot = clone(); },
         async commit() { snapshot = null; },
@@ -97,7 +102,17 @@ function fixtureDatabase() {
                 const row = state.security.get(id(args[1])); if (row.last_counter >= args[2]) return [{ affectedRows: 0 }]; row.last_counter = args[0]; return [{ affectedRows: 1 }];
             }
             if (sql.startsWith('UPDATE munetios_account_security SET totp_enabled = 1')) {
-                const row = state.security.get(id(args[1])); if (row.totp_enabled || row.totp_secret !== args[2] || row.setup_expires <= new Date()) return [{ affectedRows: 0 }]; row.totp_enabled = 1; row.last_counter = args[0]; row.setup_expires = null; return [{ affectedRows: 1 }];
+                const row = state.security.get(id(args[2]));
+                if (row.totp_enabled || row.totp_secret !== args[3] || row.setup_expires <= new Date()) return [{ affectedRows: 0 }];
+                Object.assign(row, { totp_enabled: 1, last_counter: args[0], setup_expires: null, recovery_codes: args[1] });
+                return [{ affectedRows: 1 }];
+            }
+            if (sql.startsWith('UPDATE munetios_account_security SET recovery_codes')) {
+                const row = state.security.get(id(args[1]));
+                const expected = sql.endsWith('recovery_codes = ?') ? row?.recovery_codes : row?.totp_secret;
+                if (!row?.totp_enabled || expected !== args[2]) return [{ affectedRows: 0 }];
+                row.recovery_codes = args[0];
+                return [{ affectedRows: 1 }];
             }
             if (sql.startsWith('UPDATE munetios_account_security SET totp_enabled = 0')) {
                 const row = state.security.get(id(args[0])); if (!row.totp_enabled || row.last_counter >= args[1]) return [{ affectedRows: 0 }]; row.totp_enabled = 0; row.totp_secret = null; row.last_counter = -1; return [{ affectedRows: 1 }];
@@ -117,7 +132,7 @@ function fixtureDatabase() {
                 const accountId = id(args[0]);
                 state.accounts.splice(state.accounts.findIndex(a => a.id === accountId), 1);
                 for (const [key, value] of state.sessions) if (value.accountId === accountId) state.sessions.delete(key);
-                state.keys.delete(accountId); state.profiles.delete(accountId); state.pictures.delete(accountId);
+                state.keys.delete(accountId); state.profiles.delete(accountId); state.pictures.delete(accountId); state.picturePrivacy.delete(accountId);
                 for (const key of state.items.keys()) if (key.startsWith(`${accountId}|`)) state.items.delete(key);
                 for (const key of state.parts.keys()) if (key.startsWith(`${accountId}|`)) state.parts.delete(key);
                 return [{}];
@@ -148,6 +163,7 @@ function fixtureDatabase() {
             if (sql.startsWith('UPDATE munetios_account_keys SET sync_seq = ? ')) { state.keys.get(id(args[1])).seq = BigInt(args[0]); return [{}]; }
             if (sql.startsWith('UPDATE munetios_account_keys SET sync_seq = 0')) { state.keys.get(id(args[0])).seq = 0n; return [{}]; }
             if (sql.startsWith('INSERT INTO munetios_profile_pictures')) { state.pictures.set(id(args[0]), args[1]); return [{}]; }
+            if (sql.startsWith('INSERT INTO munetios_profile_picture_privacy')) { state.picturePrivacy.set(id(args[0]), args[1]); return [{}]; }
             if (sql.startsWith('DELETE FROM munetios_profile_pictures')) { state.pictures.delete(id(args[0])); return [{}]; }
             if (sql.startsWith('INSERT INTO munetios_profiles')) { state.profiles.set(id(args[0]), args[1]); return [{}]; }
             if (sql.startsWith('SELECT version, COALESCE(OCTET_LENGTH(ciphertext)')) { const item = state.items.get(`${id(args[0])}|${args[1]}`); return [item ? [{ version: item.version, bytes: storedBytes(id(args[0]), item) }] : []]; }
@@ -165,6 +181,9 @@ function fixtureDatabase() {
             if (sql.startsWith('DELETE FROM munetios_sync_item_chunks')) { for (const key of state.parts.keys()) if (key.startsWith(`${id(args[0])}|${args[1]}|`)) state.parts.delete(key); return [{}]; }
             if (sql.startsWith('INSERT INTO munetios_sync_item_chunks')) { state.parts.set(`${id(args[0])}|${args[1]}|${args[2]}`, args[3]); return [{}]; }
             if (sql.startsWith('DELETE FROM munetios_sync_items')) { for (const key of state.items.keys()) if (key.startsWith(`${id(args[0])}|`)) state.items.delete(key); for (const key of state.parts.keys()) if (key.startsWith(`${id(args[0])}|`)) state.parts.delete(key); return [{}]; }
+            // Optional birthdays (stored only; the account row lookup in this fixture doesn't join them).
+            if (sql.startsWith('INSERT INTO munetios_profile_birthdays')) { (state.birthdays ||= new Map()).set(id(args[0]), args[1]); return [{ affectedRows: 1 }]; }
+            if (sql.startsWith('DELETE FROM munetios_profile_birthdays')) { state.birthdays?.delete(id(args[0])); return [{ affectedRows: 1 }]; }
             throw new Error(`Unexpected statement: ${sql}`);
         }
     };
@@ -182,7 +201,8 @@ async function serve(t, options) {
     t.after(() => new Promise(resolve => server.close(resolve)));
     const origin = `http://127.0.0.1:${server.address().port}`;
     return async (route, body, extra = {}) => {
-        if (route === 'signup' && body && typeof body === 'object') body = { emailCode: '123456', ...body };
+        // Signup now asks for a display name; tests that don't care about it get a default.
+        if (route === 'signup' && body && typeof body === 'object') body = { emailCode: '123456', displayName: 'Test User', ...body };
         const response = await fetch(`${origin}/api/auth/${route}`, { method: body === undefined ? 'GET' : 'POST', headers: { Origin: origin, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...extra }, ...(body === undefined ? {} : { body: typeof body === 'string' ? body : JSON.stringify(body) }) });
         return { status: response.status, cookies: response.headers.getSetCookie(), cookie: response.headers.get('set-cookie'), body: await response.json() };
     };
@@ -198,7 +218,8 @@ test('custom accounts and write hosts share a session without using the beta coo
     assert.match(active, /Domain=munetios\.com.*HttpOnly.*Secure/);
     const Cookie = active.split(';')[0];
     assert.equal((await request('session', undefined, { ...writeHost, Cookie })).body.account.email, 'shared@example.com');
-    assert.equal((await request('session', undefined, { ...via('beta.munetios.com'), Cookie })).body.account, null);
+    // Every https *.munetios.com host shares the session, the beta host included.
+    assert.equal((await request('session', undefined, { ...via('beta.munetios.com'), Cookie })).body.account.email, 'shared@example.com');
     assert.equal((await request('signout', {}, { ...writeHost, Origin: 'https://unrelated.munetios.com', Cookie })).status, 403);
     const signout = await request('signout', {}, { ...writeHost, Cookie });
     assert.ok(signout.cookies.some(line => line.startsWith('__Secure-munetios-shared-session=;') && line.includes('Domain=munetios.com')));
@@ -247,7 +268,7 @@ test('external signup consumes a code and new Munetios personal accounts can sig
         method: body === undefined ? 'GET' : 'POST', headers: { Origin: origin, 'Content-Type': 'application/json', ...headers },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
-    const signup = (email, extra = {}) => call('/api/auth/signup', { email, password: 'fixture account password', keys: KEYS, ...extra });
+    const signup = (email, extra = {}) => call('/api/auth/signup', { email, password: 'fixture account password', keys: KEYS, displayName: 'Test User', ...extra });
     const email = 'student@example.org';
     assert.equal((await (await signup(email)).json()).error, 'emailCodeRequired');
     assert.equal((await call('/api/auth/email-code', { email })).status, 200);
@@ -309,7 +330,7 @@ test('the WebFilter dashboard and its admin requests require a valid Munetios se
     assert.equal(new URL(dashboard.headers.get('location'), origin).searchParams.get('continue'), '/webfilter/?hl=fr');
     assert.equal((await post('/api/webfilter/orgs', {})).status, 401);
 
-    const account = await post('/api/auth/signup', { email: 'webfilter@example.com', password: 'fixture account password', keys: KEYS, emailCode: '123456' });
+    const account = await post('/api/auth/signup', { email: 'webfilter@example.com', password: 'fixture account password', keys: KEYS, emailCode: '123456', displayName: 'Test User' });
     const session = { Cookie: account.headers.getSetCookie()[0].split(';')[0] };
     const page = await open('/webfilter/', { headers: session });
     assert.equal(await page.text(), 'dashboard');
@@ -340,7 +361,7 @@ test('WebFilter assigns permissions to signed-in accounts and enforces teacher c
         method, headers: { Origin: origin, 'Content-Type': 'application/json', ...headers }, body: body === undefined ? undefined : JSON.stringify(body),
     });
     async function account(email) {
-        const response = await call('/api/auth/signup', {}, 'POST', { email, password: 'fixture account password', keys: KEYS, emailCode: '123456' });
+        const response = await call('/api/auth/signup', {}, 'POST', { email, password: 'fixture account password', keys: KEYS, emailCode: '123456', displayName: 'Test User' });
         assert.equal(response.status, 201);
         return { id: (await response.json()).account.id, headers: { Cookie: response.headers.getSetCookie()[0].split(';')[0] } };
     }
@@ -404,14 +425,19 @@ test('account creation, normalized login, rotation, expired sessions, and sign o
     assert.equal(created.body.account.email, 'person@example.com');
     assert.deepEqual(created.body.keys, KEYS);
     assert.match(created.cookie, /HttpOnly/); assert.match(created.cookie, /Secure/); assert.match(created.cookie, /SameSite=Lax/);
+    assert.match(created.cookie, /(?:^|;\s*)Max-Age=2592000(?:;|$)/);
     const firstCookie = created.cookie.split(';')[0];
     const token = firstCookie.split('=')[1];
     assert(!database.sessions.has(token));
     assert(database.sessions.has(sha(token)));
+    const stored = database.sessions.get(sha(token));
+    assert.equal(Math.round((stored.expires - stored.created) / 1000), 2592000);
+    const expires = stored.expires.getTime();
     assert.equal(database.devices.get(sha(token)), 'Browser|Unknown');
     const session = (await request('session', undefined, { Cookie: firstCookie })).body;
     assert.equal(session.account.email, 'person@example.com');
     assert.equal(session.account.hasKeys, true);
+    assert.equal(stored.expires.getTime(), expires);
     assert.equal((await request('signup', credentials)).status, 409);
     assert.equal(database.accounts.length, 1);
     const wrong = await request('signin', { ...credentials, password: 'wrong password' });
@@ -489,6 +515,25 @@ test('profile pictures persist, replace and remove without accepting remote URLs
     assert.equal((await request('profile-picture', { picture: 'data:image/png;base64,' + oversized.toString('base64') }, account.header)).status, 400);
     assert.equal((await request('profile-picture', { picture: null }, account.header)).body.account.picture, null);
     assert.equal((await request('session', undefined, account.header)).body.account.picture, null);
+});
+
+test('picture privacy is account scoped, defaults to visible, and keeps the owner picture', async t => {
+    const request = await serve(t, { database: fixtureDatabase(), env: {} });
+    const owner = jar(), other = jar();
+    owner.update(await request('signup', { email: 'owner@munetios.com', password: 'long unique password 1', keys: KEYS }));
+    other.update(await request('signup', { email: 'other@munetios.com', password: 'long unique password 2', keys: KEYS }));
+    const picture = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aRZkAAAAASUVORK5CYII=';
+    await request('profile-picture', { picture }, owner.header);
+    const preference = async (session) => (await request('session', undefined, session.header)).body.account.showProfilePictureToEveryone;
+    assert.equal(await preference(owner), true);
+    assert.equal((await request('profile-picture/privacy', { showProfilePictureToEveryone: false })).status, 401);
+    assert.equal((await request('profile-picture/privacy', { showProfilePictureToEveryone: 'false' }, owner.header)).status, 400);
+    assert.equal((await request('profile-picture/privacy', { showProfilePictureToEveryone: false }, owner.header)).status, 200);
+    assert.equal(await preference(owner), false);
+    assert.equal(await preference(other), true);
+    assert.equal((await request('session', undefined, owner.header)).body.account.picture, picture);
+    assert.equal((await request('profile-picture/privacy', { showProfilePictureToEveryone: true }, owner.header)).status, 200);
+    assert.equal(await preference(owner), true);
 });
 
 test('profile, password change, signed-in devices, and account deletion', async t => {
@@ -581,20 +626,29 @@ test('2FA requires password and verified setup, guards sign-in and rejects reuse
     const setup = await request('security/setup', { password: credentials.password }, a.header);
     assert.equal(setup.status, 200);
     assert.match(setup.body.secret, /^[A-Z2-7]{32}$/);
+    assert.match(setup.body.qr, /^data:image\/gif;base64,/);
+    assert.equal(new URL(setup.body.uri).searchParams.get('secret'), setup.body.secret);
     assert.notEqual(database.security.get(1).totp_secret, setup.body.secret);
     const counter = Math.floor(Date.now()/30000);
     const code = n => codeAt(setup.body.secret,n);
     assert.equal((await request('security/enable', { password: credentials.password, code: 'bad' }, a.header)).status, 400);
-    assert.equal((await request('security/enable', { password: credentials.password, code: code(counter-1) }, a.header)).status, 200);
+    const enabled = await request('security/enable', { password: credentials.password, code: code(counter-1) }, a.header);
+    assert.equal(enabled.status, 200);
+    assert.equal(new Set(enabled.body.recoveryCodes).size, 10);
+    const [recovery, previous] = enabled.body.recoveryCodes;
+    assert.match(recovery, /^[a-f0-9]{8}-[a-f0-9]{8}$/);
+    assert.ok(!database.security.get(1).recovery_codes.includes(recovery.replace('-', '')));
     assert.equal((await request('signin', credentials)).body.error, 'twoFactorRequired');
     assert.equal((await request('signin', { ...credentials, code: code(counter-1) })).body.error, 'twoFactorRequired');
     assert.equal((await request('signin', { ...credentials, code: code(counter) })).status, 200);
     assert.equal((await request('signin', { ...credentials, code: code(counter) })).body.error, 'twoFactorRequired');
+    assert.equal((await request('signin', { ...credentials, code: recovery })).status, 200);
+    assert.equal((await request('signin', { ...credentials, code: recovery })).body.error, 'twoFactorRequired');
+    const rotated = await request('security/recovery-codes', { password: credentials.password, code: previous }, a.header);
+    assert.equal(rotated.status, 200);
+    assert.equal(new Set(rotated.body.recoveryCodes).size, 10);
+    assert.equal((await request('signin', { ...credentials, code: enabled.body.recoveryCodes[2] })).body.error, 'twoFactorRequired');
     assert.equal((await request('security/disable', { password: credentials.password, code: code(counter+1) }, a.header)).status, 200);
-    assert.equal((await request('security/recovery-email', { password: credentials.password, email: 'backup@example.com' }, a.header)).body.error, 'emailCodeInvalid');
-    assert.equal((await request('security', undefined, a.header)).body.recoveryEmail, '');
-    assert.equal((await request('delete', { password: credentials.password }, a.header)).status, 400);
-    assert.equal((await request('delete', { password: credentials.password, confirmation: 'delete' }, a.header)).status, 400);
     assert.equal((await request('delete', { password: credentials.password, confirmation: 'DELETE' }, a.header)).status, 200);
 });
 test('50 GB quota partially accepts batches, retains old copies, and allows deletions to free space', async t => {
@@ -660,4 +714,70 @@ test('a failed multipart write rolls back both its item version and database par
     assert.equal(database.items.size, 0); assert.equal(database.parts.size, 0); assert.equal(database.keys.get(1).seq, 0n);
     assert.equal((await request('sync/batch', { items: [item] }, a.header)).status, 200);
     assert.equal((await request('sync/items?since=0', undefined, a.header)).body.items[0].ciphertext, item.ciphertext);
+});
+
+// An invalid session keeps the user in place (sessionRevoked, protected pages open); only signing out completely
+// (no account left) returns the plain signed-out state that sends apps to the sign-in page.
+test('invalid sessions are reported as revoked until the user signs out completely', async t => {
+    const database = fixtureDatabase();
+    const env = { NODE_ENV: 'production', PUBLIC_ORIGIN: 'https://beta.munetios.com', AUTH_SHARE_MUNETIOS_SESSION: 'true' };
+    const request = await serve(t, { database, trustFixtureProxy: true, env });
+    const via = host => ({ 'X-Fixture-Host': host, Origin: 'https://' + host, 'X-Forwarded-Proto': 'https' });
+    const signup = await request('signup', { email: 'revoked@example.com', password: 'test revoked login password', displayName: 'Revoked Tester', birthday: '2000-01-01' }, via('accounts.munetios.com'));
+    assert.equal(signup.status, 201, JSON.stringify(signup.body));
+    const pick = (response, name) => response.cookies.find(line => line.startsWith(name + '='));
+    assert.match(pick(signup, 'munetios_seen'), /Domain=munetios\.com/);
+    const session = pick(signup, '__Secure-munetios-shared-session').split(';')[0];
+    const seen = pick(signup, 'munetios_seen').split(';')[0];
+
+    // The session becomes invalid (signed out elsewhere, password changed, device removed).
+    database.sessions.clear();
+    const invalid = await request('session', undefined, { ...via('mail.munetios.com'), Cookie: `${session}; ${seen}` });
+    assert.equal(invalid.body.account, null);
+    assert.equal(invalid.body.sessionRevoked, true);
+    assert.ok(!invalid.cookies.some(line => line.startsWith('munetios_seen=;')), 'the seen cookie survives an invalid session');
+    // Later checks, after the dead session cookie is gone, still report the invalid session.
+    assert.equal((await request('session', undefined, { ...via('webfilter.munetios.com'), Cookie: seen })).body.sessionRevoked, true);
+
+    // Signing out completely clears the seen cookie, so the next check is plainly signed out.
+    const again = await request('signin', { email: 'revoked@example.com', password: 'test revoked login password' }, via('accounts.munetios.com'));
+    assert.equal(again.status, 200, JSON.stringify(again.body));
+    const fresh = pick(again, '__Secure-munetios-shared-session').split(';')[0];
+    const signout = await request('signout', {}, { ...via('mail.munetios.com'), Cookie: `${fresh}; ${seen}` });
+    assert.ok(signout.cookies.some(line => line.startsWith('munetios_seen=;') && line.includes('Domain=munetios.com')));
+    const out = await request('session', undefined, via('mail.munetios.com'));
+    assert.equal(out.body.account, null);
+    assert.equal(out.body.sessionRevoked, undefined);
+});
+
+test('host-only sessions from before sharing are upgraded to the shared cookie', async t => {
+    const database = fixtureDatabase();
+    const env = { NODE_ENV: 'production', PUBLIC_ORIGIN: 'https://beta.munetios.com', AUTH_SHARE_MUNETIOS_SESSION: 'true' };
+    const request = await serve(t, { database, trustFixtureProxy: true, env });
+    const via = host => ({ 'X-Fixture-Host': host, Origin: 'https://' + host, 'X-Forwarded-Proto': 'https' });
+    const signup = await request('signup', { email: 'legacy@example.com', password: 'test legacy login password', displayName: 'Legacy Tester', birthday: '2000-01-01' }, via('accounts.munetios.com'));
+    assert.equal(signup.status, 201, JSON.stringify(signup.body));
+    const token = signup.cookies.find(line => line.startsWith('__Secure-munetios-shared-session=')).split(';')[0].split('=')[1];
+    const upgraded = await request('session', undefined, { ...via('beta.munetios.com'), Cookie: `munetios_session=${token}` });
+    assert.equal(upgraded.body.account.email, 'legacy@example.com');
+    assert.ok(upgraded.cookies.some(line => line.startsWith('__Secure-munetios-shared-session=' + token) && line.includes('Domain=munetios.com')));
+    assert.ok(upgraded.cookies.some(line => line.startsWith('munetios_session=;')), 'the old host-only cookie is removed');
+});
+
+test('protected pages open for an invalid session and redirect only when signed out completely', async t => {
+    const app = express();
+    app.set('trust proxy', 'loopback');
+    app.use((req, res, next) => { req.headers.host = req.get('X-Fixture-Host') || req.headers.host; next(); });
+    const auth = createAuthRouter({ database: fixtureDatabase(), env: { NODE_ENV: 'production', AUTH_SHARE_MUNETIOS_SESSION: 'true' } });
+    app.get('/mail/', auth.requireBrowserPage('/mail/'), (req, res) => res.send('mail page'));
+    const server = app.listen(0, '127.0.0.1');
+    await new Promise(resolve => server.once('listening', resolve));
+    t.after(() => new Promise(resolve => server.close(resolve)));
+    const url = `http://127.0.0.1:${server.address().port}/mail/`;
+    const headers = { 'X-Fixture-Host': 'mail.munetios.com', 'X-Forwarded-Proto': 'https' };
+    const invalid = await fetch(url, { headers: { ...headers, Cookie: 'munetios_seen=1; __Secure-munetios-shared-session=' + 'a'.repeat(64) }, redirect: 'manual' });
+    assert.equal(invalid.status, 200);
+    const never = await fetch(url, { headers, redirect: 'manual' });
+    assert.equal(never.status, 302);
+    assert.match(never.headers.get('location'), /^\/signin\?continue=/);
 });

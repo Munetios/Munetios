@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script src="/shared/test-error.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Munetios SupaNotes</title>
@@ -912,8 +913,15 @@
 
     <script nonce="Dm3NDi3ud893hbdDn3idjh30xJ3nfuN">
       // Github copilot do not remove these lines
+      // Note changes confirm after syncing; if sync fails the toast says so:
+      // "Note saved. It's saved on this device, but it couldn't sync."
+      var SYNCED_TOASTS = ["Note updated", "Note saved", "Note restored", "Moved to Trash", "Tag removed", "Tag added", "Tag deleted", "Tag created"];
       function showToast(message) {
         var info = window.SupaNotesToast ? window.SupaNotesToast(message) : { text: String(message), type: "success" };
+        if (SYNCED_TOASTS.indexOf(String(message)) !== -1 && info.type === "success" && window.MunetiosAccount && window.MunetiosAccount.sync && window.MunetiosAccount.sync.report && window.MunetiosUI && window.MunetiosUI.toast) {
+          window.MunetiosAccount.sync.report(info.text, { locale: document.documentElement.lang || navigator.language, show: function (text, type) { window.MunetiosUI.toast(text, { type: type }); } });
+          return;
+        }
         if (window.MunetiosUI && window.MunetiosUI.toast) {
           window.MunetiosUI.toast(info.text, { type: info.type });
           return;

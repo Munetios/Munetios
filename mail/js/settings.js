@@ -7,7 +7,7 @@ import { t, formatBytes, formatDate, formatNumber } from "./i18n.js";
 import { el, icon, iconButton, button, dialog, field, select, switchControl, settingRow, toast, confirmDialog, promptDialog, download, pickFiles, alertBox, emptyState, dateTimeField, toLocalDateTime, fromLocalDateTime } from "./ui.js";
 import { control, renderSection, themesSection } from "./studio.js";
 import { savePreference } from "./customize.js";
-import { errorText } from "./actions.js";
+import { errorText, failText } from "./actions.js";
 import { RichEditor } from "./editor.js";
 import { moveAllDeviceMail } from "./reader.js";
 import { editFolder, editLabel, deleteFolder, deleteLabel } from "./sidebar.js";
@@ -22,25 +22,26 @@ const SECTIONS = [
 let mailboxId = null;
 const box = () => mailboxById(mailboxId) || primaryMailbox();
 
-async function saveSettings(patch) {
+async function saveSettings(patch, failKey = "errSaveSetting") {
     try {
         const result = await put(`/mailboxes/${box().id}/settings`, patch);
         box().settings = result.settings;
         if ("displayName" in patch) { box().displayName = patch.displayName; emit("refreshBoot"); }
         toast(t("saved"), "success");
-    } catch (error) { toast(errorText(error), "error"); }
+    } catch (error) { toast(failText(error, failKey), "error"); }
 }
 
 const pref = path => control(path);
 const mailboxPicker = rerender => mailboxes().length > 1 ? settingRow(t("mailbox"), t("mailboxSettingsHelp"), select(t("mailbox"), mailboxes().map(item => ({ value: item.id, label: item.address })), box().id, value => { mailboxId = value; rerender(); })) : null;
 
 const RENDER = {
-    general: () => [pref("behavior.afterAction"), pref("behavior.markReadDelay"), pref("behavior.confirmDelete"), pref("layout.conversationView"), pref("behavior.searchHistory"), pref("behavior.linkWarnings")],
+    general: () => [pref("behavior.afterAction"), pref("behavior.markReadDelay"), pref("behavior.confirmDelete"), pref("layout.conversationView"), pref("behavior.searchHistory")],
     appearance: () => renderSection("appearance"),
     customization: () => renderSection("glass"),
     themes: rerender => [themesSection(rerender)],
     typography: () => renderSection("typography"),
-    layout: () => renderSection("layout"),
+    // Settings that have their own page (Folders, Inbox, Compose, General) are not repeated here.
+    layout: () => renderSection("layout", ["layout.navOrder", "layout.navHidden", "layout.categoryTabs", "layout.composeWidth", "layout.composeHeight", "layout.conversationView"]),
     inbox: rerender => {
         const settings = box().settings;
         return [mailboxPicker(rerender), pref("layout.categoryTabs"),
@@ -52,7 +53,7 @@ const RENDER = {
     },
     compose: rerender => {
         const settings = box().settings;
-        return [mailboxPicker(rerender), pref("behavior.defaultMode"), pref("behavior.replyAll"), pref("behavior.quoteOriginal"), pref("behavior.attachmentReminder"), pref("behavior.spellcheck"),
+        return [mailboxPicker(rerender), pref("behavior.replyAll"), pref("behavior.quoteOriginal"), pref("behavior.attachmentReminder"), pref("behavior.spellcheck"),
             settingRow(t("undoSend"), t("undoSendHelp"), select(t("undoSend"), [0, 5, 10, 20, 30, 60, 120].map(value => ({ value, label: value ? t("secondsCount", { count: value }) : t("off") })), settings.undoSendSeconds, value => saveSettings({ undoSendSeconds: Number(value) }))),
             settingRow(t("defaultPriority"), "", select(t("defaultPriority"), ["low", "normal", "high"].map(value => ({ value, label: t("priority_" + value) })), settings.defaultPriority, value => saveSettings({ defaultPriority: value }))),
             pref("layout.composeWidth"), pref("layout.composeHeight")];
@@ -70,17 +71,17 @@ const RENDER = {
     addresses: rerender => {
         const current = box();
         const name = el("input", { class: "mu-input", value: current.displayName || "", maxlength: 200 });
-        const pictureRow = el("div", { class: "mail-inline-form", style: "align-items:center" },
+        const pictureRow = el("div", { class: "mail-picture-row" },
             current.hasPicture ? el("img", { src: `/api/mail/v1/mailboxes/${current.id}/picture?${Date.now()}`, alt: t("profilePicture"), style: "width:64px;height:64px;border-radius:50%;object-fit:cover;flex:none" }) : icon("account_circle"),
             button(t("uploadPicture"), async () => {
                 const [file] = await pickFiles({ accept: "image/png,image/jpeg,image/webp", multiple: false });
                 if (!file) return;
                 try { await upload(`/mailboxes/${current.id}/picture`, file, { headers: { "X-File-Type": file.type, "X-File-Name": encodeURIComponent(file.name) } }); current.hasPicture = true; emit("refreshBoot"); rerender(); }
-                catch (error) { toast(error.code === "tooLarge" ? t("pictureTooLarge") : errorText(error), "error"); }
+                catch (error) { toast(error.code === "tooLarge" ? t("pictureTooLarge") : failText(error, "errProfilePicture"), "error"); }
             }),
             current.hasPicture ? button(t("removePicture"), async () => { await del(`/mailboxes/${current.id}/picture`); current.hasPicture = false; emit("refreshBoot"); rerender(); }) : null);
         return [mailboxPicker(rerender), settingRow(t("address"), current.kind === "forwarding" ? t("forwardingAddressHelp") : "", el("strong", { dir: "ltr", text: current.address })),
-            field(t("senderName"), name, t("senderNameHelp")), button(t("save"), () => saveSettings({ displayName: name.value.trim() }), { primary: true }),
+            field(t("senderName"), name, t("senderNameHelp")), button(t("save"), () => saveSettings({ displayName: name.value.trim() }, "errSenderName"), { primary: true }),
             settingRow(t("profilePicture"), t("profilePictureHelp"), pictureRow), ...linkedRows(current, rerender), ...forwardingRows(current, rerender)];
     },
     aliases: rerender => {
@@ -98,7 +99,7 @@ const RENDER = {
                     let address = input.value.trim().toLowerCase();
                     if (address && !address.includes("@")) address += "@munetios.com";
                     try { const alias = await post(`/mailboxes/${current.id}/aliases`, { address, displayName: displayName.value.trim() }); current.aliases = [...(current.aliases || []), alias]; current.senders.push({ address, displayName: displayName.value.trim() }); emit("refreshBoot"); rerender(); toast(t("aliasCreated"), "success"); }
-                    catch (error) { toast(error.code === "addressUnavailable" ? t("addressUnavailable") : errorText(error), "error"); }
+                    catch (error) { toast(error.code === "addressUnavailable" ? t("addressUnavailable") : failText(error, "errCreateAlias"), "error"); }
                 }, { primary: true }))];
     },
     signatures: rerender => [mailboxPicker(rerender), collection({ kind: "signatures", rerender })],
@@ -117,7 +118,7 @@ const RENDER = {
     },
     spam: rerender => {
         const settings = box().settings;
-        return [mailboxPicker(rerender), el("p", { class: "mu-muted", text: t("spamHelp") }), settingRow(t("spamSensitivity"), t("spamSensitivityHelp"), select(t("spamSensitivity"), ["relaxed", "standard", "strict"].map(value => ({ value, label: t("sensitivity_" + value) })), settings.spamSensitivity, value => saveSettings({ spamSensitivity: value }))),
+        return [mailboxPicker(rerender), el("p", { class: "mu-muted", text: t("spamHelp") }), settingRow(t("spamSensitivity"), t("spamSensitivityHelp"), select(t("spamSensitivity"), ["relaxed", "standard", "strict"].map(value => ({ value, label: t("sensitivity_" + value) })), settings.spamSensitivity, value => saveSettings({ spamSensitivity: value }, "errSpamProtection"))),
             sendersList("allow", t("allowedSenders"), t("allowedSendersHelp"))];
     },
     blocked: rerender => [mailboxPicker(rerender), sendersList("block", t("blockedSenders"), t("blockedSendersHelp")), subscriptionsView()],
@@ -205,17 +206,18 @@ function forwardingRows(current, rerender) {
         f.verified ? alertBox("success", "verified", t("forwardingVerified"), f.enabled ? t("forwardingOn") : t("forwardingOff")) : null,
         el("div", { class: "mail-inline-form" },
             button(t("saveAndVerify"), async () => {
-                await saveSettings({ forwarding: { enabled: false, address: address.value.trim(), keepCopy } });
+                await saveSettings({ forwarding: { enabled: false, address: address.value.trim(), keepCopy } }, "errForwarding");
                 if (!address.value.trim()) return;
                 try { await post(`/mailboxes/${current.id}/forwarding/verify`); toast(t("verificationSent"), "success"); }
-                catch (error) { toast(errorText(error), "error"); }
-            }),
+                catch (error) { toast(failText(error, "errForwarding"), "error"); }
+            }, { iconName: "send" }),
+            f.verified ? button(f.enabled ? t("turnOff") : t("turnOn"), async () => { await saveSettings({ forwarding: { ...f, enabled: !f.enabled, address: f.address } }, "errForwarding"); const fresh = await get(`/mailboxes/${current.id}/settings`); current.settings = fresh.settings; rerender(); }) : null),
+        el("div", { class: "mail-inline-form" },
             field(t("verificationCode"), code),
             button(t("confirm"), async () => {
                 try { await post(`/mailboxes/${current.id}/forwarding/confirm`, { code: code.value.trim() }); toast(t("forwardingVerified"), "success"); const fresh = await get(`/mailboxes/${current.id}/settings`); current.settings = fresh.settings; rerender(); }
-                catch (error) { toast(error.code === "invalidCode" ? t("invalidCode") : error.code === "codeExpired" ? t("codeExpired") : errorText(error), "error"); }
-            }, { primary: true }),
-            f.verified ? button(f.enabled ? t("turnOff") : t("turnOn"), async () => { await saveSettings({ forwarding: { ...f, enabled: !f.enabled, address: f.address } }); const fresh = await get(`/mailboxes/${current.id}/settings`); current.settings = fresh.settings; rerender(); }) : null)];
+                catch (error) { toast(error.code === "invalidCode" ? t("invalidCode") : error.code === "codeExpired" ? t("codeExpired") : failText(error, "errForwarding"), "error"); }
+            }, { primary: true }))];
 }
 
 function notificationPermission() {
@@ -232,7 +234,9 @@ function sendersList(list, title, help) {
     const node = el("div", { class: "mail-list-editor" });
     const input = el("input", { class: "mu-input", placeholder: t("senderPatternPlaceholder"), dir: "ltr", spellcheck: "false" });
     const draw = async () => {
-        const { senders } = await get(`/mailboxes/${box().id}/senders`).catch(() => ({ senders: [] }));
+        let senders;
+        try { ({ senders } = await get(`/mailboxes/${box().id}/senders`)); }
+        catch { node.replaceChildren(alertBox("danger", "error", t(list === "block" ? "errLoadBlocked" : list === "allow" ? "errLoadAllowed" : "errLoadTrusted"), "")); return; }
         const items = senders.filter(item => item.list === list);
         node.replaceChildren(...(items.length ? items.map(item => el("div", { class: "mail-list-item" }, icon(list === "block" ? "block" : list === "allow" ? "check_circle" : "verified_user"), el("span", { dir: "ltr", text: item.pattern }),
             iconButton("delete", t("remove"), async () => { await del(`/mailboxes/${box().id}/senders?list=${list}&pattern=${encodeURIComponent(item.pattern)}`); draw(); }, { class: "mu-icon-btn mu-icon-btn-sm" }))) : [el("p", { class: "mu-muted", text: t("listEmpty") })]));
@@ -241,7 +245,7 @@ function sendersList(list, title, help) {
     return el("div", { style: "display:grid;gap:8px" }, el("h3", { text: title }), el("p", { class: "mu-muted", style: "margin:0", text: help }), node,
         el("div", { class: "mail-inline-form" }, input, button(t("add"), async () => {
             try { await post(`/mailboxes/${box().id}/senders`, { list, pattern: input.value.trim() }); input.value = ""; draw(); }
-            catch (error) { toast(error.code === "invalidAddress" ? t("invalidSenderPattern") : errorText(error), "error"); }
+            catch (error) { toast(error.code === "invalidAddress" ? t("invalidSenderPattern") : failText(error, list === "block" ? "errBlockSender" : list === "trusted" ? "errTrustedSender" : "errAddAllowed"), "error"); }
         }, { primary: true })));
 }
 
@@ -255,11 +259,15 @@ function subscriptionsView() {
                     item.methods.oneClick || item.methods.mailto ? button(t("unsubscribe"), async event => {
                         if (!await confirmDialog({ title: t("unsubscribe"), message: t("unsubscribeConfirm", { sender: item.sender }), confirm: t("unsubscribe") })) return;
                         try { await post(`/mailboxes/${box().id}/subscriptions/unsubscribe`, { sender: item.sender }); toast(t("unsubscribed"), "success"); event.target.disabled = true; }
-                        catch (error) { toast(errorText(error), "error"); }
+                        catch (error) { toast(failText(error, "errUnsubscribe"), "error"); }
                     }) : item.methods.web ? el("span", { class: "mu-muted", text: t("unsubscribeWebOnly") }) : null,
-                    button(item.blocked ? t("blocked") : t("block"), async event => { await post(`/mailboxes/${box().id}/senders`, { list: "block", pattern: item.sender }); event.target.disabled = true; event.target.textContent = t("blocked"); }, { disabled: item.blocked }),
+                    button(item.blocked ? t("blocked") : t("block"), async event => {
+                        const target = event.currentTarget;
+                        try { await post(`/mailboxes/${box().id}/senders`, { list: "block", pattern: item.sender }); target.disabled = true; target.textContent = t("blocked"); }
+                        catch (error) { toast(failText(error, "errBlockSender"), "error"); }
+                    }, { disabled: item.blocked }),
                     button(t("viewMail"), () => { emit("runSearch", `from:${item.sender}`); document.querySelector("#modalRoot .mu-modal:last-child [data-mu-close], #modalRoot .mu-modal:last-child .mu-dialog-header .mu-icon-btn")?.click(); }))))))));
-    }).catch(() => node.replaceChildren(el("p", { class: "mu-muted", text: t("loadFailed") })));
+    }).catch(() => node.replaceChildren(el("p", { class: "mu-muted", text: t("errLoadBlocked") })));
     return el("div", { style: "display:grid;gap:8px" }, el("h3", { text: t("subscriptions") }), el("p", { class: "mu-muted", style: "margin:0", text: t("subscriptionsHelp") }), node);
 }
 
@@ -277,7 +285,7 @@ function collection({ kind, rerender }) {
                 button(t("cancel"), () => d.close()),
                 button(t("save"), async () => {
                     try { await (item ? put : post)(`/mailboxes/${current.id}/templates${item ? "/" + item.id : ""}`, { name: name.value, kind: full?.kind || "message", data: { ...(full?.data || {}), subject: subject.value, html: editor.html, mode: full?.data?.mode || "rich" } }); d.close(); draw(); }
-                    catch (error) { toast(errorText(error), "error"); }
+                    catch (error) { toast(failText(error, "errCreateTemplate"), "error"); }
                 }, { primary: true })] });
             return;
         }
@@ -292,7 +300,7 @@ function collection({ kind, rerender }) {
             button(t("cancel"), () => d.close()),
             button(t("save"), async () => {
                 try { await (item ? put : post)(`/mailboxes/${current.id}/signatures${item ? "/" + item.id : ""}`, { name: name.value, html: editor.html, defaultNew, defaultReply }); d.close(); draw(); }
-                catch (error) { toast(errorText(error), "error"); }
+                catch (error) { toast(failText(error, "errCreateSignature"), "error"); }
             }, { primary: true })] });
     };
     const draw = async () => {
@@ -322,7 +330,7 @@ function contactsView() {
             button(t("cancel"), () => d.close()),
             button(t("save"), async () => {
                 try { await (item ? put : post)(`/mailboxes/${current.id}/contacts${item ? "/" + item.id : ""}`, { name: inputs.name.value, email: inputs.email.value, phone: inputs.phone.value, company: inputs.company.value, notes: notes.value }); d.close(); draw(); }
-                catch (error) { toast(error.code === "invalidAddress" ? t("invalidAddress") : errorText(error), "error"); }
+                catch (error) { toast(error.code === "invalidAddress" ? t("invalidAddress") : failText(error, "errSaveContact"), "error"); }
             }, { primary: true })] });
     };
     const editGroup = async (group = null, contacts = []) => {
@@ -339,7 +347,7 @@ function contactsView() {
             button(t("cancel"), () => d.close()),
             button(t("save"), async () => {
                 try { await (group ? put : post)(`/mailboxes/${current.id}/groups${group ? "/" + group.id : ""}`, { name: name.value, members: [...members] }); d.close(); draw(); }
-                catch (error) { toast(errorText(error), "error"); }
+                catch (error) { toast(failText(error, "errSaveGroup"), "error"); }
             }, { primary: true })].filter(Boolean) });
     };
     let showAuto = true;
@@ -361,7 +369,7 @@ function contactsView() {
             const [file] = await pickFiles({ accept: ".vcf,.csv,text/vcard,text/csv", multiple: false });
             if (!file) return;
             try { const result = await post(`/mailboxes/${current.id}/contacts-transfer`, { text: await file.text() }); toast(t("contactsImported", { count: result.imported }), "success"); draw(); }
-            catch (error) { toast(errorText(error), "error"); }
+            catch (error) { toast(failText(error, "errImportContacts"), "error"); }
         }, { iconName: "upload" }),
         button(t("exportVcard"), async () => download(await fetchBlob(`/mailboxes/${current.id}/contacts-transfer?format=vcf`), "contacts.vcf"), { iconName: "download" }),
         button(t("exportCsv"), async () => download(await fetchBlob(`/mailboxes/${current.id}/contacts-transfer?format=csv`), "contacts.csv"), { iconName: "download" })),
@@ -416,7 +424,7 @@ function filtersView() {
             button(t("cancel"), () => d.close()),
             button(t("save"), async () => {
                 try { await (filter ? put : post)(`/mailboxes/${current.id}/filters${filter ? "/" + filter.id : ""}`, { name: name.value || t("filter"), matchAll, stop, conditions: conditions.filter(item => item.value !== "" || item.field === "hasAttachment"), actions: actionList, enabled: filter?.enabled ?? true }); d.close(); draw(); }
-                catch (error) { toast(t("error_" + error.code) || errorText(error), "error"); }
+                catch (error) { toast(failText(error, "errSaveFilter"), "error"); }
             }, { primary: true })] });
     };
     const draw = async () => {
@@ -425,7 +433,7 @@ function filtersView() {
             ...filters.map((filter, index) => el("div", { class: "mail-list-item" }, switchControl(t("enabled"), filter.enabled, async value => { await put(`/mailboxes/${current.id}/filters/${filter.id}`, { ...filter, enabled: value }); }),
                 el("span", { text: filter.name }),
                 iconButton("arrow_upward", t("moveUp"), async () => { if (!index) return; const order = filters.map(item => item.id); [order[index - 1], order[index]] = [order[index], order[index - 1]]; await post(`/mailboxes/${current.id}/filters/order`, { order }); draw(); }, { class: "mu-icon-btn mu-icon-btn-sm" }),
-                iconButton("play_arrow", t("runNow"), async () => { try { const result = await post(`/mailboxes/${current.id}/filters/${filter.id}/run`); toast(t("filterMatched", { count: result.matched }), "success"); emit("reload"); } catch (error) { toast(errorText(error), "error"); } }, { class: "mu-icon-btn mu-icon-btn-sm" }),
+                iconButton("play_arrow", t("runNow"), async () => { try { const result = await post(`/mailboxes/${current.id}/filters/${filter.id}/run`); toast(t("filterMatched", { count: result.matched }), "success"); emit("reload"); } catch (error) { toast(failText(error, "errRunFilter"), "error"); } }, { class: "mu-icon-btn mu-icon-btn-sm" }),
                 iconButton("edit", t("edit"), () => edit(filter), { class: "mu-icon-btn mu-icon-btn-sm" }),
                 iconButton("delete", t("delete"), async () => { if (await confirmDialog({ title: t("deleteFilter"), message: t("deleteItemMessage", { name: filter.name }), confirm: t("delete"), danger: true })) { await del(`/mailboxes/${current.id}/filters/${filter.id}`); draw(); } }, { class: "mu-icon-btn mu-icon-btn-sm" }))));
     };
@@ -468,12 +476,13 @@ function transferView() {
             progress.firstChild.style.width = `${(done / messages.length) * 100}%`;
             status.textContent = t("importedOf", { done: formatNumber(done), total: formatNumber(messages.length) });
         }
-        toast(t("importFinished", { count: done - failed }), failed ? "info" : "success");
+        if (failed) toast(t("errImportMail"), "error");
+        else toast(t("importFinished", { count: done }), "success");
         emit("reload"); emit("storageStale");
     };
     node.append(
         el("h3", { text: t("exportMailbox") }), el("p", { class: "mu-muted", text: t("exportMailboxHelp") }),
-        button(t("startExport"), async () => { try { await post(`/mailboxes/${current.id}/exports`); drawExports(); toast(t("exportStarted"), "success"); } catch (error) { toast(errorText(error), "error"); } }, { primary: true, iconName: "archive" }),
+        button(t("startExport"), async () => { try { await post(`/mailboxes/${current.id}/exports`); drawExports(); toast(t("exportStarted"), "success"); } catch (error) { toast(failText(error, "errExport"), "error"); } }, { primary: true, iconName: "archive" }),
         exportsList,
         el("h3", { text: t("importMail") }), el("p", { class: "mu-muted", text: t("importMailHelp") }),
         el("div", { class: "mail-inline-form", style: "align-items:end" },
@@ -487,7 +496,7 @@ function transferView() {
                 const [file] = await pickFiles({ accept: ".json,application/json", multiple: false });
                 if (!file) return;
                 try { await post(`/mailboxes/${current.id}/backup`, JSON.parse(await file.text())); toast(t("settingsRestored"), "success"); emit("refreshBoot"); }
-                catch (error) { toast(error.code === "invalidBackup" || error instanceof SyntaxError ? t("invalidBackup") : errorText(error), "error"); }
+                catch (error) { toast(error.code === "invalidBackup" || error instanceof SyntaxError ? t("invalidBackup") : failText(error, "errRestoreSettings"), "error"); }
             }, { iconName: "restore" })));
     return node;
 }
@@ -496,14 +505,42 @@ function dangerZone() {
     const current = box();
     return el("div", { class: "mu-danger-zone", style: "display:grid;gap:10px;padding:16px;border-radius:24px;border:1px solid var(--mu-danger)" },
         el("h3", { text: t("deleteMailbox") }), el("p", { class: "mu-muted", text: t("deleteMailboxHelp", { address: current.address }) }),
-        button(t("deleteMailbox"), async () => {
-            const typed = await promptDialog({ title: t("deleteMailbox"), label: t("typeAddressToConfirm", { address: current.address }), iconName: "warning", confirm: t("continue") });
-            if (typed !== current.address) { if (typed !== null) toast(t("confirmationMismatch"), "error"); return; }
-            const phrase = await promptDialog({ title: t("deleteMailbox"), label: t("typeDeleteToConfirm"), iconName: "warning", confirm: t("deleteMailbox") });
-            if (phrase !== "DELETE") { if (phrase !== null) toast(t("confirmationMismatch"), "error"); return; }
-            try { await post(`/mailboxes/${current.id}/delete`, { confirm: current.address, phrase }); toast(t("mailboxDeleting"), "success"); setTimeout(() => location.reload(), 1500); }
-            catch (error) { toast(errorText(error), "error"); }
-        }, { danger: true, "data-mu-danger": "" }));
+        button(t("deleteMailbox"), () => deleteMailboxDialog(current), { danger: true, "data-mu-danger": "", iconName: "delete_forever" }));
+}
+
+// One danger dialog: what is lost, what happens to the address, and both confirmations (address and DELETE).
+// The delete button stays disabled until both match exactly.
+function deleteMailboxDialog(current) {
+    const address = el("input", { class: "mu-input", type: "email", autocomplete: "off", spellcheck: "false", dir: "ltr", placeholder: current.address });
+    const phrase = el("input", { class: "mu-input", autocomplete: "off", spellcheck: "false", dir: "ltr", placeholder: "DELETE", autocapitalize: "characters" });
+    const confirm = button(t("deleteMailboxForever"), async () => {
+        if (!matches()) return;
+        confirm.disabled = true;
+        try {
+            await post(`/mailboxes/${current.id}/delete`, { confirm: current.address, phrase: "DELETE" });
+            d.close();
+            toast(t("mailboxDeleting"), "success");
+            setTimeout(() => location.reload(), 1500);
+        } catch (error) { confirm.disabled = false; toast(failText(error, "errDeleteMailbox"), "error"); }
+    }, { danger: true, iconName: "delete_forever", disabled: true });
+    const matches = () => address.value.trim().toLowerCase() === current.address.toLowerCase() && phrase.value.trim() === "DELETE";
+    for (const input of [address, phrase]) input.addEventListener("input", () => { confirm.disabled = !matches(); });
+    const d = dialog({
+        title: t("deleteMailbox"), iconName: "warning", className: "mail-danger-dialog",
+        content: [
+            el("div", { class: "mail-danger-warning", role: "alert" },
+                el("strong", { text: t("deleteMailboxWarningTitle", { address: current.address }) }),
+                el("p", { text: t("deleteMailboxWarning") })),
+            el("div", { class: "mail-danger-list" },
+                el("span", { text: t("deleteMailboxLosesTitle") }),
+                el("ul", {}, ["deleteMailboxLoseMessages", "deleteMailboxLoseFiles", "deleteMailboxLoseSettings", "deleteMailboxLoseAddresses"].map(key => el("li", { text: t(key) })))),
+            el("p", { class: "mu-muted", text: t("deleteMailboxAfter", { address: current.address }) }),
+            field(t("typeAddressToConfirm", { address: current.address }), address),
+            field(t("typeDeleteToConfirm"), phrase),
+        ],
+        actions: [button(t("cancel"), () => d.close()), confirm],
+    });
+    setTimeout(() => address.focus(), 60);
 }
 
 export function open(section = "general") {

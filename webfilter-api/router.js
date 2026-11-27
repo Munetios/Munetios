@@ -50,6 +50,7 @@ const LIVE_WAIT_MS = 20 * 1000;
 const COMMAND_RETENTION_MS = 24 * 60 * 60 * 1000;
 const REQUEST_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const SCREEN = /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/;
+const SCREEN_PRIVACY_VERSION = 1;
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
     return { salt, hash: crypto.scryptSync(String(password), salt, 32).toString('hex') };
@@ -239,13 +240,18 @@ function createWebFilterRouter({ dataFile = null, store = createStore(dataFile),
     function deviceClass(device) {
         return device.managedClassId || (device.assignedClassId ?? device.reportedClassId ?? device.classId ?? '');
     }
+    function hasScreen(device) {
+        return Boolean(device?.screenPrivacy === SCREEN_PRIVACY_VERSION && device.screen && now() - device.screenAt < ONLINE_MS);
+    }
     function publicDevice(found, device) {
-        const { screen, ...rest } = device;
+        const { screen, screenPrivacy, screenAt, ...rest } = device;
+        const available = hasScreen(device);
         return Object.assign({}, rest, {
             classId: deviceClass(device),
             assignmentVersion: device.assignmentVersion || 0,
             name: device.assignedName || device.reportedName || device.assetId || device.hostname || '',
-            hasScreen: !!screen,
+            hasScreen: available,
+            ...(available ? { screenAt } : {}),
             online: now() - device.lastSeen < ONLINE_MS,
             commands: found.commands.filter(command => command.deviceId === device.id).reverse(),
         });
@@ -423,12 +429,14 @@ function createWebFilterRouter({ dataFile = null, store = createStore(dataFile),
         })) : [];
         const previous = found.devices[deviceId] || { id: deviceId, firstSeen: now() };
         const screen = text(body.screen);
-        if (screen && SCREEN.test(screen)) {
+        if (body.screenPrivacy === SCREEN_PRIVACY_VERSION && SCREEN.test(screen)) {
             previous.screen = screen;
             previous.screenAt = now();
-        } else if (body.screen === '') {
+            previous.screenPrivacy = SCREEN_PRIVACY_VERSION;
+        } else {
             delete previous.screen;
             delete previous.screenAt;
+            delete previous.screenPrivacy;
         }
         found.devices[deviceId] = Object.assign(previous, {
             // Keep the reported name separate from anything assigned in the dashboard.
@@ -585,7 +593,8 @@ function createWebFilterRouter({ dataFile = null, store = createStore(dataFile),
         const found = requireMember(req, res);
         if (!found) return;
         const device = found.devices[req.params.deviceId];
-        if (!device?.screen || !canManageClass(req.workspaceMember, deviceClass(device))) return res.status(404).json({ error: 'noScreen' });
+        if (!hasScreen(device) || !canManageClass(req.workspaceMember, deviceClass(device))) return res.status(404).json({ error: 'noScreen' });
+        res.set('Cache-Control', 'private, no-store');
         res.type('image/jpeg').send(Buffer.from(device.screen.split(',')[1], 'base64'));
     });
 

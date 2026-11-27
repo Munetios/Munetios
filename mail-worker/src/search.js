@@ -1,6 +1,6 @@
 // Mailbox search: operators become parameterized SQL, free text uses the FTS5 index.
 // Supported: from: to: cc: subject: has:attachment filename: filetype: is:unread|read|starred|important|pinned|snoozed
-// before: after: larger: smaller: label: folder: in: and -negation, "quoted phrases".
+// before: after: larger: smaller: label: folder: in: category: and -negation, "quoted phrases".
 import { SYSTEM_FOLDERS } from "./util.js";
 
 const SIZE_UNITS = { "": 1, b: 1, k: 1e3, kb: 1e3, m: 1e6, mb: 1e6, g: 1e9, gb: 1e9 };
@@ -50,6 +50,10 @@ export function buildSearch(query, { tzOffsetMinutes = 0 } = {}) {
             case "cc": add(negate, "m.cc_json LIKE ? ESCAPE '\\'", like(value)); break;
             case "bcc": add(negate, "m.bcc_json LIKE ? ESCAPE '\\'", like(value)); break;
             case "subject": add(negate, "m.subject LIKE ? ESCAPE '\\'", like(value)); break;
+            case "category":
+                if (["primary", "social", "promotions", "updates", "forums"].includes(value.toLowerCase())) add(negate, "m.category = ?", value.toLowerCase());
+                else invalid.push(token);
+                break;
             case "has":
                 if (/^attachments?$/i.test(value)) add(negate, "m.attachment_count > 0");
                 else if (/^(label|labels)$/i.test(value)) add(negate, "EXISTS (SELECT 1 FROM message_labels ml WHERE ml.message_id = m.id)");

@@ -386,8 +386,9 @@
       error: ["cloud_off", t("syncFailed"), A.state.lastSynced ? t("lastSynced", { time: A.formatTime(A.state.lastSynced) }) : t("notSyncedYet")],
       locked: ["lock", t("syncLocked"), t("unlockBody")]
     };
-    const [icon, text, sub] = map[status] || ["sync", t("syncing"), t("e2e")];
-    row.dataset.status = status;
+    // Invalid session: the page still works, but account details and sync requests fail.
+    const [icon, text, sub] = A.state.revocation ? ["error", t("sessionSignedOut"), t("sessionSignInToSync")] : map[status] || ["sync", t("syncing"), t("e2e")];
+    row.dataset.status = A.state.revocation ? "error" : status;
     $("syncStatusIcon").textContent = icon;
     $("syncStatusText").textContent = text;
     $("syncStatusSub").textContent = sub;

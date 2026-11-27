@@ -70,8 +70,11 @@ export function json(data, status = 200, headers = {}) {
 
 export function errorResponse(error) {
     if (error instanceof HttpError) return json({ error: error.code, ...(error.extra || {}) }, error.status);
-    // Only the error class name is recorded; messages can contain user data.
-    console.error("mail: unexpected error", error?.name || "Error");
+    // Only the error class name is recorded; messages can contain user data. D1 and R2 errors are the exception:
+    // their messages hold the SQL text or storage error code (never bound values), which is needed to diagnose failures.
+    const message = String(error?.message || "");
+    const storageError = /^(D1_|SQLITE_)|\bSQLITE_[A-Z]+\b|^R2 /.test(message) ? message.replace(/'[^']*'/g, "'…'").slice(0, 300) : "";
+    console.error("mail: unexpected error", error?.name || "Error", storageError);
     return json({ error: "unavailable" }, 503);
 }
 
@@ -134,14 +137,18 @@ export function subjectKey(subject) {
 export function htmlToText(html) {
     return String(html || "")
         .replace(/<(script|style|head|template)[\s\S]*?<\/\1\s*>/gi, " ")
-        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<br\b[^>]*>/gi, "\n")
         .replace(/<\/(p|div|tr|li|h[1-6]|blockquote|table)>/gi, "\n")
-        .replace(/<[^>]+>/g, " ")
-        .replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">")
-        .replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").replace(/&#(\d+);/g, (_, n) => {
-            const code = Number(n);
+        .replace(/<a\b[^>]*\shref="(https?:\/\/[^"<>]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_, url, label) => (
+            label.replace(/<[^>]+>/g, "").trim() === url ? label : `${label} (${url})`
+        ))
+        .replace(/<\/(?:th|td)>/gi, " ")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&nbsp;/gi, " ").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">")
+        .replace(/&quot;/gi, '"').replace(/&apos;/gi, "'").replace(/&#(x[0-9a-f]+|\d+);/gi, (_, n) => {
+            const code = n[0].toLowerCase() === "x" ? parseInt(n.slice(1), 16) : Number(n);
             return code > 0 && code < 0x110000 ? String.fromCodePoint(code) : " ";
-        })
+        }).replace(/&amp;/gi, "&")
         .replace(/[ \t]+/g, " ").replace(/\n\s*\n\s*\n+/g, "\n\n").trim();
 }
 

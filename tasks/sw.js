@@ -1,11 +1,11 @@
-const CACHE_NAME = "munetios-tasks-v7";
+const CACHE_NAME = "munetios-tasks-v9";
 const localAssets = [
   "./index.html", "./manifest.webmanifest", "./favicon.ico", "./favicon-16x16.png",
   "./favicon-32x32.png", "./android-chrome-192x192.png", "./android-chrome-512x512.png",
   "./apple-touch-icon.png", "./tasks-sync.js", "./tasks-account-i18n.js",
   "./tasks.css", "./tasks-features.css", "./tasks-features.js", "./tasks-features-i18n.js", "./tasks-locales.js", "/shared/munetios-locales.js",
   "/munetios-ui/munetios-ui-v4.css", "/munetios-ui/munetios-ui-v4.js",
-  "/account/account-menu.css", "/account/account-i18n.js", "/account/account-core.js", "/account/account-menu.js",
+  "/account/account-menu.css", "/account/account-i18n.js", "/account/account-core.js", "/account/account-menu.js", "/shared/test-error.js",
   "/fonts/google-sans-flex/munetios-ui-v4-font.ttf",
 ].map((path) => new URL(path, self.registration.scope).href);
 const optionalAssets = [

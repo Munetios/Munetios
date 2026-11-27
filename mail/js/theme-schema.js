@@ -107,7 +107,7 @@ export const SCHEMA = {
     "behavior.offlineDays": { type: "number", min: 1, max: 90, step: 1, default: 30 },
     "behavior.language": { type: "locale", default: "system" },
     "behavior.timeFormat": { type: "enum", values: ["auto", "12", "24"], default: "auto" },
-    "behavior.weekStart": { type: "enum", values: ["auto", "0", "1", "6"], default: "auto" },
+    "behavior.weekStart": { type: "enum", values: ["auto", "0", "1", "2", "3", "4", "5", "6"], default: "auto" },
     "behavior.reduceMotion": { type: "enum", values: ["system", "on", "off"], default: "system" },
     "behavior.linkWarnings": { type: "bool", default: true },
 };

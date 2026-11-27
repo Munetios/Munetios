@@ -133,5 +133,5 @@ export async function saveCurrent(query) {
         await post(`/mailboxes/${box.id}/searches`, { name, query, smart: true });
         toast(t("searchSaved"), "success");
         emit("refreshBoot");
-    } catch { toast(t("actionFailed"), "error"); }
+    } catch { toast(t("errSaveSearch"), "error"); }
 }

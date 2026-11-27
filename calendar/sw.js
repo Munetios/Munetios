@@ -3,12 +3,12 @@ importScripts("/shared/offline-shell.js");
 const root = new URL(self.registration.scope).pathname;
 const REMINDER_CACHE = "munetios-calendar-reminders-local";
 self.installMunetiosOfflineShell({
-  cacheName: "munetios-calendar-v7",
+  cacheName: "munetios-calendar-v9",
   obsolete: (name) => name !== REMINDER_CACHE && (name.startsWith("munetios-calendar") || name === "munetios-cache-v2"),
   required: [
     "./", "calendar.css", "calendar.js", "calendar-i18n.js", "calendar-reminder-client.js",
     "/munetios-ui/munetios-ui-v4.css", "/munetios-ui/munetios-ui-v4.js",
-    "/account/account-menu.css", "/account/account-i18n.js", "/account/account-core.js", "/account/account-menu.js",
+    "/account/account-menu.css", "/account/account-i18n.js", "/account/account-core.js", "/account/account-menu.js", "/shared/test-error.js",
     "/shared/munetios-cloud.css", "/shared/cloud-i18n.js", "/shared/munetios-cloud.js",
   ],
   optional: [

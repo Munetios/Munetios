@@ -2,7 +2,7 @@
 // account. Includes live preview, per-setting reset, custom backgrounds and fonts, and theme management.
 import { state, emit, primaryMailbox } from "./state.js";
 import { get, post, put, del, upload } from "./api.js";
-import { t, localeList, formatBytes } from "./i18n.js";
+import { t, localeList, formatBytes, weekdayName } from "./i18n.js";
 import { el, icon, iconButton, button, dialog, select, switchControl, slider, toast, settingRow, confirmDialog, promptDialog, download, pickFiles, stamp, menu, colorField } from "./ui.js";
 import { SCHEMA, FONT_CHOICES, getPath, sanitizeTheme, THEME_PREFIXES, SHORTCUT_ACTIONS, DEFAULT_SHORTCUTS } from "./theme-schema.js";
 import { savePreference, resetPreference, replacePreferences } from "./customize.js";
@@ -30,10 +30,10 @@ export function control(path) {
     switch (rule.type) {
         case "bool": input = switchControl(label(path), value, set); break;
         case "number": {
-            const format = path.includes("glass.blur") ? v => `${v}px` : /Width|Height|Size|size|avatarSize|iconSize|sidebarWidth|listWidth/.test(path) && !path.includes("previewLines") ? v => `${v}${path.includes("readingHeight") ? "%" : "px"}` : v => String(v);
+            const format = numberFormat(path);
             return el("div", { class: "mail-slider-row" }, el("div", { style: "flex:1;min-width:0" }, slider(label(path), rule, value, set, format)), resetButton(path));
         }
-        case "enum": input = select(label(path), rule.values.map(item => ({ value: item, label: optionLabel(item) })), value, set); break;
+        case "enum": input = select(label(path), rule.values.map(item => ({ value: item, label: path === "behavior.weekStart" && item !== "auto" ? weekdayName(item) : optionLabel(item) })), value, set); break;
         case "color": {
             input = colorField(label(path), value.toUpperCase(), next => { if (next) set(next.toLowerCase()); });
             break;
@@ -52,6 +52,15 @@ export function control(path) {
         default: input = el("span");
     }
     return settingRow(label(path), t("prefHelp_" + path.replace(/\./g, "_")) || "", el("div", { class: "mail-setting-control", style: "display:flex;align-items:center;gap:6px;flex-wrap:wrap" }, input, rule.type !== "shortcuts" ? resetButton(path) : null));
+}
+
+// Slider value labels: line height is a unitless multiplier, letter spacing is in em, reading height is a percentage.
+function numberFormat(path) {
+    if (path === "typography.lineHeight") return v => String(Number(v.toFixed(2)));
+    if (path === "typography.letterSpacing") return v => `${Number(v.toFixed(3))}em`;
+    if (path === "layout.readingHeight") return v => `${v}%`;
+    if (path.includes("glass.blur") || /(Width|Height|Size|size)$/.test(path)) return v => `${v}px`;
+    return v => String(v);
 }
 
 function fontControl(path, value, set) {
@@ -146,7 +155,7 @@ function orderedVisibilityControl(orderPath) {
 }
 
 function listControl(path, rule, value, set) {
-    const list = el("div", { class: "mail-list-editor" });
+    const list = el("div", { class: "mail-list-editor mail-toggle-grid", role: "group", "aria-label": label(path) });
     const draw = current => {
         list.replaceChildren(...rule.of.map(item => el("div", { class: "mail-list-item" },
             el("span", { class: "mail-list-name", text: itemLabel(item) }),
@@ -196,9 +205,9 @@ export const SECTIONS = {
     sounds: ["behavior.notifications", "behavior.notificationPreview", "behavior.sound", "behavior.soundAsset"],
 };
 
-export function renderSection(name) {
+export function renderSection(name, exclude = []) {
     const paths = SECTIONS[name] || [];
-    return paths.filter(path => visible(path)).map(control).filter(Boolean);
+    return paths.filter(path => visible(path) && !exclude.includes(path)).map(control).filter(Boolean);
 }
 
 function visible(path) {

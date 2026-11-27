@@ -1,12 +1,13 @@
 /*!
  * Munetios account strings (account menu, sync status, Account settings).
- * Same 15 locales as the Sign in page. Error wording follows one rule per area:
+ * The 17 global Munetios locales (see shared/munetios-locales.js). Error wording follows one rule per area:
  *   Security        -> "We were unable to process…"
  *   Account updates -> "Failed to…"
  *   Workspaces      -> "Couldn't…" / "We couldn't…"
  */
 (() => {
   "use strict";
+  const LOCALE_CODES = ["en-US", "en-GB", "es-419", "es-ES", "es-US", "fr-FR", "fr-CA", "de", "it", "pt-BR", "pt-PT", "zh-CN", "zh-TW", "ko", "ar", "hi", "co"];
   const en = {
     accountMenu: "Account menu", signIn: "Sign in", synced: "Synced", e2e: "End-to-end encrypted", syncing: "Syncing…",
     syncFailed: "Couldn't sync. Saved locally instead", syncLocked: "Sync is paused on this device", unlockSync: "Turn on sync",
@@ -344,55 +345,6 @@
     deleteAccountConfirm: "Introduza a palavra-passe para eliminar a sua conta.", deleteAccountFailed: "Falha ao eliminar a sua conta. Tente novamente.",
     deleteAccountWrong: "Falha ao eliminar a sua conta porque a palavra-passe está incorreta.", accountDeleted: "Conta eliminada"
   };
-  const ja = {
-    accountMenu: "アカウント メニュー", signIn: "ログイン", synced: "同期済み", e2e: "エンドツーエンドで暗号化", syncing: "同期中…",
-    syncFailed: "同期できませんでした。この端末に保存しました", syncLocked: "この端末では同期が一時停止しています", unlockSync: "同期をオンにする",
-    workspaces: "ワークスペース", personal: "個人", switchAccounts: "アカウントを切り替え", noOtherAccounts: "ほかにログイン中のアカウントはありません",
-    addAccount: "アカウントを追加", accountSettings: "アカウント設定", signOut: "ログアウト",
-    unlockBody: "この端末で同期データを復号するには、パスワードを入力してください。", password: "パスワード", cancel: "キャンセル", close: "閉じる",
-    unlockFailed: "パスワードを処理できませんでした。確認してもう一度お試しください。",
-    switchFailed: "アカウントを切り替えられませんでした。もう一度お試しください。",
-    switchBlocked: "変更を同期できなかったため、アカウントを切り替えられませんでした。オンラインになってからもう一度お試しください。",
-    signOutFailed: "ログアウトできませんでした。もう一度お試しください。", workspaceOpenFailed: "このワークスペースを開けませんでした。",
-    back: "戻る", language: "言語", lightTheme: "ライトテーマに切り替え", darkTheme: "ダークテーマに切り替え",
-    navAccount: "アカウント", navSecurity: "セキュリティ", navSync: "同期", navData: "データとプライバシー",
-    profileTitle: "プロフィール", name: "名前", nameHelp: "アカウント メニューに表示されます。", save: "保存", email: "メールアドレス",
-    memberSince: "{date} からのメンバー", nameSaved: "名前を保存しました", nameFailed: "名前を更新できませんでした。もう一度お試しください。",
-    loadFailed: "アカウントを読み込めませんでした。もう一度お試しください。",
-    changePassword: "パスワードを変更", currentPassword: "現在のパスワード", newPassword: "新しいパスワード", confirmPassword: "新しいパスワードの確認",
-    passwordWeak: "12 文字以上にしてください。", passwordMismatch: "パスワードが一致しません。",
-    passwordChanged: "パスワードを変更しました。ほかの端末はログアウトされました。",
-    passwordFailed: "パスワードの変更を処理できませんでした。もう一度お試しください。",
-    passwordWrong: "現在のパスワードが正しくないため、パスワードの変更を処理できませんでした。",
-    encryptionTitle: "エンドツーエンド暗号化",
-    encryptionBody: "データは同期する前に端末上で暗号化されます。Munetios はデータを読むことができず、パスワードがないと復元できません。",
-    devicesTitle: "ログイン中の端末", thisDevice: "この端末", deviceOn: "{os} の {browser}", browser: "ブラウザ", unknownSystem: "不明なシステム",
-    signedInOn: "{date} にログイン", signOutDevice: "ログアウト", signOutOthers: "ほかのすべての端末からログアウト",
-    devicesFailed: "端末の読み込みを処理できませんでした。もう一度お試しください。",
-    revokeFailed: "その端末のログアウトを処理できませんでした。もう一度お試しください。",
-    othersSignedOut: "ほかの端末はログアウトされました", deviceSignedOut: "端末をログアウトしました",
-    syncTitle: "同期", syncBody: "ログイン中の端末間で次のデータが同期されます：", itemSearchHistory: "検索履歴", itemAppearance: "外観",
-    itemSettings: "検索と音声の設定", itemShortcuts: "ショートカットとお気に入り", itemWorkspaces: "ワークスペース",
-    itemDocuments: "OmniWrite のフォルダとドキュメント", itemSpreadsheets: "OmniWrite Sheets のスプレッドシート", syncNow: "今すぐ同期", lastSynced: "最終同期：{time}", notSyncedYet: "まだ同期されていません",
-    deleteSynced: "同期データを削除",
-    deleteSyncedBody: "暗号化されたデータを Munetios のサーバーから削除します。端末上のデータは残り、次回の同期で再びアップロードされます。",
-    deleteSyncedDone: "同期データを削除しました", deleteSyncedFailed: "同期データを削除できませんでした。もう一度お試しください。",
-    workspacesBody: "ワークスペースで OmniWrite のドキュメントを分けて管理できます。すべての端末に同期されます。",
-    newWorkspace: "新しいワークスペース", workspaceName: "ワークスペース名", create: "作成", rename: "名前を変更", delete: "削除", active: "使用中", open: "開く",
-    documentsCount: "ドキュメント：{count}", confirmDeleteWorkspace: "{name} を削除しますか？",
-    wsCreated: "ワークスペースを作成しました", wsRenamed: "ワークスペースの名前を変更しました", wsDeleted: "ワークスペースを削除しました",
-    wsCreateFailed: "このワークスペースを作成できませんでした。もう一度お試しください。", wsRenameFailed: "このワークスペースの名前を変更できませんでした。もう一度お試しください。",
-    wsNameRequired: "名前がないとワークスペースを保存できませんでした。",
-    wsDeleteHasDocs: "ドキュメントが残っているため、このワークスペースを削除できませんでした。先に OmniWrite でドキュメントを移動または削除してください。",
-    wsDeletePersonal: "「個人」は既定のワークスペースのため削除できませんでした。",
-    wsDeleteFailed: "このワークスペースを削除できませんでした。もう一度お試しください。", wsLoadFailed: "ワークスペースを読み込めませんでした。",
-    exportTitle: "データをエクスポート", exportBody: "アカウントと同期しているこの端末のデータを JSON ファイルでダウンロードします。", export: "エクスポート",
-    exportFailed: "データをエクスポートできませんでした。もう一度お試しください。", deleteAccount: "アカウントを削除",
-    deleteAccountBody: "アカウントと同期データを完全に削除します。端末上のデータは残ります。",
-    deleteAccountConfirm: "アカウントを削除するには、パスワードを入力してください。",
-    deleteAccountFailed: "アカウントを削除できませんでした。もう一度お試しください。",
-    deleteAccountWrong: "パスワードが正しくないため、アカウントを削除できませんでした。", accountDeleted: "アカウントを削除しました"
-  };
   const ko = {
     accountMenu: "계정 메뉴", signIn: "로그인", synced: "동기화됨", e2e: "엔드투엔드 암호화", syncing: "동기화 중…",
     syncFailed: "동기화할 수 없습니다. 이 기기에 저장했습니다", syncLocked: "이 기기에서 동기화가 일시중지되었습니다", unlockSync: "동기화 켜기",
@@ -540,55 +492,6 @@
     deleteAccountFailed: "刪除帳戶失敗。請再試一次。",
     deleteAccountWrong: "密碼不正確，刪除帳戶失敗。", accountDeleted: "帳戶已刪除"
   };
-  const ru = {
-    accountMenu: "Меню аккаунта", signIn: "Войти", synced: "Синхронизировано", e2e: "Сквозное шифрование", syncing: "Синхронизация…",
-    syncFailed: "Не удалось синхронизировать. Сохранено на этом устройстве", syncLocked: "Синхронизация на этом устройстве приостановлена", unlockSync: "Включить синхронизацию",
-    workspaces: "Рабочие пространства", personal: "Личное", switchAccounts: "Сменить аккаунт", noOtherAccounts: "Других аккаунтов нет",
-    addAccount: "Добавить аккаунт", accountSettings: "Настройки аккаунта", signOut: "Выйти",
-    unlockBody: "Введите пароль, чтобы расшифровать синхронизированные данные на этом устройстве.", password: "Пароль", cancel: "Отмена", close: "Закрыть",
-    unlockFailed: "Нам не удалось обработать пароль. Проверьте его и повторите попытку.",
-    switchFailed: "Не удалось сменить аккаунт. Повторите попытку.",
-    switchBlocked: "Не удалось сменить аккаунт, так как изменения не синхронизировались. Повторите попытку, когда будете в сети.",
-    signOutFailed: "Не удалось выйти. Повторите попытку.", workspaceOpenFailed: "Не удалось открыть это рабочее пространство.",
-    back: "Назад", language: "Язык", lightTheme: "Включить светлую тему", darkTheme: "Включить тёмную тему",
-    navAccount: "Аккаунт", navSecurity: "Безопасность", navSync: "Синхронизация", navData: "Данные и конфиденциальность",
-    profileTitle: "Профиль", name: "Имя", nameHelp: "Показывается в меню аккаунта.", save: "Сохранить", email: "Адрес электронной почты",
-    memberSince: "Участник с {date}", nameSaved: "Имя сохранено", nameFailed: "Не удалось обновить имя. Повторите попытку.",
-    loadFailed: "Не удалось загрузить аккаунт. Повторите попытку.",
-    changePassword: "Изменить пароль", currentPassword: "Текущий пароль", newPassword: "Новый пароль", confirmPassword: "Подтвердите новый пароль",
-    passwordWeak: "Используйте не менее 12 символов.", passwordMismatch: "Пароли не совпадают.",
-    passwordChanged: "Пароль изменён. На других устройствах выполнен выход.",
-    passwordFailed: "Нам не удалось обработать смену пароля. Повторите попытку.",
-    passwordWrong: "Нам не удалось обработать смену пароля, так как текущий пароль неверен.",
-    encryptionTitle: "Сквозное шифрование",
-    encryptionBody: "Данные шифруются на вашем устройстве перед синхронизацией. Munetios не может их прочитать, а без пароля их нельзя восстановить.",
-    devicesTitle: "Устройства, на которых выполнен вход", thisDevice: "Это устройство", deviceOn: "{browser} на {os}", browser: "Браузер", unknownSystem: "неизвестной системе",
-    signedInOn: "Вход выполнен {date}", signOutDevice: "Выйти", signOutOthers: "Выйти на всех других устройствах",
-    devicesFailed: "Нам не удалось обработать загрузку устройств. Повторите попытку.",
-    revokeFailed: "Нам не удалось обработать выход на этом устройстве. Повторите попытку.",
-    othersSignedOut: "На других устройствах выполнен выход", deviceSignedOut: "Выход на устройстве выполнен",
-    syncTitle: "Синхронизация", syncBody: "На устройствах, где выполнен вход, синхронизируется:", itemSearchHistory: "История поиска", itemAppearance: "Оформление",
-    itemSettings: "Настройки поиска и голоса", itemShortcuts: "Ярлыки и избранное", itemWorkspaces: "Рабочие пространства",
-    itemDocuments: "Папки и документы OmniWrite", itemSpreadsheets: "Таблицы OmniWrite Sheets", syncNow: "Синхронизировать", lastSynced: "Последняя синхронизация: {time}", notSyncedYet: "Ещё не синхронизировано",
-    deleteSynced: "Удалить синхронизированные данные",
-    deleteSyncedBody: "Удаляет зашифрованные данные с серверов Munetios. Устройства сохраняют свои данные и снова загрузят их при следующей синхронизации.",
-    deleteSyncedDone: "Синхронизированные данные удалены", deleteSyncedFailed: "Не удалось удалить синхронизированные данные. Повторите попытку.",
-    workspacesBody: "Рабочие пространства разделяют ваши документы OmniWrite и синхронизируются на всех устройствах.",
-    newWorkspace: "Новое рабочее пространство", workspaceName: "Название рабочего пространства", create: "Создать", rename: "Переименовать", delete: "Удалить", active: "Активно", open: "Открыть",
-    documentsCount: "Документы: {count}", confirmDeleteWorkspace: "Удалить «{name}»?",
-    wsCreated: "Рабочее пространство создано", wsRenamed: "Рабочее пространство переименовано", wsDeleted: "Рабочее пространство удалено",
-    wsCreateFailed: "Не удалось создать рабочее пространство. Повторите попытку.", wsRenameFailed: "Не удалось переименовать рабочее пространство. Повторите попытку.",
-    wsNameRequired: "Не удалось сохранить рабочее пространство без названия.",
-    wsDeleteHasDocs: "Нам не удалось удалить рабочее пространство, так как в нём ещё есть документы. Сначала переместите или удалите их в OmniWrite.",
-    wsDeletePersonal: "Нам не удалось удалить «Личное», так как это рабочее пространство по умолчанию.",
-    wsDeleteFailed: "Не удалось удалить рабочее пространство. Повторите попытку.", wsLoadFailed: "Нам не удалось загрузить рабочие пространства.",
-    exportTitle: "Экспорт данных", exportBody: "Скачайте в виде файла JSON данные этого устройства, которые синхронизируются с аккаунтом.", export: "Экспортировать",
-    exportFailed: "Не удалось экспортировать данные. Повторите попытку.", deleteAccount: "Удалить аккаунт",
-    deleteAccountBody: "Безвозвратно удаляет аккаунт и его синхронизированные данные. Данные на устройствах сохраняются.",
-    deleteAccountConfirm: "Введите пароль, чтобы удалить аккаунт.",
-    deleteAccountFailed: "Не удалось удалить аккаунт. Повторите попытку.",
-    deleteAccountWrong: "Не удалось удалить аккаунт, так как пароль неверен.", accountDeleted: "Аккаунт удалён"
-  };
   const hi = {
     accountMenu: "खाता मेन्यू", signIn: "साइन इन करें", synced: "सिंक हो गया", e2e: "एंड-टू-एंड एन्क्रिप्टेड", syncing: "सिंक हो रहा है…",
     syncFailed: "सिंक नहीं हो सका. इसके बजाय इस डिवाइस पर सेव किया गया", syncLocked: "इस डिवाइस पर सिंक रुका हुआ है", unlockSync: "सिंक चालू करें",
@@ -687,7 +590,9 @@
     deleteAccountFailed: "فشل حذف حسابك. يُرجى المحاولة مرة أخرى.",
     deleteAccountWrong: "فشل حذف حسابك لأن كلمة المرور غير صحيحة.", accountDeleted: "تم حذف الحساب"
   };
-  const catalog = { en, "es-ES": esES, "es-419": es, fr, de, it, "pt-BR": ptBR, "pt-PT": ptPT, ja, ko, "zh-CN": zhCN, "zh-TW": zhTW, ru, hi, ar };
+  const catalog = { "en-US": en, "es-ES": esES, "es-419": es, "fr-FR": fr, de, it, "pt-BR": ptBR, "pt-PT": ptPT, ko, "zh-CN": zhCN, "zh-TW": zhTW, hi, ar };
+  // Tables below still use "en" and "fr"; they point at en-US and fr-FR.
+  Object.defineProperties(catalog, { en: { value: en, enumerable: false }, fr: { value: fr, enumerable: false } });
   const addPasswordLabels = {
     "en": "Add password",
     "es-ES": "Añadir contraseña",
@@ -697,11 +602,9 @@
     "it": "Aggiungi password",
     "pt-BR": "Adicionar senha",
     "pt-PT": "Adicionar palavra-passe",
-    "ja": "パスワードを追加",
     "ko": "비밀번호 추가",
     "zh-CN": "添加密码",
     "zh-TW": "新增密碼",
-    "ru": "Добавить пароль",
     "hi": "पासवर्ड जोड़ें",
     "ar": "إضافة كلمة مرور"
   };
@@ -716,11 +619,9 @@
     it: ['Cambia foto', 'Rimuovi foto', 'Foto del profilo salvata', 'Aggiornamento della foto del profilo non riuscito. Riprova.', 'Scegli un’immagine PNG, JPEG, WebP, GIF o AVIF fino a 20 MB.'],
     'pt-BR': ['Alterar foto', 'Remover foto', 'Foto de perfil salva', 'Falha ao atualizar sua foto de perfil. Tente novamente.', 'Escolha uma imagem PNG, JPEG, WebP, GIF ou AVIF de até 20 MB.'],
     'pt-PT': ['Alterar fotografia', 'Remover fotografia', 'Fotografia de perfil guardada', 'Falha ao atualizar a sua fotografia de perfil. Tente novamente.', 'Escolha uma imagem PNG, JPEG, WebP, GIF ou AVIF até 20 MB.'],
-    ja: ['写真を変更', '写真を削除', 'プロフィール写真を保存しました', 'プロフィール写真の更新に失敗しました。再試行してください。', '20 MB以下のPNG、JPEG、WebP、GIF、AVIF画像を選択してください。'],
     ko: ['사진 변경', '사진 삭제', '프로필 사진이 저장되었습니다', '프로필 사진을 업데이트하지 못했습니다. 다시 시도하세요.', '20MB 이하의 PNG, JPEG, WebP, GIF 또는 AVIF 이미지를 선택하세요.'],
     'zh-CN': ['更换照片', '移除照片', '个人头像已保存', '更新个人头像失败，请重试。', '请选择不超过20 MB的PNG、JPEG、WebP、GIF或AVIF图片。'],
     'zh-TW': ['更換照片', '移除照片', '個人頭像已儲存', '更新個人頭像失敗，請重試。', '請選擇不超過20 MB的PNG、JPEG、WebP、GIF或AVIF圖片。'],
-    ru: ['Изменить фото', 'Удалить фото', 'Фото профиля сохранено', 'Не удалось обновить фото профиля. Повторите попытку.', 'Выберите изображение PNG, JPEG, WebP, GIF или AVIF размером до 20 МБ.'],
     hi: ['फ़ोटो बदलें', 'फ़ोटो हटाएँ', 'प्रोफ़ाइल फ़ोटो सहेजी गई', 'प्रोफ़ाइल फ़ोटो अपडेट नहीं हो पाई। फिर कोशिश करें।', '20 MB तक की PNG, JPEG, WebP, GIF या AVIF तस्वीर चुनें।'],
     ar: ['تغيير الصورة', 'إزالة الصورة', 'تم حفظ صورة الملف الشخصي', 'فشل تحديث صورة ملفك الشخصي. حاول مجددًا.', 'اختر صورة PNG أو JPEG أو WebP أو GIF أو AVIF بحجم لا يتجاوز 20 ميغابايت.']
   };
@@ -734,11 +635,9 @@
     it: ['Mostra a tutti la mia foto del profilo', 'Non siamo riusciti ad aggiornare le impostazioni sulla privacy della foto del profilo. Riprova.'],
     'pt-BR': ['Mostrar minha foto de perfil para todos', 'Não conseguimos atualizar as configurações de privacidade da sua foto de perfil. Tente novamente.'],
     'pt-PT': ['Mostrar a minha fotografia de perfil a todos', 'Não conseguimos atualizar os ajustes de privacidade da sua fotografia de perfil. Tente novamente.'],
-    ja: ['プロフィール写真を全員に表示する', 'プロフィール写真のプライバシー設定を更新できませんでした。もう一度お試しください。'],
     ko: ['내 프로필 사진을 모든 사람에게 표시', '프로필 사진 공개 설정을 업데이트하지 못했습니다. 다시 시도하세요.'],
     'zh-CN': ['向所有人显示我的个人头像', '无法更新个人头像隐私设置。请重试。'],
     'zh-TW': ['向所有人顯示我的個人頭像', '無法更新個人頭像隱私設定。請再試一次。'],
-    ru: ['Показывать моё фото профиля всем', 'Не удалось обновить настройки конфиденциальности фото профиля. Повторите попытку.'],
     hi: ['मेरी प्रोफ़ाइल फ़ोटो सभी को दिखाएँ', 'हम प्रोफ़ाइल फ़ोटो की निजता सेटिंग अपडेट नहीं कर सके। फिर से कोशिश करें।'],
     ar: ['إظهار صورة ملفي الشخصي للجميع', 'لم نتمكن من تحديث إعدادات خصوصية صورة ملفك الشخصي. حاول مجددًا.']
   };
@@ -746,15 +645,24 @@
     Object.assign(catalog[locale], { picturePrivacy, picturePrivacyFailed });
   }
   // Same resolution as the Sign in page (Spanish: es-ES vs Latin America; Chinese: Simplified vs Traditional).
+  // Any language tag → one of the 17 global locales (same rules as shared/munetios-locales.js).
   function resolveLocale(value) {
-    const code = String(value || "en").replaceAll("_", "-");
-    if (catalog[code]) return code;
-    const lower = code.toLowerCase();
-    const base = lower.split("-")[0];
-    if (base === "es") return lower === "es-es" ? "es-ES" : "es-419";
-    if (base === "pt") return lower === "pt-pt" ? "pt-PT" : "pt-BR";
-    if (base === "zh") return /tw|hk|mo|hant/.test(lower) ? "zh-TW" : "zh-CN";
-    return catalog[base] ? base : "en";
+    const shared = window.MunetiosLocales?.resolve?.(String(value || ""));
+    if (shared && LOCALE_CODES.includes(shared)) return shared;
+    const code = String(value || "en-US").replaceAll("_", "-");
+    const exact = LOCALE_CODES.find(item => item.toLowerCase() === code.toLowerCase());
+    if (exact) return exact;
+    const parts = code.toLowerCase().split("-");
+    const base = parts[0];
+    const region = parts.slice(1).find(part => /^([a-z]{2}|\d{3})$/.test(part)) || "";
+    const script = parts.slice(1).find(part => /^[a-z]{4}$/.test(part)) || "";
+    if (base === "en") return ["", "us", "ca", "ph", "pr", "um", "as", "gu", "vi", "mp"].includes(region) ? "en-US" : "en-GB";
+    if (base === "es") return region === "es" || (!region && !script) ? "es-ES" : region === "us" ? "es-US" : "es-419";
+    if (base === "fr") return region === "ca" ? "fr-CA" : "fr-FR";
+    if (base === "pt") return ["pt", "ao", "mz", "cv", "gw", "st", "tl", "mo", "gq", "ch", "lu"].includes(region) ? "pt-PT" : "pt-BR";
+    if (base === "zh") return /^(tw|hk|mo|hant)$/.test(script) || /^(tw|hk|mo)$/.test(region) ? "zh-TW" : "zh-CN";
+    if (base === "gsw") return "de";
+    return LOCALE_CODES.includes(base) ? base : "en-US";
   }
   const securityKeys = ['confirmDevice','twoFactor','enabled','disabled','enable2fa','disable2fa','authCode','authHelp','continue','recoveryEmail','unverified','notSet','recoveryHelp','savedUnverified','securityFailed','syncOff','localSaving','storageFull','turnOffSync','turnOnSync','syncStorage','otherItems','quotaHelp','typeDelete','edit','twoFactorRequired'];
   const securityStrings = {
@@ -766,16 +674,14 @@
     it: ['Disconnettere i dispositivi selezionati? Sarà necessario accedere di nuovo.','Autenticazione a due fattori','Attiva','Disattiva','Configura autenticatore','Disattiva 2FA','Codice autenticatore','Aggiungi questa chiave alla tua app di autenticazione e inserisci il codice a sei cifre. Conserva una copia sicura della chiave.','Continua','Email di recupero','Non verificata','Non impostata','L’invio di email non è configurato. Puoi salvare un indirizzo, ma non verificarlo o usarlo per recuperare l’account. Lascialo vuoto per rimuoverlo.','Salvata senza verifica','Controlla password e codice e riprova.','Sincronizzazione disattivata','Le modifiche vengono salvate su questo dispositivo. Le copie nel cloud vengono conservate.','Spazio di sincronizzazione esaurito','Disattiva sincronizzazione','Attiva sincronizzazione','Spazio di sincronizzazione','Altri elementi','50 GB di spazio cifrato. Gli elementi che non entrano restano su questo dispositivo e verranno riprovati più tardi. Il dispositivo deve avere spazio libero.','Digita DELETE per confermare','Modifica','Inserisci un codice valido a sei cifre.'],
     'pt-BR': ['Sair dos dispositivos selecionados? Será necessário entrar novamente.','Autenticação de dois fatores','Ativada','Desativada','Configurar autenticador','Desativar 2FA','Código do autenticador','Adicione esta chave ao seu aplicativo autenticador e digite o código de seis dígitos. Guarde uma cópia segura da chave.','Continuar','E-mail de recuperação','Não verificado','Não definido','O envio de e-mails não está configurado. Você pode salvar um endereço, mas ainda não pode verificá-lo nem usá-lo na recuperação. Deixe em branco para remover.','Salvo sem verificação','Confira sua senha e o código e tente novamente.','Sincronização desativada','As alterações são salvas neste dispositivo. As cópias na nuvem são mantidas.','Armazenamento de sincronização cheio','Desativar sincronização','Ativar sincronização','Armazenamento de sincronização','Outros itens','50 GB de armazenamento criptografado. Itens que não couberem ficam neste dispositivo e serão tentados novamente depois. O dispositivo precisa ter espaço disponível.','Digite DELETE para confirmar','Editar','Digite um código válido de seis dígitos.'],
     'pt-PT': ['Terminar sessão nos dispositivos selecionados? Será necessário iniciar sessão novamente.','Autenticação de dois fatores','Ativada','Desativada','Configurar autenticador','Desativar 2FA','Código do autenticador','Adicione esta chave à aplicação de autenticação e introduza o código de seis dígitos. Guarde uma cópia segura da chave.','Continuar','E-mail de recuperação','Não verificado','Não definido','O envio de e-mails não está configurado. Pode guardar um endereço, mas ainda não o pode verificar nem utilizar na recuperação. Deixe em branco para remover.','Guardado sem verificação','Verifique a palavra-passe e o código e tente novamente.','Sincronização desativada','As alterações são guardadas neste dispositivo. As cópias na nuvem são mantidas.','Armazenamento de sincronização cheio','Desativar sincronização','Ativar sincronização','Armazenamento de sincronização','Outros itens','50 GB de armazenamento cifrado. Os itens que não couberem ficam neste dispositivo e serão tentados novamente mais tarde. O dispositivo precisa de espaço disponível.','Escreva DELETE para confirmar','Editar','Introduza um código válido de seis dígitos.'],
-    ja: ['選択したデバイスからログアウトしますか？再度ログインが必要になります。','2段階認証','有効','無効','認証アプリを設定','2段階認証を無効化','認証コード','このキーを認証アプリに追加し、6桁のコードを入力してください。キーのバックアップを安全に保管してください。','続行','再設定用メールアドレス','未確認','未設定','メール送信は未設定です。アドレスは保存できますが、確認やアカウント復元にはまだ使用できません。削除するには空欄にしてください。','未確認として保存しました','パスワードと認証コードを確認して再試行してください。','同期はオフです','変更はこのデバイスに保存されます。クラウドのコピーは保持されます。','同期ストレージがいっぱいです','同期をオフにする','同期をオンにする','同期ストレージ','その他の項目','暗号化された同期ストレージは50 GBです。容量を超える項目はこのデバイスに保存され、後で再試行されます。デバイスにも空き容量が必要です。','確認するにはDELETEと入力','編集','有効な6桁の認証コードを入力してください。'],
     ko: ['선택한 기기에서 로그아웃할까요? 다시 로그인해야 합니다.','2단계 인증','켜짐','꺼짐','인증 앱 설정','2단계 인증 끄기','인증 코드','인증 앱에 이 키를 추가하고 6자리 코드를 입력하세요. 키의 백업을 안전하게 보관하세요.','계속','복구 이메일','미확인','설정 안 됨','이메일 전송이 설정되지 않았습니다. 주소를 저장할 수 있지만 아직 인증하거나 계정 복구에 사용할 수 없습니다. 삭제하려면 비워 두세요.','미확인 상태로 저장됨','비밀번호와 인증 코드를 확인하고 다시 시도하세요.','동기화 꺼짐','변경 사항은 이 기기에 저장됩니다. 클라우드 사본은 유지됩니다.','동기화 저장 공간이 가득 참','동기화 끄기','동기화 켜기','동기화 저장 공간','기타 항목','암호화된 동기화 저장 공간은 50GB입니다. 공간이 부족한 항목은 이 기기에 보관되며 나중에 다시 시도합니다. 기기에도 여유 공간이 필요합니다.','확인하려면 DELETE 입력','수정','유효한 6자리 인증 코드를 입력하세요.'],
     'zh-CN': ['要退出所选设备吗？这些设备需要重新登录。','双重验证','已开启','已关闭','设置验证器','关闭双重验证','验证器代码','将此密钥添加到验证器应用，然后输入六位代码。请安全保存密钥备份。','继续','恢复邮箱','未验证','未设置','尚未配置邮件服务。可以保存地址，但暂时无法验证或用于恢复账户。留空即可删除。','已保存，尚未验证','请检查密码和验证码后重试。','同步已关闭','更改保存在此设备上。云端副本会保留。','同步存储空间已满','关闭同步','开启同步','同步存储空间','其他项目','提供50 GB加密同步空间。空间不足的项目保留在此设备上，稍后重试。设备也需要有可用空间。','输入DELETE以确认','编辑','请输入有效的六位验证器代码。'],
     'zh-TW': ['要登出所選裝置嗎？這些裝置需要重新登入。','雙重驗證','已開啟','已關閉','設定驗證器','關閉雙重驗證','驗證器代碼','將此金鑰加入驗證器應用程式，然後輸入六位代碼。請安全保存金鑰備份。','繼續','救援電子郵件','未驗證','未設定','尚未設定郵件服務。可以儲存地址，但暫時無法驗證或用於復原帳戶。留空即可移除。','已儲存，尚未驗證','請檢查密碼與驗證碼後重試。','同步已關閉','變更會儲存在此裝置上。雲端副本會保留。','同步儲存空間已滿','關閉同步','開啟同步','同步儲存空間','其他項目','提供50 GB加密同步空間。空間不足的項目保留在此裝置上，稍後重試。裝置也需要有可用空間。','輸入DELETE以確認','編輯','請輸入有效的六位驗證器代碼。'],
-    ru: ['Выйти на выбранных устройствах? На них потребуется войти снова.','Двухфакторная аутентификация','Включена','Выключена','Настроить аутентификатор','Отключить 2FA','Код аутентификатора','Добавьте этот ключ в приложение-аутентификатор и введите шестизначный код. Сохраните резервную копию ключа в надежном месте.','Продолжить','Резервная почта','Не подтверждена','Не задана','Отправка почты не настроена. Адрес можно сохранить, но пока нельзя подтвердить или использовать для восстановления. Оставьте поле пустым для удаления.','Сохранено без подтверждения','Проверьте пароль и код и повторите попытку.','Синхронизация выключена','Изменения сохраняются на этом устройстве. Облачные копии сохраняются.','Хранилище синхронизации заполнено','Выключить синхронизацию','Включить синхронизацию','Хранилище синхронизации','Другие элементы','50 ГБ зашифрованного хранилища. Не поместившиеся элементы остаются на устройстве; попытка повторится позже. На устройстве тоже должно быть свободное место.','Введите DELETE для подтверждения','Изменить','Введите действительный шестизначный код.'],
     hi: ['चुने गए डिवाइस से साइन आउट करें? उन पर फिर से साइन इन करना होगा।','दो चरणों में पुष्टि','चालू','बंद','प्रमाणक सेट करें','दो चरणों में पुष्टि बंद करें','प्रमाणक कोड','यह कुंजी अपने प्रमाणक ऐप में जोड़ें और छह अंकों का कोड डालें। कुंजी की सुरक्षित बैकअप कॉपी रखें।','जारी रखें','रिकवरी ईमेल','अपुष्ट','सेट नहीं है','ईमेल सेवा अभी सेट नहीं है। पता सहेजा जा सकता है, लेकिन उसकी पुष्टि या खाता वापस पाने के लिए उसका उपयोग अभी नहीं किया जा सकता। हटाने के लिए खाली छोड़ें।','अपुष्ट रूप में सहेजा गया','पासवर्ड और प्रमाणक कोड जाँचकर फिर कोशिश करें।','सिंक बंद है','बदलाव इस डिवाइस पर सहेजे जाते हैं। क्लाउड की कॉपी बनी रहती हैं।','सिंक स्टोरेज भर गया है','सिंक बंद करें','सिंक चालू करें','सिंक स्टोरेज','अन्य आइटम','50 GB एन्क्रिप्ट किया गया सिंक स्टोरेज। जगह न होने पर आइटम इस डिवाइस पर रहेंगे और बाद में फिर कोशिश होगी। डिवाइस पर भी खाली जगह चाहिए।','पुष्टि के लिए DELETE टाइप करें','बदलें','छह अंकों का मान्य प्रमाणक कोड डालें।'],
     ar: ['تسجيل الخروج من الأجهزة المحددة؟ ستحتاج إلى تسجيل الدخول مجددًا.','المصادقة الثنائية','مفعّلة','متوقفة','إعداد تطبيق المصادقة','إيقاف المصادقة الثنائية','رمز المصادقة','أضف هذا المفتاح إلى تطبيق المصادقة ثم أدخل رمزه المكوّن من ستة أرقام. احتفظ بنسخة احتياطية آمنة للمفتاح.','متابعة','بريد الاسترداد','غير موثّق','غير محدد','لم تُعدّ خدمة البريد بعد. يمكنك حفظ عنوان، لكن لا يمكن توثيقه أو استخدامه لاسترداد الحساب حاليًا. اتركه فارغًا لإزالته.','حُفظ دون توثيق','تحقق من كلمة المرور ورمز المصادقة ثم حاول مجددًا.','المزامنة متوقفة','تُحفظ التغييرات على هذا الجهاز وتبقى النسخ السحابية محفوظة.','مساحة المزامنة ممتلئة','إيقاف المزامنة','تشغيل المزامنة','مساحة المزامنة','عناصر أخرى','مساحة مشفّرة بسعة 50 غيغابايت. تبقى العناصر التي لا تتّسع على هذا الجهاز وتُعاد المحاولة لاحقًا. يجب توفر مساحة على الجهاز أيضًا.','اكتب DELETE للتأكيد','تعديل','أدخل رمز مصادقة صالحًا من ستة أرقام.']
   };
   for (const [locale, values] of Object.entries(securityStrings)) securityKeys.forEach((key, index) => { catalog[locale][key] = values[index]; });
-  const mediaStrings = { en: ['Images','Videos','Audio'], 'es-ES': ['Imágenes','Vídeos','Audio'], 'es-419': ['Imágenes','Videos','Audio'], fr: ['Images','Vidéos','Audio'], de: ['Bilder','Videos','Audio'], it: ['Immagini','Video','Audio'], 'pt-BR': ['Imagens','Vídeos','Áudio'], 'pt-PT': ['Imagens','Vídeos','Áudio'], ja: ['画像','動画','音声'], ko: ['이미지','동영상','오디오'], 'zh-CN': ['图片','视频','音频'], 'zh-TW': ['圖片','影片','音訊'], ru: ['Изображения','Видео','Аудио'], hi: ['तस्वीरें','वीडियो','ऑडियो'], ar: ['الصور','الفيديوهات','الصوت'] };
+  const mediaStrings = { en: ['Images','Videos','Audio'], 'es-ES': ['Imágenes','Vídeos','Audio'], 'es-419': ['Imágenes','Videos','Audio'], fr: ['Images','Vidéos','Audio'], de: ['Bilder','Videos','Audio'], it: ['Immagini','Video','Audio'], 'pt-BR': ['Imagens','Vídeos','Áudio'], 'pt-PT': ['Imagens','Vídeos','Áudio'], ko: ['이미지','동영상','오디오'], 'zh-CN': ['图片','视频','音频'], 'zh-TW': ['圖片','影片','音訊'], hi: ['तस्वीरें','वीडियो','ऑडियो'], ar: ['الصور','الفيديوهات','الصوت'] };
   for (const [locale, values] of Object.entries(mediaStrings)) ['itemImages','itemVideos','itemAudio'].forEach((key, index) => { catalog[locale][key] = values[index]; });
   const accountSettingKeys = ["setting_dateStyle", "setting_hourCycle", "setting_timeZone", "setting_maskEmail", "setting_showPictures", "setting_syncHistory", "setting_syncAppearance", "setting_syncSearchSettings", "setting_syncShortcuts", "setting_syncWorkspaces", "setting_syncDocuments", "setting_syncInterval", "setting_syncOnReconnect", "setting_syncInBackground", "setting_syncOnDataSaver", "setting_exportFormatting", "setting_exportHistory", "setting_exportAppearance", "setting_exportShortcuts", "setting_exportEmail", "settingOption_short", "settingOption_medium", "settingOption_long", "settingOption_auto", "settingOption_h12", "settingOption_h23", "settingOption_30000", "settingOption_60000", "settingOption_300000", "settingOption_900000", "settingOption_pretty", "settingOption_compact", "settingsDeviceHelp", "settingsSyncHelp", "settingsExportHelp", "settingsSaveError"];
   const accountSettingStrings = {
@@ -787,11 +693,9 @@
     "it": "Formato della data dell’account|Formato dell’ora dell’account|Fuso orario dell’account|Nascondi parzialmente le email nei menu dell’account|Mostra le foto del profilo nei menu dell’account|Sincronizza cronologia di ricerca|Sincronizza aspetto|Sincronizza impostazioni di ricerca e voce|Sincronizza scorciatoie e preferiti|Sincronizza spazi di lavoro|Sincronizza documenti, fogli di calcolo e contenuti multimediali|Intervallo di sincronizzazione in background|Sincronizza al ritorno della connessione|Consenti sincronizzazione nelle schede in background|Consenti sincronizzazione con risparmio dati|Formattazione del file esportato|Includi cronologia di ricerca nelle esportazioni|Includi aspetto nelle esportazioni|Includi scorciatoie nelle esportazioni|Includi indirizzo email nelle esportazioni|Breve|Medio|Lungo|Automatico|Orologio a 12 ore|Orologio a 24 ore|30 secondi|1 minuto|5 minuti|15 minuti|JSON leggibile|JSON compatto|Queste impostazioni si applicano a questo account in questo browser. I formati di data e ora influenzano le date dell’account.|Scegli cosa sincronizza questo browser per questo account. Disattivare una categoria conserva dati locali e copie nel cloud. La pianificazione riguarda la sincronizzazione automatica; Sincronizza ora resta disponibile.|Scegli cosa includere nell’esportazione da questo browser. Queste scelte non eliminano dati.|Salvataggio dell’impostazione non riuscito. Controlla lo spazio del browser e riprova.",
     "pt-BR": "Formato de data da conta|Formato de hora da conta|Fuso horário da conta|Ocultar parcialmente os e-mails nos menus da conta|Mostrar fotos de perfil nos menus da conta|Sincronizar histórico de busca|Sincronizar aparência|Sincronizar configurações de busca e voz|Sincronizar atalhos e favoritos|Sincronizar espaços de trabalho|Sincronizar documentos, planilhas e mídia|Intervalo de sincronização em segundo plano|Sincronizar quando a conexão voltar|Permitir sincronização em abas em segundo plano|Permitir sincronização com economia de dados|Formatação do arquivo exportado|Incluir histórico de busca nas exportações|Incluir aparência nas exportações|Incluir atalhos nas exportações|Incluir endereço de e-mail nas exportações|Curto|Médio|Longo|Automático|Relógio de 12 horas|Relógio de 24 horas|30 segundos|1 minuto|5 minutos|15 minutos|JSON legível|JSON compacto|Estas configurações se aplicam a esta conta neste navegador. Os formatos de data e hora afetam os horários exibidos na conta.|Escolha o que este navegador sincroniza para esta conta. Desativar uma categoria mantém os dados locais e as cópias na nuvem. A programação se aplica à sincronização automática; Sincronizar agora continua disponível.|Escolha o que incluir ao exportar deste navegador. Estas opções não excluem dados.|Falha ao salvar a configuração. Verifique o armazenamento do navegador e tente novamente.",
     "pt-PT": "Formato de data da conta|Formato de hora da conta|Fuso horário da conta|Ocultar parcialmente os e-mails nos menus da conta|Mostrar fotografias de perfil nos menus da conta|Sincronizar histórico de pesquisa|Sincronizar aparência|Sincronizar ajustes de pesquisa e voz|Sincronizar atalhos e favoritos|Sincronizar espaços de trabalho|Sincronizar documentos, folhas de cálculo e multimédia|Intervalo de sincronização em segundo plano|Sincronizar quando a ligação regressar|Permitir sincronização em separadores em segundo plano|Permitir sincronização com poupança de dados|Formatação do ficheiro exportado|Incluir histórico de pesquisa nas exportações|Incluir aparência nas exportações|Incluir atalhos nas exportações|Incluir endereço de e-mail nas exportações|Curto|Médio|Longo|Automático|Relógio de 12 horas|Relógio de 24 horas|30 segundos|1 minuto|5 minutos|15 minutos|JSON legível|JSON compacto|Estes ajustes aplicam-se a esta conta neste navegador. Os formatos de data e hora afetam as datas e horas da conta.|Escolha o que este navegador sincroniza para esta conta. Desativar uma categoria mantém os dados locais e as cópias na nuvem. A programação aplica-se à sincronização automática; Sincronizar agora continua disponível.|Escolha o que incluir ao exportar deste navegador. Estas opções não eliminam dados.|Falha ao guardar o ajuste. Verifique o armazenamento do navegador e tente novamente.",
-    "ja": "アカウントの日付形式|アカウントの時刻形式|アカウントのタイムゾーン|アカウントメニューのメールアドレスを一部隠す|アカウントメニューにプロフィール写真を表示|検索履歴を同期|外観を同期|検索と音声の設定を同期|ショートカットとお気に入りを同期|ワークスペースを同期|文書、スプレッドシート、メディアを同期|バックグラウンド同期の間隔|接続が回復したときに同期|バックグラウンドのタブで同期を許可|データ節約接続で同期を許可|エクスポートファイルの書式|エクスポートに検索履歴を含める|エクスポートに外観を含める|エクスポートにショートカットを含める|エクスポートにメールアドレスを含める|短い形式|標準形式|長い形式|自動|12時間表示|24時間表示|30秒|1分|5分|15分|読みやすいJSON|コンパクトなJSON|この設定は、このブラウザー内のこのアカウントに適用されます。日付と時刻の形式はアカウントの日時表示に反映されます。|このアカウントで同期するデータを選択します。カテゴリを無効にしても端末とクラウドのデータは保持されます。スケジュールは自動同期に適用され、「今すぐ同期」は引き続き使用できます。|このブラウザーからエクスポートするデータを選択します。データは削除されません。|設定の保存に失敗しました。ブラウザーの空き容量を確認して再試行してください。",
     "ko": "계정 날짜 형식|계정 시간 형식|계정 시간대|계정 메뉴에서 이메일 주소 일부 숨기기|계정 메뉴에 프로필 사진 표시|검색 기록 동기화|모양 동기화|검색 및 음성 설정 동기화|바로가기 및 즐겨찾기 동기화|작업 공간 동기화|문서, 스프레드시트 및 미디어 동기화|백그라운드 동기화 간격|연결 복구 시 동기화|백그라운드 탭에서 동기화 허용|데이터 절약 연결에서 동기화 허용|내보내기 파일 서식|내보내기에 검색 기록 포함|내보내기에 모양 포함|내보내기에 바로가기 포함|내보내기에 이메일 주소 포함|짧게|보통|길게|자동|12시간제|24시간제|30초|1분|5분|15분|읽기 쉬운 JSON|압축 JSON|이 설정은 이 브라우저의 이 계정에 적용됩니다. 날짜 및 시간 형식은 계정의 날짜와 시간 표시에 반영됩니다.|이 계정에서 동기화할 데이터를 선택하세요. 범주를 끄더라도 로컬 데이터와 클라우드 사본은 유지됩니다. 예약은 자동 동기화에 적용되며 지금 동기화는 계속 사용할 수 있습니다.|이 브라우저에서 내보낼 데이터를 선택하세요. 데이터는 삭제되지 않습니다.|설정 저장에 실패했습니다. 브라우저 저장 공간을 확인하고 다시 시도하세요.",
     "zh-CN": "账户日期格式|账户时间格式|账户时区|在账户菜单中部分隐藏邮箱地址|在账户菜单中显示头像|同步搜索历史记录|同步外观|同步搜索和语音设置|同步快捷方式和收藏夹|同步工作区|同步文档、电子表格和媒体|后台同步间隔|连接恢复时同步|允许后台标签页同步|允许在省流量连接下同步|导出文件格式|导出时包含搜索历史记录|导出时包含外观|导出时包含快捷方式|导出时包含邮箱地址|短|中|长|自动|12小时制|24小时制|30秒|1分钟|5分钟|15分钟|易读JSON|紧凑JSON|这些设置适用于此浏览器中的此账户。日期和时间格式会影响账户的时间显示。|选择此账户在此浏览器中同步的数据。关闭类别会保留本地数据和现有云端副本。计划仅用于自动同步，仍可使用立即同步。|选择从此浏览器导出的数据。这些选项不会删除任何数据。|保存设置失败。请检查浏览器存储空间并重试。",
     "zh-TW": "帳戶日期格式|帳戶時間格式|帳戶時區|在帳戶選單中部分隱藏電子郵件地址|在帳戶選單中顯示頭像|同步搜尋記錄|同步外觀|同步搜尋和語音設定|同步捷徑和我的最愛|同步工作區|同步文件、試算表和媒體|背景同步間隔|連線恢復時同步|允許背景分頁同步|允許在節省數據連線下同步|匯出檔案格式|匯出時包含搜尋記錄|匯出時包含外觀|匯出時包含捷徑|匯出時包含電子郵件地址|短|中|長|自動|12小時制|24小時制|30秒|1分鐘|5分鐘|15分鐘|易讀JSON|精簡JSON|這些設定適用於此瀏覽器中的此帳戶。日期和時間格式會影響帳戶的時間顯示。|選擇此帳戶在此瀏覽器中同步的資料。關閉類別會保留本機資料和現有雲端副本。排程僅用於自動同步，仍可使用立即同步。|選擇從此瀏覽器匯出的資料。這些選項不會刪除任何資料。|儲存設定失敗。請檢查瀏覽器儲存空間並重試。",
-    "ru": "Формат даты аккаунта|Формат времени аккаунта|Часовой пояс аккаунта|Частично скрывать адреса почты в меню аккаунта|Показывать фото профиля в меню аккаунта|Синхронизировать историю поиска|Синхронизировать оформление|Синхронизировать настройки поиска и голоса|Синхронизировать ярлыки и избранное|Синхронизировать рабочие пространства|Синхронизировать документы, таблицы и медиа|Интервал фоновой синхронизации|Синхронизировать при восстановлении соединения|Разрешить синхронизацию в фоновых вкладках|Разрешить синхронизацию при экономии трафика|Форматирование файла экспорта|Включать историю поиска в экспорт|Включать оформление в экспорт|Включать ярлыки в экспорт|Включать адрес почты в экспорт|Краткий|Средний|Полный|Автоматически|12-часовой формат|24-часовой формат|30 секунд|1 минута|5 минут|15 минут|Читаемый JSON|Компактный JSON|Эти настройки действуют для этого аккаунта в этом браузере. Форматы даты и времени влияют на отображение времени в аккаунте.|Выберите данные для синхронизации. Отключение категории сохраняет локальные данные и копии в облаке. Расписание действует для автоматической синхронизации; команда синхронизации вручную остаётся доступной.|Выберите данные для экспорта из этого браузера. Эти параметры не удаляют данные.|Не удалось сохранить настройку. Проверьте хранилище браузера и повторите попытку.",
     "hi": "खाते की तारीख का प्रारूप|खाते के समय का प्रारूप|खाते का समय क्षेत्र|खाता मेनू में ईमेल पते आंशिक रूप से छिपाएँ|खाता मेनू में प्रोफ़ाइल फ़ोटो दिखाएँ|खोज इतिहास सिंक करें|दिखावट सिंक करें|खोज और आवाज़ की सेटिंग सिंक करें|शॉर्टकट और पसंदीदा सिंक करें|वर्कस्पेस सिंक करें|दस्तावेज़, स्प्रेडशीट और मीडिया सिंक करें|बैकग्राउंड सिंक का अंतराल|कनेक्शन लौटने पर सिंक करें|बैकग्राउंड टैब में सिंक की अनुमति दें|डेटा बचाने वाले कनेक्शन पर सिंक की अनुमति दें|एक्सपोर्ट फ़ाइल का प्रारूप|एक्सपोर्ट में खोज इतिहास शामिल करें|एक्सपोर्ट में दिखावट शामिल करें|एक्सपोर्ट में शॉर्टकट शामिल करें|एक्सपोर्ट में ईमेल पता शामिल करें|छोटा|मध्यम|लंबा|अपने आप|12 घंटे की घड़ी|24 घंटे की घड़ी|30 सेकंड|1 मिनट|5 मिनट|15 मिनट|पढ़ने योग्य JSON|संक्षिप्त JSON|ये सेटिंग इस ब्राउज़र में इस खाते पर लागू होती हैं। तारीख और समय के प्रारूप खाते में दिखाई देने वाले समय पर लागू होते हैं।|चुनें कि इस खाते के लिए क्या सिंक करना है। श्रेणी बंद करने से स्थानीय डेटा और क्लाउड की प्रतियाँ बनी रहती हैं। समय-सारणी अपने आप सिंक होने पर लागू होती है; अभी सिंक करें उपलब्ध रहता है।|इस ब्राउज़र से एक्सपोर्ट में शामिल होने वाला डेटा चुनें। इन विकल्पों से डेटा नहीं मिटता।|सेटिंग सहेजी नहीं जा सकी। ब्राउज़र का स्टोरेज जाँचें और फिर कोशिश करें।",
     "ar": "تنسيق تاريخ الحساب|تنسيق وقت الحساب|المنطقة الزمنية للحساب|إخفاء عناوين البريد جزئيًا في قوائم الحساب|إظهار صور الملف الشخصي في قوائم الحساب|مزامنة سجل البحث|مزامنة المظهر|مزامنة إعدادات البحث والصوت|مزامنة الاختصارات والمفضلة|مزامنة مساحات العمل|مزامنة المستندات وجداول البيانات والوسائط|الفاصل الزمني للمزامنة في الخلفية|المزامنة عند عودة الاتصال|السماح بالمزامنة في علامات التبويب الخلفية|السماح بالمزامنة مع توفير البيانات|تنسيق ملف التصدير|تضمين سجل البحث في التصدير|تضمين المظهر في التصدير|تضمين الاختصارات في التصدير|تضمين عنوان البريد في التصدير|قصير|متوسط|طويل|تلقائي|نظام 12 ساعة|نظام 24 ساعة|30 ثانية|دقيقة واحدة|5 دقائق|15 دقيقة|JSON سهل القراءة|JSON مضغوط|تنطبق هذه الإعدادات على هذا الحساب في هذا المتصفح. تؤثر تنسيقات التاريخ والوقت على عرض أوقات الحساب.|اختر ما يزامنه هذا المتصفح لهذا الحساب. يحتفظ تعطيل الفئة بالبيانات المحلية والنسخ السحابية. تنطبق الجدولة على المزامنة التلقائية؛ وتظل المزامنة الآن متاحة.|اختر ما تريد تضمينه عند التصدير من هذا المتصفح. لا تحذف هذه الخيارات أي بيانات.|فشل حفظ الإعداد. تحقق من مساحة تخزين المتصفح وحاول مجددًا."
 };
@@ -808,11 +712,9 @@
     it: ['Accesso con Google utilizzato', 'Collega Google', 'Scollega'],
     'pt-BR': ['Você entrou com o Google', 'Conectar Google', 'Desconectar'],
     'pt-PT': ['Iniciaste sessão com o Google', 'Associar Google', 'Desassociar'],
-    ja: ['Google でログイン済み', 'Google を連携', '連携を解除'],
     ko: ['Google로 로그인함', 'Google 연결', '연결 해제'],
     'zh-CN': ['曾使用 Google 登录', '关联 Google', '解除关联'],
     'zh-TW': ['曾使用 Google 登入', '連結 Google', '解除連結'],
-    ru: ['Использован вход через Google', 'Подключить Google', 'Отключить'],
     hi: ['Google से साइन इन किया गया', 'Google कनेक्ट करें', 'डिसकनेक्ट करें'],
     ar: ['تم تسجيل الدخول باستخدام Google', 'ربط Google', 'إلغاء الربط'],
   };
@@ -829,11 +731,9 @@
     it: 'Cambia indirizzo email|Impostazioni email salvate.|Questo indirizzo email è già in uso.|Codice di verifica via email|Cerca il codice di verifica nella posta in arrivo.|Il codice non è valido o è scaduto.|L’invio di email non è disponibile. Riprova più tardi.|Verificato|Usa un indirizzo email esterno per recuperare il tuo indirizzo di accesso. Lascia il campo vuoto per rimuoverlo.|Email dimenticata?|Inserisci il tuo indirizzo email di recupero.|Se questo indirizzo è verificato, ti invieremo lì il tuo indirizzo di accesso.',
     'pt-BR': 'Alterar endereço de e-mail|Configurações de e-mail salvas.|Este endereço de e-mail já está em uso.|Código de verificação por e-mail|Confira o código de verificação na sua caixa de entrada.|O código é inválido ou expirou.|O envio de e-mails está indisponível. Tente mais tarde.|Verificado|Use um e-mail externo para recuperar seu endereço de acesso. Deixe em branco para removê-lo.|Esqueceu seu e-mail?|Digite seu endereço de e-mail de recuperação.|Se esse endereço estiver verificado, enviaremos seu e-mail de acesso para ele.',
     'pt-PT': 'Alterar endereço de e-mail|Ajustes de e-mail guardadas.|Este endereço de e-mail já está a ser utilizado.|Código de verificação por e-mail|Procura o código de verificação na tua caixa de entrada.|O código é inválido ou expirou.|O envio de e-mails está indisponível. Tenta novamente mais tarde.|Verificado|Usa um e-mail externo para recuperar o endereço de início de sessão. Deixa o campo vazio para o removeres.|Esqueceste-te do teu e-mail?|Introduz o teu endereço de e-mail de recuperação.|Se este endereço estiver verificado, enviaremos para lá o endereço de início de sessão.',
-    ja: 'メールアドレスを変更|メール設定を保存しました。|このメールアドレスは使用されています。|メール確認コード|受信トレイで確認コードを確認してください。|コードが無効か期限切れです。|メールを送信できません。時間をおいてお試しください。|確認済み|ログイン用メールアドレスを確認できるように、外部のメールアドレスを登録してください。削除する場合は空欄にしてください。|メールアドレスをお忘れですか？|再設定用メールアドレスを入力してください。|確認済みのアドレスなら、ログイン用メールアドレスをそこに送信します。',
     ko: '이메일 주소 변경|이메일 설정을 저장했습니다.|이미 사용 중인 이메일 주소입니다.|이메일 인증 코드|받은편지함에서 인증 코드를 확인하세요.|코드가 잘못되었거나 만료되었습니다.|이메일을 보낼 수 없습니다. 나중에 다시 시도하세요.|인증됨|외부 이메일 주소를 사용해 로그인 이메일을 찾을 수 있습니다. 삭제하려면 비워 두세요.|이메일을 잊으셨나요?|복구 이메일 주소를 입력하세요.|인증된 복구 주소라면 해당 주소로 로그인 이메일을 보내 드립니다.',
     'zh-CN': '更改电子邮件地址|电子邮件设置已保存。|此电子邮件地址已被使用。|电子邮件验证码|请在收件箱中查找验证码。|验证码无效或已过期。|无法发送邮件，请稍后重试。|已验证|使用外部邮箱找回登录邮箱。留空即可移除。|忘记登录邮箱？|请输入恢复邮箱地址。|如果该地址已验证，我们会向它发送您的登录邮箱。',
     'zh-TW': '變更電子郵件地址|電子郵件設定已儲存。|此電子郵件地址已被使用。|電子郵件驗證碼|請在收件匣中查看驗證碼。|驗證碼無效或已過期。|目前無法傳送郵件，請稍後再試。|已驗證|使用外部信箱找回登入信箱。留空即可移除。|忘記登入信箱？|請輸入備援電子郵件地址。|如果此地址已驗證，我們會將登入地址寄到該信箱。',
-    ru: 'Изменить адрес электронной почты|Настройки почты сохранены.|Этот адрес уже занят.|Код подтверждения из письма|Найдите код подтверждения во входящих.|Код недействителен или просрочен.|Отправка писем недоступна. Попробуйте позже.|Подтверждён|Укажите внешний адрес для восстановления адреса входа. Оставьте поле пустым, чтобы удалить его.|Забыли адрес почты?|Введите резервный адрес электронной почты.|Если адрес подтверждён, мы отправим на него ваш адрес для входа.',
     hi: 'ईमेल पता बदलें|ईमेल सेटिंग सेव हो गई हैं।|यह ईमेल पता पहले से इस्तेमाल हो रहा है।|ईमेल सत्यापन कोड|सत्यापन कोड के लिए अपना इनबॉक्स देखें।|कोड अमान्य है या उसकी समय-सीमा समाप्त हो गई है।|ईमेल नहीं भेजा जा सका। बाद में फिर कोशिश करें।|सत्यापित|साइन इन का ईमेल वापस पाने के लिए बाहरी ईमेल पता इस्तेमाल करें। हटाने के लिए खाली छोड़ें।|ईमेल भूल गए?|अपना रिकवरी ईमेल पता डालें।|अगर यह सत्यापित रिकवरी पता है, तो हम आपका साइन इन ईमेल वहाँ भेजेंगे।',
     ar: 'تغيير عنوان البريد الإلكتروني|تم حفظ إعدادات البريد الإلكتروني.|عنوان البريد الإلكتروني هذا مستخدم بالفعل.|رمز التحقق من البريد الإلكتروني|تحقق من صندوق الوارد للعثور على رمز التحقق.|الرمز غير صالح أو انتهت صلاحيته.|إرسال البريد غير متاح. حاول مرة أخرى لاحقًا.|تم التحقق|استخدم عنوانًا خارجيًا لاسترداد بريد تسجيل الدخول. اتركه فارغًا لإزالته.|هل نسيت بريدك الإلكتروني؟|أدخل عنوان البريد الإلكتروني المخصص للاسترداد.|إذا كان عنوان الاسترداد مؤكدًا، فسنرسل إليه عنوان بريد تسجيل الدخول.',
   };
@@ -850,11 +750,9 @@
     it: ['La sessione è terminata', 'Rimani qui', 'Sincronizzazione in pausa', 'Impossibile caricare i documenti OmniWrite salvati nel cloud. Controlla la connessione e riprova.'],
     'pt-BR': ['Sua sessão foi encerrada', 'Ficar aqui', 'Sincronização pausada', 'Não foi possível carregar os documentos do OmniWrite salvos na nuvem. Confira sua conexão e tente novamente.'],
     'pt-PT': ['A tua sessão foi terminada', 'Ficar aqui', 'Sincronização em pausa', 'Não foi possível carregar os documentos do OmniWrite guardados na nuvem. Verifica a ligação e tenta novamente.'],
-    ja: ['ログアウトされました', 'このまま続ける', '同期を一時停止しました', 'クラウドに保存した OmniWrite ドキュメントを読み込めませんでした。接続を確認してからもう一度お試しください。'],
     ko: ['로그아웃되었습니다', '여기에 머무르기', '동기화 일시중지', '클라우드에 저장된 OmniWrite 문서를 불러올 수 없습니다. 연결을 확인한 후 다시 시도하세요.'],
     'zh-CN': ['你已退出登录', '留在此处', '同步已暂停', '无法加载保存在云端的 OmniWrite 文档。请检查网络连接后重试。'],
     'zh-TW': ['你已登出', '留在此處', '同步已暫停', '無法載入儲存在雲端的 OmniWrite 文件。請檢查網路連線後再試一次。'],
-    ru: ['Вы вышли из аккаунта', 'Остаться здесь', 'Синхронизация приостановлена', 'Не удалось загрузить документы OmniWrite из облака. Проверьте подключение и попробуйте снова.'],
     hi: ['आप साइन आउट हो गए हैं', 'यहीं रहें', 'सिंक रुका हुआ है', 'क्लाउड में सेव किए गए OmniWrite दस्तावेज़ लोड नहीं हो सके। अपना कनेक्शन जाँचें और फिर कोशिश करें।'],
     ar: ['تم تسجيل خروجك', 'البقاء هنا', 'تم إيقاف المزامنة مؤقتًا', 'تعذّر تحميل مستندات OmniWrite المحفوظة في السحابة. تحقّق من الاتصال وحاول مرة أخرى.'],
   };
@@ -871,11 +769,9 @@
     "it": ["Scansiona il codice QR con l’app di autenticazione.","Oppure inserisci questa chiave di configurazione","Codice 2FA o di recupero","Codici di recupero","Genera nuovi codici","Scarica i codici di recupero","Conserva questi codici in un luogo sicuro. Ogni codice si usa una sola volta.","I nuovi codici invalidano quelli precedenti."],
     "pt-BR": ["Escaneie o código QR com seu app autenticador.","Ou insira esta chave de configuração","Código 2FA ou de recuperação","Códigos de recuperação","Gerar novos códigos","Baixar códigos de recuperação","Guarde os códigos em um local seguro. Cada código pode ser usado uma vez.","Gerar novos códigos invalida os anteriores."],
     "pt-PT": ["Digitaliza o código QR com a tua aplicação de autenticação.","Ou introduz esta chave de configuração","Código 2FA ou de recuperação","Códigos de recuperação","Gerar novos códigos","Descarregar códigos de recuperação","Guarda os códigos num local seguro. Cada código só pode ser usado uma vez.","Gerar novos códigos invalida os anteriores."],
-    "ja": ["認証アプリでQRコードを読み取ってください。","またはセットアップキーを入力","2FAコードまたはリカバリーコード","リカバリーコード","新しいコードを発行","リカバリーコードをダウンロード","コードは安全な場所に保管してください。各コードは一度だけ使用できます。","新しいコードを発行すると以前のコードは無効になります。"],
     "ko": ["인증 앱으로 QR 코드를 스캔하세요.","또는 이 설정 키를 입력하세요","2FA 코드 또는 복구 코드","복구 코드","새 코드 생성","복구 코드 다운로드","코드를 안전한 곳에 보관하세요. 각 코드는 한 번만 사용할 수 있습니다.","새 코드를 생성하면 이전 코드가 무효화됩니다."],
     "zh-CN": ["用身份验证应用扫描二维码。","或输入此设置密钥","双重验证代码或恢复代码","恢复代码","生成新代码","下载恢复代码","请妥善保存。每个代码只能使用一次。","生成新代码会使旧代码失效。"],
     "zh-TW": ["用驗證應用程式掃描 QR 碼。","或輸入此設定金鑰","雙重驗證代碼或復原代碼","復原代碼","產生新代碼","下載復原代碼","請妥善保存。每個代碼只能使用一次。","產生新代碼會使舊代碼失效。"],
-    "ru": ["Отсканируйте QR-код в приложении-аутентификаторе.","Или введите ключ настройки","Код 2FA или код восстановления","Коды восстановления","Создать новые коды","Скачать коды восстановления","Храните коды в безопасном месте. Каждый код действует один раз.","При создании новых кодов прежние станут недействительными."],
     "hi": ["अपने ऑथेंटिकेटर ऐप से QR कोड स्कैन करें।","या यह सेटअप कुंजी डालें","2FA कोड या रिकवरी कोड","रिकवरी कोड","नए कोड बनाएँ","रिकवरी कोड डाउनलोड करें","कोड सुरक्षित जगह रखें। हर कोड एक बार इस्तेमाल किया जा सकता है।","नए कोड बनाने से पुराने कोड अमान्य हो जाएँगे।"],
     "ar": ["امسح رمز QR باستخدام تطبيق المصادقة.","أو أدخل مفتاح الإعداد هذا","رمز المصادقة الثنائية أو رمز الاسترداد","رموز الاسترداد","إنشاء رموز جديدة","تنزيل رموز الاسترداد","احفظ الرموز في مكان آمن. يُستخدم كل رمز مرة واحدة.","إنشاء رموز جديدة يُبطل الرموز السابقة."],
   };
@@ -893,14 +789,336 @@
     "it": ["Compleanno (facoltativo)", "Mostrato il giorno del tuo compleanno in Munetios Calendar", "Scegli una data", "Rimuovi compleanno", "Scegli una data di compleanno valida.", "Profilo salvato", "Mese precedente", "Mese successivo", "Oggi"],
     "pt-BR": ["Aniversário (opcional)", "Mostrado no dia do seu aniversário no Munetios Calendar", "Escolha uma data", "Remover aniversário", "Escolha uma data de aniversário válida.", "Perfil salvo", "Mês anterior", "Próximo mês", "Hoje"],
     "pt-PT": ["Aniversário (opcional)", "Apresentado no dia do seu aniversário no Munetios Calendar", "Escolha uma data", "Remover aniversário", "Escolha uma data de aniversário válida.", "Perfil guardado", "Mês anterior", "Mês seguinte", "Hoje"],
-    "ja": ["誕生日（任意）", "Munetios Calendar の誕生日に表示されます", "日付を選択", "誕生日を削除", "有効な誕生日を選択してください。", "プロフィールを保存しました", "前の月", "次の月", "今日"],
     "ko": ["생일(선택 사항)", "Munetios Calendar의 생일 날짜에 표시됩니다", "날짜 선택", "생일 삭제", "올바른 생일을 선택하세요.", "프로필을 저장했습니다", "이전 달", "다음 달", "오늘"],
     "zh-CN": ["生日（可选）", "将在 Munetios Calendar 中你的生日当天显示", "选择日期", "移除生日", "请选择有效的生日。", "个人资料已保存", "上个月", "下个月", "今天"],
     "zh-TW": ["生日（選填）", "將在 Munetios Calendar 中你的生日當天顯示", "選擇日期", "移除生日", "請選擇有效的生日。", "個人資料已儲存", "上個月", "下個月", "今天"],
-    "ru": ["День рождения (необязательно)", "Отображается в ваш день рождения в Munetios Calendar", "Выберите дату", "Удалить день рождения", "Выберите правильную дату рождения.", "Профиль сохранён", "Предыдущий месяц", "Следующий месяц", "Сегодня"],
     "hi": ["जन्मदिन (वैकल्पिक)", "Munetios Calendar में आपके जन्मदिन पर दिखाया जाता है", "तारीख चुनें", "जन्मदिन हटाएँ", "मान्य जन्मदिन चुनें।", "प्रोफ़ाइल सेव हो गई", "पिछला महीना", "अगला महीना", "आज"],
     "ar": ["تاريخ الميلاد (اختياري)", "يظهر في يوم ميلادك في Munetios Calendar", "اختر تاريخًا", "إزالة تاريخ الميلاد", "اختر تاريخ ميلاد صالحًا.", "تم حفظ الملف الشخصي", "الشهر السابق", "الشهر التالي", "اليوم"],
   };
   for (const [locale, values] of Object.entries(birthdayStrings)) birthdayKeys.forEach((key, index) => { catalog[locale][key] = values[index]; });
-  window.MunetiosAccountStrings = { catalog, resolveLocale, locales: Object.keys(catalog) };
+  // Invalid session (still shown as signed in) and the Sign out confirmation.
+  const sessionInvalidKeys = ["sessionSignedOutBody", "sessionSignInToSync", "signOutConfirmTitle", "signOutConfirmBody", "signingOut"];
+  const sessionInvalidStrings = {
+    "en": ["Your session on this device is no longer valid. This can happen when you sign out from another device, change your password, or remove this device from your account. You can keep working: your changes are saved on this device, but they won't sync, and Account settings can't be loaded or changed until you sign in again.", "Sign in again to sync your changes.", "Sign out?", "Your latest changes will sync first. Your data stays on this device, but new changes won't sync until you sign in again.", "Signing out of this account. Please wait…"],
+    "es-ES": ["Tu sesión en este dispositivo ya no es válida. Esto puede ocurrir si cierras sesión desde otro dispositivo, cambias la contraseña o quitas este dispositivo de tu cuenta. Puedes seguir trabajando: tus cambios se guardan en este dispositivo, pero no se sincronizarán y no se podrá cargar ni cambiar la Configuración de la cuenta hasta que vuelvas a iniciar sesión.", "Vuelve a iniciar sesión para sincronizar tus cambios.", "¿Cerrar sesión?", "Primero se sincronizarán tus últimos cambios. Tus datos se quedan en este dispositivo, pero los cambios nuevos no se sincronizarán hasta que vuelvas a iniciar sesión.", "Cerrando sesión en esta cuenta. Espera…"],
+    "es-419": ["Tu sesión en este dispositivo ya no es válida. Esto puede pasar si cierras sesión desde otro dispositivo, cambias la contraseña o quitas este dispositivo de tu cuenta. Puedes seguir trabajando: tus cambios se guardan en este dispositivo, pero no se sincronizarán y no se podrá cargar ni cambiar la Configuración de la cuenta hasta que vuelvas a iniciar sesión.", "Vuelve a iniciar sesión para sincronizar tus cambios.", "¿Cerrar sesión?", "Primero se sincronizarán tus últimos cambios. Tus datos se quedan en este dispositivo, pero los cambios nuevos no se sincronizarán hasta que vuelvas a iniciar sesión.", "Cerrando sesión en esta cuenta. Espera…"],
+    "fr": ["Votre session sur cet appareil n’est plus valide. Cela peut arriver si vous vous êtes déconnecté depuis un autre appareil, avez changé votre mot de passe ou avez retiré cet appareil de votre compte. Vous pouvez continuer à travailler : vos modifications sont enregistrées sur cet appareil, mais elles ne seront pas synchronisées, et les paramètres du compte ne pourront pas être chargés ni modifiés tant que vous ne vous serez pas reconnecté.", "Reconnectez-vous pour synchroniser vos modifications.", "Se déconnecter ?", "Vos dernières modifications seront d’abord synchronisées. Vos données restent sur cet appareil, mais les nouvelles modifications ne seront pas synchronisées tant que vous ne vous serez pas reconnecté.", "Déconnexion de ce compte. Veuillez patienter…"],
+    "de": ["Deine Sitzung auf diesem Gerät ist nicht mehr gültig. Das passiert, wenn du dich auf einem anderen Gerät abmeldest, dein Passwort änderst oder dieses Gerät aus deinem Konto entfernst. Du kannst weiterarbeiten: Deine Änderungen werden auf diesem Gerät gespeichert, aber nicht synchronisiert, und die Kontoeinstellungen können erst nach erneuter Anmeldung geladen oder geändert werden.", "Melde dich erneut an, um deine Änderungen zu synchronisieren.", "Abmelden?", "Deine letzten Änderungen werden zuerst synchronisiert. Deine Daten bleiben auf diesem Gerät, aber neue Änderungen werden erst nach erneuter Anmeldung synchronisiert.", "Abmeldung von diesem Konto. Bitte warten…"],
+    "it": ["La sessione su questo dispositivo non è più valida. Può succedere se esci da un altro dispositivo, cambi la password o rimuovi questo dispositivo dall’account. Puoi continuare a lavorare: le modifiche vengono salvate su questo dispositivo, ma non verranno sincronizzate e le impostazioni dell’account non potranno essere caricate o modificate finché non accedi di nuovo.", "Accedi di nuovo per sincronizzare le modifiche.", "Uscire?", "Le ultime modifiche verranno sincronizzate prima. I dati restano su questo dispositivo, ma le nuove modifiche non verranno sincronizzate finché non accedi di nuovo.", "Uscita da questo account. Attendi…"],
+    "pt-BR": ["Sua sessão neste dispositivo não é mais válida. Isso pode acontecer quando você sai da conta em outro dispositivo, muda a senha ou remove este dispositivo da sua conta. Você pode continuar trabalhando: suas alterações ficam salvas neste dispositivo, mas não serão sincronizadas, e as configurações da conta não poderão ser carregadas nem alteradas até você entrar de novo.", "Entre de novo para sincronizar suas alterações.", "Sair da conta?", "Suas alterações mais recentes serão sincronizadas primeiro. Seus dados ficam neste dispositivo, mas as novas alterações não serão sincronizadas até você entrar de novo.", "Saindo desta conta. Aguarde…"],
+    "pt-PT": ["A tua sessão neste dispositivo já não é válida. Isto pode acontecer quando terminas sessão noutro dispositivo, alteras a palavra-passe ou removes este dispositivo da tua conta. Podes continuar a trabalhar: as tuas alterações ficam guardadas neste dispositivo, mas não serão sincronizadas, e os ajustes da conta não poderão ser carregadas nem alteradas até iniciares sessão novamente.", "Inicia sessão novamente para sincronizar as tuas alterações.", "Terminar sessão?", "As tuas alterações mais recentes serão sincronizadas primeiro. Os teus dados ficam neste dispositivo, mas as novas alterações não serão sincronizadas até iniciares sessão novamente.", "A terminar sessão nesta conta. Aguarda…"],
+    "ko": ["이 기기의 세션이 더 이상 유효하지 않습니다. 다른 기기에서 로그아웃했거나, 비밀번호를 변경했거나, 계정에서 이 기기를 삭제한 경우 발생할 수 있습니다. 계속 작업할 수 있습니다. 변경사항은 이 기기에 저장되지만 동기화되지 않으며, 다시 로그인할 때까지 계정 설정을 불러오거나 변경할 수 없습니다.", "변경사항을 동기화하려면 다시 로그인하세요.", "로그아웃하시겠습니까?", "최근 변경사항을 먼저 동기화합니다. 데이터는 이 기기에 남지만, 다시 로그인할 때까지 새 변경사항은 동기화되지 않습니다.", "이 계정에서 로그아웃하는 중입니다. 잠시 기다려 주세요…"],
+    "zh-CN": ["你在此设备上的会话已失效。如果你在其他设备上退出登录、更改了密码，或从账号中移除了此设备，就可能出现这种情况。你可以继续使用：更改会保存在此设备上，但不会同步；在重新登录前，也无法加载或更改账号设置。", "重新登录以同步你的更改。", "要退出登录吗？", "系统会先同步你最近的更改。数据会保留在此设备上，但在你重新登录前，新的更改不会同步。", "正在退出此账号，请稍候…"],
+    "zh-TW": ["你在此裝置上的工作階段已失效。如果你在其他裝置上登出、變更了密碼，或從帳戶中移除了此裝置，就可能發生這種情況。你可以繼續使用：變更會儲存在此裝置上，但不會同步；在重新登入前，也無法載入或變更帳戶設定。", "重新登入以同步你的變更。", "要登出嗎？", "系統會先同步你最近的變更。資料會保留在此裝置上，但在你重新登入前，新的變更不會同步。", "正在登出此帳戶，請稍候…"],
+    "hi": ["इस डिवाइस पर आपका सेशन अब मान्य नहीं है। ऐसा तब हो सकता है जब आप किसी दूसरे डिवाइस से साइन आउट करें, अपना पासवर्ड बदलें, या इस डिवाइस को अपने खाते से हटा दें। आप काम जारी रख सकते हैं: आपके बदलाव इस डिवाइस पर सेव रहते हैं, लेकिन सिंक नहीं होंगे, और दोबारा साइन इन करने तक खाता सेटिंग्स लोड या बदली नहीं जा सकेंगी।", "अपने बदलाव सिंक करने के लिए फिर से साइन इन करें।", "साइन आउट करें?", "आपके नए बदलाव पहले सिंक होंगे। आपका डेटा इस डिवाइस पर रहेगा, लेकिन दोबारा साइन इन करने तक नए बदलाव सिंक नहीं होंगे।", "इस खाते से साइन आउट हो रहा है। कृपया प्रतीक्षा करें…"],
+    "ar": ["لم تعد جلستك على هذا الجهاز صالحة. قد يحدث ذلك عند تسجيل الخروج من جهاز آخر أو تغيير كلمة المرور أو إزالة هذا الجهاز من حسابك. يمكنك مواصلة العمل: تُحفظ تغييراتك على هذا الجهاز، لكنها لن تتم مزامنتها، ولن يمكن تحميل إعدادات الحساب أو تغييرها حتى تسجّل الدخول مرة أخرى.", "سجّل الدخول مرة أخرى لمزامنة تغييراتك.", "هل تريد تسجيل الخروج؟", "ستتم مزامنة أحدث تغييراتك أولًا. تبقى بياناتك على هذا الجهاز، لكن التغييرات الجديدة لن تتم مزامنتها حتى تسجّل الدخول مرة أخرى.", "جارٍ تسجيل الخروج من هذا الحساب. يُرجى الانتظار…"],
+  };
+  for (const [locale, values] of Object.entries(sessionInvalidStrings)) sessionInvalidKeys.forEach((key, index) => { catalog[locale][key] = values[index]; });
+  // "<change done>. It's saved on this device, but it couldn't sync." Apps pass their own UI language,
+  // so this covers every language the apps offer, not only the 15 account locales.
+  const notSyncedPatterns = {
+    en: "{message}. It's saved on this device, but it couldn't sync.",
+    "en-GB": "{message}. It's saved on this device, but it could not sync.",
+    co: "{message}. Hè salvatu nant’à stu apparechju, ma ùn s’hè micca pussutu sincronizà.",
+    "es-ES": "{message}. Se ha guardado en este dispositivo, pero no se ha podido sincronizar.",
+    "es-419": "{message}. Se guardó en este dispositivo, pero no se pudo sincronizar.",
+    fr: "{message}. C’est enregistré sur cet appareil, mais la synchronisation a échoué.",
+    de: "{message}. Auf diesem Gerät gespeichert, konnte aber nicht synchronisiert werden.",
+    it: "{message}. È salvato su questo dispositivo, ma non è stato possibile sincronizzarlo.",
+    "pt-BR": "{message}. Foi salvo neste dispositivo, mas não foi possível sincronizar.",
+    "pt-PT": "{message}. Foi guardado neste dispositivo, mas não foi possível sincronizar.",
+    ja: "{message}。このデバイスに保存されましたが、同期できませんでした。",
+    ko: "{message}. 이 기기에 저장되었지만 동기화하지 못했습니다.",
+    "zh-CN": "{message}。已保存在此设备上，但无法同步。",
+    "zh-TW": "{message}。已儲存在此裝置上，但無法同步。",
+    ru: "{message}. Сохранено на этом устройстве, но синхронизировать не удалось.",
+    hi: "{message}। यह इस डिवाइस पर सेव है, लेकिन सिंक नहीं हो सका।",
+    ar: "{message}. تم الحفظ على هذا الجهاز، لكن تعذّرت المزامنة.",
+    af: "{message}. Dit is op hierdie toestel gestoor, maar kon nie sinkroniseer nie.",
+    bg: "{message}. Запазено е на това устройство, но не можа да се синхронизира.",
+    bn: "{message}। এটি এই ডিভাইসে সেভ করা হয়েছে, কিন্তু সিঙ্ক করা যায়নি।",
+    ca: "{message}. S’ha desat en aquest dispositiu, però no s’ha pogut sincronitzar.",
+    cs: "{message}. Uloženo v tomto zařízení, ale synchronizace se nezdařila.",
+    da: "{message}. Det er gemt på denne enhed, men kunne ikke synkroniseres.",
+    el: "{message}. Αποθηκεύτηκε σε αυτήν τη συσκευή, αλλά δεν ήταν δυνατός ο συγχρονισμός.",
+    et: "{message}. See on salvestatud selles seadmes, kuid sünkroonimine ebaõnnestus.",
+    fa: "{message}. در این دستگاه ذخیره شد، اما همگام‌سازی نشد.",
+    fi: "{message}. Tallennettu tälle laitteelle, mutta synkronointi epäonnistui.",
+    he: "{message}. נשמר במכשיר הזה, אבל לא ניתן היה לסנכרן.",
+    hr: "{message}. Spremljeno je na ovom uređaju, ali sinkronizacija nije uspjela.",
+    hu: "{message}. Mentve ezen az eszközön, de nem sikerült szinkronizálni.",
+    id: "{message}. Tersimpan di perangkat ini, tetapi tidak dapat disinkronkan.",
+    lt: "{message}. Išsaugota šiame įrenginyje, bet nepavyko sinchronizuoti.",
+    lv: "{message}. Saglabāts šajā ierīcē, taču to neizdevās sinhronizēt.",
+    mr: "{message}. हे या डिव्हाइसवर सेव्ह झाले आहे, पण सिंक होऊ शकले नाही.",
+    ms: "{message}. Disimpan pada peranti ini, tetapi tidak dapat disegerakkan.",
+    nl: "{message}. Opgeslagen op dit apparaat, maar synchroniseren is mislukt.",
+    no: "{message}. Lagret på denne enheten, men kunne ikke synkroniseres.",
+    pa: "{message}। ਇਹ ਇਸ ਡਿਵਾਈਸ 'ਤੇ ਸੇਵ ਹੈ, ਪਰ ਸਿੰਕ ਨਹੀਂ ਹੋ ਸਕਿਆ।",
+    pl: "{message}. Zapisano na tym urządzeniu, ale nie udało się zsynchronizować.",
+    ro: "{message}. S-a salvat pe acest dispozitiv, dar nu s-a putut sincroniza.",
+    sk: "{message}. Uložené v tomto zariadení, ale synchronizácia zlyhala.",
+    sl: "{message}. Shranjeno v tej napravi, vendar sinhronizacija ni uspela.",
+    sr: "{message}. Сачувано је на овом уређају, али синхронизација није успела.",
+    sv: "{message}. Sparat på den här enheten, men kunde inte synkroniseras.",
+    sw: "{message}. Imehifadhiwa kwenye kifaa hiki, lakini haikuweza kusawazishwa.",
+    ta: "{message}. இந்தச் சாதனத்தில் சேமிக்கப்பட்டது, ஆனால் ஒத்திசைக்க முடியவில்லை.",
+    te: "{message}. ఇది ఈ పరికరంలో సేవ్ అయింది, కానీ సింక్ కాలేదు.",
+    th: "{message} บันทึกไว้ในอุปกรณ์นี้แล้ว แต่ซิงค์ไม่ได้",
+    tr: "{message}. Bu cihaza kaydedildi ancak senkronize edilemedi.",
+    uk: "{message}. Збережено на цьому пристрої, але синхронізувати не вдалося.",
+    ur: "{message}۔ یہ اس ڈیوائس پر محفوظ ہے، لیکن سنک نہیں ہو سکا۔",
+    vi: "{message}. Đã lưu trên thiết bị này nhưng không thể đồng bộ hóa.",
+  };
+  function notSyncedPattern(value) {
+    const code = String(value || "en").replaceAll("_", "-");
+    if (notSyncedPatterns[code]) return notSyncedPatterns[code];
+    const lower = code.toLowerCase();
+    const base = lower.split("-")[0];
+    if (base === "es") return notSyncedPatterns[lower === "es-es" ? "es-ES" : "es-419"];
+    if (base === "pt") return notSyncedPatterns[lower === "pt-pt" ? "pt-PT" : "pt-BR"];
+    if (base === "zh") return notSyncedPatterns[/tw|hk|mo|hant/.test(lower) ? "zh-TW" : "zh-CN"];
+    if (base === "nb" || base === "nn") return notSyncedPatterns.no;
+    if (base === "iw") return notSyncedPatterns.he;
+    if (base === "en" && /^en-(gb|au|nz|ie|za|in)$/.test(lower)) return notSyncedPatterns["en-GB"];
+    return notSyncedPatterns[base] || notSyncedPatterns.en;
+  }
+  // en-GB: "Could not …" and British spelling.
+  const britishWords = [["Couldn't", "Could not"], ["couldn't", "could not"], ["Couldn’t", "Could not"], ["couldn’t", "could not"], ["Favorites", "Favourites"], ["favorites", "favourites"], ["Color", "Colour"], ["color", "colour"], ["Organize", "Organise"], ["organize", "organise"]];
+  const toBritish = text => britishWords.reduce((out, [us, gb]) => out.replace(new RegExp(`(?<![\\p{L}])${us}(?![\\p{L}])`, "gu"), gb), String(text));
+  catalog["en-GB"] = Object.fromEntries(Object.entries(en).map(([key, value]) => [key, toBritish(value)]));
+  // es-US follows Latin American wording (Configuración, Principal).
+  catalog["es-US"] = { ...es };
+  // fr-CA: "courriel" instead of "e-mail".
+  const toCanadianFrench = text => String(text).replace(/d’e-mails/g, "de courriels").replace(/e-mails/g, "courriels").replace(/e-mail/g, "courriel");
+  catalog["fr-CA"] = Object.fromEntries(Object.entries(fr).map(([key, value]) => [key, toCanadianFrench(value)]));
+  catalog.co = {
+    "accountMenu": "Listinu di u contu",
+    "signIn": "Cunnettesi",
+    "synced": "Sincrunizatu",
+    "e2e": "Cifratu da una estremità à l’altra",
+    "syncing": "Sincrunizazione…",
+    "syncFailed": "Ùn s’hè micca pussutu sincrunizà. Arregistratu nant’à st’apparechju invece",
+    "syncLocked": "A sincrunizazione hè in pausa nant’à st’apparechju",
+    "unlockSync": "Attivà a sincrunizazione",
+    "workspaces": "Spazii di travagliu",
+    "personal": "Persunale",
+    "switchAccounts": "Cambià di contu",
+    "noOtherAccounts": "Nisun altru contu hè cunnessu",
+    "addAccount": "Aghjunghje un contu",
+    "accountSettings": "Parametri di u contu",
+    "signOut": "Scunnettesi",
+    "unlockBody": "Scrivite a vostra parolla d’intesa per decifrà i vostri dati sincrunizati nant’à st’apparechju.",
+    "password": "Parolla d’intesa",
+    "cancel": "Abbandunà",
+    "close": "Chjode",
+    "unlockFailed": "Ùn avemu micca pussutu trattà a vostra parolla d’intesa. Verificatela è pruvate torna.",
+    "switchFailed": "Impussibule di cambià di contu. Pruvate torna.",
+    "switchBlocked": "Impussibule di cambià di contu perchè e vostre mudificazioni ùn si sò micca pussute sincrunizà. Pruvate torna quandu site in linea.",
+    "signOutFailed": "Impussibule di scunnettesi. Pruvate torna.",
+    "workspaceOpenFailed": "Ùn s’hè micca pussutu apre stu spaziu di travagliu.",
+    "back": "Ritornu",
+    "language": "Lingua",
+    "lightTheme": "Passà à u tema chjaru",
+    "darkTheme": "Passà à u tema scuru",
+    "navAccount": "Contu",
+    "navSecurity": "Sicurità",
+    "navSync": "Sincrunizazione",
+    "navData": "Dati è vita privata",
+    "profileTitle": "Prufilu",
+    "name": "Nome",
+    "nameHelp": "Affissatu in u listinu di u vostru contu.",
+    "save": "Arregistrà",
+    "email": "Indirizzu elettronicu",
+    "memberSince": "Membru dapoi {date}",
+    "nameSaved": "Nome arregistratu",
+    "nameFailed": "Impussibule di mudificà u vostru nome. Pruvate torna.",
+    "loadFailed": "Impussibule di caricà u vostru contu. Pruvate torna.",
+    "changePassword": "Cambià a parolla d’intesa",
+    "currentPassword": "Parolla d’intesa attuale",
+    "newPassword": "Parolla d’intesa nova",
+    "confirmPassword": "Cunfirmà a parolla d’intesa nova",
+    "passwordWeak": "Aduprate almenu 12 caratteri.",
+    "passwordMismatch": "E parolle d’intesa ùn currispondenu micca.",
+    "passwordChanged": "Parolla d’intesa cambiata. I vostri altri apparechji sò stati scunnessi.",
+    "passwordFailed": "Ùn avemu micca pussutu trattà u cambiamentu di a vostra parolla d’intesa. Pruvate torna.",
+    "passwordWrong": "Ùn avemu micca pussutu trattà u cambiamentu di a vostra parolla d’intesa perchè a parolla d’intesa attuale hè sbagliata.",
+    "encryptionTitle": "Cifratura da una estremità à l’altra",
+    "encryptionBody": "I vostri dati sò cifrati nant’à u vostru apparechju nanzu d’esse sincrunizati. Munetios ùn i pò micca leghje, è ùn ponu esse ricuperati senza a vostra parolla d’intesa.",
+    "devicesTitle": "Apparechji cunnessi",
+    "thisDevice": "St’apparechju",
+    "deviceOn": "{browser} nant’à {os}",
+    "browser": "Navigatore",
+    "unknownSystem": "un sistema scunnisciutu",
+    "signedInOn": "Cunnessu u {date}",
+    "signOutDevice": "Scunnettesi",
+    "signOutOthers": "Scunnettesi da tutti l’altri apparechji",
+    "devicesFailed": "Ùn avemu micca pussutu caricà i vostri apparechji. Pruvate torna.",
+    "revokeFailed": "Ùn avemu micca pussutu scunnette st’apparechju. Pruvate torna.",
+    "othersSignedOut": "I vostri altri apparechji sò stati scunnessi",
+    "deviceSignedOut": "Apparechju scunnessu",
+    "syncTitle": "Sincrunizazione",
+    "syncBody": "Quessi elementi sò sincrunizati trà i vostri apparechji cunnessi :",
+    "itemSearchHistory": "Cronolugia di ricerca",
+    "itemAppearance": "Aspettu",
+    "itemSettings": "Parametri di ricerca è di voce",
+    "itemShortcuts": "Accurtatoghji è favuriti",
+    "itemWorkspaces": "Spazii di travagliu",
+    "itemDocuments": "Cartulari è ducumenti OmniWrite",
+    "itemSpreadsheets": "Fogli di calculu OmniWrite Sheets",
+    "syncNow": "Sincrunizà avà",
+    "lastSynced": "Ultima sincrunizazione {time}",
+    "notSyncedYet": "Micca ancu sincrunizatu",
+    "deleteSynced": "Squassà i dati sincrunizati",
+    "deleteSyncedBody": "Caccia i vostri dati cifrati da i servitori di Munetios. I vostri apparechji tenenu i so dati è i rimandanu à a prossima sincrunizazione.",
+    "deleteSyncedDone": "Dati sincrunizati squassati",
+    "deleteSyncedFailed": "Impussibule di squassà i vostri dati sincrunizati. Pruvate torna.",
+    "workspacesBody": "I spazii di travagliu tenenu separati i vostri ducumenti OmniWrite. Sò sincrunizati nant’à tutti i vostri apparechji.",
+    "newWorkspace": "Spaziu di travagliu novu",
+    "workspaceName": "Nome di u spaziu di travagliu",
+    "create": "Creà",
+    "rename": "Rinumà",
+    "delete": "Squassà",
+    "active": "Attivu",
+    "open": "Apre",
+    "documentsCount": "Ducumenti : {count}",
+    "confirmDeleteWorkspace": "Squassà {name} ?",
+    "wsCreated": "Spaziu di travagliu creatu",
+    "wsRenamed": "Spaziu di travagliu rinumatu",
+    "wsDeleted": "Spaziu di travagliu squassatu",
+    "wsCreateFailed": "Ùn s’hè micca pussutu creà stu spaziu di travagliu. Pruvate torna.",
+    "wsRenameFailed": "Ùn s’hè micca pussutu rinumà stu spaziu di travagliu. Pruvate torna.",
+    "wsNameRequired": "Ùn s’hè micca pussutu arregistrà u spaziu di travagliu senza nome.",
+    "wsDeleteHasDocs": "Ùn avemu micca pussutu squassà stu spaziu di travagliu perchè cuntene sempre ducumenti. Spiazzateli o squassateli prima in OmniWrite.",
+    "wsDeletePersonal": "Ùn avemu micca pussutu squassà Persunale perchè hè u vostru spaziu di travagliu predefinitu.",
+    "wsDeleteFailed": "Ùn s’hè micca pussutu squassà stu spaziu di travagliu. Pruvate torna.",
+    "wsLoadFailed": "Ùn avemu micca pussutu caricà i vostri spazii di travagliu.",
+    "exportTitle": "Espurtà i vostri dati",
+    "exportBody": "Scaricà in un schedariu JSON i dati di st’apparechju chì sò sincrunizati cù u vostru contu.",
+    "export": "Espurtà",
+    "exportFailed": "Impussibule d’espurtà i vostri dati. Pruvate torna.",
+    "deleteAccount": "Squassà u contu",
+    "deleteAccountBody": "Squassa definitivamente u vostru contu è i so dati sincrunizati. I dati nant’à i vostri apparechji fermanu.",
+    "deleteAccountConfirm": "Scrivite a vostra parolla d’intesa per squassà u vostru contu.",
+    "deleteAccountFailed": "Impussibule di squassà u vostru contu. Pruvate torna.",
+    "deleteAccountWrong": "Impussibule di squassà u vostru contu perchè a parolla d’intesa hè sbagliata.",
+    "accountDeleted": "Contu squassatu",
+    "addPassword": "Aghjunghje una parolla d’intesa",
+    "changePicture": "Cambià a fiura",
+    "removePicture": "Caccià a fiura",
+    "pictureSaved": "Fiura di prufilu arregistrata",
+    "pictureFailed": "Impussibule di mudificà a vostra fiura di prufilu. Pruvate torna.",
+    "pictureInvalid": "Sciglite una fiura PNG, JPEG, WebP, GIF o AVIF di 20 MB al più.",
+    "picturePrivacy": "Mustrà a mo fiura di prufilu à tutti",
+    "picturePrivacyFailed": "Ùn avemu micca pussutu mudificà i parametri di vita privata di a fiura di prufilu. Pruvate torna.",
+    "confirmDevice": "Scunnettesi da l’apparechji selezziunati ? A so prossima dumanda dumanderà di cunnettesi torna.",
+    "twoFactor": "Autenticazione à dui fattori",
+    "enabled": "Attivu",
+    "disabled": "Disattivu",
+    "enable2fa": "Cunfigurà l’autenticatore",
+    "disable2fa": "Disattivà a 2FA",
+    "authCode": "Codice di l’autenticatore",
+    "authHelp": "Aghjunghjite sta chjave di cunfigurazione à a vostra appiecazione d’autenticazione, po scrivite u so codice à sei cifre. Tenite una copia sicura di a vostra chjave di cunfigurazione.",
+    "continue": "Cuntinuà",
+    "recoveryEmail": "Indirizzu elettronicu di ricuperu",
+    "unverified": "Micca verificatu",
+    "notSet": "Micca definitu",
+    "recoveryHelp": "L’inviu di messaghji elettronichi ùn hè micca cunfiguratu. Pudete arregistrà un indirizzu, ma ùn pò ancu esse verificatu nè aduprà per u ricuperu. Lasciate u campu viotu per cacciallu.",
+    "savedUnverified": "Arregistratu cum’è micca verificatu",
+    "securityFailed": "Verificate a vostra parolla d’intesa è u codice di l’autenticatore, po pruvate torna.",
+    "syncOff": "A sincrunizazione hè disattivata",
+    "localSaving": "E mudificazioni sò arregistrate nant’à st’apparechju. E copie esistente in u nivulu sò cunservate.",
+    "storageFull": "U spaziu di sincrunizazione hè pienu",
+    "turnOffSync": "Disattivà a sincrunizazione",
+    "turnOnSync": "Attivà a sincrunizazione",
+    "syncStorage": "Spaziu di sincrunizazione",
+    "otherItems": "Altri elementi",
+    "quotaHelp": "50 GB di spaziu di sincrunizazione cifratu. Quandu un elementu ùn ci entre micca, ferma nant’à st’apparechju è hè torna pruvatu più tardi. U spaziu di l’apparechju deve avè locu dispunibule.",
+    "typeDelete": "Scrivite DELETE per cunfirmà",
+    "edit": "Mudificà",
+    "twoFactorRequired": "Scrivite un codice d’autenticatore validu à sei cifre.",
+    "itemImages": "Fiure",
+    "itemVideos": "Video",
+    "itemAudio": "Audio",
+    "setting_dateStyle": "Furmatu di data di u contu",
+    "setting_hourCycle": "Furmatu d’ora di u contu",
+    "setting_timeZone": "Fusu orariu di u contu",
+    "setting_maskEmail": "Piattà l’indirizzi elettronichi in i listini di u contu",
+    "setting_showPictures": "Mustrà e fiure di prufilu in i listini di u contu",
+    "setting_syncHistory": "Sincrunizà a cronolugia di ricerca",
+    "setting_syncAppearance": "Sincrunizà l’aspettu",
+    "setting_syncSearchSettings": "Sincrunizà i parametri di ricerca è di voce",
+    "setting_syncShortcuts": "Sincrunizà l’accurtatoghji è i favuriti",
+    "setting_syncWorkspaces": "Sincrunizà i spazii di travagliu",
+    "setting_syncDocuments": "Sincrunizà i ducumenti, i fogli di calculu è i media",
+    "setting_syncInterval": "Intervallu di sincrunizazione in fondu",
+    "setting_syncOnReconnect": "Sincrunizà quandu a cunnessione volta",
+    "setting_syncInBackground": "Permette a sincrunizazione in l’unghjette in fondu",
+    "setting_syncOnDataSaver": "Permette a sincrunizazione nant’à e cunnessione chì risparmianu i dati",
+    "setting_exportFormatting": "Furmattazione di u schedariu espurtatu",
+    "setting_exportHistory": "Include a cronolugia di ricerca in l’espurtazioni",
+    "setting_exportAppearance": "Include l’aspettu in l’espurtazioni",
+    "setting_exportShortcuts": "Include l’accurtatoghji in l’espurtazioni",
+    "setting_exportEmail": "Include l’indirizzu elettronicu in l’espurtazioni",
+    "settingOption_short": "Cortu",
+    "settingOption_medium": "Mezanu",
+    "settingOption_long": "Longu",
+    "settingOption_auto": "Autumaticu",
+    "settingOption_h12": "Ora à 12 ore",
+    "settingOption_h23": "Ora à 24 ore",
+    "settingOption_30000": "30 seconde",
+    "settingOption_60000": "1 minutu",
+    "settingOption_300000": "5 minuti",
+    "settingOption_900000": "15 minuti",
+    "settingOption_pretty": "JSON leghjibile",
+    "settingOption_compact": "JSON cumpattu",
+    "settingsDeviceHelp": "Quessi parametri s’appiecanu à stu contu in stu navigatore. I furmati di data è d’ora tocca e date di u contu.",
+    "settingsSyncHelp": "Sciglite ciò chì stu navigatore sincrunizeghja per stu contu. Disattivà una categuria cunserva i dati lucali è e copie esistente in u nivulu. A pianificazione s’appieca à a sincrunizazione autumatica ; Sincrunizà avà ferma dispunibule.",
+    "settingsExportHelp": "Sciglite ciò chì s’hà da include quandu espurtate da stu navigatore. Sti scelti ùn squassanu nisun datu.",
+    "settingsSaveError": "Impussibule d’arregistrà u vostru parametru. Verificate u spaziu di u navigatore è pruvate torna.",
+    "usedGoogle": "Cunnessione cù Google aduprata",
+    "disconnectGoogle": "Scunnette",
+    "changeEmail": "Cambià l’indirizzu elettronicu",
+    "emailSaved": "Parametri di messaghjeria arregistrati.",
+    "emailTaken": "St’indirizzu elettronicu hè digià adupratu.",
+    "emailCode": "Codice di verificazione di l’indirizzu elettronicu",
+    "emailCodeSent": "Fighjate a vostra casella per u codice di verificazione.",
+    "emailCodeInvalid": "U codice hè invalidu o scadutu.",
+    "emailDeliveryUnavailable": "L’inviu di messaghji elettronichi ùn hè micca dispunibule. Pruvate torna più tardi.",
+    "recoveryVerified": "Verificatu",
+    "recoverySetupHelp": "Aduprate un indirizzu elettronicu esternu per ricuperà l’indirizzu di cunnessione. Lasciate u campu viotu per cacciallu.",
+    "forgotEmail": "Indirizzu elettronicu scurdatu ?",
+    "forgotEmailPrompt": "Scrivite u vostru indirizzu elettronicu di ricuperu.",
+    "forgotEmailSent": "S’ellu si tratta d’un indirizzu di ricuperu verificatu, ci manderemu u vostru indirizzu di cunnessione.",
+    "sessionSignedOut": "Site statu scunnessu",
+    "sessionStayHere": "Stà quì",
+    "sessionSyncPaused": "Sincrunizazione in pausa",
+    "cloudDocumentsUnavailable": "Ùn s’hè micca pussutu caricà i ducumenti OmniWrite arregistrati in u nivulu. Verificate a vostra cunnessione è pruvate torna.",
+    "scanAuthenticatorQr": "Scannate u codice QR cù a vostra appiecazione d’autenticazione.",
+    "orSetupKey": "O scrivite sta chjave di cunfigurazione",
+    "factorOrRecovery": "Codice 2FA o codice di ricuperu",
+    "recoveryCodes": "Codici di ricuperu",
+    "newRecoveryCodes": "Generà codici novi",
+    "downloadRecoveryCodes": "Scaricà i codici di ricuperu",
+    "recoveryCodesHelp": "Tenite sti codici in un locu sicuru. Ogni codice si pò aduprà una volta sola.",
+    "replaceRecoveryCodes": "Generà codici novi annulla i vostri codici precedenti.",
+    "birthday": "Anniversariu (facultativu)",
+    "birthdayHelp": "Affissatu u ghjornu di u vostru anniversariu in Munetios Calendar",
+    "birthdayPlaceholder": "Sciglite una data",
+    "birthdayClear": "Caccià l’anniversariu",
+    "birthdayInvalid": "Sciglite una data d’anniversariu valida.",
+    "profileSaved": "Prufilu arregistratu",
+    "pickerPrevious": "Mese precedente",
+    "pickerNext": "Mese seguente",
+    "pickerToday": "Oghje",
+    "sessionSignedOutBody": "A vostra sessione nant’à st’apparechju ùn hè più valida. Pò accade quandu vi scunnettite da un altru apparechju, cambiate a vostra parolla d’intesa o cacciate st’apparechju da u vostru contu. Pudete cuntinuà à travaglià : e vostre mudificazioni sò arregistrate nant’à st’apparechju, ma ùn seranu micca sincrunizate, è i Parametri di u contu ùn ponu esse caricati nè mudificati finu à chì vi cunnettite torna.",
+    "sessionSignInToSync": "Cunnettitevi torna per sincrunizà e vostre mudificazioni.",
+    "signOutConfirmTitle": "Scunnettesi ?",
+    "signOutConfirmBody": "E vostre ultime mudificazioni seranu sincrunizate prima. I vostri dati fermanu nant’à st’apparechju, ma e mudificazioni nove ùn seranu micca sincrunizate finu à chì vi cunnettite torna.",
+    "signingOut": "Scunnessione da stu contu. Aspettate…"
+  };
+  const ordered = {};
+  for (const code of LOCALE_CODES) ordered[code] = catalog[code];
+  Object.defineProperties(ordered, { en: { value: ordered["en-US"], enumerable: false }, fr: { value: ordered["fr-FR"], enumerable: false } });
+  window.MunetiosAccountStrings = { catalog: ordered, resolveLocale, locales: [...LOCALE_CODES], notSyncedPattern };
 })();

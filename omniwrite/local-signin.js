@@ -88,7 +88,9 @@
       || localStorage.getItem("munetiosLanguage") || navigator.language;
     const locale = window.MunetiosAccountStrings.resolveLocale(code);
     const copy = window.MunetiosSigninTranslations;
-    return copy[locale]?.[key] || copy[code]?.[key] || copy.en[key] || window.MunetiosAccountStrings.catalog[locale]?.[key] || window.MunetiosAccountStrings.catalog.en[key];
+    // Sign-in copy uses the older codes ("en", "fr", "es-419"); account strings use the 17 global locales.
+    const older = { "en-US": "en", "en-GB": "en", "fr-FR": "fr", "fr-CA": "fr", "es-US": "es-419" }[locale];
+    return copy[locale]?.[key] || (older && copy[older]?.[key]) || window.MunetiosAccountStrings.catalog[locale]?.[key] || copy[code]?.[key] || copy.en[key] || window.MunetiosAccountStrings.catalog.en[key];
   }
 
   function showPrompt({ initial, deleting = false, error = "", keep, discard, cancel }) {

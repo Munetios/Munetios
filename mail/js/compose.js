@@ -5,13 +5,13 @@
 import { state, emit, mailboxes, mailboxById, primaryMailbox } from "./state.js";
 import { get, post, del, upload, fetchBlob, idempotencyKey, ApiError } from "./api.js";
 import { t, formatBytes, formatDateTime } from "./i18n.js";
-import { el, icon, iconButton, button, menu, toast, confirmDialog, dialog, select, pickFiles, download, debounce, promptDialog } from "./ui.js";
+import { el, icon, iconButton, button, menu, closeMenu, toast, confirmDialog, dialog, select, pickFiles, download, debounce, promptDialog } from "./ui.js";
 import { RichEditor } from "./editor.js";
 import { CodeEditor } from "./code-editor.js";
 import { Designer, designToHtml, templateDesign } from "./designer.js";
 import { formatHtml, validateHtml, inlineCss, htmlToText, textToHtml, emailDocument, buildEml, mentionsAttachment, hasVariables, personalize } from "./html-tools.js";
 import { sanitizeIncoming, srcdoc } from "./render-email.js";
-import { showUndo, pickDateTime, errorText } from "./actions.js";
+import { showUndo, pickDateTime, errorText, failText } from "./actions.js";
 import * as offline from "./offline.js";
 
 const windows = [];
@@ -29,8 +29,29 @@ export function open(prefill = {}) {
     const win = new ComposeWindow(prefill);
     windows.push(win);
     win.mount();
+    fitDock(win);
     return win;
 }
+
+// When open windows can't fit side by side even at their smallest width, minimize the oldest ones
+// (never `keep`, the window just opened or restored). Small screens show one full-screen window instead.
+const stacked = window.matchMedia("(max-width: 900px)");
+function fitDock(keep = null) {
+    const node = dock();
+    if (!node || stacked.matches) return;
+    // The dock grows from the end edge, so overflow runs past the start edge (left in LTR, right in RTL),
+    // where scrollWidth doesn't see it; compare the windows' boxes with the viewport instead.
+    const overflowing = () => [...node.children].some(child => { const r = child.getBoundingClientRect(); return r.left < 8 || r.right > innerWidth - 8; });
+    node.classList.remove("is-crowded");
+    for (const win of windows) {
+        if (!overflowing()) break;
+        if (win === keep || win.minimized || win.full) continue;
+        win.minimized = true;
+        win.node.classList.add("is-minimized");
+    }
+    node.classList.toggle("is-crowded", overflowing());
+}
+window.addEventListener("resize", debounce(() => fitDock(focused), 150));
 
 export async function editDraft(id) {
     const existing = windows.find(win => win.draftId === id);
@@ -38,7 +59,7 @@ export async function editDraft(id) {
     try {
         const { draft } = await get(`/drafts/${id}`);
         open({ ...draft, fromDraft: true });
-    } catch (error) { toast(errorText(error), "error"); }
+    } catch (error) { toast(failText(error, "errOpenDraft"), "error"); }
 }
 
 // Drafts that only exist on this device (the network dropped, or the tab closed before syncing).
@@ -56,7 +77,7 @@ const prefix = (value, p) => new RegExp(`^${p}:`, "i").test(value || "") ? value
 export async function reply(item, mode) {
     let message = item;
     if (item.id && !item.html && !item.text) {
-        try { message = (await get(`/messages/${item.id}`)).message; } catch (error) { toast(errorText(error), "error"); return; }
+        try { message = (await get(`/messages/${item.id}`)).message; } catch (error) { toast(failText(error, "errOpenEmail"), "error"); return; }
     }
     const box = mailboxById(message.mailboxId) || primaryMailbox();
     const own = new Set(box.senders.map(sender => sender.address));
@@ -135,8 +156,8 @@ class ComposeWindow {
         setTimeout(() => (this.recipients.to.length ? this.editor?.focus() : this.body.querySelector(".mail-recipients input")?.focus()), 60);
     }
 
-    restore() { this.minimized = false; this.node.classList.remove("is-minimized"); this.node.scrollIntoView(); }
-    toggleMinimize() { this.minimized = !this.minimized; this.node.classList.toggle("is-minimized", this.minimized); }
+    restore() { this.minimized = false; this.node.classList.remove("is-minimized"); fitDock(this); this.node.scrollIntoView({ block: "nearest" }); }
+    toggleMinimize() { this.minimized = !this.minimized; this.node.classList.toggle("is-minimized", this.minimized); if (!this.minimized) fitDock(this); }
 
     render() {
         const box = mailboxById(this.mailboxId);
@@ -182,7 +203,11 @@ class ComposeWindow {
                 return chip;
             }), input);
         };
+        // Suggestions open without taking focus, so typing keeps going into the field and nothing half-typed is committed.
+        let suggestions = null;
+        const closeSuggestions = () => { if (suggestions?.isConnected) closeMenu(); suggestions = null; };
         const add = text => {
+            closeSuggestions();
             const parts = String(text).split(/[,;\n]+/).map(value => value.trim()).filter(Boolean);
             for (const part of parts) {
                 const person = normalizePerson(part);
@@ -192,28 +217,38 @@ class ComposeWindow {
             draw(); this.changed();
             input.focus();
         };
-        let suggestions = null;
         const suggest = debounce(async () => {
             const q = input.value.trim();
-            if (q.length < 1) { suggestions?.remove(); return; }
+            if (q.length < 1) { closeSuggestions(); return; }
             try {
                 const { suggestions: items } = await get(`/recipients?mailbox=${this.mailboxId}&q=${encodeURIComponent(q)}`);
-                suggestions?.remove();
-                if (!items.length || document.activeElement !== input) return;
+                // The field changed or lost focus while the request ran: these suggestions are stale.
+                if (input.value.trim() !== q || document.activeElement !== input) return;
+                closeSuggestions();
+                if (!items.length) return;
                 suggestions = menu(input, items.map(item => item.type === "group"
                     ? { icon: "group", label: `${item.name} (${item.members.length})`, action: () => { for (const member of item.members) if (!this.recipients[kind].some(p => p.email === member.email)) this.recipients[kind].push(member); input.value = ""; draw(); this.changed(); input.focus(); } }
-                    : { icon: "person", label: item.name ? `${item.name} <${item.email}>` : item.email, action: () => add(item.name ? `${item.name} <${item.email}>` : item.email) }), { label: t("suggestions") });
-                input.focus();
+                    : { icon: "person", label: item.name ? `${item.name} <${item.email}>` : item.email, action: () => add(item.name ? `${item.name} <${item.email}>` : item.email) }), { label: t("suggestions"), focus: false });
             } catch { /* offline: type addresses manually */ }
         }, 180);
         input.addEventListener("input", suggest);
         input.addEventListener("keydown", event => {
-            if (["Enter", ",", ";", "Tab"].includes(event.key) && input.value.trim()) { event.preventDefault(); add(input.value); }
+            const complete = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizePerson(input.value.trim()).email || "");
+            // Enter or Tab on an unfinished address takes the first suggestion instead of adding the fragment.
+            if (["Enter", "Tab"].includes(event.key) && !complete && suggestions?.isConnected && input.value.trim()) { event.preventDefault(); suggestions.querySelector("button")?.click(); }
+            else if (["Enter", ",", ";", "Tab"].includes(event.key) && input.value.trim()) { event.preventDefault(); add(input.value); }
+            else if (event.key === "Escape" && suggestions?.isConnected) { event.preventDefault(); event.stopPropagation(); closeSuggestions(); }
             else if (event.key === "Backspace" && !input.value && this.recipients[kind].length) { this.recipients[kind].pop(); draw(); this.changed(); }
             else if (event.key === "ArrowDown" && suggestions?.isConnected) { event.preventDefault(); suggestions.querySelector("button")?.focus(); }
         });
         input.addEventListener("paste", event => { const text = event.clipboardData.getData("text"); if (/[,;\n]/.test(text)) { event.preventDefault(); add(text); } });
-        input.addEventListener("blur", () => setTimeout(() => { if (input.value.trim() && !suggestions?.contains(document.activeElement)) add(input.value); }, 200));
+        // Leaving the field (clicking elsewhere) commits what was typed, but only once focus has really left it
+        // and isn't in the suggestions.
+        input.addEventListener("blur", () => setTimeout(() => {
+            if (document.activeElement === input || suggestions?.contains(document.activeElement)) return;
+            closeSuggestions();
+            if (input.value.trim()) add(input.value);
+        }, 200));
         draw();
         return el("div", { class: "mail-field-row" }, el("span", { class: "mail-field-name", text: label }), wrap);
     }
@@ -440,7 +475,7 @@ class ComposeWindow {
             emit("storageStale");
         } catch (error) {
             if (error?.name === "AbortError") { this.attachments = this.attachments.filter(other => other !== item); if (item.contentId) this.removeInline(item); }
-            else { item.status = "error"; item.error = error instanceof ApiError && error.code === "quotaExceeded" ? t("uploadQuota") : errorText(error); item.retry = () => this.startUpload(item, loader); }
+            else { item.status = "error"; item.error = error instanceof ApiError && error.code === "quotaExceeded" ? t("uploadQuota") : failText(error, "errUploadAttachment"); item.retry = () => this.startUpload(item, loader); }
         }
         this.renderAttachments();
         this.changed();
@@ -510,7 +545,7 @@ class ComposeWindow {
             try {
                 const result = await post("/uploads/from-attachment", { mailboxId: this.mailboxId, attachmentId: attachment.id });
                 this.attachments.push({ key: crypto.randomUUID(), kind: "upload", id: result.id, filename: result.filename, mimeType: result.mimeType, size: result.size, status: "done", progress: 1, inline, contentId: inline ? attachment.contentId : null });
-            } catch (error) { toast(errorText(error), "error"); }
+            } catch (error) { toast(failText(error, "errUploadAttachment"), "error"); }
         }
         this.loadInlinePreviews();
         this.renderAttachments();
@@ -569,7 +604,7 @@ class ComposeWindow {
             else this.mode = "rich";
             this.mountEditor(data.html || "");
             this.changed();
-        } catch (error) { toast(errorText(error), "error"); }
+        } catch (error) { toast(failText(error, "errApplyTemplate"), "error"); }
     }
 
     async saveTemplate() {
@@ -578,7 +613,7 @@ class ComposeWindow {
         try {
             await post(`/mailboxes/${this.mailboxId}/templates`, { name, kind: this.mode === "designer" ? "design" : "message", data: { subject: this.subject, html: this.currentHtml(false), text: this.plain?.value || "", mode: this.mode, design: this.mode === "designer" ? this.design : null } });
             toast(t("templateSaved"), "success");
-        } catch (error) { toast(errorText(error), "error"); }
+        } catch (error) { toast(failText(error, "errCreateTemplate"), "error"); }
     }
 
     /* ---------------------------------------------------------------- saving */
@@ -602,13 +637,20 @@ class ComposeWindow {
     }
 
     async saveLocal() {
+        if (this.closed || this.discarding) return;
         try { await offline.draftPut(this.localId, { ...this.payload(), unsynced: this.dirty, localId: this.localId, version: this.version }); } catch { /* storage unavailable */ }
     }
 
-    async save(manual = false) {
-        if (this.uploading() || this.saving) { if (!this.saving) this.serverSave(); return; }
+    save(manual = false) {
+        if (this.closed || this.discarding) return;
+        if (this.saving) return this.saving;
+        if (this.uploading()) { this.serverSave(); return; }
         if (!this.dirty && !manual) return;
-        this.saving = true;
+        this.saving = this.saveDraft(manual).finally(() => { this.saving = null; });
+        return this.saving;
+    }
+
+    async saveDraft(manual) {
         this.status.textContent = t("saving");
         try {
             const result = await post("/drafts", this.payload());
@@ -617,13 +659,26 @@ class ComposeWindow {
             for (const mapping of result.attachments || []) { const item = this.attachments.find(entry => entry.id === mapping.upload); if (item) { item.id = mapping.id; item.kind = "attachment"; } }
             this.dirty = false;
             this.status.textContent = t("draftSaved");
+            this.retryDelay = 0;
             await offline.draftDelete(this.localId);
             emit("countsStale");
         } catch (error) {
+            if (this.discarding) return;
             if (error instanceof ApiError && error.code === "draftConflict") await this.resolveConflict(error.data.draft);
             else if (error instanceof ApiError && error.code === "offline") { this.status.textContent = t("savedOnDevice"); await this.saveLocal(); }
-            else { this.status.textContent = t("draftNotSaved"); if (manual) toast(errorText(error), "error"); }
-        } finally { this.saving = false; }
+            else {
+                // Keep a copy on this device, show why the save failed, and retry with backoff (5 s, 10 s, 20 s … up to 2 min).
+                await this.saveLocal();
+                const reason = error instanceof ApiError ? t("error_" + error.code) : "";
+                this.status.textContent = reason ? `${t("draftNotSaved")} ${reason}` : t("draftNotSaved");
+                if (manual) toast(failText(error, "draftNotSaved"), "error");
+                if (!this.closed && !(error instanceof ApiError && [400, 403, 404, 413].includes(error.status))) {
+                    this.retryDelay = Math.min((this.retryDelay || 2500) * 2, 120_000);
+                    clearTimeout(this.retryTimer);
+                    this.retryTimer = setTimeout(() => { if (!this.closed && this.dirty) this.save(); }, this.retryDelay);
+                }
+            }
+        }
     }
 
     // The draft changed on another device: keep this version, or switch to the other one.
@@ -650,29 +705,48 @@ class ComposeWindow {
     }
 
     destroy() {
+        this.closed = true;
+        clearTimeout(this.retryTimer);
         this.node.remove();
         windows.splice(windows.indexOf(this), 1);
+        fitDock(focused);
         if (focused === this) focused = null;
         for (const item of this.attachments) if (item.previewUrl?.startsWith("blob:")) setTimeout(() => URL.revokeObjectURL(item.previewUrl), 5000);
     }
 
     async discard() {
+        if (this.discarding || this.closed) return;
         if (!await confirmDialog({ title: t("discardDraft"), message: t("discardDraftMessage"), confirm: t("discard"), danger: true })) return;
+        if (this.discarding || this.closed) return;
+        this.discarding = true;
+        try {
+            await this.saving;
+            if (this.draftId) await del(`/drafts/${this.draftId}`);
+        } catch (error) {
+            if (!(error instanceof ApiError && error.code === "mailNotFound")) {
+                this.discarding = false;
+                toast(failText(error, "errTrash"), "error");
+                return;
+            }
+        }
         for (const item of this.attachments) if (item.status === "uploading") item.abort?.abort();
-        if (this.draftId) await del(`/drafts/${this.draftId}`).catch(() => {});
-        else for (const item of this.attachments) if (item.id?.startsWith("u_")) del(`/uploads/${item.id}?mailbox=${this.mailboxId}`).catch(() => {});
+        for (const item of this.attachments) if (item.id?.startsWith("u_")) del(`/uploads/${item.id}?mailbox=${this.mailboxId}`).catch(() => {});
         await offline.draftDelete(this.localId);
         this.destroy();
+        if (this.draftId) emit("removeRows", [this.draftId]);
         emit("countsStale");
         toast(t("draftDiscarded"));
     }
 
     /* ---------------------------------------------------------------- sending */
     async send(sendAt = null) {
+        if (this.discarding) return;
         if (this.uploading()) { toast(t("waitForUploads")); return; }
         if (this.attachments.some(item => item.status === "error")) { toast(t("removeFailedUploads"), "error"); return; }
         const all = [...this.recipients.to, ...this.recipients.cc, ...this.recipients.bcc];
         if (!all.length) { toast(t("addRecipient"), "error"); this.body.querySelector(".mail-recipients input")?.focus(); return; }
+        // An empty subject is usually a mistake, and it makes spam filtering more likely.
+        if (!String(this.subject || "").trim() && !await confirmDialog({ title: t("noSubjectTitle"), message: t("noSubjectMessage"), confirm: t("sendAnyway"), iconName: "subject" })) return;
         const invalid = all.find(person => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(person.email));
         if (invalid) { toast(t("invalidRecipient", { address: invalid.email }), "error"); return; }
         if (new Set(all.map(person => person.email)).size > state.boot.limits.maxRecipients) { toast(t("tooManyRecipients", { count: state.boot.limits.maxRecipients }), "error"); return; }
@@ -709,7 +783,7 @@ class ComposeWindow {
                 }, result.undoSeconds);
             } else toast(personal ? t("sentIndividually", { count: all.length }) : t("messageQueued"), "success");
         } catch (error) {
-            toast(error instanceof ApiError ? (t("error_" + error.code) || t("sendFailed")) : t("sendFailed"), "error");
+            toast(failText(error, "errSendMessage"), "error");
         }
     }
 
@@ -722,9 +796,9 @@ class ComposeWindow {
         try {
             const payload = this.payload();
             const html = personalize(payload.html, { first_name: t("sampleFirstName"), last_name: t("sampleLastName"), name: t("sampleName"), email: address, sender_name: this.from, date: formatDateTime(Date.now()) });
-            await post("/send", { ...payload, draftId: undefined, attachments: [], to: [{ email: address }], cc: [], bcc: [], subject: `[${t("test")}] ${this.subject}`, html, text: htmlToText(html), idempotencyKey: idempotencyKey(), undoSeconds: 0 });
+            await post("/send", { ...payload, draftId: undefined, attachments: [], to: [{ email: address }], cc: [], bcc: [], subject: `[${t("test")}] ${this.subject}`, html, text: payload.mode === "plain" ? payload.text : htmlToText(html), idempotencyKey: idempotencyKey(), undoSeconds: 0 });
             toast(t("testQueued", { address }), "success");
-        } catch (error) { toast(error instanceof ApiError ? (t("error_" + error.code) || t("sendFailed")) : t("sendFailed"), "error"); }
+        } catch (error) { toast(failText(error, "errSendMessage"), "error"); }
     }
 }
 

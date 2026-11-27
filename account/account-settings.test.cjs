@@ -15,7 +15,7 @@ function fixture({ respond, initialKey = {} } = {}) {
   class ClockDate extends Date { static now() { return now; } }
   let storedKey = initialKey;
   const db = { close() {}, transaction() {
-    const tx = { objectStore: () => ({ get: () => ({ result: { key: storedKey } }), put: ({ key }) => { storedKey = key; return {}; } }) };
+    const tx = { objectStore: () => ({ get: () => ({ result: { key: storedKey } }), put: ({ key }) => { storedKey = key; return {}; }, delete: () => { storedKey = null; return {}; } }) };
     queueMicrotask(() => tx.oncomplete()); return tx;
   } };
   const context = vm.createContext({
@@ -25,7 +25,7 @@ function fixture({ respond, initialKey = {} } = {}) {
     TextEncoder, TextDecoder, btoa, atob, crypto: webcrypto, Intl, Date: ClockDate, CustomEvent, AbortSignal, structuredClone,
     setTimeout: fn => { const id = ++nextId; timeouts.set(id, fn); return id; },
     clearTimeout: id => timeouts.delete(id), setInterval: fn => intervals.push(fn),
-    fetch: async url => { requests.push(url); return { ok: true, json: async () => respond?.(url) ?? (url.endsWith('/session') ? session : url.includes('/items') ? { items: [], seq: '0' } : { used: 0, quota: 50000000000, groups: {} }) }; }
+    fetch: async url => { requests.push(url); const body = respond?.(url) ?? (url.endsWith('/session') ? session : url.includes('/items') || url.includes('/sync/state') ? { items: [], seq: '0' } : { used: 0, quota: 50000000000, groups: {} }); return { ok: !body?.__status, status: body?.__status || 200, json: async () => body }; }
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, 'account-i18n.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(path.join(__dirname, 'account-core.js'), 'utf8'), context);
@@ -75,26 +75,74 @@ test('Google sign-in enables sync for the returned account and consumes its mark
   assert.match(document.cookie, /Max-Age=0/);
 });
 
-test('a revoked session pauses sync and preserves the cloud-document metadata until sign-in', async () => {
+test('a revoked session keeps the account signed in, but account and sync requests fail until sign-in', async () => {
   const { A, values, requests, session } = fixture();
   const previous = A.state.account;
+  values.set('munetios-account-cache', JSON.stringify(previous));
   values.set('munetios-sync:one', JSON.stringify({ items: { 'omniwrite:doc:cloud': { h: 'hash' }, 'omniwrite:doc:deleted': { h: null } } }));
   session({ account: null, accounts: [], sessionRevoked: true });
   await A.refresh();
   const revocation = A.state.revocation;
-  assert.equal(A.state.status, 'paused');
+  assert.ok(revocation);
+  assert.equal(A.state.account.id, 'one');
+  assert.equal(A.state.status, 'error');
   assert.deepEqual([...A.cloudItems('omniwrite:doc:', 'omniwrite')], ['cloud']);
   requests.length = 0;
   assert.equal(await A.sync.now(), false);
-  assert.deepEqual(requests, []);
+  assert.equal(A.state.status, 'error');
+  await assert.rejects(A.sessions(), { code: 'signedOut', status: 401 });
+  await assert.rejects(A.updateProfile('New name'), { code: 'signedOut' });
+  assert.ok(requests.every(url => url.endsWith('/session')), 'only the session check reaches the server');
   session({ account: null, accounts: [] });
   await A.refresh();
   assert.equal(A.state.revocation, revocation);
+  assert.equal(A.state.account.id, 'one');
   session({ account: previous, accounts: [] });
   await A.refresh();
   assert.equal(A.state.revocation, null);
   assert.equal(A.state.status, 'idle');
 });
+
+test('a change that can\'t sync says so in the app\'s language', async () => {
+  const { A, values, session, drain } = fixture();
+  values.set('munetios-account-cache', JSON.stringify(A.state.account));
+  session({ account: null, accounts: [], sessionRevoked: true });
+  await A.refresh();
+  const shown = [];
+  const done = A.sync.report('Folder created', { locale: 'en-US', show: (text, type) => shown.push([text, type]) });
+  await drain();
+  assert.equal(await done, false);
+  assert.deepEqual(shown, [["Folder created. It's saved on this device, but it couldn't sync.", 'error']]);
+  shown.length = 0;
+  const spanish = A.sync.report('¡Tarea creada!', { locale: 'es-MX', show: (text, type) => shown.push([text, type]) });
+  await drain();
+  await spanish;
+  assert.deepEqual(shown, [['Tarea creada. Se guardó en este dispositivo, pero no se pudo sincronizar.', 'error']]);
+  // Sync turned off on purpose: the change is only confirmed.
+  await A.sync.setEnabled(false);
+  shown.length = 0;
+  assert.equal(await A.sync.report('Event created', { locale: 'fr', show: (text, type) => shown.push([text, type]) }), true);
+  assert.deepEqual(shown, [['Event created', 'success']]);
+});
+
+test('a sign-out the server doesn\'t confirm leaves the session invalid but still signed in', async () => {
+  let signOutWorks = false;
+  const { A, values, requests, session } = fixture({ respond: url => (url.endsWith('/signout') ? (signOutWorks ? {} : { __status: 503, error: 'unavailable' }) : undefined) });
+  const account = A.state.account;
+  values.set('munetios-account-cache', JSON.stringify(account));
+  session({ account, accounts: [] });
+  await A.refresh();
+  await assert.rejects(A.signOut(), { code: 'signOutPending' });
+  assert.equal(A.state.account.id, 'one');
+  assert.equal(A.state.revocation.pendingSignOut, true);
+  assert.equal(A.state.status, 'error');
+  // The server still accepts the session, but the sign-out stays pending and is finished once it answers.
+  signOutWorks = true;
+  requests.length = 0;
+  await A.refresh();
+  for (let i = 0; i < 5; i++) await new Promise(setImmediate);
+  assert.ok(requests.some(url => url.endsWith('/signout')));
+})
 
 test('new settings validate values and stay isolated between accounts', () => {
   const { A } = fixture();
@@ -141,4 +189,21 @@ test('automatic sync obeys reconnect, background, data saver, and interval setti
   A.settings.set('syncOnDataSaver', true); A.sync.schedule(); await f.drain(); assert.ok(requests.length > 0); requests.length = 0;
   A.settings.set('syncInterval', '60000'); await f.advance(59000); assert.equal(requests.length, 0);
   await f.advance(1000); assert.ok(requests.length > 0);
+});
+
+test('an unchanged account syncs with one request, and a rate limit pauses sync until Retry-After', async () => {
+  let limited = false;
+  const f = fixture({ respond: url => (limited && url.includes('/sync/state') ? { __status: 429, error: 'rateLimited', retryAfter: 120 } : undefined) });
+  const { A, requests } = f;
+  assert.equal(await A.sync.now(), true);
+  assert.ok(requests.filter(url => url.includes('/items')).length > 1, 'the first sync pulls every provider');
+  requests.length = 0;
+  assert.equal(await A.sync.now(), true);
+  assert.deepEqual(requests.map(url => url.replace(/\?.*$/, '')), ['/api/auth/sync/state'], 'nothing changed: one request, no pulls, no storage check');
+  limited = true; requests.length = 0;
+  assert.equal(await A.sync.now(), false);
+  assert.notEqual(A.state.status, 'error', 'a rate limit is not shown as a sync failure');
+  requests.length = 0;
+  await f.advance(60000);
+  assert.equal(requests.length, 0, 'automatic sync waits for Retry-After');
 });

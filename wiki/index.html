@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="referrer" content="same-origin">
+  <title>Munetios Wiki</title>
+  <meta name="description" content="Munetios Wiki: detailed articles about every Munetios app, including Mail, Search, OmniWrite, Calendar, WebFilter, Photos, Maps, and more.">
+  <link rel="icon" type="image/png" href="images/logos/munetios.png">
+  <link rel="apple-touch-icon" href="images/logos/munetios.png">
+  <link rel="stylesheet" href="https://api.munetios.com/beautiful-css/beautiful.css">
+  <link rel="stylesheet" href="/munetios-ui/munetios-ui-v4.css">
+  <link rel="stylesheet" href="wiki.css">
+  <script src="/shared/munetios-locales.js" defer></script>
+  <script src="/munetios-ui/munetios-ui-v4.js" defer></script>
+  <script src="wiki-i18n.js" defer></script>
+  <script src="articles/registry.js" defer></script>
+  <script src="articles/munetios.js" defer></script>
+  <script src="articles/privacy.js" defer></script>
+  <script src="articles/accounts.js" defer></script>
+  <script src="articles/search.js" defer></script>
+  <script src="articles/omniwrite.js" defer></script>
+  <script src="articles/sheets.js" defer></script>
+  <script src="articles/collaboration.js" defer></script>
+  <script src="articles/mail.js" defer></script>
+  <script src="articles/calendar.js" defer></script>
+  <script src="articles/photos.js" defer></script>
+  <script src="articles/cloud.js" defer></script>
+  <script src="articles/webfilter.js" defer></script>
+  <script src="articles/tasks.js" defer></script>
+  <script src="articles/supanotes.js" defer></script>
+  <script src="articles/meals.js" defer></script>
+  <script src="articles/maps.js" defer></script>
+  <script src="articles/munetios-ui.js" defer></script>
+  <script src="articles/developers.js" defer></script>
+  <script src="wiki.js" defer></script>
+</head>
+<body class="mu-root wiki-body">
+  <a class="mu-skip-link mu-skip-link-floating" href="#wikiMain" data-i18n="skipToContent">Skip to content</a>
+  <div class="wiki-progress" aria-hidden="true"><span id="wikiProgress"></span></div>
+
+  <header class="mu-topbar wiki-top">
+    <button type="button" class="mu-capsule-btn" id="wikiMenuBtn" aria-controls="wikiSidebar" aria-expanded="false" data-i18n-aria="toggleSidebar" aria-label="Show or hide the sidebar"><span class="mu-icon" aria-hidden="true">menu</span></button>
+    <a class="mu-capsule wiki-brand" href="#/" data-i18n-aria="home" aria-label="Home">
+      <img src="images/logos/munetios.png" alt="" width="40" height="40">
+      <span class="mu-topbar-title" data-i18n="appName">Munetios Wiki</span>
+    </a>
+    <label class="mu-search mu-topbar-search wiki-search">
+      <span class="mu-icon" aria-hidden="true">search</span>
+      <input id="wikiSearch" type="search" autocomplete="off" spellcheck="false" data-i18n-placeholder="searchPlaceholder" data-i18n-aria="search" placeholder="Search the wiki" aria-label="Search" aria-controls="wikiSuggest" aria-expanded="false" aria-autocomplete="list" role="combobox">
+      <button type="button" class="mu-icon-btn mu-icon-btn-sm mu-topbar-search-close" data-i18n-aria="closeSearch" aria-label="Close search"><span class="mu-icon" aria-hidden="true">close</span></button>
+    </label>
+    <div class="mu-menu wiki-suggest mu-scroll" id="wikiSuggest" role="listbox" hidden></div>
+    <div class="mu-capsule wiki-actions">
+      <button type="button" class="mu-icon-btn" id="wikiRandomBtn" data-i18n-aria="randomArticle" data-i18n-title="randomArticle" aria-label="Random article"><span class="mu-icon" aria-hidden="true">casino</span></button>
+      <a class="mu-icon-btn" href="#/saved" data-i18n-aria="savedArticles" data-i18n-title="savedArticles" aria-label="Saved articles"><span class="mu-icon" aria-hidden="true">bookmarks</span></a>
+      <span class="mu-divider-v"></span>
+      <button type="button" class="mu-icon-btn" data-mu-open="wikiSettings" data-i18n-aria="settings" data-i18n-title="settings" aria-label="Settings"><span class="mu-icon" aria-hidden="true">settings</span></button>
+    </div>
+  </header>
+
+  <div class="wiki-shell">
+    <aside class="wiki-sidebar mu-glass mu-scroll" id="wikiSidebar" data-i18n-aria="wikiNavigation" aria-label="Wiki navigation">
+      <nav class="mu-nav" id="wikiNavMain">
+        <a class="mu-nav-item" href="#/" data-route="home"><span class="mu-icon" aria-hidden="true">home</span><span data-i18n="home">Home</span></a>
+        <a class="mu-nav-item" href="#/all" data-route="all"><span class="mu-icon" aria-hidden="true">sort_by_alpha</span><span data-i18n="allArticles">All articles</span></a>
+        <a class="mu-nav-item" href="#/saved" data-route="saved"><span class="mu-icon" aria-hidden="true">bookmarks</span><span data-i18n="savedArticles">Saved articles</span></a>
+        <a class="mu-nav-item" href="#/glossary" data-route="glossary"><span class="mu-icon" aria-hidden="true">menu_book</span><span data-i18n="glossary">Glossary</span></a>
+        <a class="mu-nav-item" href="#/compare" data-route="compare"><span class="mu-icon" aria-hidden="true">compare_arrows</span><span data-i18n="compareApps">Compare apps</span></a>
+      </nav>
+      <div id="wikiNavCategories"></div>
+    </aside>
+
+    <main class="wiki-main" id="wikiMain" tabindex="-1"></main>
+  </div>
+
+  <!-- Settings -->
+  <div class="mu-modal" id="wikiSettings" hidden>
+    <div class="mu-dialog mu-dialog-md" role="dialog" aria-labelledby="wikiSettingsTitle">
+      <div class="mu-dialog-header">
+        <div class="mu-dialog-heading"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">settings</span></span><h2 id="wikiSettingsTitle" data-i18n="settings">Settings</h2></div>
+        <button type="button" class="mu-icon-btn mu-icon-btn-soft" data-mu-close data-i18n-aria="close" aria-label="Close"><span class="mu-icon" aria-hidden="true">close</span></button>
+      </div>
+      <div class="mu-group">
+        <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" id="wikiLangLabel" data-i18n="language">Language</span><span class="mu-row-subtitle" data-i18n="languageHelp">Used for menus and buttons. Articles are written in English.</span></div><div class="wiki-row-control"><select class="mu-select" id="wikiLanguage" aria-labelledby="wikiLangLabel"></select></div></div>
+        <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" id="wikiThemeLabel" data-i18n="theme">Theme</span></div>
+          <div class="mu-segmented" role="group" aria-labelledby="wikiThemeLabel" id="wikiTheme">
+            <button type="button" data-theme="system" aria-pressed="false" data-i18n="themeSystem">System</button>
+            <button type="button" data-theme="light" aria-pressed="false" data-i18n="themeLight">Light</button>
+            <button type="button" data-theme="dark" aria-pressed="false" data-i18n="themeDark">Dark</button>
+          </div>
+        </div>
+        <div class="mu-row wiki-row-stack">
+          <div class="mu-slider-head"><label class="mu-row-title" for="wikiTextSize" data-i18n="textSize">Text size</label><span class="mu-slider-value" id="wikiTextSizeValue">20 px</span></div>
+          <input class="mu-range" type="range" id="wikiTextSize" min="18" max="26" step="1" value="20">
+        </div>
+        <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" id="wikiSpacingLabel" data-i18n="lineSpacing">Line spacing</span></div>
+          <div class="mu-segmented" role="group" aria-labelledby="wikiSpacingLabel" id="wikiSpacing">
+            <button type="button" data-spacing="1.6" aria-pressed="false" data-i18n="spacingNormal">Normal</button>
+            <button type="button" data-spacing="1.85" aria-pressed="false" data-i18n="spacingRelaxed">Relaxed</button>
+            <button type="button" data-spacing="2.1" aria-pressed="false" data-i18n="spacingWide">Wide</button>
+          </div>
+        </div>
+        <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" data-i18n="dyslexiaSpacing">Extra letter spacing</span><span class="mu-row-subtitle" data-i18n="dyslexiaSpacingHelp">Adds space between letters and words to make long articles easier to read.</span></div><label class="mu-switch"><input type="checkbox" id="wikiLetterSpacing" data-i18n-aria="dyslexiaSpacing" aria-label="Extra letter spacing"><span class="mu-switch-track"></span></label></div>
+        <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" id="wikiVoiceLabel" data-i18n="readAloudVoice">Read aloud voice</span><span class="mu-row-subtitle" data-i18n="readAloudVoiceHelp">Voices come from this device. Nothing is sent to Munetios.</span></div><div class="wiki-row-control"><select class="mu-select" id="wikiVoice" aria-labelledby="wikiVoiceLabel"></select></div></div>
+        <div class="mu-row"><div class="mu-row-info"><span class="mu-row-title" id="wikiRateLabel" data-i18n="readAloudSpeed">Read aloud speed</span></div><div class="wiki-row-control"><select class="mu-select" id="wikiRate" aria-labelledby="wikiRateLabel"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select></div></div>
+      </div>
+      <div class="mu-dialog-actions">
+        <button type="button" class="mu-btn" id="wikiResetSettings" data-i18n="resetSettings">Reset settings</button>
+        <button type="button" class="mu-btn mu-btn-primary" data-mu-close data-i18n="done">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyboard shortcuts -->
+  <div class="mu-modal" id="wikiShortcuts" hidden>
+    <div class="mu-dialog" role="dialog" aria-labelledby="wikiShortcutsTitle">
+      <div class="mu-dialog-header">
+        <div class="mu-dialog-heading"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">keyboard</span></span><h2 id="wikiShortcutsTitle" data-i18n="keyboardShortcuts">Keyboard shortcuts</h2></div>
+        <button type="button" class="mu-icon-btn mu-icon-btn-soft" data-mu-close data-i18n-aria="close" aria-label="Close"><span class="mu-icon" aria-hidden="true">close</span></button>
+      </div>
+      <div class="mu-shortcuts">
+        <div class="mu-shortcut"><span data-i18n="shortcutSearch">Search the wiki</span><span><span class="mu-kbd">/</span> · <span class="mu-kbd">Ctrl</span> + <span class="mu-kbd">K</span></span></div>
+        <div class="mu-shortcut"><span data-i18n="shortcutReadAloud">Start or pause read aloud</span><span><span class="mu-kbd">Alt</span> + <span class="mu-kbd">R</span></span></div>
+        <div class="mu-shortcut"><span data-i18n="shortcutStop">Stop reading</span><span><span class="mu-kbd">Esc</span></span></div>
+        <div class="mu-shortcut"><span data-i18n="shortcutNextPrev">Next or previous article</span><span><span class="mu-kbd">Alt</span> + <span class="mu-kbd">→</span> / <span class="mu-kbd">←</span></span></div>
+        <div class="mu-shortcut"><span data-i18n="shortcutSave">Save or unsave the article</span><span><span class="mu-kbd">Alt</span> + <span class="mu-kbd">S</span></span></div>
+        <div class="mu-shortcut"><span data-i18n="shortcutHelp">Show keyboard shortcuts</span><span><span class="mu-kbd">?</span></span></div>
+      </div>
+      <div class="mu-dialog-actions"><button type="button" class="mu-btn mu-btn-primary" data-mu-close data-i18n="done">Done</button></div>
+    </div>
+  </div>
+
+  <!-- Screenshot viewer -->
+  <div class="mu-modal" id="wikiLightbox" hidden>
+    <div class="mu-dialog mu-dialog-lg wiki-lightbox" role="dialog" aria-labelledby="wikiLightboxTitle">
+      <div class="mu-dialog-header">
+        <div class="mu-dialog-heading"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">image</span></span><h2 id="wikiLightboxTitle" data-i18n="screenshot">Screenshot</h2></div>
+        <button type="button" class="mu-icon-btn mu-icon-btn-soft" data-mu-close data-i18n-aria="close" aria-label="Close"><span class="mu-icon" aria-hidden="true">close</span></button>
+      </div>
+      <figure class="wiki-lightbox-figure"><img id="wikiLightboxImg" alt=""><figcaption id="wikiLightboxCaption"></figcaption></figure>
+      <div class="mu-dialog-actions">
+        <button type="button" class="mu-btn" id="wikiLightboxPrev"><span class="mu-icon" aria-hidden="true">arrow_back</span><span data-i18n="previous">Previous</span></button>
+        <span class="mu-muted" id="wikiLightboxCount"></span>
+        <button type="button" class="mu-btn" id="wikiLightboxNext"><span data-i18n="next">Next</span><span class="mu-icon" aria-hidden="true">arrow_forward</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Read aloud player (Munetios UI v4 .mu-read-aloud) -->
+  <div class="mu-read-aloud" id="wikiReader" role="region" data-i18n-aria="readAloud" aria-label="Read aloud" hidden>
+    <span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">record_voice_over</span></span>
+    <div class="mu-read-aloud-info">
+      <span class="mu-read-aloud-title" id="wikiReaderTitle"></span>
+      <div class="mu-progress" role="progressbar" id="wikiReaderBar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-i18n-aria="readingProgress" aria-label="Reading progress"><span id="wikiReaderFill" style="width:0%"></span></div>
+    </div>
+    <div class="mu-read-aloud-controls">
+      <button type="button" class="mu-icon-btn" id="wikiReaderPrev" data-i18n-aria="previousParagraph" data-i18n-title="previousParagraph" aria-label="Previous paragraph"><span class="mu-icon" aria-hidden="true">skip_previous</span></button>
+      <button type="button" class="mu-icon-btn mu-icon-btn-primary" id="wikiReaderToggle" data-i18n-aria="pause" aria-label="Pause"><span class="mu-icon" aria-hidden="true">pause</span></button>
+      <button type="button" class="mu-icon-btn" id="wikiReaderNext" data-i18n-aria="nextParagraph" data-i18n-title="nextParagraph" aria-label="Next paragraph"><span class="mu-icon" aria-hidden="true">skip_next</span></button>
+      <button type="button" class="mu-icon-btn" id="wikiReaderRate" data-i18n-aria="readAloudSpeed" data-i18n-title="readAloudSpeed" aria-label="Read aloud speed"><span class="wiki-rate-label" id="wikiReaderRateLabel">1×</span></button>
+      <button type="button" class="mu-icon-btn" id="wikiReaderFollow" aria-pressed="true" data-i18n-aria="followAlong" data-i18n-title="followAlong" aria-label="Follow along"><span class="mu-icon" aria-hidden="true">center_focus_strong</span></button>
+      <button type="button" class="mu-icon-btn" id="wikiReaderStop" data-i18n-aria="stopReading" data-i18n-title="stopReading" aria-label="Stop reading"><span class="mu-icon" aria-hidden="true">stop</span></button>
+    </div>
+  </div>
+  <div class="mu-visually-hidden" aria-live="polite" id="wikiLive"></div>
+</body>
+</html>

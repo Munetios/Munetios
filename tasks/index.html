@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script src="/shared/test-error.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Munetios Tasks</title>
@@ -56,7 +57,7 @@
     <!-- keep the code safe and prevent injectors or XSS attacks -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; frame-src 'self' https://www.munetios.com; script-src 'self' 'nonce-eJwUyujDhyEcD6ro' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://api.munetios.com; img-src 'self' data: blob:; font-src 'self' https://api.munetios.com data: blob:;"
+      content="default-src 'self'; frame-src 'self' https://accounts.munetios.com https://www.munetios.com; script-src 'self' 'nonce-eJwUyujDhyEcD6ro' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://api.munetios.com; img-src 'self' data: blob:; font-src 'self' https://api.munetios.com data: blob:;"
     />
     <!-- prevent iframe embed. only allow on munetios.com domain -->
     <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
@@ -1475,12 +1476,19 @@
         });
       }
 
+      const SYNCED_TOASTS = new Set(["Category added!", "Image added!", "Task created!", "Task completed!", "Unarchived!", "Task archived!", "Moved to trash!", "Restored from trash!", "Task permanently deleted!", "Task updated!", "Subtask added!", "Task completed! All items checked.", "Task moved to In Progress.", "Tasks imported successfully!"]);
       function showToast(messageKey, isCustom = false) {
         const trans = getCurrentTranslations();
         const message = isCustom
           ? messageKey
           : trans.messages[messageKey] || messageKey;
         const text = window.TasksFeatures?.translateToast?.(message) || message;
+        // Task changes confirm after syncing; if sync fails the toast says so:
+        // "Task created. It's saved on this device, but it couldn't sync."
+        if (SYNCED_TOASTS.has(messageKey) && window.MunetiosAccount?.sync?.report && window.MunetiosUI?.toast) {
+          window.MunetiosAccount.sync.report(text, { locale: window.currentLang || "en", show: (value, type) => window.MunetiosUI.toast(value, { type }) });
+          return;
+        }
         if (window.MunetiosUI?.toast) {
           window.MunetiosUI.toast(text, { type: /error|fail|invalid|please/i.test(message) ? "error" : "success" });
           return;

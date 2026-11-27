@@ -84,3 +84,21 @@ body.omni-sidebar-collapsed #omniAccountProfileSlot :is(.mu-account-sidebar-name
 /* OmniWrite gives buttons a heavier weight; menu text stays 400 (headings 300) */
 .mu-account-menu :is(.mu-menu-item, .mu-menu-item *, .mu-account-manage, .mu-account-manage *, .mu-account-email, .mu-account-status-text, .mu-account-status-text *) { font-weight: 400 !important; }
 .mu-account-menu .mu-account-name { font-weight: 300 !important; }
+
+/* Invalid session: the avatar stays, with a red error badge on its bottom corner. */
+.mu-account-avatar-wrap { position: relative; display: inline-grid; place-items: center; flex: 0 0 auto; }
+.mu-account-badge {
+    position: absolute; inset-inline-end: -4px; inset-block-end: -4px; display: inline-grid; place-items: center;
+    width: 22px; height: 22px; border-radius: 50%; background: var(--mu-danger); color: #ffffff;
+    box-shadow: 0 0 0 2px var(--mu-bg, #ffffff); pointer-events: none;
+}
+.mu-account-badge .mu-icon { font-family: 'Material Symbols Rounded' !important; font-size: 18px; line-height: 1; }
+.mu-account-status.is-signedout > .mu-icon { color: var(--mu-danger); }
+.mu-account-load-error { display: flex; align-items: center; gap: 10px; margin: 6px 0; padding: 8px 12px; color: var(--mu-danger); }
+.mu-account-load-error .mu-icon { font-family: 'Material Symbols Rounded' !important; font-size: 22px; }
+.mu-account-error-circle { background: color-mix(in srgb, var(--mu-danger) 16%, transparent); color: var(--mu-danger); }
+
+/* Sign out confirmation: "Signing out of this account. Please wait…" */
+.mu-account-signing-out { display: flex; align-items: center; gap: 14px; margin: 4px 0; font-size: 18px; font-weight: 400; }
+.mu-account-signing-out[hidden] { display: none; }
+.mu-account-signing-out span { min-width: 0; overflow-wrap: anywhere; }

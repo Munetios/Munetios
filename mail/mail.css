@@ -104,8 +104,11 @@ body.sidebar-end .mail-shell { flex-direction: row-reverse; }
 .mail-nav-section .mu-icon-btn { width: 36px; height: 36px; }
 .mail-nav-children { margin-inline-start: 22px; }
 .mail-swatch-dot { width: 14px; height: 14px; border-radius: 50%; flex: none; }
-.mail-mailbox-picker { display: grid; gap: 4px; }
-.mail-mailbox-picker .mu-nav-item { min-height: 50px; }
+.mail-mailbox-picker { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; }
+.mail-mailbox-picker .mu-nav { min-width: 0; }
+/* Long addresses (forwarding inboxes are 45+ characters) end in an ellipsis instead of leaving the sidebar. */
+.mail-mailbox-picker .mu-nav-item { min-height: 50px; min-width: 0; max-width: 100%; }
+.mail-mailbox-picker .mu-nav-item > :is(.mail-count, .mail-avatar-sm) { flex: none; }
 .mail-avatar-sm { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: none; font-size: var(--mu-fs-body); color: #fff; overflow: hidden; }
 .mail-avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
 
@@ -192,9 +195,20 @@ body[data-preview="0"] .mail-row-snippet { display: none; }
 .mail-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 160px; padding: 0 8px; border-radius: 999px; font-size: var(--mu-fs-body); line-height: 30px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--mu-glass-flat); border: 1px solid var(--mu-border); }
 .mail-chip.is-danger { color: var(--mu-danger); }
 .mail-chip.is-warning { color: var(--mu-warning); }
-.mail-row-quick { display: none; gap: 2px; }
+/* Hover actions float over the end of the row; the text fades out beneath them instead of being squeezed. */
+.mail-row-quick { display: none; gap: 2px; position: absolute; inset-inline-end: 56px; top: 50%; transform: translateY(-50%); z-index: 1; padding: 2px; border-radius: 999px;
+    background: linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass); border: 1px solid var(--mu-border); box-shadow: var(--mu-shadow); }
 .mail-row:hover .mail-row-quick, .mail-row:focus-within .mail-row-quick { display: flex; }
-.mail-row:hover .mail-row-date { display: none; }
+.mail-row:is(:hover, :focus-within) .mail-row-main {
+    -webkit-mask-image: linear-gradient(to left, transparent calc(var(--mail-quick-w, 168px) - 8px), #000 calc(var(--mail-quick-w, 168px) + 16px));
+    mask-image: linear-gradient(to left, transparent calc(var(--mail-quick-w, 168px) - 8px), #000 calc(var(--mail-quick-w, 168px) + 16px)); }
+[dir="rtl"] .mail-row:is(:hover, :focus-within) .mail-row-main {
+    -webkit-mask-image: linear-gradient(to right, transparent calc(var(--mail-quick-w, 168px) - 8px), #000 calc(var(--mail-quick-w, 168px) + 16px));
+    mask-image: linear-gradient(to right, transparent calc(var(--mail-quick-w, 168px) - 8px), #000 calc(var(--mail-quick-w, 168px) + 16px)); }
+/* Labels stay on one line so a fixed-height row never clips them; chips truncate, the thread count doesn't. */
+.mail-row-meta { flex-wrap: nowrap; overflow: hidden; }
+.mail-row-meta > .mail-chip { flex: 0 1 auto; min-width: 0; }
+.mail-row-meta > :is(.mail-chip-count, .mu-icon) { flex: none; }
 .mail-row-quick .mu-icon-btn { width: 38px; height: 38px; }
 .mail-row-star.is-on .mu-icon { color: var(--mu-warning); font-variation-settings: 'FILL' 1; }
 .mail-row-swipe { position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; border-radius: inherit; color: #fff; z-index: -1; }
@@ -221,6 +235,9 @@ body[data-density="spacious"] { --mail-row-pad: 18px; --mail-gap: 16px; }
 .mail-message-head .mail-stamp { --mail-avatar: 44px; }
 .mail-message-who { min-width: 0; display: grid; gap: 2px; }
 .mail-message-who strong { font-weight: 400; overflow-wrap: anywhere; }
+.mail-app :is(strong, b, th) { font-weight: 400; }
+/* Collapsed thread messages show a short preview, not the whole body. */
+.mail-message.is-collapsed .mail-message-who > .mu-muted { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .mail-message-who .mu-muted { font-size: var(--mu-fs-body); overflow-wrap: anywhere; }
 .mail-message-actions { display: flex; align-items: center; gap: 2px; }
 .mail-message-actions .mu-icon-btn { width: 40px; height: 40px; }
@@ -253,13 +270,42 @@ body[data-density="spacious"] { --mail-row-pad: 18px; --mail-gap: 16px; }
     border-radius: calc(var(--mu-radius-lg) * var(--mail-radius)); overflow: hidden; animation: mail-rise calc(220ms * var(--mail-speed)) ease both;
 }
 .mail-compose.is-minimized { height: auto; width: min(320px, calc(100vw - 32px)); }
+/* Shrinking instead of overflowing: open windows share the dock's width, a short window scrolls its body
+   rather than collapsing the editor, and a narrow window tightens its spacing (container queries below). */
+.mail-compose { flex: 0 1 auto; min-width: min(300px, 100%); max-width: 100%; max-height: calc(100dvh - 24px - var(--mail-safe-top) - var(--mail-safe-bottom)); container: compose / inline-size; }
+.mail-compose.is-minimized { flex: 0 1 260px; min-width: min(140px, 100%); }
+.mail-compose.is-minimized .mail-compose-head .mu-icon-btn:nth-of-type(2) { display: none; }
+.mail-field-row > :not(label, .mail-field-name) { min-width: 0; }
+.mail-field-row .mu-select-button { min-width: 0; }
+/* Last resort when even minimized windows don't fit: the dock scrolls sideways. */
+.mail-compose-dock.is-crowded { overflow-x: auto; scrollbar-width: thin; }
+.mail-compose:not(.is-minimized) .mail-compose-body { overflow-y: auto; overscroll-behavior: contain; }
+.mail-compose-foot > * { min-width: 0; }
+.mail-compose-foot > .mu-muted { flex: 1 1 160px; overflow-wrap: anywhere; }
+@container compose (max-width: 520px) {
+    .mail-compose-fields { padding-inline: 10px; }
+    .mail-field-row { gap: 8px; }
+    .mail-field-row > label, .mail-field-row > .mail-field-name { min-width: 0; }
+    .mail-recipients input { min-width: 80px; }
+    .mail-compose-modes, .mail-compose-foot { gap: 4px; padding-inline: 8px; }
+    .mail-format-bar { padding-inline: 4px; }
+    .mail-format-bar .mu-toolbar-field { padding: 0 8px; }
+    .mail-format-bar .mu-divider-v { display: none; }
+    .mail-compose-modes .mu-segmented { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+    .mail-compose-modes .mu-segmented button { min-width: 0; padding-inline: 10px; }
+}
+@container compose (max-width: 380px) {
+    .mail-compose-head { padding-inline-start: 12px; }
+    .mail-compose-foot .mail-send-group .mu-btn:first-child { padding-inline: 14px; }
+    .mail-compose-foot > .mu-muted { flex-basis: 100%; }
+}
 .mail-compose.is-minimized .mail-compose-body { display: none; }
 .mail-compose.is-full { position: fixed; inset: calc(12px + var(--mail-safe-top)) 16px calc(12px + var(--mail-safe-bottom)); width: auto; height: auto; z-index: 1000; }
 .mail-compose-head { display: flex; align-items: center; gap: 6px; padding: 8px 8px 8px 18px; border-bottom: 1px solid var(--mu-divider); cursor: default; }
 .mail-compose-head h2 { flex: 1; min-width: 0; margin: 0; font-size: 19px; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mail-compose-head .mu-icon-btn { width: 40px; height: 40px; }
 .mail-compose-body { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
-.mail-compose-fields { display: grid; gap: 0; padding: 4px 14px; border-bottom: 1px solid var(--mu-divider); }
+.mail-compose-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding: 4px 14px; border-bottom: 1px solid var(--mu-divider); }
 .mail-field-row { display: flex; align-items: center; gap: 10px; min-height: 48px; border-bottom: 1px solid var(--mu-divider); }
 .mail-field-row:last-child { border-bottom: 0; }
 .mail-field-row > label, .mail-field-row > .mail-field-name { flex: none; min-width: 56px; color: var(--mu-text-muted); font-size: var(--mu-fs-body); }
@@ -273,7 +319,8 @@ body[data-density="spacious"] { --mail-row-pad: 18px; --mail-gap: 16px; }
 .mail-recipient button .mu-icon { font-size: var(--mu-fs-body); }
 .mail-compose-modes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--mu-divider); }
 .mail-compose-modes .mu-segmented { flex-wrap: wrap; }
-.mail-compose-editor { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+/* Fills the free space, keeps at least 160px (the body scrolls instead), and scrolls its own text. */
+.mail-compose-editor { position: relative; flex: 1 1 0; min-height: 160px; display: flex; flex-direction: column; }
 .mail-compose-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--mu-divider); }
 .mail-compose-foot .mail-spacer { flex: 1; }
 .mail-compose-foot .mu-muted { font-size: var(--mu-fs-body); }
@@ -391,16 +438,23 @@ body[data-density="spacious"] { --mail-row-pad: 18px; --mail-gap: 16px; }
 .mail-settings-nav .mu-nav-item { min-height: 46px; padding: 6px 14px; font-size: var(--mu-fs-body); }
 .mail-settings-body { display: flex; flex-direction: column; min-height: 0; }
 .mail-settings-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--mu-divider); }
+/* A flex column, not a grid: grid tracks are sized before rows wrap, so wrapped controls overlapped the next row. */
 .mail-settings-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 18px 22px 28px; display: flex; flex-direction: column; gap: 14px; }
-.mail-settings-content > * { flex-shrink: 0; min-width: 0; }
+.mail-settings-content > *, .mail-studio-controls > * { flex-shrink: 0; min-width: 0; }
+.mail-settings-content > .mu-btn, .mail-settings-content > a.mu-btn { align-self: flex-start; }
+.mail-settings-content > .mu-btn-primary { align-self: stretch; }
 .mail-settings-content h3 { margin: 10px 0 0; font-size: 22px; }
 .mail-settings-content .mu-row { gap: 16px; flex-wrap: wrap; }
 .mail-settings-content .mu-row .mu-row-info { flex: 1 1 260px; }
 .mail-settings-content .mu-row > :last-child:not(.mu-row-info) { flex: 0 1 auto; max-width: 100%; }
-.mail-setting-control { min-width: min(260px, 100%); }
+.mail-setting-control { min-width: min(260px, 100%); justify-content: flex-end; }
+.mail-setting-control > .mu-switch { flex: 0 0 auto !important; }
+/* Many on/off items (stylistic sets, quick actions) wrap in a full-width grid instead of one tall column. */
+.mu-row:has(.mail-toggle-grid) > .mail-setting-control { flex: 1 1 100% !important; align-items: flex-start; }
+.mail-toggle-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(190px, 100%), 1fr)); gap: 8px; width: 100%; }
 .mail-studio { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 400px); gap: 0; width: 100%; height: min(calc(100dvh - 230px), 860px); min-height: 320px; padding: 0; overflow: hidden; }
 .mail-studio-controls .mu-tabs { flex-wrap: wrap; }
-.mail-studio-controls { overflow-y: auto; padding: 18px 20px; display: grid; align-content: start; gap: 12px; }
+.mail-studio-controls { overflow-y: auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
 .mail-studio-preview { border-inline-start: 1px solid var(--mu-divider); padding: 18px; display: grid; align-content: start; gap: 12px; overflow-y: auto; }
 .mail-preview-card { border-radius: calc(var(--mu-radius-lg) * var(--mail-radius)); padding: 14px; display: grid; gap: 10px; }
 .mail-preview-card .mail-row { position: relative; inset: auto; }
@@ -413,6 +467,11 @@ body[data-density="spacious"] { --mail-row-pad: 18px; --mail-gap: 16px; }
 .mail-storage-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .mail-storage-legend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
 .mail-table-wrap { overflow-x: auto; }
+.mail-privacy-dialog { width: min(640px, calc(100vw - 32px)); }
+.mail-privacy-dialog :is(p, li, td, th) { overflow-wrap: anywhere; }
+.mail-link-report { display: grid; gap: 10px; margin: 0; padding-inline-start: 22px; }
+.mail-link-report li { display: grid; gap: 2px; min-width: 0; }
+.mail-link-report-url { color: var(--mu-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mail-table { width: 100%; border-collapse: collapse; font-size: var(--mu-fs-body); }
 .mail-table th, .mail-table td { padding: 8px 10px; text-align: start; border-bottom: 1px solid var(--mu-divider); vertical-align: middle; }
 .mail-table th { color: var(--mu-text-muted); font-weight: 400; }
@@ -424,26 +483,32 @@ body[data-density="spacious"] { --mail-row-pad: 18px; --mail-gap: 16px; }
 .mail-drop-hint { position: fixed; inset: 0; z-index: 1250; display: grid; place-content: center; justify-items: center; gap: 10px; font-size: 26px; color: #fff; background: color-mix(in srgb, var(--mu-accent) 40%, rgba(6,2,20,0.6)); pointer-events: none; }
 .mail-drop-hint .mu-icon { font-size: 64px; }
 .mail-kbd-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: 6px 18px; }
+/* The shortcut list sits under its title at full width, not beside an empty column. */
 .mu-row:has(.mail-kbd-list) { flex-direction: column; align-items: stretch; gap: 14px; }
 .mu-row:has(.mail-kbd-list):hover { background: transparent; }
 .mu-row:has(.mail-kbd-list) > .mu-row-info { flex: none !important; }
 .mu-row:has(.mail-kbd-list) > .mail-setting-control { flex: none !important; width: 100%; }
 .mail-kbd-list .mu-shortcut { flex-wrap: wrap; padding-inline: 12px; }
-.mail-inline-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.mail-inline-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; text-align: start; }
+.mail-inline-form > .mu-btn { flex: 0 0 auto; }
+.mail-picture-row { display: flex; align-items: center; gap: 12px; }
+.mail-picture-row > .mu-icon { font-size: 48px; color: var(--mu-icon); }
 .mail-inline-form > * { flex: 1 1 180px; }
 .mail-list-editor { display: grid; gap: 6px; }
 .mail-list-editor .mail-list-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 18px; border: 1px solid var(--mu-border); background: var(--mu-field); }
 /* The name fills the row; leading icons and color dots keep their size. */
 .mail-list-editor .mail-list-item > :is(.mail-list-name, span:first-of-type:not(.mu-icon, .mail-swatch-dot, .mu-switch), :is(.mu-icon, .mail-swatch-dot) + span:not(.mu-muted)) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mail-list-editor .mail-list-item > :is(.mu-icon, .mail-swatch-dot) { flex: none; }
-.mail-list-editor .mail-list-item > .mu-muted { flex: none; font-size: var(--mu-fs-sm, 15px); }
+.mail-list-editor .mail-list-item > .mu-muted { flex: none; font-size: var(--mu-fs-body); }
 .mail-list-editor .mail-list-item.is-hidden .mail-list-name { color: var(--mu-text-muted); }
 .mail-list-editor .mail-list-item .mu-icon-btn[disabled] { opacity: 0.35; pointer-events: none; }
 .mail-list-item.is-child { margin-inline-start: 28px; }
 .mail-block-setting { display: grid; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--mu-divider); }
 .mail-block-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .mail-section-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.mail-dialog-body { display: grid; gap: 14px; min-height: 0; }
+.mail-dialog-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-height: 0; min-width: 0; overflow-wrap: anywhere; }
+/* Scrolling children (tables) would otherwise shrink to nothing; the dialog body scrolls instead. */
+.mail-dialog-body > .mail-table-wrap { min-height: min-content; }
 /* Stronger scrim so the busy mail list doesn't read through dialogs as duplicate content. Glass alpha stays in range. */
 .mail-app .mu-modal { background: color-mix(in srgb, var(--mu-backdrop, #06020f) 86%, transparent); }
 .mail-studio-dialog { width: min(1240px, 100%); padding: 16px; overflow: hidden; }
@@ -588,8 +653,21 @@ body.high-contrast .mail-row[aria-selected="true"], body.high-contrast .mail-row
 .mail-setting-control > :first-child { flex: 1 1 auto; min-width: 0; }
 .mail-compose { background: linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass); }
 .mail-logo-icon { display: grid; place-items: center; border-radius: 50%; background: linear-gradient(135deg, var(--mu-accent), var(--mail-accent-2, #e05cff)); color: #fff; }
-.mail-nav-hint { display: block; font-size: 13px; line-height: 1.2; color: var(--mu-text-muted); overflow: hidden; text-overflow: ellipsis; }
+.mail-nav-hint { display: block; font-size: 18px; line-height: 1.3; color: var(--mu-text-muted); overflow: hidden; text-overflow: ellipsis; }
 .mail-block-head h3 { margin: 0; }
 .mail-slider-row { display: flex; align-items: end; gap: 6px; padding: 18px 24px; border-bottom: 1px solid var(--mu-divider); }
 .mail-block-setting { padding-inline: 24px; }
 .mail-settings-content .mail-block-setting, .mail-settings-content .mail-slider-row { padding-inline: 0; }
+/* Delete mailbox: danger tone throughout. */
+.mail-danger-dialog { width: min(620px, calc(100vw - 32px)); }
+.mail-danger-dialog .mu-dialog-header .mu-icon-circle { background: color-mix(in srgb, var(--mu-danger) 16%, transparent); color: var(--mu-danger); }
+.mail-danger-warning { display: grid; gap: 6px; padding: 14px 18px; border-radius: calc(var(--mu-radius-md) * var(--mail-radius)); border: 1px solid color-mix(in srgb, var(--mu-danger) 55%, transparent); background: color-mix(in srgb, var(--mu-danger) 12%, transparent); }
+.mail-danger-warning strong { color: var(--mu-danger); font-size: 20px; }
+.mail-danger-warning p { margin: 0; }
+.mail-danger-list { display: grid; gap: 6px; }
+.mail-danger-list ul { margin: 0; padding-inline-start: 24px; display: grid; gap: 4px; }
+.mail-danger-dialog .mu-input:focus { border-color: var(--mu-danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mu-danger) 25%, transparent); }
+/* Addresses at other providers sit under the mailbox they forward into. */
+.mail-mailbox-picker .mail-nav-linked { margin-inline-start: 16px; min-height: 46px; }
+.mail-mailbox-picker .mail-nav-linked .mail-avatar-sm { flex: none; }
+body.sidebar-collapsed .mail-mailbox-picker .mail-nav-linked { margin-inline-start: 0; }

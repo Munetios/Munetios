@@ -292,6 +292,14 @@
         setTimeout(() => removeToast(toast), duration);
     }
 
+    // Changes to spreadsheets confirm after syncing; if sync fails the toast says so:
+    // "Spreadsheet renamed. It's saved on this device, but it couldn't sync."
+    function showSyncedToast(message) {
+        const account = window.MunetiosAccount;
+        if (!account?.sync?.report) { showToast(message, { type: 'success' }); return; }
+        account.sync.report(message, { locale: currentLang(), show: (text, type) => showToast(text, { type }) });
+    }
+
     // Tooltips come from OmniWrite's tooltip system (it reads data-tooltip).
 
     let openDialogs = 0;
@@ -885,7 +893,7 @@
         touchBook(book);
         renderLists();
         if (editor.book === book) { $('editableTitle').textContent = book.title; updateDocumentTitle(); }
-        showToast(t('spreadsheet_renamed'), { type: 'success' });
+        showSyncedToast(t('spreadsheet_renamed'));
     }
     function duplicateBook(book) {
         const copy = clone(book);
@@ -900,7 +908,7 @@
         books.unshift(normalized);
         saveBookNow(normalized);
         renderLists();
-        showToast(t('spreadsheet_duplicated'), { type: 'success' });
+        showSyncedToast(t('spreadsheet_duplicated'));
     }
     function trashBook(book) {
         book.trashed = true;
@@ -908,9 +916,9 @@
         touchBook(book);
         if (editor.book === book) goHome();
         renderLists();
-        showToast(t('sheets_moved_to_trash'), { type: 'success' });
+        showSyncedToast(t('sheets_moved_to_trash'));
     }
-    function restoreBook(book) { book.trashed = false; delete book.trashedAt; touchBook(book); renderLists(); showToast(t('sheets_restored'), { type: 'success' }); }
+    function restoreBook(book) { book.trashed = false; delete book.trashedAt; touchBook(book); renderLists(); showSyncedToast(t('sheets_restored')); }
     async function deleteForever(book, skipConfirm = false) {
         if (!skipConfirm && !(await confirmDialog(t('sheets_confirm_delete_forever'), { danger: true, confirmLabel: omniT('delete_forever') }))) return;
         window.removeOmniSpreadsheetFromFolders?.(book);
@@ -919,7 +927,7 @@
         try { await deleteBookRecord(book.id); await deleteSnapshots(book.id); } catch (error) { console.error(error); }
         renderLists();
         syncSoon();
-        if (!skipConfirm) showToast(t('sheets_deleted_forever'), { type: 'success' });
+        if (!skipConfirm) showSyncedToast(t('sheets_deleted_forever'));
     }
 
     /* ================================================================ saving & sync */
@@ -991,7 +999,7 @@
     function setStatus(text, icon) {
         const label = $('savingStatus'), iconEl = $('savingStatusIcon');
         const account = window.MunetiosAccount;
-        if (account?.state.revocation && icon !== 'error') { text = account.t('sessionSyncPaused'); icon = 'cloud_off'; }
+        if (account?.state.revocation && icon !== 'error') { text = syncFailureText(); icon = 'cloud_off'; }
         const offline = navigator.onLine === false && icon !== 'error';
         label.textContent = offline ? t('you_are_offline') : text;
         iconEl.textContent = offline ? 'cloud_off' : icon || 'lock';
@@ -1054,8 +1062,8 @@
             const renderAccountSync = state => {
                 if (state.revocation?.id !== lastRevocation) {
                     lastRevocation = state.revocation?.id;
-                    hiddenCloudBooks = state.revocation ? account.cloudItems('omniwrite-sheets:book:', 'omniwrite-sheets') : new Set();
-                    if (editor.book && hiddenCloudBooks.has(editor.book.id)) goHome();
+                    // An invalid session still shows as signed in: spreadsheets stay, and sync reports the failure.
+                    hiddenCloudBooks = new Set();
                     renderLists();
                     setStatus(t('e2e_encrypted'));
                 }
@@ -4336,7 +4344,7 @@
             renderLists();
             openBookRoute(book.id);
             window.hideSidebarIfMobile?.();
-            showToast(t('sheets_imported', { name: book.title }), { type: 'success' });
+            showSyncedToast(t('sheets_imported', { name: book.title }));
         } catch (error) {
             console.error(error);
             showToast(t('sheets_import_failed'), { type: 'error' });
@@ -4465,7 +4473,7 @@
         saveBookNow(book);
         renderLists();
         openBookRoute(book.id);
-        showToast(t('sheets_imported', { name: book.title }), { type: 'success' });
+        showSyncedToast(t('sheets_imported', { name: book.title }));
     }
     function openInfo() {
         if (!editor.book) return;
@@ -5530,7 +5538,7 @@
                 book.workspaceId = ws.id;
                 touchBook(book);
                 renderLists();
-                showToast(t('sheets_moved_workspace', { name: workspaceLabel(ws) }), { type: 'success' });
+                showSyncedToast(t('sheets_moved_workspace', { name: workspaceLabel(ws) }));
                 if (editor.book === book && ws.id !== activeWorkspace().id) goHome();
             }
         }))], { align: 'end' });

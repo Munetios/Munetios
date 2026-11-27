@@ -1,9 +1,10 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script src="/shared/test-error.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title translate="no">Munetios</title>
+    <title translate="no">Munetios Search</title>
     <script>
       // Hidden panels and pages stay out of the live DOM until opened, and leave it again after closing.
       window.OmniLazyDomConfig = {
@@ -35,7 +36,7 @@
     <meta http-equiv="X-Frame-Options" content="DENY" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://*.munetios.com https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self' https://*.munetios.com https://api.munetios.com https://cdn.jsdelivr.net 'unsafe-inline'; img-src * data:; font-src 'self' https://api.munetios.com https://cdn.jsdelivr.net; frame-src 'self' https://www.munetios.com https://games.munetios.com https://tetris.munetios.com https://www.youtube-nocookie.com; connect-src 'self' data: https://*.munetios.com https://api.munetios.com https://munetios.com https://proxy.munetios.com https://cdn.jsdelivr.net https://photon.komoot.io https://hn.algolia.com https://*.wikipedia.org https://openlibrary.org https://*.openlibrary.org https://*.openfreemap.org https://tiles.openfreemap.org https://server.arcgisonline.com https://api.openverse.org https://commons.wikimedia.org; object-src 'none'; base-uri 'self'; form-action 'self' https://*.munetios.com; worker-src 'self' blob:; media-src 'self' https: blob: data:;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://*.munetios.com https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self' https://*.munetios.com https://api.munetios.com https://cdn.jsdelivr.net 'unsafe-inline'; img-src * data:; font-src 'self' https://api.munetios.com https://cdn.jsdelivr.net; frame-src 'self' https://accounts.munetios.com https://www.munetios.com https://games.munetios.com https://tetris.munetios.com https://www.youtube-nocookie.com; connect-src 'self' data: https://*.munetios.com https://api.munetios.com https://munetios.com https://proxy.munetios.com https://cdn.jsdelivr.net https://photon.komoot.io https://hn.algolia.com https://*.wikipedia.org https://openlibrary.org https://*.openlibrary.org https://*.openfreemap.org https://tiles.openfreemap.org https://server.arcgisonline.com https://api.openverse.org https://commons.wikimedia.org; object-src 'none'; base-uri 'self'; form-action 'self' https://*.munetios.com; worker-src 'self' blob:; media-src 'self' https: blob: data:;"
     />
     <script>
       window.munetiosSearchFont = function () {

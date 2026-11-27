@@ -51,7 +51,7 @@ export async function open(item) {
         offline.cachePut("message:" + item.id, thread).catch(() => {});
     } catch (error) {
         thread = await offline.cacheGet("message:" + item.id);
-        if (!thread) { reader().replaceChildren(emptyState("error", error instanceof ApiError && error.code === "offline" ? t("offlineMessage") : t("loadFailed"), "")); return; }
+        if (!thread) { reader().replaceChildren(emptyState("error", error instanceof ApiError && error.code === "offline" ? t("offlineMessage") : t("errLoadEmail"), "")); return; }
     }
     if (state.openId !== item.id && !state.tabs.some(tab => tab.id === item.id)) return;
     render(thread);
@@ -158,7 +158,7 @@ function collapsed(summary) {
     const expand = async () => {
         head.setAttribute("aria-expanded", "true");
         try { const { message } = await get(`/messages/${summary.id}`); card.replaceWith(messageCard(message, false)); }
-        catch { toast(t("loadFailed"), "error"); }
+        catch { toast(t("errLoadEmail"), "error"); }
     };
     head.addEventListener("click", expand);
     head.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); expand(); } });
@@ -215,7 +215,7 @@ function unsubscribeBar(message) {
                 const result = await post(`/mailboxes/${message.mailboxId}/subscriptions/unsubscribe`, { sender: message.from.email });
                 if (result.method === "web") openLink(result.url, "", t("unsubscribe"));
                 else toast(t("unsubscribed"), "success");
-            } catch (error) { toast(actions.errorText(error), "error"); }
+            } catch (error) { toast(actions.failText(error, "errUnsubscribe"), "error"); }
         }, { class: "mu-btn mu-btn-ghost" }));
 }
 
@@ -299,9 +299,21 @@ function privacyDialog(message, report = null, allowed = false) {
         if (report.trackers.length) content.push(el("p", { text: t("trackerList") + ": " + report.trackers.join(", ") }));
         if (report.remoteFonts || report.remoteStyles) content.push(el("p", { text: t("externalResourcesBlocked") }));
         if (report.forms) content.push(el("p", { text: t("formsRemoved") }));
-        if (report.suspicious.length) content.push(el("ul", {}, report.suspicious.map(item => el("li", { text: `${item.text || item.href} → ${item.href} (${t("risk_" + item.risk)})` }))));
+        if (report.suspicious.length) content.push(el("ul", { class: "mail-link-report" }, report.suspicious.map(item => el("li", {},
+            el("span", { text: item.text || shortUrl(item.href) }),
+            el("span", { class: "mail-link-report-url", dir: "ltr", "data-tooltip": item.href, text: shortUrl(item.href) }),
+            el("span", { class: "mu-muted", text: t("risk_" + item.risk) || item.risk })))));
     }
-    const d = dialog({ title: t("privacyInfo"), iconName: "shield", content, actions: [button(t("close"), () => d.close(), { primary: true })] });
+    const d = dialog({ title: t("privacyInfo"), iconName: "shield", content, className: "mail-privacy-dialog", actions: [button(t("close"), () => d.close(), { primary: true })] });
+}
+
+// Host and the start of the path; tracking links are often hundreds of characters long.
+function shortUrl(href) {
+    try {
+        const url = new URL(href);
+        const rest = url.pathname + url.search;
+        return url.host + (rest.length > 1 ? (rest.length > 40 ? rest.slice(0, 40) + "…" : rest) : "");
+    } catch { return String(href || "").slice(0, 60); }
 }
 
 // Links always show their real destination; risky links and every external open ask first when enabled.
@@ -329,7 +341,7 @@ function attachmentsView(message) {
         if (item.disposition === "inline" && item.contentId && message.html.includes("cid:" + item.contentId)) continue;
         const thumb = el("span", { class: "mail-attachment-thumb" }, icon(/^image\//.test(item.mimeType) ? "image" : /pdf/.test(item.mimeType) ? "picture_as_pdf" : /^video\//.test(item.mimeType) ? "movie" : /zip|compressed/.test(item.mimeType) ? "folder_zip" : "draft"));
         const save = iconButton("download", t("downloadName", { name: item.filename }), async () => {
-            try { download(await fetchBlob(`/attachments/${item.id}`), item.filename); } catch (error) { toast(actions.errorText(error), "error"); }
+            try { download(await fetchBlob(`/attachments/${item.id}`), item.filename); } catch (error) { toast(actions.failText(error, "errDownload"), "error"); }
         });
         const card = el("div", { class: "mail-attachment" }, thumb, el("div", { style: "min-width:0" }, el("div", { class: "mail-attachment-name", text: item.filename }), el("div", { class: "mu-muted", text: formatBytes(item.size) })), save);
         if (/^image\/(png|jpeg|gif|webp)$/.test(item.mimeType) && item.size < 15_000_000) {
@@ -356,7 +368,7 @@ function lightbox(url, name) {
 
 async function downloadEml(message) {
     try { download(await fetchBlob(`/messages/${message.id}/eml`), (message.subject || "message").replace(/[\\/:*?"<>|]+/g, "_").slice(0, 80) + ".eml"); }
-    catch (error) { toast(actions.errorText(error), "error"); }
+    catch (error) { toast(actions.failText(error, "errDownload"), "error"); }
 }
 
 function showHtml(message) {
@@ -379,12 +391,12 @@ async function blockSender(message) {
         await post(`/mailboxes/${message.mailboxId}/senders`, { list: "block", pattern: message.from.email });
         await actions.spam([message.id], true);
         toast(t("senderBlocked"), "success");
-    } catch (error) { toast(actions.errorText(error), "error"); }
+    } catch (error) { toast(actions.failText(error, "errBlockSender"), "error"); }
 }
 
 async function trustSender(message, quiet = false) {
     try { await post(`/mailboxes/${message.mailboxId}/senders`, { list: "trusted", pattern: message.from.email }); if (!quiet) toast(t("senderTrusted"), "success"); }
-    catch (error) { toast(actions.errorText(error), "error"); }
+    catch (error) { toast(actions.failText(error, "errTrustedSender"), "error"); }
 }
 on("blockSender", item => blockSender(item));
 
@@ -461,7 +473,7 @@ async function moveDeviceToMailbox(message) {
         toast(t("movedToMailbox"), "success");
         closeReader();
     } catch (error) {
-        toast(error instanceof ApiError && error.code === "quotaExceeded" ? t("stillFull") : actions.errorText(error), "error");
+        toast(error instanceof ApiError && error.code === "quotaExceeded" ? t("stillFull") : actions.failText(error, "errMoveToMailbox"), "error");
     }
 }
 
@@ -471,7 +483,7 @@ export async function moveAllDeviceMail() {
         try {
             await upload(`/mailboxes/${message.mailboxId}/import?folder=inbox&read=${message.read ? 1 : 0}`, new Blob([bytes], { type: "message/rfc822" }));
             await offline.deviceDelete(message.id);
-        } catch (error) { toast(error?.code === "quotaExceeded" ? t("stillFull") : actions.errorText(error), "error"); break; }
+        } catch (error) { toast(error?.code === "quotaExceeded" ? t("stillFull") : actions.failText(error, "errMoveToMailbox"), "error"); break; }
     }
     state.deviceMessages = await offline.deviceList();
     emit("deviceMessages", {}); emit("reload"); emit("storageStale");

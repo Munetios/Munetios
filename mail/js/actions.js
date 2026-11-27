@@ -23,6 +23,33 @@ function errorText(error) {
     return t("actionFailed");
 }
 
+// The action's own message ("Failed to create folder. Try again.") for generic failures; a specific reason
+// (quota exceeded, invalid address, file too large, offline) when the server gave one.
+const GENERIC_ERRORS = new Set(["unavailable", "internal", "invalidRequest", "notFound", "forbidden", "actionFailed"]);
+export function failText(error, key) {
+    if (error instanceof ApiError && !GENERIC_ERRORS.has(error.code)) {
+        const specific = t("error_" + error.code);
+        if (specific) return specific;
+    }
+    return t(key);
+}
+
+// The message for a failed message update, named after what the patch does.
+function patchErrorKey(patch) {
+    if ("starred" in patch) return patch.starred ? "errStar" : "errUnstar";
+    if ("read" in patch) return patch.read ? "errMarkRead" : "errMarkUnread";
+    if ("important" in patch) return patch.important ? "errImportant" : "errNotImportant";
+    if ("pinned" in patch) return patch.pinned ? "errPin" : "errUnpin";
+    if (patch.spam !== undefined) return patch.spam ? "errSpam" : "errNotSpam";
+    if (patch.restore) return "errRestore";
+    if ("snoozeUntil" in patch) return patch.snoozeUntil ? "errSnooze" : "errUnsnooze";
+    if ("followUpAt" in patch) return "errFollowUp";
+    if (patch.folder) return patch.folder === "archive" ? "errArchive" : patch.folder === "trash" ? "errTrash" : "errMove";
+    if (patch.addLabels || patch.removeLabels) return "errLabelEmail";
+    if ("category" in patch) return "errCategory";
+    return "errUpdateEmail";
+}
+
 // patch: server patch. Applies locally first, rolls back if the server refuses.
 export async function update(ids, patch, { message = "", undoPatch = null, silent = false } = {}) {
     const list = [...ids].filter(id => !String(id).startsWith("dd_"));
@@ -35,7 +62,7 @@ export async function update(ids, patch, { message = "", undoPatch = null, silen
     } catch (error) {
         for (const { id, item } of before) if (item) Object.assign(byId(id) || {}, item);
         emit("listChanged");
-        toast(errorText(error), "error");
+        toast(failText(error, patchErrorKey(patch)), "error");
     }
 }
 
@@ -58,7 +85,12 @@ function applyLocal(ids, patch) {
 }
 
 export const archive = ids => update(ids, { folder: "archive" }, { message: t("archivedMessages", { count: ids.length }), undoPatch: before => ({ folder: before[0]?.item?.folder || "inbox" }) });
-export const trash = ids => update(ids, { folder: "trash" }, { message: t("movedToTrash", { count: ids.length }), undoPatch: { restore: true } });
+export async function trash(ids) {
+    const drafts = ids.filter(id => state.view === "drafts" || byId(id)?.folder === "drafts");
+    const messages = ids.filter(id => !drafts.includes(id));
+    if (drafts.length) await deleteForever(drafts, { failKey: "errTrash" });
+    if (messages.length) await update(messages, { folder: "trash" }, { message: t("movedToTrash", { count: messages.length }), undoPatch: { restore: true } });
+}
 export const markRead = (ids, read = true) => update(ids, { read });
 export const star = (ids, starred) => update(ids, { starred });
 export const important = (ids, value) => update(ids, { important: value });
@@ -76,7 +108,7 @@ export function folderName(folder) {
     return system[folder] || folders().find(item => item.id === folder)?.name || folder;
 }
 
-export async function deleteForever(ids) {
+export async function deleteForever(ids, { failKey = "errDeleteForever" } = {}) {
     const list = [...ids].filter(id => !String(id).startsWith("dd_"));
     if (!list.length) return;
     if (state.prefs?.behavior?.confirmDelete !== false) {
@@ -88,7 +120,7 @@ export async function deleteForever(ids) {
         await perform("/messages/delete", "POST", { ids: list });
         toast(t("deletedForever"), "success");
         emit("storageStale");
-    } catch (error) { toast(errorText(error), "error"); emit("reload"); }
+    } catch (error) { toast(failText(error, failKey), "error"); emit("reload"); }
 }
 
 export function moveMenu(anchor, ids, mailboxId) {
@@ -160,7 +192,7 @@ export async function emptyFolder(folder, mailboxId) {
         const result = await post("/folders/empty", { mailboxId, folder });
         toast(t("deletedCount", { count: result.deleted }), "success");
         emit("reload"); emit("storageStale");
-    } catch (error) { toast(errorText(error), "error"); }
+    } catch (error) { toast(failText(error, "errFreeSpace"), "error"); }
 }
 
 export { errorText };

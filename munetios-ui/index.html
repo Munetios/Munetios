@@ -46,7 +46,8 @@
     .doc-rules li { display: flex; gap: 12px; align-items: flex-start; }
     .doc-rules .mu-icon { color: var(--mu-success); }
     .doc-hidden { display: none !important; }
-    .doc-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .doc-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; gap: 16px; }
+    .doc-columns > .mu-search { grid-column: 1 / -1; }
     @media (max-width: 960px) {
         .doc-shell { grid-template-columns: minmax(0, 1fr); padding: 12px; }
         .mu-topbar { flex-wrap: wrap; }
@@ -143,7 +144,6 @@
 <button type="button" class="mu-btn mu-btn-danger-outline">Delete fonts</button>
 <button type="button" class="mu-btn mu-btn-warning-outline">Reset key</button>
 <button type="button" class="mu-btn mu-btn-lg mu-btn-primary">Large</button>
-<button type="button" class="mu-btn mu-google-signin"><img src="/signin/google-g.png" width="22" height="22" alt="">Sign in with Google</button>
 <button type="button" class="mu-btn" disabled>Disabled</button>
             </div>
         </section>
@@ -162,8 +162,8 @@
         <section class="doc-section mu-glass" data-title="Text fields" data-icon="text_fields" id="fields">
             <header><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">text_fields</span></span><div><h2>Text fields</h2><p>Labels sit above fields in muted text.</p></div></header>
             <div class="doc-demo doc-columns" data-demo>
-<label class="mu-field"><span class="mu-field-label">Project name</span><input class="mu-input" type="text" placeholder="e.g. Launch plan"></label>
 <label class="mu-search"><span class="mu-icon" aria-hidden="true">search</span><input type="search" placeholder="Search documents" aria-label="Search documents"></label>
+<label class="mu-field"><span class="mu-field-label">Project name</span><input class="mu-input" type="text" placeholder="e.g. Launch plan"></label>
 <label class="mu-field"><span class="mu-field-label">Passphrase</span><input class="mu-input is-invalid" type="password" value="short" aria-invalid="true"><span class="mu-field-help">Use at least 8 characters.</span></label>
 <label class="mu-field"><span class="mu-field-label">Notes</span><textarea class="mu-textarea" placeholder="Write something"></textarea></label>
             </div>
@@ -194,6 +194,7 @@
             <div class="doc-demo is-row" data-demo>
 <label class="mu-switch"><input type="checkbox" checked aria-label="Spell check"><span class="mu-switch-track"></span></label>
 <label class="mu-switch"><input type="checkbox" aria-label="Compact mode"><span class="mu-switch-track"></span></label>
+<button type="button" class="mu-switch" role="switch" aria-checked="true" aria-label="Autoplay" onclick="this.setAttribute('aria-checked', String(this.getAttribute('aria-checked') !== 'true'))"><span class="mu-switch-track" aria-hidden="true"></span></button>
 <label class="mu-check"><input type="checkbox" checked>Selected</label>
 <label class="mu-check"><input type="checkbox">Not selected</label>
 <label class="mu-radio"><input type="radio" name="width" checked>Balanced</label>
@@ -391,6 +392,7 @@
 <span class="mu-tooltip">Version history</span>
 <button type="button" class="mu-btn" onclick="MunetiosUI.toast('Document saved', { type: 'success' })">Show success toast</button>
 <button type="button" class="mu-btn" onclick="MunetiosUI.toast('Failed to restore document version', { type: 'error' })">Show error toast</button>
+<button type="button" class="mu-btn" onclick="MunetiosUI.toast('Showing saved messages. New mail will appear when the connection returns.', { type: 'warning' })">Show warning toast</button>
 <button type="button" class="mu-btn" onclick="MunetiosUI.toast('Backup exported. You can close this when you are done.', { type: 'info', duration: 8000 })">Show long toast</button>
             </div>
         </section>
@@ -1010,6 +1012,7 @@
                     <h3 class="mu-h-title">Skip link</h3>
                     <div data-demo class="doc-demo">
                         <a class="mu-skip-link" href="#story-surfaces">Skip to story surfaces</a>
+                        <p class="mu-muted" style="margin:0">Add <code>.mu-skip-link-floating</code> to keep it hidden above the page until it gets keyboard focus (used by Munetios Wiki).</p>
                     </div>
                 </article>
             </div>
@@ -1070,6 +1073,13 @@
                     <h3 class="mu-h-title">Transcript</h3>
                     <div data-demo class="doc-demo">
                         <ol class="mu-transcript"><li><time datetime="PT0S">00:00</time><span>Welcome to the workspace walkthrough.</span></li><li><time datetime="PT12S">00:12</time><span>Open a project to see your recent documents.</span></li></ol>
+                    </div>
+                </article>
+                <article class="doc-component" data-component="mu-read-aloud">
+                    <h3 class="mu-h-title">Read aloud player</h3>
+                    <div data-demo class="doc-demo">
+                        <p class="mu-reading-now" style="margin:0 8px">The paragraph being read gets <code>.mu-reading-now</code>.</p>
+                        <div class="mu-read-aloud" role="region" aria-label="Read aloud" style="position:static;transform:none;width:100%;animation:none"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">record_voice_over</span></span><div class="mu-read-aloud-info"><span class="mu-read-aloud-title">Munetios Calendar · Overview</span><div class="mu-progress" role="progressbar" aria-label="Reading progress" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"><span style="width:40%"></span></div></div><div class="mu-read-aloud-controls"><button type="button" class="mu-icon-btn" aria-label="Previous paragraph"><span class="mu-icon" aria-hidden="true">skip_previous</span></button><button type="button" class="mu-icon-btn mu-icon-btn-primary" aria-label="Pause"><span class="mu-icon" aria-hidden="true">pause</span></button><button type="button" class="mu-icon-btn" aria-label="Next paragraph"><span class="mu-icon" aria-hidden="true">skip_next</span></button><button type="button" class="mu-icon-btn" aria-label="Stop"><span class="mu-icon" aria-hidden="true">stop</span></button></div></div>
                     </div>
                 </article>
                 <article class="doc-component" data-component="mu-checklist-card">

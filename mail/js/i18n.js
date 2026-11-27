@@ -115,6 +115,12 @@ export function formatRelative(ms) {
     return rtf.format(Math.round(diff / 86_400_000), "day");
 }
 
+// Localized weekday name; 0 is Sunday. 4 January 2026 was a Sunday.
+export function weekdayName(day) {
+    try { return new Intl.DateTimeFormat(locale, { weekday: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2026, 0, 4 + (Number(day) % 7)))); }
+    catch { return String(day); }
+}
+
 export function firstDayOfWeek() {
     if (weekStart !== "auto") return Number(weekStart);
     try { const info = new Intl.Locale(locale).weekInfo || new Intl.Locale(locale).getWeekInfo?.(); if (info) return info.firstDay % 7; } catch { /* unsupported */ }

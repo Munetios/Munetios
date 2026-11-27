@@ -4,6 +4,9 @@ compatibility_date = "2026-11-20"
 workers_dev = false
 preview_urls = false
 
+[triggers]
+crons = ["* * * * *"]
+
 [observability]
 enabled = false
 
@@ -12,6 +15,9 @@ PUBLIC_ORIGIN = "https://beta.munetios.com"
 AUTH_SHARE_MUNETIOS_SESSION = "true"
 MAIL_WORKER_URL = "https://munetios-mail.munetios.workers.dev"
 GOOGLE_CLIENT_URL = "https://beta.munetios.com/api/auth/google/callback"
+CLOUD_STORAGE_QUOTA = "2000000000"
+CLOUD_MEDIA_BACKFILL = "false"
+OMNIWRITE_R2_BACKFILL = "false"
 
 [[services]]
 binding = "MUNETIOS_MAIL"
@@ -34,3 +40,7 @@ new_sqlite_classes = ["MunetiosWebFilterStorage"]
 binding = "ACCOUNTS_DB"
 database_name = "munetios-developer-beta"
 database_id = "ef28124a-df15-4a19-b9bf-d1ad5bbf509f"
+
+[[r2_buckets]]
+binding = "CLOUD_MEDIA"
+bucket_name = "munetios-beta-photos-media"

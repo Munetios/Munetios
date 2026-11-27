@@ -19,7 +19,7 @@ export function open(mailboxId = null) {
         content.replaceChildren(el("span", { class: "mu-skeleton is-block" }));
         let summary;
         try { summary = await get(`/storage?mailbox=${current}`); state.storage[current] = summary; emit("storage"); }
-        catch (error) { content.replaceChildren(alertBox("danger", "error", t("loadFailed"), actions.errorText(error))); return; }
+        catch (error) { content.replaceChildren(alertBox("danger", "error", t("errLoadStorage"), "")); return; }
         const box = mailboxById(current);
         const parts = [];
         if (mailboxes().length > 1) parts.push(select(t("mailbox"), mailboxes().map(item => ({ value: item.id, label: item.address })), current, value => { current = value; render(); }));
@@ -39,7 +39,7 @@ export function open(mailboxId = null) {
         const days = [0, 7, 14, 30, 60, 90, 180, 365].map(value => ({ value, label: value ? t("daysCount", { count: value }) : t("never") }));
         const saveRetention = async patch => {
             try { const result = await put(`/mailboxes/${current}/settings`, { retention: { ...retention, ...patch } }); box.settings = result.settings; Object.assign(retention, patch); toast(t("saved"), "success"); }
-            catch (error) { toast(actions.errorText(error), "error"); }
+            catch (error) { toast(actions.failText(error, "errSaveSetting"), "error"); }
         };
         parts.push(settingRow(t("trashRetention"), t("trashRetentionHelp"), select(t("trashRetention"), days, retention.trashDays, value => saveRetention({ trashDays: Number(value) }))));
         parts.push(settingRow(t("spamRetention"), t("spamRetentionHelp"), select(t("spamRetention"), days, retention.spamDays, value => saveRetention({ spamDays: Number(value) }))));
@@ -72,14 +72,14 @@ function hero(summary) {
 async function largeTable(mailboxId, kind, refresh) {
     let data;
     try { data = await get(`/storage/large?mailbox=${mailboxId}&kind=${kind}&min=100000`); }
-    catch { return emptyState("error", t("loadFailed"), ""); }
+    catch { return emptyState("error", t("errLoadStorage"), ""); }
     const rows = kind === "messages" ? data.messages : data.attachments;
     if (!rows.length) return el("p", { class: "mu-muted", text: t("nothingLarge") });
     const selected = new Set();
     const ids = () => kind === "messages" ? [...selected] : [...new Set(rows.filter(row => selected.has(row.id)).map(row => row.messageId))];
     const bulk = el("div", { class: "mail-inline-form", style: "flex:none" },
         button(t("moveToTrashSelected"), async () => { if (!selected.size) return; await actions.trash(ids()); refresh(); }),
-        button(t("deleteForeverSelected"), async () => { if (!selected.size) return; await actions.deleteForever(ids()); refresh(); }, { danger: true }));
+        button(t("deleteForeverSelected"), async () => { if (!selected.size) return; await actions.deleteForever(ids(), { failKey: "errFreeSpace" }); refresh(); }, { danger: true }));
     const table = el("table", { class: "mail-table" }, el("thead", {}, el("tr", {}, el("th", { "aria-label": t("select") }),
         el("th", { text: kind === "messages" ? t("subject") : t("attachmentName") }), el("th", { text: t("from") }), el("th", { text: t("date") }), el("th", { text: t("folder") }), el("th", { class: "is-num", text: t("size") }))),
         el("tbody", {}, rows.map(row => {

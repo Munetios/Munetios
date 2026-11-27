@@ -51,13 +51,14 @@ export function measure() {
 function params(offset) {
     const search = new URLSearchParams({ mailbox: state.scope, view: state.view, offset, limit: PAGE, sort: state.sort, tz: String(-new Date().getTimezoneOffset()) });
     if (state.view === "search") search.set("q", state.query);
+    if (state.view === "inbox" && state.address) search.set("address", state.address);
     if (state.filter) search.set("filter", state.filter);
     if (state.view === "inbox" && state.prefs?.layout?.categoryTabs && state.category && state.category !== "all") search.set("category", state.category);
     if (state.prefs?.layout?.conversationView && !["drafts", "search", "scheduled", "outbox"].includes(state.view)) search.set("threads", "1");
     return search;
 }
 
-const cacheKey = () => `list:${state.scope}:${state.view}:${state.category}:${state.filter}:${state.sort}:${state.query}`;
+const cacheKey = () => `list:${state.scope}:${state.view}:${state.address || ""}:${state.category}:${state.filter}:${state.sort}:${state.query}`;
 
 export async function reload({ keepScroll = false } = {}) {
     const current = ++generation;
@@ -115,7 +116,7 @@ function showSkeleton() {
 function renderError(error) {
     spacer.style.height = "auto";
     const offlineError = error instanceof ApiError && error.code === "offline";
-    spacer.replaceChildren(emptyState(offlineError ? "cloud_off" : "error", offlineError ? t("offlineNoCache") : t("loadFailed"), offlineError ? t("offlineNoCacheDetail") : t("tryAgainLater"),
+    spacer.replaceChildren(emptyState(offlineError ? "cloud_off" : "error", offlineError ? t("offlineNoCache") : t("errLoadLatestFailed"), offlineError ? t("offlineNoCacheDetail") : t("tryAgainLater"),
         el("button", { type: "button", class: "mu-btn", onclick: () => reload() }, icon("refresh"), t("retry"))));
 }
 
@@ -175,9 +176,12 @@ function row(item, index) {
         ["failed", "bounced", "unknown", "partial"].includes(item.deliveryStatus) ? el("span", { class: "mail-chip is-danger", text: t("delivery_" + item.deliveryStatus) }) : null,
         ["queued", "retrying", "scheduled"].includes(item.deliveryStatus) ? el("span", { class: "mail-chip", text: t("delivery_" + item.deliveryStatus) }) : null,
         state.sort.startsWith("size") ? el("span", { class: "mail-chip", text: formatBytes(item.size) }) : null,
-        item.threadCount > 1 ? el("span", { class: "mail-chip", text: formatNumber(item.threadCount) }) : null,
+        item.threadCount > 1 ? el("span", { class: "mail-chip mail-chip-count", text: formatNumber(item.threadCount) }) : null,
         ...(item.labels || []).map(labelById).filter(Boolean).map(label => el("span", { class: "mail-chip" }, el("span", { class: "mail-swatch-dot", style: `background:${label.color}` }), label.name)));
-    const quick = el("div", { class: "mail-row-quick" }, ...(state.prefs?.layout?.quickActions || []).map(action => quickButton(action, item)));
+    const quickActions = state.prefs?.layout?.quickActions || [];
+    const quick = el("div", { class: "mail-row-quick" }, ...quickActions.map(action => quickButton(action, item)));
+    // The hover actions float over the row; the text fades out beneath them instead of being squeezed.
+    node.style.setProperty("--mail-quick-w", `${quickActions.length * 40 + 8}px`);
     const starButton = el("button", { type: "button", class: "mu-icon-btn mu-icon-btn-sm mail-row-star" + (item.starred ? " is-on" : ""), tabindex: "-1", "aria-label": item.starred ? t("unstar") : t("star"), "aria-pressed": String(Boolean(item.starred)) }, icon("star", item.starred));
     starButton.addEventListener("click", event => { event.stopPropagation(); actions.star([item.id], !item.starred); });
     node.append(check, stamp(item.from?.name, fromLabel(item) === (item.from?.name || item.from?.email) ? item.from?.email : (item.to?.[0]?.email || "")),

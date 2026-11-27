@@ -124,29 +124,91 @@ test('partial mode keeps only the 8 permitted properties', () => {
   assert.match(result.css, /backdrop-filter: blur\(2px\)/);
   assert.doesNotMatch(result.css, /display|position|opacity|width/);
   assert.equal(result.violations.filter(v => v.code === 'partial-property').length, 4);
-  assert.equal(E.sanitizeCss('@import url("https://cdn.allowed.example/a.css"); @keyframes x { from { color: red } }', { mode: 'partial', isExternalAllowed: () => true }).css, '');
+  assert.equal(E.sanitizeCss('@import url("https://api.munetios.com/a.css"); @keyframes x { from { color: red } }', { mode: 'partial' }).css, '');
 });
 
-test('external resources need the Allowed Website List; the bundled font is whitelisted', () => {
-  const allowed = url => E.isOnAllowedWebsiteList(url, policy);
+test('imports and URL values use the fixed HTTPS resource hosts', () => {
   const css = [
-    '@import "https://evil.example/x.css";',
-    '@import url(https://cdn.allowed.example/ok.css);',
-    '.a { background: url(https://evil.example/t.png); }',
-    '.b { background-image: url("https://cdn.allowed.example/bg.png"); }',
-    '.c { background: url(//evil.example/p.png); }',
-    "@font-face { font-family: 'Google Sans Flex'; src: url('chrome-extension://abcdefghijklmnopabcdefghijklmnop/fonts/munetios-sans.ttf'); }",
-    "@font-face { font-family: 'X'; src: url('chrome-extension://abcdefghijklmnopabcdefghijklmnop/secret.js'); }",
+    '@import "https://cdn.allowed.example/x.css";',
+    '@import url(https://api.munetios.com/ok.css);',
+    '@import "https://fonts.googleapis.com/css2?family=Roboto";',
+    '.a { background: url(https://api.munetios.com.example/t.png); }',
+    '.b { background-image: url("https://api.munetios.com/bg.png"); }',
+    '.c { background: url(//fonts.gstatic.com/p.png); }',
     '.d { background: url(images/local.png); }',
+    '.e { background: url(data:image/png;base64,AA); }',
+    '.f { background: url(http://api.munetios.com/insecure.png); }',
+    '.g { background: image-set("https://api.munetios.com/one.png" 1x, "https://fonts.gstatic.com/two.png" 2x); }',
+    '.h { filter: url(#local-filter); }',
+    "@font-face { font-family: 'X'; src: url('chrome-extension://abcdefghijklmnopabcdefghijklmnop/fonts/munetios-sans.ttf'); }",
   ].join('\n');
-  const result = E.sanitizeCss(css, { mode: 'allowed', isExternalAllowed: allowed });
-  assert.doesNotMatch(result.css, /evil\.example/);
-  assert.match(result.css, /cdn\.allowed\.example\/ok\.css/);
-  assert.match(result.css, /cdn\.allowed\.example\/bg\.png/);
-  assert.match(result.css, /munetios-sans\.ttf/);
-  assert.doesNotMatch(result.css, /secret\.js/);
-  assert.match(result.css, /images\/local\.png/);
-  assert.deepEqual(result.blockedDomains, ['evil.example']);
+  const result = E.computePageStyles('https://school.example/', policy, { injectUserCss: true, userStyles: [{ id: 'test', targets: [], css }] });
+  assert.match(result.css, /api\.munetios\.com\/ok\.css/);
+  assert.match(result.css, /fonts\.googleapis\.com\/css2/);
+  assert.match(result.css, /api\.munetios\.com\/bg\.png/);
+  assert.doesNotMatch(result.css, /allowed\.example|gstatic\.com|munetios\.com\.example|local\.png|local-filter|data:|insecure\.png|chrome-extension|image-set/);
+  assert.match(E.fontFaceCss('chrome-extension://abcdefghijklmnopabcdefghijklmnop/fonts/munetios-sans.ttf'), /munetios-sans\.ttf/);
+});
+
+test('approved imports are sanitized recursively and resources never follow redirects', async t => {
+  const styles = new Map([
+    ['https://fonts.googleapis.com/base.css', '@import "https://api.munetios.com/nested.css"; .imported { color: blue; background-image: url(https://fonts.gstatic.com/blocked.png); }'],
+    ['https://api.munetios.com/nested.css', '@import "https://fonts.googleapis.com/base.css"; .nested { color: green; background: url(https://api.munetios.com/image.png); }'],
+  ]);
+  const calls = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    calls.push(url);
+    assert.equal(options.redirect, 'error');
+    assert.equal(options.credentials, 'omit');
+    assert.equal(options.referrerPolicy, 'no-referrer');
+    if (url.endsWith('/redirect.png')) throw new TypeError('redirect refused');
+    const response = styles.has(url)
+      ? new Response(styles.get(url), { headers: { 'Content-Type': 'text/css' } })
+      : new Response(new Uint8Array([1, 2, 3]), { headers: { 'Content-Type': 'image/png' } });
+    Object.defineProperty(response, 'url', { value: url });
+    return response;
+  });
+  const { css } = E.sanitizeCss(`
+    @import url('https://fonts.googleapis.com/base.css') layer(school) supports(display: grid) screen;
+    .card { color: red; background: url('https://api.munetios.com/redirect.png'); }
+    .picture { background: image-set('https://api.munetios.com/image.png' 1x); }
+  `);
+  const resolved = await E.resolveCssResources(css, 'allowed');
+  assert.deepEqual(calls.sort(), [...styles.keys(), 'https://api.munetios.com/image.png', 'https://api.munetios.com/redirect.png'].sort());
+  assert.match(resolved, /@layer school[\s\S]+@supports \(display: grid\)[\s\S]+@media screen/);
+  assert.match(resolved, /\.imported \{\s+color: blue;/);
+  assert.match(resolved, /\.nested \{\s+color: green;\s+background: url\("data:image\/png;base64,AQID"\)/);
+  assert.match(resolved, /\.card \{\s+color: red;\s*}/);
+  assert.match(resolved, /image-set\("data:image\/png;base64,AQID" 1x\)/);
+  assert.doesNotMatch(resolved, /@import|https:\/\//);
+});
+
+test('workspace import permissions cover HTTPS origins or exact stylesheets and never grant url() access', async t => {
+  const policy = { global: { userCss: { importUrls: ['styles.example', 'https://cdn.example/staff.css', 'http://invalid.example', 'https://*.example'] } } };
+  const css = `
+    @import 'https://styles.example/theme.css';
+    @import 'https://cdn.example/staff.css';
+    @import 'https://cdn.example/other.css';
+    @import 'https://sub.styles.example/theme.css';
+    .banner { background: url(https://styles.example/image.png); }
+  `;
+  const page = E.computePageStyles('https://school.example', policy, { injectUserCss: true, userStyles: [{ id: 'theme', css }] });
+  assert.deepEqual(page.importUrls, ['https://styles.example', 'https://cdn.example/staff.css']);
+  assert.deepEqual(E.computePageStyles('https://school.example', policy, { injectUserCss: false, userStyles: [{ id: 'theme', css }] }).css, '');
+  assert.match(page.css, /styles\.example\/theme\.css/);
+  assert.match(page.css, /cdn\.example\/staff\.css/);
+  assert.doesNotMatch(page.css, /other\.css|sub\.styles|image\.png/);
+  const calls = [];
+  t.mock.method(globalThis, 'fetch', async url => {
+    calls.push(url);
+    const response = new Response('.banner { color: blue; background: url(https://styles.example/image.png); }', { headers: { 'Content-Type': 'text/css' } });
+    Object.defineProperty(response, 'url', { value: url });
+    return response;
+  });
+  const resolved = await E.resolveCssResources(page.css, page.mode, undefined, page.importUrls);
+  assert.deepEqual(calls.sort(), ['https://cdn.example/staff.css', 'https://styles.example/theme.css']);
+  assert.match(resolved, /color: blue/);
+  assert.doesNotMatch(resolved, /image\.png|@import/);
 });
 
 test('risky CSS is stripped even on Allowed URLs', () => {
@@ -174,7 +236,7 @@ test('risky CSS is stripped even on Allowed URLs', () => {
     '.e { c\\olor: red; }',
     '.nest { color: red; & .child { color: blue; } }',
   ].join('\n');
-  const result = E.sanitizeCss(css, { mode: 'allowed', isExternalAllowed: () => true });
+  const result = E.sanitizeCss(css, { mode: 'allowed' });
   const codes = result.violations.map(v => v.code);
   for (const code of ['script-vector', 'z-index-extreme', 'viewport-overlay', 'interactive-spoofing', 'exfiltration', 'font-tracking', 'protected-target', 'protected-overlay', 'escape-obfuscation', 'nested-rule']) {
     assert.ok(codes.includes(code), 'missing ' + code + ' in ' + codes.join(','));

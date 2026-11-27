@@ -183,17 +183,18 @@ export async function handleApi(request, env, execCtx) {
             if (method === "GET") return json({ settings: publicSettings(await mailboxSettings(env, mailbox.id)), displayName: mailbox.display_name });
             if (method === "PUT") return json({ settings: await saveMailboxSettings(env, mailbox, await body()) });
         }
+        if ((m = /^\/mailboxes\/(mb_[a-z0-9]{15})\/forwarding\/(verify|confirm)$/.exec(path)) && method === "POST") {
+            const mailbox = await mailboxFrom(m[1], true);
+            if (m[2] === "verify") return json(await startForwardingVerification(env, mailbox));
+            return json(await confirmForwarding(env, mailbox, (await body()).code));
+        }
+        // Addresses at other providers that forward here: send a code, confirm it, or remove the address.
         if ((m = /^\/mailboxes\/(mb_[a-z0-9]{15})\/linked\/(verify|confirm)$/.exec(path)) && method === "POST") {
             const mailbox = await mailboxFrom(m[1], true);
             const input = await body();
             return json(m[2] === "verify" ? await startLinkVerification(env, mailbox, input.address) : await confirmLink(env, mailbox, input.code));
         }
         if ((m = /^\/mailboxes\/(mb_[a-z0-9]{15})\/linked$/.exec(path)) && method === "DELETE") return json(await removeLink(env, await mailboxFrom(m[1], true), url.searchParams.get("address") || ""));
-        if ((m = /^\/mailboxes\/(mb_[a-z0-9]{15})\/forwarding\/(verify|confirm)$/.exec(path)) && method === "POST") {
-            const mailbox = await mailboxFrom(m[1], true);
-            if (m[2] === "verify") return json(await startForwardingVerification(env, mailbox));
-            return json(await confirmForwarding(env, mailbox, (await body()).code));
-        }
         if ((m = /^\/mailboxes\/(mb_[a-z0-9]{15})\/aliases$/.exec(path)) && method === "POST") {
             const mailbox = await mailboxFrom(m[1], true);
             await rateLimit(env, "alias:" + session.account.id, 20, 86400);

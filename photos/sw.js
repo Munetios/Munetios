@@ -2,12 +2,12 @@ importScripts("/shared/offline-shell.js", new URL("routes.js", self.registration
 const root = new URL(self.registration.scope).pathname;
 
 self.installMunetiosOfflineShell({
-  cacheName: "munetios-photos-v13",
+  cacheName: "munetios-photos-v15",
   obsolete: (name) => name.startsWith("munetios-photos"),
   required: [
     "./", "photos.css", "photos.js", "routes.js", "photos-i18n.js", "photo-editor.js", "ai-eraser.js", "jszip.min.js",
     "/munetios-ui/munetios-ui-v4.css", "/munetios-ui/munetios-ui-v4.js", "/munetios-ui/media-player-styles.js", "/omniwrite/video-player.js",
-    "/account/account-menu.css", "/account/account-i18n.js", "/account/account-core.js", "/account/account-menu.js",
+    "/account/account-menu.css", "/account/account-i18n.js", "/account/account-core.js", "/account/account-menu.js", "/shared/test-error.js",
     "/shared/munetios-cloud.css", "/shared/cloud-i18n.js", "/shared/munetios-cloud.js",
   ],
   optional: [

@@ -2,7 +2,7 @@ importScripts("/shared/offline-shell.js");
 
 const root = new URL(self.registration.scope).pathname;
 self.installMunetiosOfflineShell({
-  cacheName: "omniwrite-cache-v103",
+  cacheName: "omniwrite-cache-v105",
   obsolete: (name) => name.startsWith("omniwrite-cache-"),
   required: [
     "./", "chart.js", "local-signin.js", "lazy-dom.js", "font-settings.js", "omniwrite-v4.js",
@@ -14,7 +14,7 @@ self.installMunetiosOfflineShell({
     "sheets/sheets.css", "sheets/sheets-shell.css", "sheets/sheets-engine.js", "sheets/sheets-files.js", "sheets/sheets.js",
     "/signin/translations.js", "/munetios-ui/munetios-ui-v4.css", "/munetios-ui/munetios-ui-v4.js",
     "/munetios-ui/media-player-styles.js", "/munetios-ui/youtube-i18n.js", "/munetios-ui/youtube-player.js",
-    "/account/account-menu.css", "/account/account-i18n.js", "/account/account-core.js", "/account/account-menu.js",
+    "/account/account-menu.css", "/account/account-i18n.js", "/account/account-core.js", "/account/account-menu.js", "/shared/test-error.js",
   ],
   optional: [
     "site.webmanifest?v=2", "android-chrome-192x192.png?v=2", "android-chrome-512x512.png?v=2",

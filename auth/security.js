@@ -42,6 +42,9 @@ function securityVault(env) {
     }
     return {
         create: () => encode(randomBytes(20)),
+        recoveryHash(code, accountId) {
+            return createHmac('sha256', getKey()).update(`recovery:${accountId}:${code}`).digest('hex');
+        },
         seal(secret, accountId) { const iv = randomBytes(12), cipher = createCipheriv('aes-256-gcm', getKey(), iv); cipher.setAAD(Buffer.from(String(accountId))); return Buffer.concat([iv, cipher.update(secret, 'utf8'), cipher.final(), cipher.getAuthTag()]).toString('base64'); },
         open(value, accountId) { const data = Buffer.from(value, 'base64'), cipher = createDecipheriv('aes-256-gcm', getKey(), data.subarray(0, 12)); cipher.setAAD(Buffer.from(String(accountId))); cipher.setAuthTag(data.subarray(-16)); return Buffer.concat([cipher.update(data.subarray(12, -16)), cipher.final()]).toString('utf8'); }
     };

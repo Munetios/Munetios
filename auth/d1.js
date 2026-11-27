@@ -5,7 +5,9 @@ const conflictColumns = {
     munetios_account_security: 'account_id',
     munetios_verified_recovery: 'account_id',
     munetios_profiles: 'account_id',
+    munetios_profile_birthdays: 'account_id',
     munetios_profile_pictures: 'account_id',
+    munetios_profile_picture_privacy: 'account_id',
     munetios_sync_items: 'account_id, item_key',
 };
 
@@ -28,7 +30,9 @@ function sqliteSql(sql) {
     }
     let query = sql.replaceAll('UTC_TIMESTAMP()', 'CURRENT_TIMESTAMP')
         .replace("CONCAT(?, '%')", "(? || '%')")
-        .replace('item_key LIKE ? ORDER BY', 'item_key GLOB ? ORDER BY');
+        // D1 rejects LIKE/GLOB patterns over 50 characters (workspace sync prefixes are longer),
+        // so a prefix is matched as a key range instead: exact and able to use the primary key.
+        .replace('item_key LIKE ? ORDER BY', 'item_key >= ? AND item_key < ? ORDER BY');
     if (query.includes('ON DUPLICATE KEY UPDATE')) {
         const table = /^INSERT INTO (\w+)/.exec(query)?.[1];
         const columns = conflictColumns[table];
@@ -68,7 +72,11 @@ function createD1AuthDatabase(binding) {
     const prepare = (sql, values = []) => {
         const statement = binding.prepare(sqliteSql(sql));
         const params = values.map(sqlParam);
-        if (sql.includes('item_key LIKE ? ORDER BY')) params[2] = params[2].slice(0, -1).replaceAll('\\_', '_') + '*';
+        if (sql.includes('item_key LIKE ? ORDER BY')) {
+            // The router sends an escaped LIKE pattern ("prefix%"); turn it back into the plain prefix.
+            const prefix = params[2].slice(0, -1).replace(/\\([\\%_])/g, '$1');
+            params.splice(2, 1, prefix, prefix + '\uffff');
+        }
         return params.length ? statement.bind(...params) : statement;
     };
     return {

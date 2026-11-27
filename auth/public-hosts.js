@@ -1,18 +1,28 @@
 'use strict';
 
 const sharedDomain = 'munetios.com';
-const sharedOrigins = new Set(['https://write.munetios.com', 'https://accounts.munetios.com', 'https://calendar.munetios.com', 'https://photos.munetios.com', 'https://webfilter.munetios.com', 'https://notes.munetios.com', 'https://tasks.munetios.com', 'https://maps.munetios.com']);
+
+// Every HTTPS Munetios host (beta, accounts, mail, write, calendar, photos, notes, tasks, weather, maps, webfilter, …)
+// shares one session cookie on .munetios.com, so signing in on any of them signs in on all of them.
+function isSharedOrigin(origin) {
+    try {
+        const url = new URL(origin);
+        return url.protocol === 'https:' && !url.port && (url.hostname === sharedDomain || url.hostname.endsWith('.' + sharedDomain));
+    } catch {
+        return false;
+    }
+}
 
 function requestOrigin(req) {
     return new URL(`${req.protocol}://${req.get('host')}`).origin;
 }
 
 function usesSharedSession(req, env) {
-    return env.AUTH_SHARE_MUNETIOS_SESSION === 'true' && sharedOrigins.has(requestOrigin(req));
+    return env.AUTH_SHARE_MUNETIOS_SESSION === 'true' && isSharedOrigin(requestOrigin(req));
 }
 
 function expectedBrowserOrigin(req, env) {
     return usesSharedSession(req, env) ? requestOrigin(req) : new URL(env.PUBLIC_ORIGIN || requestOrigin(req)).origin;
 }
 
-module.exports = { sharedDomain, sharedOrigins, requestOrigin, usesSharedSession, expectedBrowserOrigin };
+module.exports = { sharedDomain, isSharedOrigin, requestOrigin, usesSharedSession, expectedBrowserOrigin };

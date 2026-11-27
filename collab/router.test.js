@@ -15,7 +15,7 @@ const accounts = {
 };
 
 function memoryStore() {
-    const docs = new Map(), content = new Map(), members = new Map(), suggestions = new Map(), reports = [];
+    const docs = new Map(), content = new Map(), members = new Map(), invitationKeys = new Map(), suggestions = new Map(), reports = [];
     let nextSuggestion = 1;
     const person = id => {
         const account = Object.values(accounts).find(item => item.id === String(id));
@@ -46,18 +46,36 @@ function memoryStore() {
         async people(ids) { return ids.map(person).filter(Boolean); },
         async listMembers(id) { return [...(members.get(id) || new Map())].map(([accountId, role]) => ({ ...person(accountId), role })); },
         async getMemberRole(id, accountId) { return members.get(id)?.get(String(accountId)) || null; },
-        async upsertMember(id, accountId, role) { if (!members.has(id)) members.set(id, new Map()); members.get(id).set(String(accountId), role); },
+        async listShared(accountId) {
+            return [...docs.values()].filter(doc => members.get(doc.id)?.has(accountId)).map(({ id, kind }) => ({ id, kind }));
+        },
+        async getInvitationKey(id, accountId) {
+            const doc = docs.get(id);
+            return !doc?.locked && members.get(id)?.has(accountId) ? invitationKeys.get(id) || doc.contentKey : null;
+        },
+        async prepareInvitationKey(id, key) {
+            if (!members.get(id)?.size) return false;
+            invitationKeys.set(id, key);
+            return true;
+        },
+        async upsertMember(id, accountId, role, key) {
+            if (!members.has(id)) members.set(id, new Map());
+            members.get(id).set(String(accountId), role);
+            if (key) invitationKeys.set(id, key);
+        },
         async removeMember(id, accountId) { return Boolean(members.get(id)?.delete(String(accountId))); },
         async getPicture(accountId) { return person(accountId) && Object.values(accounts).find(a => a.id === accountId).picture; },
-        async saveSuggestion({ documentId, accountId, baseVersion, iv, ciphertext }) {
-            const open = [...suggestions.values()].find(s => s.documentId === documentId && s.accountId === accountId && s.status === 'open');
-            const item = open || { id: String(nextSuggestion++), documentId, accountId, status: 'open' };
+        async saveSuggestion({ documentId, accountId, tokenHash, baseVersion, iv, ciphertext }) {
+            const open = [...suggestions.values()].find(s => s.documentId === documentId && s.status === 'open' &&
+                (accountId ? s.accountId === accountId : s.tokenHash === tokenHash));
+            const item = open || { id: String(nextSuggestion++), documentId, accountId, tokenHash, status: 'open' };
             Object.assign(item, { baseVersion, iv, ciphertext, updatedAt: Date.now() });
             suggestions.set(item.id, item);
             return item.id;
         },
-        async listSuggestions(documentId, accountId) {
-            return [...suggestions.values()].filter(s => s.documentId === documentId && s.status === 'open' && (!accountId || s.accountId === accountId))
+        async listSuggestions(documentId, accountId, tokenHash) {
+            return [...suggestions.values()].filter(s => s.documentId === documentId && s.status === 'open' &&
+                (!accountId || s.accountId === accountId) && (!tokenHash || s.tokenHash === tokenHash))
                 .map(s => ({ id: s.id, baseVersion: s.baseVersion, updatedAt: s.updatedAt, author: person(s.accountId) }));
         },
         async getSuggestion(documentId, id) {
@@ -115,6 +133,46 @@ async function setup() {
 }
 
 const content = { iv: 'AAAAAAAAAAAAAAAA', ciphertext: 'c2VjcmV0' };
+
+test('restricted invitations open from Shared with the invitee account and repair older invitations', async () => {
+    const t = await setup();
+    try {
+        for (const kind of ['document', 'spreadsheet']) {
+            const key = randomBytes(32);
+            const iv = randomBytes(12);
+            const aad = Buffer.from('munetios-collab:' + kind);
+            const cipher = createCipheriv('aes-256-gcm', key, iv).setAAD(aad);
+            const ciphertext = Buffer.concat([cipher.update('Restricted file'), cipher.final(), cipher.getAuthTag()]).toString('base64');
+            const { body: { id } } = await t.call('POST', '/documents', { as: 'owner', body: { kind, iv: iv.toString('base64'), ciphertext } });
+            const route = '/documents/' + id;
+            const invitation = route + '/invitation-key';
+            const body = { key: key.toString('base64url') };
+            const legacy = kind === 'spreadsheet';
+            assert.equal((await t.call('POST', route + '/members', { as: 'owner', body: { email: accounts.editor.email, role: 'view', ...(!legacy ? body : {}) } })).status, 201);
+            if (legacy) {
+                assert.equal((await t.call('GET', invitation, { as: 'editor' })).body.key, null);
+                assert.equal((await t.call('PUT', invitation, { as: 'editor', body })).status, 403);
+                assert.equal((await t.call('PUT', invitation, { as: 'owner', body })).body.ready, true);
+            }
+            assert.ok((await t.call('GET', '/shared', { as: 'editor' })).body.files.some(file => file.id === id && file.kind === kind));
+            const invited = await t.call('GET', route, { as: 'editor' });
+            assert.equal(invited.body.linkAccess, 'off');
+            assert.equal(invited.body.role, 'view');
+            const response = await t.call('GET', invitation, { as: 'editor' });
+            const encrypted = Buffer.from(invited.body.ciphertext, 'base64');
+            const decipher = createDecipheriv('aes-256-gcm', Buffer.from(response.body.key, 'base64url'), iv)
+                .setAAD(aad).setAuthTag(encrypted.subarray(-16));
+            assert.equal(Buffer.concat([decipher.update(encrypted.subarray(0, -16)), decipher.final()]).toString(), 'Restricted file');
+            assert.equal((await t.call('GET', invitation)).status, 401);
+            assert.equal((await t.call('GET', invitation, { as: 'stranger' })).status, 403);
+            await t.call('PATCH', route, { as: 'owner', body: { locked: true } });
+            assert.equal((await t.call('GET', invitation, { as: 'editor' })).status, 423);
+            await t.call('PATCH', route, { as: 'owner', body: { locked: false } });
+            await t.call('DELETE', route + '/members/2', { as: 'owner' });
+            assert.equal((await t.call('GET', invitation, { as: 'editor' })).status, 403);
+        }
+    } finally { await t.close(); }
+});
 
 test('only owners can give the server the file key for link sharing', async () => {
     const t = await setup();
@@ -194,14 +252,16 @@ test('owner shares, roles are enforced, and conflicts return the latest version'
     } finally { await t.close(); }
 });
 
-test('anyone with the link, signed-out visitors only view, and locked documents stop collaboration', async () => {
+test('the selected link role applies to guests and locked documents stop collaboration', async () => {
     const t = await setup();
     try {
         const { body: { id } } = await t.call('POST', '/documents', { as: 'owner', body: { kind: 'spreadsheet', ...content } });
         assert.equal((await t.call('PATCH', `/documents/${id}`, { as: 'owner', body: { linkAccess: 'edit' } })).body.linkAccess, 'edit');
         assert.equal((await t.call('GET', `/documents/${id}`, { as: 'stranger' })).body.role, 'edit');
-        assert.equal((await t.call('GET', `/documents/${id}`)).body.role, 'view');
-        assert.equal((await t.call('PUT', `/documents/${id}/content`, { body: { baseVersion: 1, ...content } })).status, 403);
+        assert.equal((await t.call('GET', `/documents/${id}`)).body.role, 'edit');
+        assert.equal((await t.call('PUT', `/documents/${id}/content`, { body: { baseVersion: 1, ...content } })).status, 200);
+        assert.equal((await t.call('GET', `/documents/${id}/members`)).body.people[0].email, undefined);
+        assert.equal((await t.call('PATCH', `/documents/${id}`, { body: { linkAccess: 'off' } })).status, 403);
         assert.equal((await t.call('PATCH', `/documents/${id}`, { as: 'stranger', body: { linkAccess: 'off' } })).status, 403);
 
         await t.call('PATCH', `/documents/${id}`, { as: 'owner', body: { locked: true } });
@@ -212,9 +272,40 @@ test('anyone with the link, signed-out visitors only view, and locked documents 
         assert.equal((await t.call('PUT', `/documents/${id}/content`, { as: 'owner', body: { baseVersion: 1, ...content } })).status, 423);
         await t.call('PATCH', `/documents/${id}`, { as: 'owner', body: { locked: false } });
         assert.equal((await t.call('GET', `/documents/${id}`, { as: 'stranger' })).status, 200);
+        await t.call('PATCH', `/documents/${id}`, { as: 'owner', body: { linkAccess: 'view' } });
+        assert.equal((await t.call('GET', `/documents/${id}`)).body.role, 'view');
+        assert.equal((await t.call('PUT', `/documents/${id}/content`, { body: { baseVersion: 2, ...content } })).status, 403);
 
         assert.equal((await t.call('DELETE', `/documents/${id}`, { as: 'owner' })).status, 200);
         assert.equal((await t.call('GET', `/documents/${id}`, { as: 'owner' })).status, 404);
+    } finally { await t.close(); }
+});
+
+test('signed-out suggesters can submit and withdraw only their own draft', async () => {
+    const t = await setup();
+    try {
+        const { body: { id } } = await t.call('POST', '/documents', { as: 'owner', body: { kind: 'document', ...content } });
+        const doc = `/documents/${id}`;
+        const path = doc + '/suggestions';
+        await t.call('PATCH', doc, { as: 'owner', body: { linkAccess: 'suggest' } });
+        assert.equal((await t.call('GET', doc)).body.role, 'suggest');
+        const headers = { 'x-collab-guest': randomBytes(32).toString('base64url') };
+        const other = { 'x-collab-guest': randomBytes(32).toString('base64url') };
+        const body = { baseVersion: 1, ...content };
+        assert.equal((await t.call('PUT', doc + '/content', { body })).status, 403);
+        assert.equal((await t.call('POST', path, { body })).status, 400);
+        const first = await t.call('POST', path, { headers, body });
+        assert.equal(first.status, 201);
+        assert.equal((await t.call('POST', path, { headers, body })).body.id, first.body.id);
+        const second = await t.call('POST', path, { headers: other, body });
+        assert.notEqual(second.body.id, first.body.id);
+        assert.deepEqual((await t.call('GET', path, { headers })).body.suggestions.map(s => s.id), [first.body.id]);
+        assert.equal((await t.call('GET', path, { as: 'owner' })).body.suggestions.length, 2);
+        const draft = path + '/' + first.body.id;
+        assert.equal((await t.call('GET', draft, { headers: other })).status, 404);
+        assert.equal((await t.call('GET', draft, { headers })).body.tokenHash, undefined);
+        assert.equal((await t.call('POST', draft + '/resolve', { headers: other, body: { status: 'rejected' } })).status, 403);
+        assert.equal((await t.call('POST', draft + '/resolve', { headers, body: { status: 'rejected' } })).status, 200);
     } finally { await t.close(); }
 });
 
@@ -320,7 +411,7 @@ test('comments: guests comment without signing in when the link allows Suggest o
 
         await t.call('PATCH', `/documents/${id}`, { as: 'owner', body: { linkAccess: 'suggest' } });
         const asGuest = await t.call('GET', `/documents/${id}`);
-        assert.equal(asGuest.body.role, 'view');
+        assert.equal(asGuest.body.role, 'suggest');
         assert.equal(asGuest.body.canComment, true);
         assert.equal((await t.call('POST', `/documents/${id}/comments`, { body: { ...content } })).status, 400, 'guests need a token');
         const guest = await t.call('POST', `/documents/${id}/comments`, { body: { ...content, token } });
@@ -387,7 +478,9 @@ test('live cursors are relayed to others and replayed to newcomers', async () =>
         await t.call('PATCH', `/documents/${id}`, { as: 'owner', body: { linkAccess: 'edit' } });
         assert.equal((await t.call('POST', `/documents/${id}/cursor`, { as: 'owner', body: { cursor: { page: 0, offset: 1 } } })).status, 400, 'needs a client id');
         const first = new AbortController();
-        await fetch(`${t.origin}/api/collab/documents/${id}/events?client=owner-client-1`, { headers: { 'x-test-account': 'owner' }, signal: first.signal });
+        const ownerStream = `${t.origin}/api/collab/documents/${id}/events?client=owner-client-1`;
+        const ownerHeaders = { 'x-test-account': 'owner' };
+        const original = await fetch(ownerStream, { headers: ownerHeaders, signal: first.signal });
         assert.equal((await t.call('POST', `/documents/${id}/cursor`, { as: 'owner', client: 'owner-client-1', body: { cursor: { page: 0, offset: 5, length: 2 } } })).status, 200);
         const second = new AbortController();
         const response = await fetch(`${t.origin}/api/collab/documents/${id}/events?client=late-client-1`, { headers: { 'x-test-account': 'stranger' }, signal: second.signal });
@@ -395,6 +488,20 @@ test('live cursors are relayed to others and replayed to newcomers', async () =>
         let text = '';
         while (!text.includes('"type":"cursor"')) text += new TextDecoder().decode((await reader.read()).value);
         assert.match(text, /"clientId":"owner-client-1","cursor":\{"page":0,"offset":5,"length":2\}/);
+        const replacement = await fetch(ownerStream, { headers: ownerHeaders, signal: AbortSignal.timeout(3000) });
+        assert.match(await original.text(), /"type":"hello"/);
+        let update = '';
+        const decoder = new TextDecoder();
+        while (!update.includes('"type":"presence"')) {
+            const next = await reader.read();
+            assert.equal(next.done, false);
+            update += decoder.decode(next.value, { stream: true });
+        }
+        assert.match(update, /"clientId":"owner-client-1","cursor":null/);
+        const presence = update.split('\n').filter(line => line.startsWith('data: '))
+            .map(line => JSON.parse(line.slice(6))).find(event => event.type === 'presence');
+        assert.equal(presence.people.filter(person => person.clientId === 'owner-client-1').length, 1);
+        await replacement.body.cancel();
         first.abort(); second.abort();
     } finally { await t.close(); }
 });

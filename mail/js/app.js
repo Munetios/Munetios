@@ -19,20 +19,44 @@ let booted = false;
 let compose = null;
 const lazy = { compose: () => import("./compose.js"), settings: () => import("./settings.js"), storage: () => import("./storage-view.js"), studio: () => import("./studio.js") };
 
-function signIn() { location.replace("/signin?continue=" + encodeURIComponent("/mail/")); }
+// Only the Sign in buttons go to the sign-in page. An invalid session never redirects: the account's
+// "You've been signed out" dialog appears and the mail saved on this device stays readable.
+function signIn() { location.assign("/signin?continue=" + encodeURIComponent("/mail/")); }
 setSignedOutHandler(async () => {
-    await Account?.refresh?.();
-    if (!Account?.state?.account) { await offline.clearPrivateData(); signIn(); }
+    state.signedOut = true;
+    await Account?.refresh?.().catch(() => null);
 });
 
+// The last bootstrap is kept (encrypted) with the offline mail, so Mail can open while offline or signed out.
+async function cachedBoot() {
+    const account = Account?.state?.account || (await Account?.refresh?.().catch(() => null))?.account;
+    // An invalid session may leave no account in memory (this host never cached it); use the mail saved on this device.
+    const ids = account?.id ? [String(account.id)] : await offline.savedAccountIds().catch(() => []);
+    let newest = null;
+    for (const id of ids) {
+        await offline.openFor(id).catch(() => null);
+        const data = await offline.cacheGet("bootstrap").catch(() => null);
+        if (data && (!newest || (data.serverTime || 0) > (newest.serverTime || 0))) newest = data;
+    }
+    if (newest) await offline.openFor(newest.account.id).catch(() => null);
+    return newest;
+}
+
 async function boot() {
-    let data;
+    let data, stale = false;
     try { data = await get("/bootstrap"); }
     catch (error) {
-        if (error instanceof ApiError && error.code === "signedOut") return signIn();
-        setLanguage("system");
-        document.getElementById("reader").replaceChildren(alertBox("danger", "error", t("mailUnavailable"), t("tryAgainLater"), [button(t("retry"), () => location.reload())]));
-        return;
+        const signedOut = error instanceof ApiError && error.code === "signedOut";
+        if (signedOut) state.signedOut = true;
+        data = await cachedBoot();
+        if (!data) {
+            setLanguage("system");
+            document.getElementById("reader").replaceChildren(signedOut
+                ? alertBox("warning", "logout", t("signedOut"), t("offlineNoCacheDetail"), [button(t("signInAction"), signIn, { primary: true, iconName: "login" })])
+                : alertBox("danger", "error", t("mailUnavailable"), t("tryAgainLater"), [button(t("retry"), () => location.reload())]));
+            return;
+        }
+        stale = true;
     }
     state.boot = data;
     state.accountId = data.account.id;
@@ -43,6 +67,7 @@ async function boot() {
         return;
     }
     await offline.openFor(data.account.id).catch(() => null);
+    if (!stale) offline.cachePut("bootstrap", data).catch(() => {});
     state.deviceMessages = await offline.deviceList().catch(() => []);
     if (!booted) init();
     booted = true;
@@ -52,6 +77,7 @@ async function boot() {
     renderHead();
     list.measure();
     await list.reload();
+    if (stale) return; // saved mail only; the warning comes from the list (showingCached)
     sync.start(data.seq);
     refreshStorage();
     offline.cachePrune((state.prefs.behavior.offlineDays || 30) * 86_400_000).catch(() => {});
@@ -68,7 +94,7 @@ export function applyPreferences(data) {
     if (booted) { sidebar.render(); renderHead(); list.measure(); }
 }
 
-// The Munetios Mail logo (mail/icons/mail-192.png) falls back to the envelope icon if the image is unavailable.
+// The Munetios Mail logo (https://munetios.com/apps/mail.png) falls back to the envelope icon if the image is unavailable.
 function logoFallback() {
     const logo = document.querySelector("img.mail-logo");
     if (!logo) return;
@@ -112,9 +138,17 @@ function init() {
     });
     on("refreshBoot", refreshBoot);
     on("reboot", () => location.reload());
-    on("scope", scope => { state.scope = scope; state.openId = null; reader.showEmpty(); sidebar.render(); sidebar.renderStorage(); renderHead(); list.reload(); saveRoute(); refreshStorage(); });
+    on("scope", scope => { state.scope = scope; leaveLinked(); state.openId = null; reader.showEmpty(); sidebar.render(); sidebar.renderStorage(); renderHead(); list.reload(); saveRoute(); refreshStorage(); });
     on("advance", delta => list.move(delta));
     on("runSearch", query => runSearch(query));
+    // Sidebar entry for an address at another provider: that address's inbox, all categories (the tabs still filter).
+    on("openLinked", ({ mailboxId, address }) => {
+        if (mailboxes().length > 1) state.scope = mailboxId;
+        if (!state.address) state.categoryBeforeLinked = state.category;
+        state.view = "inbox"; state.address = address; state.category = "all"; state.query = ""; state.filter = ""; state.openId = null;
+        search.setValue(""); reader.showEmpty(); document.body.classList.remove("reading");
+        sidebar.render(); sidebar.renderStorage(); renderHead(); list.reload(); saveRoute();
+    });
     on("selection", renderTools);
     on("listLoaded", renderHead);
     on("countsStale", debounce(refreshCounts, 400));
@@ -126,7 +160,8 @@ function init() {
     });
     on("deviceMessages", ({ saved } = {}) => { if (saved) toast(t("savedToDevice", { count: saved }), "info", 6000); renderAlerts(); sidebar.render(); if (state.view === "device") list.reload(); });
     on("online", online => { document.getElementById("connectionStatus").hidden = online; if (online) list.reload({ keepScroll: true }); });
-    on("showingCached", () => toast(t("showingOffline")));
+    let staleNotice = 0;
+    on("showingCached", () => { if (Date.now() - staleNotice > 60_000) { staleNotice = Date.now(); toast(t("warnLoadLatest"), "warning", 8000); } });
     on("newMail", notifyNewMail);
     on("delivery", event => { if (event.state === "failed") toast(t("deliveryFailedToast"), "error", 6000); });
     on("storageWarning", event => { refreshStorage(); if (event.level >= 80) toast(t("storageWarning", { percent: event.level }), event.level >= 95 ? "error" : "info", 6000); });
@@ -135,17 +170,18 @@ function init() {
     on("composeTo", data => compose?.open(data));
     on("cancelOutbound", async message => {
         try { await post(`/outbound/${message.delivery.id}/cancel`); toast(t("sendCanceled"), "success"); reader.closeReader(); list.reload({ keepScroll: true }); }
-        catch (error) { toast(actions.errorText(error), "error"); }
+        catch (error) { toast(actions.failText(error, "errCancelSend"), "error"); }
     });
     on("retryOutbound", async message => {
         try { await post(`/outbound/${message.delivery.id}/retry`); toast(t("retryQueued"), "success"); list.reload({ keepScroll: true }); }
-        catch (error) { toast(actions.errorText(error), "error"); }
+        catch (error) { toast(actions.failText(error, "errRetrySend"), "error"); }
     });
     document.getElementById("connectionStatus").hidden = navigator.onLine;
     document.addEventListener("keydown", shortcut);
     window.addEventListener("popstate", () => { restoreRoute(); sidebar.render(); renderHead(); list.reload(); });
     Account?.on?.(async accountState => {
-        if (accountState.ready && !accountState.offline && !accountState.account) { await offline.clearPrivateData(); signIn(); }
+        // No account at all means a deliberate sign-out; an invalid session keeps the account and shows the dialog.
+        if (accountState.ready && !accountState.offline && !accountState.account && !accountState.revocation) { await offline.clearPrivateData(); signIn(); }
         else if (accountState.account && state.accountId && accountState.account.id !== state.accountId) location.reload();
     });
     for (const zone of [document.body]) {
@@ -186,8 +222,12 @@ async function refreshStorage() {
 }
 
 /* ---------------------------------------------------------------- navigation */
+// Leaving an address's inbox restores the category tab that was selected before it.
+function leaveLinked() { if (state.address) { state.address = ""; if (state.categoryBeforeLinked) state.category = state.categoryBeforeLinked; } }
+
 export function navigate(view) {
     state.view = view;
+    leaveLinked();
     state.openId = null;
     if (view !== "search") { state.query = ""; search.setValue(""); }
     state.filter = "";
@@ -237,7 +277,8 @@ function viewTitle() {
 }
 
 function renderHead() {
-    document.getElementById("listHeading").textContent = viewTitle();
+    // An address at another provider shows its own inbox, titled with the address.
+    document.getElementById("listHeading").textContent = state.view === "inbox" && state.address ? state.address : viewTitle();
     document.getElementById("listCount").textContent = state.total ? t("messagesTotal", { count: formatNumber(state.total) }) : "";
     document.title = titleText();
     renderCategories();
@@ -421,7 +462,7 @@ function notifyNewMail(event) {
     if (!state.prefs.behavior.notifications || !("Notification" in window) || Notification.permission !== "granted" || document.visibilityState === "visible") return;
     const box = mailboxById(event.mailboxId);
     // Previews are off by default so message content doesn't appear on the lock screen.
-    new Notification(t("newMailNotification"), { body: box?.address || "", tag: "munetios-mail", icon: "/mail/icons/mail-192.png", silent: true });
+    new Notification(t("newMailNotification"), { body: box?.address || "", tag: "munetios-mail", icon: "https://munetios.com/apps/mail.png", silent: true });
 }
 
 async function registerServiceWorker() {

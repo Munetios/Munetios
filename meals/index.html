@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script src="/shared/test-error.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Munetios Meals</title>
@@ -1791,6 +1792,17 @@
           theme === "light" ? "#eef2ff" : "#120942",
         );
       }
+
+      // Meal changes confirm after syncing; if sync fails the toast says so:
+      // "Meal saved. It's saved on this device, but it couldn't sync."
+      function showSyncedToast(message) {
+        if (window.MunetiosAccount?.sync?.report) {
+          window.MunetiosAccount.sync.report(message, { locale: getLocale(), show: (text, type) => showToast(text, type) });
+        } else {
+          showToast(message, "success");
+        }
+      }
+      window.showSyncedToast = showSyncedToast;
 
       function showToast(message, type = "info") {
         if (!message) {
@@ -4622,11 +4634,10 @@
         state.meals = await readAllMeals();
         renderApp();
         closeModal();
-        showToast(
+        showSyncedToast(
           getTranslation()[
             state.editingMealId ? "mealUpdatedToast" : "mealSavedToast"
-          ] || "Meal saved.",
-          "success",
+          ] || "Meal saved."
         );
       }
 
@@ -4646,11 +4657,10 @@
         if (bookmarksModal.classList.contains("open")) {
           renderBookmarksModal();
         }
-        showToast(
+        showSyncedToast(
           getTranslation()[
             wasBookmarked ? "bookmarkRemovedToast" : "bookmarkAddedToast"
-          ] || "Bookmark updated.",
-          "success",
+          ] || "Bookmark updated."
         );
       }
 
@@ -4658,9 +4668,8 @@
         await removeMeal(id);
         state.meals = await readAllMeals();
         renderApp();
-        showToast(
-          getTranslation().mealDeletedToast || "Meal deleted.",
-          "success",
+        showSyncedToast(
+          getTranslation().mealDeletedToast || "Meal deleted."
         );
       }
 
@@ -4703,7 +4712,8 @@
             });
           }
           await refreshMealsAfterMutation();
-          setSettingsFeedback(getTranslation().bookmarksRemoved);
+          settingsFeedback.textContent = getTranslation().bookmarksRemoved;
+          showSyncedToast(getTranslation().bookmarksRemoved);
           closeDeleteConfirm();
           return;
         }
@@ -4712,7 +4722,8 @@
             await removeMeal(meal.id);
           }
           await refreshMealsAfterMutation();
-          setSettingsFeedback(getTranslation().mealsDeleted);
+          settingsFeedback.textContent = getTranslation().mealsDeleted;
+          showSyncedToast(getTranslation().mealsDeleted);
           closeDeleteConfirm();
           return;
         }
@@ -5305,7 +5316,8 @@
             savePreferences();
           }
           await refreshMealsAfterMutation();
-          setSettingsFeedback(getTranslation().dataImported);
+          settingsFeedback.textContent = getTranslation().dataImported;
+          showSyncedToast(getTranslation().dataImported);
         } catch (error) {
           console.error(error);
           setSettingsFeedback(getTranslation().importFailed);

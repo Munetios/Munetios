@@ -95,11 +95,25 @@ CREATE TABLE IF NOT EXISTS munetios_profiles (
   CONSTRAINT profiles_account FOREIGN KEY (account_id) REFERENCES munetios_accounts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- Optional birthday, which Munetios Calendar shows every year (no semicolons in comments: the migration splits on them).
+CREATE TABLE IF NOT EXISTS munetios_profile_birthdays (
+  account_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+  birthday CHAR(10) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT profile_birthdays_account FOREIGN KEY (account_id) REFERENCES munetios_accounts(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS munetios_profile_pictures (
   account_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
   picture MEDIUMTEXT CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT pictures_account FOREIGN KEY (account_id) REFERENCES munetios_accounts(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS munetios_profile_picture_privacy (
+  account_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+  show_to_everyone BOOLEAN NOT NULL,
+  CONSTRAINT picture_privacy_account FOREIGN KEY (account_id) REFERENCES munetios_accounts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- Coarse device label for the "Signed-in devices" list (for example "Chrome on Windows").
@@ -130,6 +144,7 @@ CREATE TABLE IF NOT EXISTS munetios_account_security (
   totp_enabled TINYINT(1) NOT NULL DEFAULT 0,
   last_counter BIGINT NOT NULL DEFAULT -1,
   setup_expires DATETIME NULL,
+  recovery_codes VARCHAR(1024) CHARACTER SET ascii COLLATE ascii_bin NULL,
   recovery_email VARCHAR(254) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
   CONSTRAINT security_account FOREIGN KEY (account_id) REFERENCES munetios_accounts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

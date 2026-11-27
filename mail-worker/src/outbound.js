@@ -249,10 +249,14 @@ export async function sendMessage(env, session, execCtx, mailbox, input) {
         }
     }
     const recipients = [...new Set([...draft.to, ...draft.cc, ...draft.bcc].map(item => item.email))];
+    // A From line with a name: the sender name set for this address, else the display name of the account that owns the mailbox.
+    // Mail from a bare address with no name is more likely to be filtered as spam by Gmail and others.
+    const owner = [session.account, ...(session.accounts || [])].find(account => account && String(account.id) === String(mailbox.account_id));
+    const senderName = cleanHeaderText(sender.displayName || mailbox.display_name || owner?.displayName || "", 200);
     const statements = [
         db.prepare("UPDATE messages SET direction = 'out', folder = ?, from_name = ?, body_hash = ?, date = ?, in_reply_to = ?, references_header = ?, delivery_status = ?, " +
             "size_bytes = size_bytes + ?, version = version + 1, updated_at = ? WHERE id = ?")
-            .bind(sendAt ? "scheduled" : "outbox", sender.displayName || "", body.hash, due, inReplyTo, references, state, body.size, at, messageId),
+            .bind(sendAt ? "scheduled" : "outbox", senderName, body.hash, due, inReplyTo, references, state, body.size, at, messageId),
         db.prepare("INSERT INTO outbound (id, mailbox_id, message_id, state, send_at, idempotency_key, recipient_count, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
             .bind(outboundId, mailbox.id, messageId, state, due, idempotencyKey, recipients.length, at, at),
         ...recipients.map(email => db.prepare("INSERT INTO delivery_recipients (outbound_id, recipient, status, updated_at) VALUES (?, ?, 'pending', ?)").bind(outboundId, email, at)),
@@ -349,11 +353,11 @@ export async function processSend(env, outboundId) {
     if (message.in_reply_to) { headers["In-Reply-To"] = message.in_reply_to; headers.References = message.references_header || message.in_reply_to; }
     if (message.priority === "high") { headers.Importance = "high"; headers["X-Priority"] = "1"; }
     if (message.priority === "low") { headers.Importance = "low"; headers["X-Priority"] = "5"; }
-    const name = message.from_name || "";
+    const name = message.from_name || outbound.display_name || "";
     const payload = {
         from: name ? { email: message.from_addr, name } : message.from_addr,
         to: parseJson(message.to_json, []).map(formatRecipient), cc: parseJson(message.cc_json, []).map(formatRecipient), bcc: parseJson(message.bcc_json, []).map(formatRecipient),
-        subject: message.subject, text: body.text?.trim() ? body.text : (htmlToText(body.html) || " "), ...(body.html ? { html: body.html } : {}),
+        subject: message.subject, text: (body.text && body.text.trim()) || htmlToText(body.html || "") || message.subject || " ", ...(body.html ? { html: body.html } : {}),
         ...(attachments.length ? { attachments } : {}), ...(Object.keys(headers).length ? { headers } : {}),
     };
     for (const field of ["to", "cc", "bcc"]) if (!payload[field].length) delete payload[field];
@@ -589,7 +593,7 @@ export async function processForward(env, { mailboxId, messageId, address }) {
     try {
         await env.EMAIL.send({
             to: address, from: mailbox.display_name ? { email: mailbox.address, name: mailbox.display_name } : mailbox.address,
-            subject: message.subject, text: body.text?.trim() ? body.text : (htmlToText(body.html) || " "), ...(body.html ? { html: body.html } : {}),
+            subject: message.subject, text: (body.text && body.text.trim()) || htmlToText(body.html || "") || message.subject || " ", ...(body.html ? { html: body.html } : {}),
             ...(message.from_addr && validEmail(message.from_addr) ? { replyTo: message.from_addr } : {}),
             ...(attachments.length ? { attachments } : {}), headers: { "X-Munetios-Forwarded": "1", "Auto-Submitted": "auto-forwarded" },
         });

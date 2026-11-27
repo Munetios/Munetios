@@ -8,6 +8,7 @@
     "start": "node server.js",
     "test:account": "node --test account/account-settings.test.cjs",
     "test:auth": "node --test auth/router.test.js",
+    "test:cloud": "node --test cloud/router.test.js",
     "test:collab": "node --test collab/router.test.js",
     "test:youtube": "node --test youtube/router.test.js",
     "test:sheets": "node --test omniwrite/sheets/storage.browser.test.cjs",
@@ -18,8 +19,11 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
     "dotenv": "^18.0.10",
     "express": "^5.3.0",
-    "mysql2": "^3.24.6"
+    "geoip-lite": "^1.4.10",
+    "mysql2": "^3.24.6",
+    "qrcode-generator": "2.0.4"
   }
 }

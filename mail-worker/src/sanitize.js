@@ -1,7 +1,7 @@
 // Allowlist sanitizer for outgoing HTML email (the delivery copy). The editable source is kept separately.
 // It is fail-closed: unknown elements are unwrapped, unknown attributes dropped, and scripts, event handlers,
 // forms, frames, and unsafe URL schemes are removed. Incoming mail is additionally rendered in a sandboxed iframe.
-const VOID = new Set(["br", "hr", "img", "col", "wbr", "area"]);
+const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
 const ALLOWED = new Set(["a", "abbr", "address", "article", "aside", "b", "bdi", "bdo", "big", "blockquote", "br", "caption", "center", "cite", "code", "col", "colgroup",
     "dd", "del", "details", "dfn", "div", "dl", "dt", "em", "figcaption", "figure", "font", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "i", "img", "ins",
     "kbd", "li", "main", "mark", "nav", "ol", "p", "pre", "q", "s", "samp", "section", "small", "span", "strike", "strong", "sub", "summary", "sup", "table", "tbody", "td",
@@ -100,6 +100,7 @@ export function sanitizeEmailHtml(html, { maxBytes = 5 * 1024 * 1024 } = {}) {
             }
             if (key === "style") value = sanitizeCss(decodeEntities(value));
             if (key === "target") value = "_blank";
+            if (URL_ATTRS.has(key)) value = value.replace(/&amp;/gi, "&");
             attrs.push(`${key}="${escapeAttr(value)}"`);
         }
         if (name === "a" && attrs.some(item => item.startsWith("href="))) {

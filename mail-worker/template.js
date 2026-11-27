@@ -3,7 +3,7 @@ const text = value => String(value).replace(/[&<>"']/g, character => entities[ch
 
 export function mailHtml({ title, body, code, link, linkLabel }) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${text(title)}</title></head>
-<body style="margin:0;padding:24px 12px;background:#160c32;color:#f5efff;font:400 17px/1.6 'Google Sans Flex',Arial,sans-serif;font-feature-settings:'ss01' 1">
+<body style="margin:0;padding:24px 12px;background:#160c32;color:#f5efff;font:400 17px/1.6 'Munetios UI v4 Font',Arial,sans-serif;font-feature-settings: normal;">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#281749;border:1px solid #674f94;border-radius:28px"><tr><td style="padding:28px">
 <p style="margin:0 0 12px;color:#d1b9ff;font-size:18px">Munetios</p>

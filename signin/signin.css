@@ -136,3 +136,10 @@
 .signin-birthday { display: flex; align-items: center; gap: 8px; }
 .signin-birthday .mu-picker-field { flex: 1 1 auto; min-width: 0; }
 .signin-birthday .mu-picker-field .mu-icon { color: var(--mu-accent); }
+
+/* Sign out confirmation: "Signing out of this account. Please wait…" */
+.signin-signing-out { display: flex; align-items: center; gap: 14px; margin: 4px 0; font-size: 18px; font-weight: 400; }
+.signin-signing-out[hidden] { display: none; }
+/* "Use name@munetios.com" suggestion under the email field while creating an account. */
+.signin-email-suggest { justify-self: start; max-width: 100%; margin-top: 2px; cursor: pointer; }
+.signin-email-suggest span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

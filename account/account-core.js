@@ -118,7 +118,12 @@
   });
 
   /* ---------------------------------------------------------- api */
+  // While the session is invalid the account still shows as signed in, but account and sync
+  // requests fail. Only the requests that check the session or sign in/out again are sent.
+  const SIGNED_OUT_ALLOWED = new Set(["/session", "/signin", "/signup", "/signout", "/email-code", "/password-reset/request", "/password-reset/complete", "/forgot-email"]);
+  const signedOutError = () => Object.assign(new Error("signedOut"), { status: 401, code: "signedOut", data: { error: "signedOut" } });
   async function api(path, body, { signal } = {}) {
+    if (state.revocation && !SIGNED_OUT_ALLOWED.has(path.split("?")[0])) throw signedOutError();
     const timeout = AbortSignal.timeout(45000);
     const response = await fetch(API + path, {
       method: body === undefined ? "GET" : "POST", credentials: "same-origin", cache: "no-store",
@@ -128,7 +133,7 @@
     });
     let data = null;
     try { data = await response.json(); } catch {}
-    if (response.status === 401 && data?.error === "signedOut" && path !== "/session" && state.account) void refresh();
+    if (response.status === 401 && data?.error === "signedOut" && path !== "/session" && state.account && !state.revocation) void refresh({ scheduleSync: false });
     if (!response.ok) throw Object.assign(new Error(data?.error || "unavailable"), { status: response.status, code: data?.error || "unavailable", data });
     return data;
   }
@@ -200,10 +205,62 @@
       });
     } finally { db.close(); }
   }
+  // Sync key hub (account/key-hub.html on accounts.munetios.com): Munetios hosts share one copy of the data key,
+  // so unlocking sync on one subdomain unlocks it on the others. Keys travel as non-extractable CryptoKeys.
+  const HUB_ORIGIN = "https://accounts.munetios.com";
+  const usesHub = (() => {
+    const host = window.location?.hostname || "";
+    return window.location?.protocol === "https:" && (host === "munetios.com" || host.endsWith(".munetios.com")) && window.location.origin !== HUB_ORIGIN;
+  })();
+  let hubFrame = null;
+  let hubSeq = 0;
+  function hubWindow() {
+    if (!hubFrame) hubFrame = new Promise(resolve => {
+      const frame = document.createElement("iframe");
+      frame.src = HUB_ORIGIN + "/account/key-hub.html";
+      frame.title = "";
+      frame.hidden = true;
+      frame.tabIndex = -1;
+      frame.setAttribute("aria-hidden", "true");
+      const timeout = setTimeout(() => resolve(null), 8000);
+      frame.addEventListener("load", () => { clearTimeout(timeout); resolve(frame.contentWindow); }, { once: true });
+      (document.body || document.documentElement).append(frame);
+    });
+    return hubFrame;
+  }
+  async function hubCall(message) {
+    if (!usesHub) return null;
+    const target = await hubWindow();
+    if (!target) return null;
+    const id = ++hubSeq;
+    return new Promise(resolve => {
+      const done = value => { clearTimeout(timer); window.removeEventListener("message", onMessage); resolve(value); };
+      const onMessage = event => { if (event.origin === HUB_ORIGIN && event.source === target && event.data?.id === id) done(event.data); };
+      const timer = setTimeout(() => done(null), 8000);
+      window.addEventListener("message", onMessage);
+      target.postMessage({ ...message, id }, HUB_ORIGIN);
+    });
+  }
   const keys = {
-    async get(accountId) { try { return (await keyStore("readonly", s => s.get(String(accountId))))?.key || null; } catch { return null; } },
-    put: (accountId, key) => keyStore("readwrite", s => s.put({ accountId: String(accountId), key })),
-    async remove(accountId) { try { await keyStore("readwrite", s => s.delete(String(accountId))); } catch {} }
+    async get(accountId) {
+      let key = null;
+      try { key = (await keyStore("readonly", s => s.get(String(accountId))))?.key || null; } catch {}
+      if (key || !usesHub) return key;
+      const shared = await hubCall({ type: "munetios-key-get", accountId: String(accountId) });
+      if (shared?.ok && shared.key instanceof CryptoKey) {
+        try { await keyStore("readwrite", s => s.put({ accountId: String(accountId), key: shared.key })); } catch {}
+        return shared.key;
+      }
+      return null;
+    },
+    async put(accountId, key) {
+      await keyStore("readwrite", s => s.put({ accountId: String(accountId), key }));
+      void hubCall({ type: "munetios-key-put", accountId: String(accountId), key });
+    },
+    async remove(accountId) {
+      try { await keyStore("readwrite", s => s.delete(String(accountId))); } catch {}
+      void hubCall({ type: "munetios-key-remove", accountId: String(accountId) });
+    }
   };
 
   /* ---------------------------------------------------------- state */
@@ -222,7 +279,6 @@
   }
   function setStatus(status) { if (state.status !== status) { state.status = status; emit(); } }
   async function updateLock() {
-    if (state.revocation) { state.status = "paused"; return; }
     if (!state.account) { state.status = "signed-out"; return; }
     state.syncEnabled = store.get(`munetios-sync-disabled:${state.account.id}`) !== "true";
     if (!state.syncEnabled) { state.status = "paused"; return; }
@@ -251,44 +307,82 @@
   }
   async function refresh({ deliberate = false, enableSyncFor = null, scheduleSync = true } = {}) {
     const request = ++sessionRequest;
+    const wasRevoked = Boolean(state.revocation);
     try {
       if (navigator.onLine === false) throw new Error("offline");
       const data = await api("/session");
       if (request !== sessionRequest) return state;
       const previous = state.account || store.json(accountCacheKey, null);
-      const sharedHost = ['accounts.munetios.com', 'write.munetios.com', 'calendar.munetios.com', 'photos.munetios.com'].includes(window.location?.hostname);
+      // Every https *.munetios.com host shares the session (auth/public-hosts.js).
+      const host = window.location?.hostname || '';
+      const sharedHost = window.location?.protocol === 'https:' && (host === 'munetios.com' || host.endsWith('.munetios.com'));
       const googleCookie = sharedHost ? 'munetios-shared-google-sync' : 'munetios-google-sync';
       const googleSync = String(document.cookie || '').split(';').map(part => part.trim())
         .find(part => part.startsWith(googleCookie + '='))?.slice(googleCookie.length + 1);
       const googleSignIn = Boolean(data.account && String(data.account.id) === googleSync);
-      if (!deliberate && !googleSignIn && (data.sessionRevoked || (!data.account && previous))) {
-        state.revocation = { accountId: previous?.id || state.revocation?.accountId || null, id: state.revocation?.id || Date.now() };
-        store.set(revokedKey, JSON.stringify(state.revocation));
+      // A Sign out that didn't finish keeps the session invalid here until the server confirms it.
+      const pendingSignOut = Boolean(!deliberate && !googleSignIn && state.revocation?.pendingSignOut && data.account && String(data.account.id) === String(state.revocation.accountId));
+      if (pendingSignOut) void finishPendingSignOut();
+      else if (!deliberate && !googleSignIn && (data.sessionRevoked || (!data.account && previous))) {
+        if (!state.revocation) {
+          state.revocation = { accountId: previous?.id || null, id: Date.now() };
+          store.set(revokedKey, JSON.stringify(state.revocation));
+        }
       } else if (deliberate || googleSignIn || (data.account && state.revocation?.accountId === data.account.id)) {
         state.revocation = null;
         store.remove(revokedKey);
       }
-      if (state.account?.id !== data.account?.id) state.storage = null;
-      state.account = data.account; state.accounts = data.accounts || []; state.offline = false;
+      // The session is invalid: keep showing the account as signed in (account and sync requests fail).
+      const keepAccount = Boolean(state.revocation && previous && String(previous.id) === String(state.revocation.accountId));
+      const nextAccount = keepAccount ? previous : data.account;
+      if (state.account?.id !== nextAccount?.id) state.storage = null;
+      state.account = nextAccount; state.offline = false;
+      if (!keepAccount) state.accounts = data.accounts || [];
       if (state.account && (state.account.id === enableSyncFor || googleSignIn)) {
         store.remove(`munetios-sync-disabled:${state.account.id}`);
       }
       if (googleSync) document.cookie = `${googleCookie}=; Max-Age=0; Path=/; SameSite=Lax${sharedHost ? '; Domain=munetios.com; Secure' : ''}`;
-      if (state.account) cacheAccount(state.account);
-      else store.remove(accountCacheKey);
+      if (state.account && !keepAccount) cacheAccount(state.account);
+      else if (!state.account) store.remove(accountCacheKey);
     } catch {
       if (request !== sessionRequest) return state;
       // Offline or server unavailable: keep showing the last known account; sync reports the failure.
       state.offline = true;
-      if (!state.account && !state.revocation) state.account = store.json(accountCacheKey, null);
+      if (!state.account) state.account = store.json(accountCacheKey, null);
     }
     state.ready = true;
     await updateLock();
-    if (state.status === "locked" && !state.offline && await provisionGoogleKey()) await updateLock();
-    if (!state.revocation && state.offline && state.account && state.syncEnabled && state.status !== "locked") state.status = "error";
+    // Signed in again: the failure came from the invalid session, so it no longer applies.
+    if (wasRevoked && !state.revocation && state.status === "error") state.status = "idle";
+    if (state.status === "locked" && !state.offline && !state.revocation && await provisionGoogleKey()) await updateLock();
+    if ((state.revocation || state.offline) && state.account && state.syncEnabled && state.status !== "locked") state.status = "error";
     emit();
-    if (scheduleSync && config.autoSync && state.account && !state.offline && !state.revocation) schedule(300);
+    if (scheduleSync && config.autoSync && state.account && !state.offline) schedule(300);
     return state;
+  }
+  // Marks this device's session as invalid while still showing the account as signed in.
+  // pendingSignOut: a Sign out that failed or took too long; it's finished once the server answers.
+  function invalidateSession({ pendingSignOut = false } = {}) {
+    if (!state.account) return;
+    state.revocation = { accountId: state.account.id, id: Date.now(), ...(pendingSignOut ? { pendingSignOut: true } : {}) };
+    store.set(revokedKey, JSON.stringify(state.revocation));
+    clearTimeout(timer); rerun = false;
+    if (state.syncEnabled && state.status !== "locked") state.status = "error";
+    emit();
+  }
+  let finishingSignOut = null;
+  function finishPendingSignOut() {
+    if (finishingSignOut) return finishingSignOut;
+    const accountId = state.revocation?.accountId;
+    finishingSignOut = (async () => {
+      try {
+        await api("/signout", {}, { signal: AbortSignal.timeout(15000) });
+        if (accountId != null) await keys.remove(accountId);
+        await refresh({ deliberate: true });
+      } catch {}
+      finally { finishingSignOut = null; }
+    })();
+    return finishingSignOut;
   }
 
   /* ---------------------------------------------------------- account actions */
@@ -394,13 +488,22 @@
       emit();
     }
   }
-  async function signOut() {
+  // If the server doesn't confirm in time (or fails), the session is marked invalid on this device:
+  // the account still shows as signed in, nothing syncs, and the sign-out finishes once the server answers.
+  async function signOut({ timeout = 12000 } = {}) {
     const account = state.account;
     // Upload the latest changes first; data on this device stays either way.
-    try { await Promise.race([sync(), new Promise(resolve => setTimeout(resolve, 8000))]); } catch {}
-    await api("/signout", {});
+    if (!state.revocation) { try { await Promise.race([sync(), new Promise(resolve => setTimeout(resolve, 8000))]); } catch {} }
+    try { await api("/signout", {}, { signal: AbortSignal.timeout(timeout) }); }
+    catch (error) {
+      invalidateSession({ pendingSignOut: true });
+      throw Object.assign(error, { code: "signOutPending" });
+    }
     if (account) await keys.remove(account.id);
+    store.remove(accountCacheKey);
     await refresh({ deliberate: true });
+    // The server signed out but the session couldn't be checked: don't keep showing this account.
+    if (state.offline && state.account?.id === account?.id) { state.account = null; state.accounts = []; await updateLock(); emit(); }
   }
   async function switchAccount(accountId) {
     if (state.account && !state.revocation && state.syncEnabled && state.status !== "locked") {
@@ -524,7 +627,8 @@
   const syncStateKey = id => `munetios-sync:${id}`;
   async function syncProvider(provider, account, dataKey, syncState, owners, applied, { unchanged = false } = {}) {
     checkProvider(provider);
-    if (!state.syncEnabled || state.revocation) throw Object.assign(new Error("syncDisabled"), { code: "syncDisabled" });
+    if (state.revocation) throw signedOutError();
+    if (!state.syncEnabled) throw Object.assign(new Error("syncDisabled"), { code: "syncDisabled" });
     const hashData = data => provider.hash ? provider.hash(data) : digest(data);
     const replace = !provider.preserveLocal && Boolean(owners[provider.id]) && owners[provider.id] !== account.id;
     const getItems = cursor => api(`/sync/items?prefix=${encodeURIComponent(provider.prefix)}&since=${cursor}${provider.paginated ? "&paged=1" : ""}`);
@@ -553,7 +657,8 @@
       }
       remote = { ...remote, items: complete };
     }
-    if (!state.syncEnabled || state.revocation) throw Object.assign(new Error("syncDisabled"), { code: "syncDisabled" });
+    if (state.revocation) throw signedOutError();
+    if (!state.syncEnabled) throw Object.assign(new Error("syncDisabled"), { code: "syncDisabled" });
     const decoded = [];
     let cursor = BigInt(syncState.cursor[provider.prefix] || "0");
     for (const item of remote.items) {
@@ -628,7 +733,8 @@
     const pushedVersions = [];
     const batchSize = provider.batchSize || 20;
     const upload = async (items, chunk) => {
-      if (!state.syncEnabled || state.revocation || state.account?.id !== account.id) throw Object.assign(new Error("syncDisabled"), { code: "syncDisabled" });
+      if (state.revocation) throw signedOutError();
+      if (!state.syncEnabled || state.account?.id !== account.id) throw Object.assign(new Error("syncDisabled"), { code: "syncDisabled" });
       checkProvider(provider);
       let results;
       try { ({ results } = await api("/sync/batch", { items })); }
@@ -684,7 +790,6 @@
   }
   async function runSync() {
     const account = state.account;
-    if (state.revocation) { setStatus("paused"); return false; }
     if (!account) { setStatus("signed-out"); return false; }
     if (!state.syncEnabled) { setStatus("paused"); return false; }
     if (navigator.onLine === false) return false;
@@ -719,7 +824,7 @@
       state.lastSynced = Date.now();
       store.set(`munetios-last-synced:${account.id}`, String(state.lastSynced));
       if (pushed || !state.storage) await storage().catch(() => {});
-      setStatus(!state.syncEnabled || state.revocation ? "paused" : full ? "full" : "synced");
+      setStatus(state.revocation ? "error" : !state.syncEnabled ? "paused" : full ? "full" : "synced");
       if (conflicts) rerun = true;
       return !full;
     } catch (error) {
@@ -732,8 +837,8 @@
         timer = setTimeout(() => { if (automaticSyncAllowed()) sync().catch(() => {}); }, rateLimitedUntil - Date.now() + 500);
         return false;
       }
-      if (error.status === 401) await refresh();
-      if (state.revocation) { setStatus("paused"); return false; }
+      // Invalid session: check it again (without starting another sync) and report the failure.
+      if (error.status === 401 && !state.revocation) await refresh({ scheduleSync: false });
       setStatus("error");
       return false;
     }
@@ -745,6 +850,38 @@
       if (rerun) { rerun = false; schedule(800); }
     });
     return running;
+  }
+  // Confirms a change the person just made (message is the app's own "Folder created" text).
+  // When sync is on, it syncs first: if that fails, the toast says the change is saved on this
+  // device but couldn't sync. A slow sync shows the confirmation right away and reports a failure later.
+  const notSyncedText = (message, language) => {
+    const base = String(message ?? "").trim().replace(/^[¡¿]+/u, "").replace(/[\s.!?。！？؟।…]+$/u, "");
+    return (S.notSyncedPattern ? S.notSyncedPattern(language) : "{message}. It's saved on this device, but it couldn't sync.").replace("{message}", base);
+  };
+  function reportChange(message, { locale: language, show, type = "success" } = {}) {
+    const display = show || ((text, kind) => window.MunetiosUI?.toast ? window.MunetiosUI.toast(text, { type: kind }) : window.showToast?.(text, { type: kind }));
+    const lang = language || localeSource();
+    const intendedOff = () => !state.account || !state.syncEnabled || ["locked", "paused", "signed-out"].includes(state.status);
+    if (intendedOff()) { display(message, type); return Promise.resolve(true); }
+    let shown = false;
+    const showOnce = (text, kind) => { if (!shown) { shown = true; display(text, kind); } };
+    let early = null;
+    return (async () => {
+      let ok;
+      try {
+        // Let the app finish writing the change before it's read for sync.
+        await new Promise(resolve => setTimeout(resolve, 150));
+        early = setTimeout(() => showOnce(message, type), 1500);
+        if (running) await running.catch(() => {});
+        ok = Date.now() < rateLimitedUntil ? true : await sync();
+      } catch { ok = false; }
+      clearTimeout(early);
+      const failed = ok === false && !intendedOff();
+      if (!failed) { showOnce(message, type); return true; }
+      if (!shown) showOnce(notSyncedText(message, lang), "error");
+      else display(notSyncedText(message, lang), "error");
+      return false;
+    })();
   }
   async function setSyncEnabled(enabled) {
     state.syncEnabled = Boolean(enabled);
@@ -877,7 +1014,8 @@
       return api('/google/disconnect', { password: await authSecret(password, state.account.email) });
     } },
     security: { get: () => api("/security"), action: securityAction, googleFactor: code => api("/google/factor", { code }) },
-    sync: { storage, setEnabled: setSyncEnabled, register, now: sync, schedule, exportLocal, reset: resetSynced, remoteWorkspaceCounts },
+    sync: { storage, setEnabled: setSyncEnabled, register, now: sync, schedule, exportLocal, reset: resetSynced, remoteWorkspaceCounts, report: reportChange },
+    invalidateSession,
     photos: { readLibrary: readPhotosLibrary },
     workspaces
   };

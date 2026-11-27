@@ -32,7 +32,6 @@
     const forgotEmailResult = document.getElementById('forgotEmailResult');
     const google = document.getElementById('googleSignIn');
     const googleDivider = document.getElementById('googleSignInDivider');
-    const sessionGoogle = document.getElementById('sessionGoogleSignIn');
     let googleEnabled = false;
     const params = new URLSearchParams(location.search);
     const googleFactor = params.get('google') === 'factor';
@@ -72,14 +71,10 @@
     const get = key => { try { return localStorage.getItem(key); } catch { return null; } };
     const set = (key, value) => { try { localStorage.setItem(key, value); } catch {} };
     const t = key => catalog[locale][key] ?? window.MunetiosAccountStrings.catalog[locale]?.[key];
+    // Any language tag → one of the 17 global locales.
     function resolveLocale(value) {
-        const code = String(value || 'en').replaceAll('_', '-');
-        if (catalog[code]) return code;
-        const base = code.split('-')[0].toLowerCase();
-        if (base === 'es') return code.toLowerCase() === 'es-es' ? 'es-ES' : 'es-419';
-        if (base === 'pt') return code.toLowerCase() === 'pt-pt' ? 'pt-PT' : 'pt-BR';
-        if (base === 'zh') return /tw|hk|hant/i.test(code) ? 'zh-TW' : 'zh-CN';
-        return catalog[base] ? base : 'en';
+        const resolved = window.MunetiosAccountStrings?.resolveLocale?.(value) || 'en-US';
+        return catalog[resolved] ? resolved : 'en-US';
     }
     function updateTheme() {
         const light = root.dataset.muTheme === 'light';
@@ -90,12 +85,12 @@
     function renderLanguage() {
         google.hidden = googleFactor || !googleEnabled || Boolean(resetStep) || verifying;
         if (googleDivider) googleDivider.hidden = google.hidden;
-        sessionGoogle.hidden = !googleEnabled;
         document.querySelector("#authCodeField label").textContent = Account.t("factorOrRecovery");
         root.lang = locale;
         root.dir = locale === 'ar' ? 'rtl' : 'ltr';
         document.querySelectorAll('[data-i18n]').forEach(element => { element.textContent = t(element.dataset.i18n); });
         paintBirthday();
+        updateEmailSuggestion();
         document.title = `${t(creating ? 'createAccount' : 'signIn')} · ${omniWriteHost ? 'OmniWrite' : 'Munetios'}`;
         document.getElementById('signinTitle').textContent = t(verifying ? 'emailVerificationTitle' : creating ? 'createAccount' : 'signIn');
         if (resetStep) {
@@ -270,10 +265,44 @@
         renderLanguage();
         email.focus();
     });
+    // Creating an account: typing a name (or "name@mun…") offers name@munetios.com, the address that comes with a mailbox.
+    const emailSuggest = document.getElementById('emailSuggest');
+    const emailSuggestText = document.getElementById('emailSuggestText');
+    function munetiosSuggestion() {
+        if (!creating) return '';
+        const value = email.value.trim().toLowerCase();
+        const [local, domain = null] = value.split('@');
+        if (!/^[a-z0-9][a-z0-9._-]{0,63}$/.test(local || '')) return '';
+        if (domain === null || (domain !== 'munetios.com' && 'munetios.com'.startsWith(domain))) return `${local}@munetios.com`;
+        return '';
+    }
+    function updateEmailSuggestion() {
+        const emailSuggest = document.getElementById('emailSuggest'), emailSuggestText = document.getElementById('emailSuggestText');
+        if (!emailSuggest) return;
+        const suggestion = munetiosSuggestion();
+        emailSuggest.hidden = !suggestion;
+        if (suggestion) emailSuggestText.textContent = t('emailSuggestMunetios').replace('{address}', suggestion);
+        emailSuggest.dataset.address = suggestion;
+    }
+    emailSuggest.addEventListener('click', () => {
+        if (!emailSuggest.dataset.address) return;
+        email.value = emailSuggest.dataset.address;
+        email.dispatchEvent(new Event('input', { bubbles: true }));
+        email.focus();
+    });
+    // Accepting is always deliberate (click, or Enter/Space on the suggestion): typing and Tab never fill in a half-typed name.
+    // ArrowDown moves focus to the suggestion; ArrowUp or Escape there goes back to the email field.
+    email.addEventListener('keydown', event => {
+        if (!emailSuggest.hidden && event.key === 'ArrowDown') { event.preventDefault(); emailSuggest.focus(); }
+    });
+    emailSuggest.addEventListener('keydown', event => {
+        if (event.key === 'ArrowUp' || event.key === 'Escape') { event.preventDefault(); email.focus(); }
+    });
     email.addEventListener('input', () => {
         emailCode.value = '';
         emailCodeNotice.hidden = true;
         updateVerificationFields();
+        updateEmailSuggestion();
     });
     emailCodeButton.addEventListener('click', async () => {
         if (!creating || isInternal() || !validate(email)) { email.focus(); return; }
@@ -304,6 +333,7 @@
         confirmation.value = '';
         showProfileFields();
         updateVerificationFields();
+        updateEmailSuggestion();
         password.autocomplete = creating ? 'new-password' : 'current-password';
         [email, password, confirmation, displayName].forEach(input => error(input, ''));
         message('');
@@ -321,7 +351,7 @@
             max,
             locale,
             allowClear: Boolean(birthday),
-            labels: { previous: t('pickerPrevious'), next: t('pickerNext'), today: t('pickerToday'), clear: t('birthdayClear'), date: t('birthday') },
+            labels: { previous: t('pickerPrevious'), next: t('pickerNext'), today: t('pickerToday'), clear: t('birthdayClear'), date: t('birthday'), chooseYear: t('pickerChooseYear'), chooseMonth: t('pickerChooseMonth') },
             onPick: (iso) => { birthday = iso && iso <= max ? iso : ''; paintBirthday(); birthdayButton.focus(); },
         });
     });
@@ -370,13 +400,53 @@
         }
         finally { busy = false; email.readOnly = false; submit.disabled = modeButton.disabled = signinModeButton.disabled = false; form.removeAttribute('aria-busy'); renderLanguage(); }
     });
-    document.getElementById('signoutButton').addEventListener('click', async event => {
-        event.currentTarget.disabled = true;
+    // Sign out asks first, then shows "Signing out of this account. Please wait…". If the server fails or is
+    // too slow, the session is marked invalid on this device (still shown as signed in elsewhere), so this
+    // page shows the sign-in form to sign in again.
+    const signOutText = key => t(key) || Account.t(key);
+    const escapeText = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    async function signOutNow(dialog) {
+        const button = document.getElementById('signoutButton');
         const sessionError = document.getElementById('sessionError');
+        button.disabled = true;
         sessionError.hidden = true;
         try { await Account.signOut(); creating = false; showSession(Account.state.account); if (!Account.state.account) email.focus(); }
-        catch { sessionError.dataset.errorKey = 'unavailable'; sessionError.textContent = t('unavailable'); sessionError.hidden = false; }
-        finally { document.getElementById('signoutButton').disabled = false; }
+        catch (error) {
+            if (error?.code === 'signOutPending') { creating = false; showSession(null); if (Account.state.account) email.value = Account.state.account.email || ''; password.focus(); }
+            else { sessionError.dataset.errorKey = 'unavailable'; sessionError.textContent = t('unavailable'); sessionError.hidden = false; }
+        }
+        finally {
+            button.disabled = false;
+            if (dialog) { if (!dialog.hidden) window.MunetiosUI.closeModal(dialog); dialog.remove(); }
+        }
+    }
+    document.getElementById('signoutButton').addEventListener('click', () => {
+        if (!window.MunetiosUI?.openModal) { if (window.confirm(signOutText('signOutConfirmTitle'))) signOutNow(null); return; }
+        document.getElementById('signinSignOutModal')?.remove();
+        const modal = document.createElement('div');
+        modal.className = 'mu-modal';
+        modal.id = 'signinSignOutModal';
+        modal.hidden = true;
+        modal.innerHTML = `<section class="mu-dialog" role="dialog" aria-modal="true" aria-labelledby="signinSignOutTitle" aria-describedby="signinSignOutBody">
+            <div class="mu-dialog-header"><div class="mu-dialog-heading"><span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">logout</span></span><h2 id="signinSignOutTitle">${escapeText(signOutText('signOutConfirmTitle'))}</h2></div></div>
+            <p class="mu-muted" id="signinSignOutBody">${escapeText(signOutText('signOutConfirmBody'))}</p>
+            <div class="signin-signing-out" role="status" aria-live="polite" hidden>
+                <div class="spinner-container is-sm" aria-hidden="true"><svg class="google-spinner" viewBox="0 0 50 50" focusable="false"><circle class="spinner-circle" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg></div>
+                <span>${escapeText(signOutText('signingOut'))}</span>
+            </div>
+            <div class="mu-dialog-actions">
+                <button type="button" class="mu-btn" data-mu-close>${escapeText(signOutText('cancel'))}</button>
+                <button type="button" class="mu-btn mu-btn-danger" data-signout-confirm><span class="mu-icon" aria-hidden="true">logout</span><span>${escapeText(signOutText('signOut'))}</span></button>
+            </div>
+        </section>`;
+        document.body.append(modal);
+        const shown = window.MunetiosUI.openModal(modal.id) || modal;
+        shown.querySelector('[data-signout-confirm]').addEventListener('click', () => {
+            shown.querySelector('.signin-signing-out').hidden = false;
+            shown.querySelector('#signinSignOutBody').hidden = true;
+            shown.querySelectorAll('.mu-dialog-actions button').forEach(button => { button.disabled = true; });
+            signOutNow(shown);
+        }, { once: true });
     });
     language.value = locale = resolveLocale(get('munetiosLanguage') || navigator.language);
     language.addEventListener('change', () => { locale = language.value; set('munetiosLanguage', locale); renderLanguage(); });
@@ -442,8 +512,6 @@
     if (defaultDestination && !continueTo) document.getElementById('continueLink').href = defaultDestination;
     const googleParams = new URLSearchParams({ continue: continueTo || defaultDestination || '/', add: adding ? '1' : '0' });
     google.href = '/api/auth/google/start?' + googleParams;
-    googleParams.set('add', '1');
-    sessionGoogle.href = '/api/auth/google/start?' + googleParams;
     fetch('/api/auth/google/config', { cache: 'no-store' }).then(response => response.json()).then(data => {
         googleEnabled = Boolean(data.enabled);
         renderLanguage();
@@ -456,8 +524,10 @@
         document.getElementById('authCode').focus();
     }
     // Already signed in: show the session panel, unless an additional account is being added.
+    // An invalid session still keeps the account shown as signed in elsewhere: here it means signing in again.
     Account.refresh().then(state => {
         if (state.account && params.get('forgot') === '1' && resetStep === 'email' && !resetEmail.value) resetEmail.value = state.account.email;
-        if (state.account && !googleFactor && !adding && !busy && !resetStep && !email.value && !password.value) showSession(state.account);
+        if (state.account && state.revocation && !adding && !busy && !email.value) email.value = state.account.email || '';
+        if (state.account && !state.revocation && !googleFactor && !adding && !busy && !resetStep && !email.value && !password.value) showSession(state.account);
     }).catch(() => {});
 })();

@@ -46,11 +46,16 @@ if (!authEnv.GOOGLE_CLIENT_URL && !authEnv.PUBLIC_ORIGIN && HOSTS.every(host => 
   const hostname = HOSTS.length === 1 && HOSTS[0] === '127.0.0.1' ? '127.0.0.1' : 'localhost';
   authEnv.GOOGLE_CLIENT_URL = `http://${hostname}:${PORT}/api/auth/google/callback`;
 }
-const auth = require('./auth/router').createAuthRouter({ env: authEnv });
+const superVidPlayer = require('./supervidplayer-server');
+const auth = require('./auth/router').createAuthRouter({
+  env: authEnv,
+  onBrowserSessionChange: superVidPlayer.clearOfflineAccess,
+});
 const requireWebFilterPage = auth.requireBrowserPage("/webfilter/");
 const requireMailPage = auth.requireBrowserPage("/mail/");
 app.post('/api/mail/inbound', express.json({ limit: '2mb' }), auth.mailInbound);
 app.use('/api/auth', auth);
+superVidPlayer.install(app, auth, authEnv);
 
 // Munetios Mail API: the same code the Mail Worker runs, with local SQLite and file storage in .local-mail/.
 const localMail = import('./mail-worker/src/local/express.js')
@@ -78,6 +83,15 @@ app.use('/api/collab', require('./collab/router').createCollabRouter({
   env: authEnv,
 }));
 
+// Munetios Cloud for Calendar and Photos: shared calendars and albums, chunked media uploads, time zones, and holidays.
+app.use('/api/cloud', require('./cloud/router').createCloudRouter({
+  store: require('./cloud/store').createMysqlStore({ database: auth.database, env: authEnv }),
+  resolveAccount: auth.optionalAccount,
+  lookupAccountByEmail: auth.lookupAccountByEmail,
+  env: authEnv,
+  rateLimit: auth.syncRateLimit,
+}));
+
 // Munetios Maps: self-hosted satellite tiles and live traffic from anonymous, opt-in speed reports.
 app.use('/api/maps', require('./maps-server/router').createMapsRouter());
 
@@ -95,7 +109,7 @@ app.use('/api/weather', async (req, res) => {
 });
 
 // Keep server-side files out of the static site.
-const PRIVATE_PATHS = /^\/(server\.js|favicon-proxy\.js|package(-lock)?\.json|claude\.md|(?:auth|collab|youtube|webfilter-api|mail-worker|developer-beta|maps-server)(\/|$)|node_modules(\/|$)|\.)/i;
+const PRIVATE_PATHS = /^\/(server\.js|favicon-proxy\.js|package(-lock)?\.json|claude\.md|(?:auth|cloud|collab|youtube|supervidplayer-server|webfilter-api|mail-worker|developer-beta|maps-server)(\/|$)|node_modules(\/|$)|\.)/i;
 app.use((req, res, next) => {
   try {
     const pathname = path.posix.normalize(decodeURIComponent(req.path).replace(/\\/g, "/"));
@@ -130,6 +144,7 @@ app.use((req, res, next) => {
   });
 });
 
+app.get("/omniwrite/overview", (req, res) => res.sendFile(path.join(ROOT, "omniwrite", "overview.html")));
 app.get(require("./photos/routes.js").pathPattern, (req, res) => res.sendFile(path.join(ROOT, "photos", "index.html")));
 app.use(express.static(ROOT, { dotfiles: "ignore", index: "index.html" }));
 

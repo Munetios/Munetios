@@ -6,7 +6,7 @@
  *    link access so the server can read those files.
  *  - Roles: owner, edit (Editor), suggest (Suggest), view (View only).
  *  - General access: off (only people added), or anyone with the link (view, suggest, or edit).
- *    Signed-out visitors with the link can only view.
+ *    The selected link role applies to signed-in and signed-out visitors.
  *  - Locked documents cannot be used for collaboration: only the owner can reach
  *    them (to unlock), and content updates are refused.
  *  - Live updates and presence use Server-Sent Events (no extra dependencies).
@@ -81,13 +81,11 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
         if (viewer && viewer.id === doc.ownerId) return 'owner';
         if (doc.locked) return null;
         let role = viewer ? await store.getMemberRole(doc.id, viewer.id) : null;
-        if (doc.linkAccess !== 'off') role = higher(role, viewer ? doc.linkAccess : 'view');
+        if (doc.linkAccess !== 'off') role = higher(role, doc.linkAccess);
         return role;
     }
 
-    // Commenting: owners, Editors, and Suggest. Signed-out visitors can comment (as guests)
-    // when the link gives Suggest or Editor, even though they can only view the content.
-    const canComment = (doc, viewer, role) => !doc.locked && (['owner', 'edit', 'suggest'].includes(role) || (!viewer && ['suggest', 'edit'].includes(doc.linkAccess)));
+    const canComment = (doc, role) => !doc.locked && ['owner', 'edit', 'suggest'].includes(role);
 
     // Loads :id and the caller's role, and answers the request itself when access is denied.
     async function load(req, res, minimum = 'view') {
@@ -121,7 +119,7 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
             clientId: connection.clientId,
             accountId: connection.viewer?.id || null,
             name: connection.viewer ? displayName(connection.viewer) : null,
-            hasPicture: Boolean(connection.viewer?.picture),
+            hasPicture: Boolean(connection.viewer?.picture && connection.viewer.showProfilePictureToEveryone !== false),
             role: connection.role,
         }));
     }
@@ -129,7 +127,7 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
         for (const connection of rooms.get(id) || []) if (filter(connection)) send(connection, event);
     }
     function close(connection, event) {
-        send(connection, event);
+        if (event) send(connection, event);
         leave(connection);
         try { connection.res.end(); } catch {}
     }
@@ -143,7 +141,7 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
             if (!doc) close(connection, { type: 'deleted' });
             else if (!role) close(connection, { type: doc.locked ? 'locked' : 'revoked' });
             else {
-                const comment = canComment(doc, connection.viewer, role);
+                const comment = canComment(doc, role);
                 if (role !== connection.role || comment !== connection.canComment) {
                     connection.role = role;
                     connection.canComment = comment;
@@ -163,13 +161,15 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
         const [owner] = await store.people([doc.ownerId]);
         return {
             id: doc.id, kind: doc.kind, role, linkAccess: doc.linkAccess, locked: snapshot?.locked ?? doc.locked,
-            version: snapshot?.version ?? doc.version, canComment: !snapshot?.locked && canComment(doc, viewer, role),
+            version: snapshot?.version ?? doc.version, canComment: !snapshot?.locked && canComment(doc, role),
             owner: owner ? { accountId: owner.accountId, name: owner.displayName || owner.email.split('@')[0], hasPicture: owner.hasPicture } : null,
-            me: viewer ? { accountId: viewer.id, name: displayName(viewer), hasPicture: Boolean(viewer.picture) } : null,
+            me: viewer ? { accountId: viewer.id, name: displayName(viewer), hasPicture: Boolean(viewer.picture && viewer.showProfilePictureToEveryone !== false) } : null,
             ...content,
         };
     };
     const validContent = body => body && typeof body.iv === 'string' && IV.test(body.iv) && typeof body.ciphertext === 'string' && body.ciphertext.length > 0 && CIPHERTEXT.test(body.ciphertext);
+    const validFileKey = key => typeof key === 'string' && REVIEW_KEY.test(key) &&
+        Buffer.from(key, 'base64url').toString('base64url') === key;
     const clientOf = req => (CLIENT_ID.test(req.get('x-collab-client') || '') ? req.get('x-collab-client') : null);
 
     /* ---------- documents ---------- */
@@ -208,6 +208,16 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
         res.json({ key: key || null });
     }));
 
+    router.put('/documents/:id/invitation-key', small, wrap(async (req, res) => {
+        const access = await load(req, res, 'owner');
+        if (!access) return;
+        if (access.doc.locked) return fail(res, 423, 'locked');
+        const { key } = req.body || {};
+        if (!validFileKey(key)) return fail(res, 400, 'invalidRequest');
+        const ready = await store.prepareInvitationKey(access.doc.id, key);
+        res.json({ ready });
+    }));
+
     router.put('/documents/:id/content', large, wrap(async (req, res) => {
         const access = await load(req, res, 'edit');
         if (!access) return;
@@ -234,10 +244,7 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
         if (linkAccess !== undefined && !LINK_ACCESS.includes(linkAccess)) return fail(res, 400, 'invalidRequest');
         if (locked !== undefined && typeof locked !== 'boolean') return fail(res, 400, 'invalidRequest');
         if (linkAccess === undefined && locked === undefined) return fail(res, 400, 'invalidRequest');
-        if (contentKey !== undefined && (
-            !linkAccess || linkAccess === 'off' || typeof contentKey !== 'string' || !REVIEW_KEY.test(contentKey) ||
-            Buffer.from(contentKey, 'base64url').toString('base64url') !== contentKey
-        )) return fail(res, 400, 'invalidRequest');
+        if (contentKey !== undefined && (!linkAccess || linkAccess === 'off' || !validFileKey(contentKey))) return fail(res, 400, 'invalidRequest');
         if (await store.updateSettings(access.doc.id, { linkAccess, locked, contentKey }) === false) return fail(res, 404, 'notFound');
         await refreshAccess(access.doc.id);
         const doc = await store.getDocument(access.doc.id);
@@ -258,9 +265,9 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
     router.get('/documents/:id/members', wrap(async (req, res) => {
         const access = await load(req, res);
         if (!access) return;
-        const { doc, role } = access;
+        const { doc, role, viewer } = access;
         // Email addresses are only shown to people who manage or edit the file.
-        const showEmail = RANK[role] >= RANK.edit;
+        const showEmail = Boolean(viewer) && RANK[role] >= RANK.edit;
         const [owner] = await store.people([doc.ownerId]);
         const members = await store.listMembers(doc.id);
         const shape = (person, personRole) => ({
@@ -275,11 +282,14 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
         if (!access) return;
         const email = String(req.body?.email || '').trim().toLowerCase();
         const role = req.body?.role;
-        if (!ROLES.includes(role) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return fail(res, 400, 'invalidRequest');
+        const { key } = req.body || {};
+        if (!ROLES.includes(role) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 ||
+            (key !== undefined && !validFileKey(key))) return fail(res, 400, 'invalidRequest');
+        if (access.doc.locked) return fail(res, 423, 'locked');
         const person = await lookupAccountByEmail(email);
         if (!person) return fail(res, 404, 'noAccount');
         if (String(person.id) === access.doc.ownerId) return fail(res, 409, 'isOwner');
-        if (await store.upsertMember(access.doc.id, String(person.id), role) === false) return fail(res, 404, 'notFound');
+        if (await store.upsertMember(access.doc.id, String(person.id), role, key) === false) return fail(res, 404, 'notFound');
         await refreshAccess(access.doc.id);
         res.status(201).json({ ok: true });
     }));
@@ -308,6 +318,7 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
 
     // Profile pictures of the owner, members, suggestion authors, and people currently here.
     router.get('/documents/:id/people/:accountId/picture', wrap(async (req, res) => {
+        res.set('Cache-Control', 'private, no-store');
         if (!ACCOUNT_ID.test(req.params.accountId || '')) return fail(res, 404, 'notFound');
         const access = await load(req, res);
         if (!access) return;
@@ -321,7 +332,7 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
         if (!related) return fail(res, 404, 'notFound');
         const picture = await store.getPicture(target);
         if (!picture || !picture.startsWith('data:image/png;base64,')) return fail(res, 404, 'notFound');
-        res.set({ 'Content-Type': 'image/png', 'Cache-Control': 'private, max-age=300' });
+        res.type('png');
         res.send(Buffer.from(picture.slice('data:image/png;base64,'.length), 'base64'));
     }));
 
@@ -339,13 +350,19 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
             'X-Accel-Buffering': 'no',
         });
         res.write('retry: 3000\n\n');
-        const connection = { res, clientId, viewer, role, docId: doc.id, canComment: canComment(doc, viewer, role) };
+        const connection = { res, clientId, viewer, role, docId: doc.id, canComment: canComment(doc, role) };
         if (!rooms.has(doc.id)) rooms.set(doc.id, new Set());
-        rooms.get(doc.id).add(connection);
+        const room = rooms.get(doc.id);
+        const prior = [...room].find(other => other.clientId === clientId && other.viewer?.id === viewer?.id);
+        room.add(connection);
+        if (prior) {
+            close(prior);
+            broadcast(doc.id, { type: 'cursor', clientId, cursor: null }, other => other !== connection);
+        }
         send(connection, { type: 'hello', clientId, role, version: doc.version, linkAccess: doc.linkAccess, canComment: connection.canComment });
-        // Bring the newcomer up to date with where everyone else is working.
-        for (const other of rooms.get(doc.id)) if (other !== connection && other.cursor) send(connection, { type: 'cursor', clientId: other.clientId, cursor: other.cursor });
         broadcast(doc.id, { type: 'presence', people: presence(doc.id) });
+        // Bring the newcomer up to date with where everyone else is working.
+        for (const other of room) if (other !== connection && other.cursor) send(connection, { type: 'cursor', clientId: other.clientId, cursor: other.cursor });
         const heartbeat = setInterval(() => { if (!res.writableEnded) try { res.write(': ping\n\n'); } catch {} }, HEARTBEAT_MS);
         heartbeat.unref?.();
         res.on('error', () => {});
@@ -362,8 +379,9 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
         const by = clientOf(req);
         const cursor = req.body?.cursor ?? null;
         if (!by || (cursor !== null && (typeof cursor !== 'object' || Array.isArray(cursor) || JSON.stringify(cursor).length > 4096))) return fail(res, 400, 'invalidRequest');
-        const own = [...(rooms.get(access.doc.id) || [])].find(connection => connection.clientId === by);
-        if (own) own.cursor = cursor;
+        const own = [...(rooms.get(access.doc.id) || [])].find(connection => connection.clientId === by && connection.viewer?.id === access.viewer?.id);
+        if (!own) return res.json({ ok: true });
+        own.cursor = cursor;
         broadcast(access.doc.id, { type: 'cursor', clientId: by, cursor }, connection => connection.clientId !== by);
         res.json({ ok: true });
     }));
@@ -380,7 +398,7 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
         const access = await load(req, res);
         if (!access) return;
         if (access.doc.locked) return fail(res, 423, 'locked');
-        res.json({ comments: (await store.listComments(access.doc.id)).map(commentJson), canComment: canComment(access.doc, access.viewer, access.role) });
+        res.json({ comments: (await store.listComments(access.doc.id)).map(commentJson), canComment: canComment(access.doc, access.role) });
     }));
 
     router.post('/documents/:id/comments', small, wrap(async (req, res) => {
@@ -388,7 +406,7 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
         if (!access) return;
         const { doc, viewer, role } = access;
         if (doc.locked) return fail(res, 423, 'locked');
-        if (!canComment(doc, viewer, role)) return fail(res, 403, 'noAccess');
+        if (!canComment(doc, role)) return fail(res, 403, 'noAccess');
         const token = req.body?.token;
         const parentId = req.body?.parentId ?? null;
         if (!validContent(req.body) || (!viewer && (typeof token !== 'string' || !COMMENT_TOKEN.test(token)))
@@ -418,9 +436,9 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
         if (!ACCOUNT_ID.test(req.params.commentId || '')) return fail(res, 404, 'notFound');
         const access = await load(req, res);
         if (!access) return;
-        const { doc, viewer, role } = access;
+        const { doc, role } = access;
         if (doc.locked) return fail(res, 423, 'locked');
-        if (!canComment(doc, viewer, role)) return fail(res, 403, 'noAccess');
+        if (!canComment(doc, role)) return fail(res, 403, 'noAccess');
         const resolved = req.body?.resolved;
         if (typeof resolved !== 'boolean') return fail(res, 400, 'invalidRequest');
         const comment = await store.getComment(doc.id, req.params.commentId);
@@ -448,16 +466,28 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
     }));
 
     /* ---------- suggestions ---------- */
+    function suggestionActor(viewer, req, docId) {
+        if (viewer) return { accountId: viewer.id, tokenHash: null };
+        const token = req.get('x-collab-guest') || '';
+        return COMMENT_TOKEN.test(token)
+            ? { accountId: null, tokenHash: createHash('sha256').update('munetios-collab-suggestion:' + docId + ':' + token).digest('hex') }
+            : null;
+    }
+    const ownsSuggestion = (item, actor) => Boolean(actor && (actor.accountId
+        ? item.accountId === actor.accountId
+        : item.tokenHash === actor.tokenHash));
+
     router.post('/documents/:id/suggestions', large, wrap(async (req, res) => {
         const access = await load(req, res, 'suggest');
         if (!access) return;
         if (access.doc.locked) return fail(res, 423, 'locked');
-        if (access.role !== 'suggest' || !access.viewer) return fail(res, 403, 'noAccess');
+        if (access.role !== 'suggest') return fail(res, 403, 'noAccess');
+        const actor = suggestionActor(access.viewer, req, access.doc.id);
         const baseVersion = Number(req.body?.baseVersion);
-        if (!Number.isSafeInteger(baseVersion) || baseVersion < 1 || !validContent(req.body)) return fail(res, 400, 'invalidRequest');
-        const id = await store.saveSuggestion({ documentId: access.doc.id, accountId: access.viewer.id, baseVersion, iv: req.body.iv, ciphertext: req.body.ciphertext });
+        if (!actor || !Number.isSafeInteger(baseVersion) || baseVersion < 1 || !validContent(req.body)) return fail(res, 400, 'invalidRequest');
+        const id = await store.saveSuggestion({ documentId: access.doc.id, ...actor, baseVersion, iv: req.body.iv, ciphertext: req.body.ciphertext });
         if (!id) return fail(res, 404, 'notFound');
-        broadcast(access.doc.id, { type: 'suggestions' }, connection => RANK[connection.role] >= RANK.edit || connection.viewer?.id === access.viewer.id);
+        broadcast(access.doc.id, { type: 'suggestions' }, connection => RANK[connection.role] >= RANK.edit || connection.viewer?.id === actor.accountId);
         res.status(201).json({ id });
     }));
 
@@ -465,12 +495,13 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
         const access = await load(req, res, 'suggest');
         if (!access) return;
         const own = RANK[access.role] < RANK.edit;
-        if (own && !access.viewer) return res.json({ suggestions: [] });
-        const suggestions = await store.listSuggestions(access.doc.id, own ? access.viewer.id : null);
+        const actor = own ? suggestionActor(access.viewer, req, access.doc.id) : null;
+        if (own && !actor) return res.json({ suggestions: [] });
+        const suggestions = await store.listSuggestions(access.doc.id, actor?.accountId, actor?.tokenHash);
         res.json({
             suggestions: suggestions.map(item => ({
                 id: item.id, baseVersion: item.baseVersion, updatedAt: item.updatedAt,
-                author: { accountId: item.author.accountId, name: item.author.displayName || item.author.email.split('@')[0], hasPicture: item.author.hasPicture },
+                author: item.author ? { accountId: item.author.accountId, name: item.author.displayName || item.author.email.split('@')[0], hasPicture: item.author.hasPicture } : null,
             })),
         });
     }));
@@ -480,8 +511,9 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
         if (!access) return;
         if (!ACCOUNT_ID.test(req.params.suggestionId || '')) return fail(res, 404, 'notFound');
         const suggestion = await store.getSuggestion(access.doc.id, req.params.suggestionId);
-        if (!suggestion || (RANK[access.role] < RANK.edit && suggestion.accountId !== access.viewer?.id)) return fail(res, 404, 'notFound');
-        res.json(suggestion);
+        if (!suggestion || (RANK[access.role] < RANK.edit && !ownsSuggestion(suggestion, suggestionActor(access.viewer, req, access.doc.id)))) return fail(res, 404, 'notFound');
+        const { id, accountId, baseVersion, iv, ciphertext } = suggestion;
+        res.json({ id, accountId, baseVersion, iv, ciphertext });
     }));
 
     // Editors accept or reject. Authors can withdraw their own suggestion (stored as rejected).
@@ -493,7 +525,7 @@ function createCollabRouter({ store, resolveAccount, lookupAccountByEmail, alloc
         const suggestion = await store.getSuggestion(access.doc.id, req.params.suggestionId);
         if (!suggestion) return fail(res, 404, 'notFound');
         const editor = RANK[access.role] >= RANK.edit;
-        if (!editor && !(status === 'rejected' && suggestion.accountId === access.viewer?.id)) return fail(res, 403, 'noAccess');
+        if (!editor && !(status === 'rejected' && ownsSuggestion(suggestion, suggestionActor(access.viewer, req, access.doc.id)))) return fail(res, 403, 'noAccess');
         if (!(await store.resolveSuggestion(access.doc.id, suggestion.id, status))) return fail(res, 404, 'notFound');
         broadcast(access.doc.id, { type: 'suggestions', resolved: suggestion.id, status, author: suggestion.accountId });
         res.json({ ok: true });

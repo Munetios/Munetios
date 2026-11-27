@@ -140,7 +140,8 @@ async function push() {
             const merged = mergeDeep(server.data, state.prefsRaw);
             const result = await put("/preferences", { data: merged, baseVersion: server.version }).catch(() => null);
             if (result) { state.boot.preferences = result; state.prefsRaw = result.data; }
-        } else if (!(error instanceof ApiError && error.code === "offline")) toast(t("preferencesNotSaved"), "error");
+            else toast(t("warnPrefsNotSynced"), "warning");
+        } else if (!(error instanceof ApiError && error.code === "offline")) toast(t("warnPrefsNotSynced"), "warning");
     }
 }
 

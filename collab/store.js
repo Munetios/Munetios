@@ -10,6 +10,8 @@ const path = require('node:path');
 const PART_BYTES = 256 * 1024;
 const docKey = id => 'd:' + id;
 const suggestionKey = id => 's:' + id;
+const publicPicturePredicate = 'NOT EXISTS (SELECT 1 FROM munetios_profile_picture_privacy q WHERE q.account_id = v.account_id AND q.show_to_everyone = 0)';
+const publicPictureJoin = 'LEFT JOIN munetios_profile_pictures v ON v.account_id = a.id AND ' + publicPicturePredicate + ' ';
 
 function splitParts(ciphertext) {
     const parts = [];
@@ -27,6 +29,14 @@ function createMysqlStore({ database, env = process.env }) {
                 const statements = readFileSync(path.join(__dirname, 'schema.sql'), 'utf8')
                     .split(';').map(sql => sql.replace(/^\s*--.*$/gm, '').trim()).filter(Boolean);
                 for (const sql of statements) await connection.query(sql);
+                const [guestColumns] = await connection.query("SHOW COLUMNS FROM munetios_collab_suggestions LIKE 'token_hash'");
+                if (!guestColumns.length) {
+                    try {
+                        await connection.query('ALTER TABLE munetios_collab_suggestions MODIFY COLUMN account_id BIGINT UNSIGNED NULL, ADD COLUMN token_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL');
+                    } catch (error) {
+                        if (error.code !== 'ER_DUP_FIELDNAME') throw error;
+                    }
+                }
             })().catch(error => { schemaReady = null; throw error; });
         }
         await schemaReady;
@@ -53,6 +63,9 @@ function createMysqlStore({ database, env = process.env }) {
         for (let index = 0; index < parts.length; index++) {
             await connection.execute('INSERT INTO munetios_collab_parts (owner_key, part_index, data) VALUES (?, ?, ?)', [key, index, parts[index]]);
         }
+    }
+    function saveInvitationKey(connection, id, key) {
+        return connection.execute('INSERT INTO munetios_collab_invitation_keys (document_id, content_key) VALUES (?, ?) ON DUPLICATE KEY UPDATE content_key = VALUES(content_key)', [id, key]);
     }
     async function readParts(connection, key) {
         const [rows] = await connection.execute('SELECT data FROM munetios_collab_parts WHERE owner_key = ? ORDER BY part_index', [key]);
@@ -87,10 +100,23 @@ function createMysqlStore({ database, env = process.env }) {
         async getInvitationKey(id, accountId) {
             const db = await pool();
             const [rows] = await db.execute(
-                "SELECT k.content_key FROM munetios_collab_link_keys k JOIN munetios_collab_documents d ON d.id = k.document_id " +
-                "JOIN munetios_collab_members m ON m.document_id = d.id WHERE d.id = ? AND m.account_id = ? AND d.locked = 0 AND d.link_access <> 'off'",
+                "SELECT COALESCE(i.content_key, k.content_key) AS content_key FROM munetios_collab_documents d " +
+                "JOIN munetios_collab_members m ON m.document_id = d.id " +
+                "LEFT JOIN munetios_collab_invitation_keys i ON i.document_id = d.id " +
+                "LEFT JOIN munetios_collab_link_keys k ON k.document_id = d.id AND d.link_access <> 'off' " +
+                "WHERE d.id = ? AND m.account_id = ? AND d.locked = 0",
                 [id, accountId]);
             return rows[0]?.content_key || null;
+        },
+        async prepareInvitationKey(id, key) {
+            return transaction(async connection => {
+                const [docs] = await connection.execute('SELECT locked FROM munetios_collab_documents WHERE id = ? FOR UPDATE', [id]);
+                if (!docs.length || docs[0].locked) return false;
+                const [members] = await connection.execute('SELECT account_id FROM munetios_collab_members WHERE document_id = ? LIMIT 1', [id]);
+                if (!members.length) return false;
+                await saveInvitationKey(connection, id, key);
+                return true;
+            });
         },
         async createDocument({ id, ownerId, kind, iv, ciphertext }) {
             await transaction(async connection => {
@@ -123,6 +149,10 @@ function createMysqlStore({ database, env = process.env }) {
                     if (!rows.length) return false;
                     await connection.execute('UPDATE munetios_collab_documents SET link_access = ? WHERE id = ?', [linkAccess, id]);
                     if (linkAccess === 'off') {
+                        await connection.execute(
+                            'INSERT INTO munetios_collab_invitation_keys (document_id, content_key) SELECT k.document_id, k.content_key ' +
+                            'FROM munetios_collab_link_keys k WHERE k.document_id = ? AND EXISTS (SELECT 1 FROM munetios_collab_members m WHERE m.document_id = k.document_id) ' +
+                            'ON DUPLICATE KEY UPDATE content_key = munetios_collab_invitation_keys.content_key', [id]);
                         await connection.execute('DELETE FROM munetios_collab_link_keys WHERE document_id = ?', [id]);
                     } else if (contentKey) {
                         await connection.execute('INSERT INTO munetios_collab_link_keys (document_id, content_key) VALUES (?, ?) ON DUPLICATE KEY UPDATE content_key = ?', [id, contentKey, contentKey]);
@@ -146,7 +176,7 @@ function createMysqlStore({ database, env = process.env }) {
             const db = await pool();
             const [rows] = await db.execute(
                 'SELECT a.id AS account_id, a.email, p.display_name, (v.account_id IS NOT NULL) AS has_picture FROM munetios_accounts a ' +
-                'LEFT JOIN munetios_profiles p ON p.account_id = a.id LEFT JOIN munetios_profile_pictures v ON v.account_id = a.id ' +
+                'LEFT JOIN munetios_profiles p ON p.account_id = a.id ' + publicPictureJoin +
                 'WHERE a.id IN (' + ids.map(() => '?').join(', ') + ')', ids);
             return rows.map(person);
         },
@@ -155,7 +185,7 @@ function createMysqlStore({ database, env = process.env }) {
             const [rows] = await db.execute(
                 'SELECT m.account_id, m.role, a.email, p.display_name, (v.account_id IS NOT NULL) AS has_picture FROM munetios_collab_members m ' +
                 'JOIN munetios_accounts a ON a.id = m.account_id LEFT JOIN munetios_profiles p ON p.account_id = a.id ' +
-                'LEFT JOIN munetios_profile_pictures v ON v.account_id = a.id WHERE m.document_id = ? ORDER BY m.added_at, m.account_id', [id]);
+                publicPictureJoin + 'WHERE m.document_id = ? ORDER BY m.added_at, m.account_id', [id]);
             return rows.map(row => ({ ...person(row), role: row.role }));
         },
         async getMemberRole(id, accountId) {
@@ -163,52 +193,65 @@ function createMysqlStore({ database, env = process.env }) {
             const [rows] = await db.execute('SELECT role FROM munetios_collab_members WHERE document_id = ? AND account_id = ?', [id, accountId]);
             return rows[0]?.role || null;
         },
-        async upsertMember(id, accountId, role) {
-            const db = await pool();
-            await db.execute('INSERT INTO munetios_collab_members (document_id, account_id, role) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE role = VALUES(role)', [id, accountId, role]);
+        async upsertMember(id, accountId, role, key) {
+            return transaction(async connection => {
+                const [docs] = await connection.execute('SELECT locked FROM munetios_collab_documents WHERE id = ? FOR UPDATE', [id]);
+                if (!docs.length || docs[0].locked) return false;
+                await connection.execute('INSERT INTO munetios_collab_members (document_id, account_id, role) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE role = VALUES(role)', [id, accountId, role]);
+                if (key) await saveInvitationKey(connection, id, key);
+                return true;
+            });
         },
         async removeMember(id, accountId) {
-            const db = await pool();
-            const [result] = await db.execute('DELETE FROM munetios_collab_members WHERE document_id = ? AND account_id = ?', [id, accountId]);
-            return Boolean(result.affectedRows);
+            return transaction(async connection => {
+                await connection.execute('SELECT id FROM munetios_collab_documents WHERE id = ? FOR UPDATE', [id]);
+                const [result] = await connection.execute('DELETE FROM munetios_collab_members WHERE document_id = ? AND account_id = ?', [id, accountId]);
+                if (result.affectedRows) await connection.execute(
+                    'DELETE FROM munetios_collab_invitation_keys WHERE document_id = ? AND NOT EXISTS (SELECT 1 FROM munetios_collab_members WHERE document_id = ?)', [id, id]);
+                return Boolean(result.affectedRows);
+            });
         },
         async getPicture(accountId) {
             const db = await pool();
-            const [rows] = await db.execute('SELECT picture FROM munetios_profile_pictures WHERE account_id = ?', [accountId]);
+            const [rows] = await db.execute('SELECT v.picture FROM munetios_profile_pictures v WHERE v.account_id = ? AND ' + publicPicturePredicate, [accountId]);
             return rows[0]?.picture || null;
         },
-        async saveSuggestion({ documentId, accountId, baseVersion, iv, ciphertext }) {
+        async saveSuggestion({ documentId, accountId, tokenHash, baseVersion, iv, ciphertext }) {
             return transaction(async connection => {
-                const [rows] = await connection.execute("SELECT id FROM munetios_collab_suggestions WHERE document_id = ? AND account_id = ? AND status = 'open' FOR UPDATE", [documentId, accountId]);
+                const [documents] = await connection.execute('SELECT id FROM munetios_collab_documents WHERE id = ? FOR UPDATE', [documentId]);
+                if (!documents.length) return null;
+                const authorColumn = accountId ? 'account_id' : 'token_hash';
+                const [rows] = await connection.execute(`SELECT id FROM munetios_collab_suggestions WHERE document_id = ? AND ${authorColumn} = ? AND status = 'open' FOR UPDATE`, [documentId, accountId || tokenHash]);
                 let id = rows[0]?.id;
                 if (id) {
                     await connection.execute('UPDATE munetios_collab_suggestions SET base_version = ?, iv = ? WHERE id = ?', [baseVersion, iv, id]);
                 } else {
-                    const [result] = await connection.execute('INSERT INTO munetios_collab_suggestions (document_id, account_id, base_version, iv) VALUES (?, ?, ?, ?)', [documentId, accountId, baseVersion, iv]);
+                    const [result] = await connection.execute('INSERT INTO munetios_collab_suggestions (document_id, account_id, token_hash, base_version, iv) VALUES (?, ?, ?, ?, ?)', [documentId, accountId, tokenHash, baseVersion, iv]);
                     id = result.insertId;
                 }
                 await writeParts(connection, suggestionKey(id), ciphertext);
                 return String(id);
             });
         },
-        async listSuggestions(documentId, accountId) {
+        async listSuggestions(documentId, accountId, tokenHash) {
             const db = await pool();
             const [rows] = await db.execute(
                 "SELECT s.id, s.account_id, s.base_version, s.updated_at, a.email, p.display_name, (v.account_id IS NOT NULL) AS has_picture FROM munetios_collab_suggestions s " +
-                'JOIN munetios_accounts a ON a.id = s.account_id LEFT JOIN munetios_profiles p ON p.account_id = a.id LEFT JOIN munetios_profile_pictures v ON v.account_id = a.id ' +
-                "WHERE s.document_id = ? AND s.status = 'open'" + (accountId ? ' AND s.account_id = ?' : '') + ' ORDER BY s.updated_at DESC, s.id DESC',
-                accountId ? [documentId, accountId] : [documentId]);
+                'LEFT JOIN munetios_accounts a ON a.id = s.account_id LEFT JOIN munetios_profiles p ON p.account_id = a.id ' + publicPictureJoin +
+                "WHERE s.document_id = ? AND s.status = 'open'" + (accountId ? ' AND s.account_id = ?' : tokenHash ? ' AND s.token_hash = ?' : '') + ' ORDER BY s.updated_at DESC, s.id DESC',
+                accountId || tokenHash ? [documentId, accountId || tokenHash] : [documentId]);
             return rows.map(row => ({
                 id: String(row.id), baseVersion: Number(row.base_version),
                 updatedAt: row.updated_at instanceof Date ? row.updated_at.getTime() : Date.parse(row.updated_at) || Date.now(),
-                author: person(row),
+                author: row.account_id == null ? null : person(row),
             }));
         },
         async getSuggestion(documentId, id) {
             const db = await pool();
-            const [rows] = await db.execute("SELECT id, account_id, base_version, iv FROM munetios_collab_suggestions WHERE id = ? AND document_id = ? AND status = 'open'", [id, documentId]);
+            const [rows] = await db.execute("SELECT id, account_id, token_hash, base_version, iv FROM munetios_collab_suggestions WHERE id = ? AND document_id = ? AND status = 'open'", [id, documentId]);
             if (!rows[0]) return null;
-            return { id: String(rows[0].id), accountId: String(rows[0].account_id), baseVersion: Number(rows[0].base_version), iv: rows[0].iv, ciphertext: await readParts(db, suggestionKey(id)) };
+            const row = rows[0];
+            return { id: String(row.id), accountId: row.account_id == null ? null : String(row.account_id), tokenHash: row.token_hash, baseVersion: Number(row.base_version), iv: row.iv, ciphertext: await readParts(db, suggestionKey(id)) };
         },
         async resolveSuggestion(documentId, id, status) {
             return transaction(async connection => {
@@ -223,7 +266,7 @@ function createMysqlStore({ database, env = process.env }) {
                 'SELECT c.id, t.parent_id, t.resolved, t.resolved_at, c.account_id, c.iv, c.ciphertext, c.created_at, a.email, p.display_name, (v.account_id IS NOT NULL) AS has_picture FROM munetios_collab_comments c ' +
                 'LEFT JOIN munetios_collab_comment_threads t ON t.comment_id = c.id ' +
                 'LEFT JOIN munetios_accounts a ON a.id = c.account_id LEFT JOIN munetios_profiles p ON p.account_id = c.account_id ' +
-                'LEFT JOIN munetios_profile_pictures v ON v.account_id = c.account_id WHERE c.document_id = ? ORDER BY c.id', [documentId]);
+                publicPictureJoin + 'WHERE c.document_id = ? ORDER BY c.id', [documentId]);
             const time = value => (value instanceof Date ? value.getTime() : value ? Date.parse(value) || null : null);
             return rows.map(row => ({
                 id: String(row.id), parentId: row.parent_id ? String(row.parent_id) : null, iv: row.iv, ciphertext: row.ciphertext,
@@ -285,4 +328,4 @@ function createMysqlStore({ database, env = process.env }) {
     };
 }
 
-module.exports = { createMysqlStore, splitParts, PART_BYTES };
+module.exports = { createMysqlStore, splitParts, PART_BYTES, publicPicturePredicate };

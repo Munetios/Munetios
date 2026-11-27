@@ -275,7 +275,7 @@
 .mu-btn-group { display: inline-flex; flex-wrap: wrap; gap: 10px; }
 
 /* ===================================================================== Fields */
-.mu-field { display: grid; gap: 8px; }
+.mu-field { display: grid; align-content: start; gap: 8px; }
 .mu-field-label { color: var(--mu-text-muted); font-size: var(--mu-fs-body); }
 .mu-field-help { color: var(--mu-text-muted); font-size: var(--mu-fs-body); }
 .mu-input, .mu-textarea {
@@ -345,6 +345,16 @@ select.mu-select-native {
 .mu-switch input:checked + .mu-switch-track { background: var(--mu-accent); border-color: transparent; }
 .mu-switch input:checked + .mu-switch-track::before { transform: translateX(24px); }
 .mu-switch input:focus-visible + .mu-switch-track { outline: 3px solid var(--mu-accent); outline-offset: 3px; }
+/* Button switch: <button class="mu-switch" role="switch" aria-checked> or a decorative
+   <span class="mu-switch is-on"> inside a larger toggle button. State comes from
+   aria-checked="true" or .is-on instead of a checkbox. */
+.mu-switch:is(button, span) { flex: none; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; }
+.mu-switch:is([aria-checked="true"], .is-on) > .mu-switch-track { background: var(--mu-accent); border-color: transparent; }
+.mu-switch:is([aria-checked="true"], .is-on) > .mu-switch-track::before { transform: translateX(24px); }
+.mu-switch:disabled { opacity: 0.5; cursor: not-allowed; }
+button.mu-switch:focus-visible { outline: none; }
+button.mu-switch:focus-visible > .mu-switch-track { outline: 3px solid var(--mu-accent); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .mu-switch-track, .mu-switch-track::before { transition: none; } }
 
 /* Round checkbox and radio */
 .mu-check, .mu-radio { display: inline-flex; align-items: center; gap: 12px; cursor: pointer; font-size: var(--mu-fs-body); }
@@ -366,6 +376,7 @@ select.mu-select-native {
 /* Segmented control and tabs */
 .mu-segmented { display: inline-flex; gap: 4px; padding: 5px; border-radius: var(--mu-radius-pill); border: 1px solid var(--mu-border); background: var(--mu-glass-flat); }
 .mu-segmented button, .mu-tabs button {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     min-height: 44px; padding: 0 20px; border: 1px solid transparent; border-radius: var(--mu-radius-pill);
     background: transparent; color: var(--mu-text-muted); font-size: var(--mu-fs-body); cursor: pointer;
 }
@@ -382,7 +393,9 @@ select.mu-select-native {
     color: var(--mu-text-muted); font-size: var(--mu-fs-body); cursor: pointer;
 }
 .mu-chip:hover { background: var(--mu-field-hover); }
-.mu-chip[aria-pressed="true"], .mu-chip.is-on { background: var(--mu-accent); border-color: transparent; color: #ffffff; }
+.mu-chip[aria-pressed="true"], .mu-chip.is-on,
+.mu-chip[aria-selected="true"], .mu-chip[aria-checked="true"], .mu-chip.is-active { background: var(--mu-accent); border-color: transparent; color: #ffffff; }
+.mu-chip:focus-visible { outline: 3px solid var(--mu-accent); outline-offset: 3px; }
 
 /* ===================================================================== Badges, status, avatar */
 .mu-badge {
@@ -590,6 +603,7 @@ a.mu-capsule-btn { text-decoration: none; }
 .mu-toast.is-short { padding-right: 22px; }
 .mu-toast.is-success .mu-icon-circle { background: color-mix(in srgb, var(--mu-success) 16%, transparent); color: var(--mu-success); }
 .mu-toast.is-error .mu-icon-circle { background: color-mix(in srgb, var(--mu-danger) 14%, transparent); color: var(--mu-danger); }
+.mu-toast.is-warning .mu-icon-circle { background: color-mix(in srgb, var(--mu-warning) 16%, transparent); color: var(--mu-warning); }
 
 /* ===================================================================== Modal */
 /* Modals are non-blocking: the page behind stays clickable (the layer lets
@@ -660,11 +674,19 @@ munetios-youtube-player { display: block; width: 100%; max-width: 100%; }
 /* munetios-ui-v4.js adds a ripple to [data-mu-ripple] and to buttons, nav items,
    menu items, tiles and chips. The layer clips itself, so hosts keep their overflow. */
 .mu-ripple-layer { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; z-index: 0; }
+/* Bright press feedback: a light wash of the control's own color (mixed toward
+   white in dark mode, toward the accent in light mode), at most 0.50 alpha. */
 .mu-ripple {
     position: absolute; border-radius: 50%; pointer-events: none;
-    background: currentColor; opacity: 0.18; transform: scale(0);
+    background: radial-gradient(circle, color-mix(in srgb, currentColor 45%, #ffffff) 0%, color-mix(in srgb, currentColor 60%, #ffffff) 70%);
+    opacity: 0.42; transform: scale(0);
     animation: mu-ripple-in 0.45s cubic-bezier(0.2, 0, 0, 1) forwards;
 }
+[data-mu-theme="light"] .mu-ripple {
+    background: radial-gradient(circle, color-mix(in srgb, var(--mu-accent) 55%, #ffffff) 0%, color-mix(in srgb, var(--mu-accent) 70%, #ffffff) 70%);
+    opacity: 0.38;
+}
+.mu-btn-primary .mu-ripple, .mu-icon-btn-primary .mu-ripple { background: #ffffff; opacity: 0.36; }
 .mu-ripple.is-out { animation: mu-ripple-in 0.45s cubic-bezier(0.2, 0, 0, 1) forwards, mu-ripple-out 0.3s ease 0.15s forwards; }
 @keyframes mu-ripple-in { to { transform: scale(1); } }
 @keyframes mu-ripple-out { to { opacity: 0; } }
@@ -935,7 +957,17 @@ munetios-youtube-player { display: block; width: 100%; max-width: 100%; }
 /* Mini calendar */
 .mu-calendar { width: min(360px, 100%); padding: 14px; border-radius: var(--mu-radius-lg); border: 1px solid var(--mu-border); background: var(--mu-glass-flat); }
 .mu-calendar-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.mu-calendar-title { font-size: var(--mu-fs-label); font-weight: 300; }
+.mu-calendar-title { font-size: var(--mu-fs-label); font-weight: 300; display: inline-flex; gap: 4px; }
+/* Month and year in the header open the month and year grids. */
+.mu-calendar-pick { min-height: 40px; padding: 0 12px; border: 0; border-radius: var(--mu-radius-pill); background: transparent; color: var(--mu-text); font: inherit; font-size: var(--mu-fs-label); font-weight: 300; cursor: pointer; }
+.mu-calendar-pick:hover { background: var(--mu-hover); }
+.mu-calendar-pick[aria-expanded="true"] { background: var(--mu-current-bg, var(--mu-hover)); color: var(--mu-current-text, var(--mu-text)); }
+.mu-calendar-grid.is-years, .mu-calendar-grid.is-months { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.mu-calendar-grid.is-years { max-height: 288px; overflow-y: auto; overscroll-behavior: contain; padding: 2px; scrollbar-width: thin; }
+.mu-calendar-option { min-height: 48px; border: 0; border-radius: var(--mu-radius-pill); background: transparent; color: var(--mu-text); font: inherit; font-size: var(--mu-fs-body); cursor: pointer; }
+.mu-calendar-option:hover { background: var(--mu-hover); }
+.mu-calendar-option[aria-selected="true"] { background: var(--mu-accent); color: #fff; }
+.mu-calendar-option:disabled { opacity: 0.4; cursor: default; }
 .mu-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
 .mu-calendar-dow { padding: 6px 0; color: var(--mu-text-muted); }
 .mu-calendar-day { aspect-ratio: 1; min-width: 0; border: 0; border-radius: 50%; background: transparent; color: var(--mu-text); font-size: var(--mu-fs-body); cursor: pointer; position: relative; font-variant-numeric: tabular-nums; }
@@ -1734,3 +1766,45 @@ html.mu-resizing, html.mu-resizing * { cursor: col-resize !important; user-selec
 .mu-code-editor .mail-code-complete { position: absolute; z-index: 5; min-width: 220px; max-height: 240px; overflow-y: auto; margin: 0; list-style: none; }
 .mu-code-editor .mail-code-complete .mu-menu-item { min-height: 40px; font: 400 18px/1.4 'Google Sans Code', ui-monospace, monospace; }
 .mu-visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ===================================================================== Read aloud player
+   A floating text-to-speech bar (Munetios Wiki). Put it at the end of <body>; [hidden] hides it.
+   Mark the block being read with .mu-reading-now so it is highlighted and easy to follow.
+   <div class="mu-read-aloud" role="region" aria-label="Read aloud">
+     <span class="mu-icon-circle"><span class="mu-icon" aria-hidden="true">record_voice_over</span></span>
+     <div class="mu-read-aloud-info"><span class="mu-read-aloud-title">Article</span><div class="mu-progress"><span style="width:40%"></span></div></div>
+     <div class="mu-read-aloud-controls">…mu-icon-btn buttons…</div>
+   </div> */
+.mu-read-aloud {
+    position: fixed; left: 50%; bottom: 20px; z-index: 1040; transform: translateX(-50%);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+    width: min(920px, calc(100vw - 32px)); padding: 10px 12px 10px 14px;
+    border-radius: var(--mu-radius-xl); border: 1px solid var(--mu-border);
+    background: linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass);
+    box-shadow: var(--mu-shadow), 0 24px 60px rgba(0, 0, 0, 0.22);
+    backdrop-filter: var(--mu-blur); -webkit-backdrop-filter: var(--mu-blur);
+    color: var(--mu-text); font-family: 'Munetios UI v4 Font', system-ui, sans-serif; font-size: var(--mu-fs-body); font-weight: 400;
+    animation: mu-fade 0.18s ease both;
+}
+.mu-read-aloud[hidden] { display: none; }
+.mu-read-aloud-info { flex: 1 1 220px; min-width: 0; display: grid; gap: 8px; }
+.mu-read-aloud-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mu-read-aloud-info .mu-progress { height: 6px; }
+.mu-read-aloud-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mu-read-aloud-controls .mu-select-button { min-height: 44px; }
+.mu-reading-now {
+    border-radius: 14px; background: var(--mu-current-bg); box-shadow: 0 0 0 8px var(--mu-current-bg);
+    color: var(--mu-current-text); transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+@media (max-width: 640px) {
+    .mu-read-aloud { bottom: 12px; border-radius: var(--mu-radius-lg); padding: 10px; }
+    .mu-read-aloud-controls { width: 100%; justify-content: space-between; }
+}
+@media (prefers-reduced-motion: reduce) { .mu-read-aloud, .mu-reading-now { animation: none; transition: none; } }
+@media print { .mu-read-aloud { display: none !important; } .mu-reading-now { background: none; box-shadow: none; color: inherit; } }
+
+/* Floating skip link: hidden above the page until it receives keyboard focus.
+   <a class="mu-skip-link mu-skip-link-floating" href="#main">Skip to content</a> */
+.mu-skip-link.mu-skip-link-floating { position: fixed; top: 12px; inset-inline-start: 12px; z-index: 2000; transform: translateY(calc(-100% - 24px)); transition: transform 0.15s ease; }
+.mu-skip-link.mu-skip-link-floating:focus { transform: none; }
+@media (prefers-reduced-motion: reduce) { .mu-skip-link.mu-skip-link-floating { transition: none; } }
