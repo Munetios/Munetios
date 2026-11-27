@@ -450,3 +450,24 @@ test("aliases follow reservation rules and can send", async () => {
     const boot = await ada("GET", "/bootstrap");
     assert.ok(boot.data.mailboxes[0].senders.some(sender => sender.address === "ada.projects@munetios.com"));
 });
+
+test("external addresses can be verified and forwarded mail uses the SMTP recipient", async () => {
+    const { env, ada, adaBox, sent } = await setup();
+    const address = "ada@example.org";
+    const route = `/mailboxes/${adaBox.id}/linked`;
+    const started = await ada("POST", route + "/verify", { body: { address } });
+    assert.equal(started.status, 200);
+    assert.equal(sent.at(-1).to, address);
+    const code = sent.at(-1).text.match(/Confirmation code: (\d{6})/)[1];
+    const settings = await ada("GET", `/mailboxes/${adaBox.id}/settings`);
+    assert.equal(settings.data.settings.linkPending.address, address);
+    assert.equal(settings.data.settings.linkPending.codeHash, undefined);
+    const confirmed = await ada("POST", route + "/confirm", { body: { code } });
+    assert.equal(confirmed.status, 200);
+    assert.equal(confirmed.data.linked[0].address, address);
+    const delivery = await deliver(env, mime({ to: address, subject: "Forwarded message" }), adaBox.address);
+    assert.equal(delivery.status, "delivered");
+    const removed = await ada("DELETE", route + "?address=" + encodeURIComponent(address));
+    assert.equal(removed.status, 200);
+    assert.deepEqual(removed.data.linked, []);
+});

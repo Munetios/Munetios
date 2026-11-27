@@ -181,6 +181,7 @@
     addAccount: "添加其他账户", accountSecurity: "密码和双重验证", accountsHelp: "在此浏览器上登录的账户会一起显示在“所有收件箱”中。使用顶部的账户菜单切换账户。",
     profilePicture: "个人资料照片", uploadPicture: "上传照片", removePicture: "移除照片", pictureTooLarge: "照片最大为 2 MB。", address: "地址", forwardingAddressHelp: "将其他邮箱服务的邮件转发到这个地址。",
     senderName: "发件人名称", senderNameHelp: "收件人会在你的地址旁看到此名称。", profilePictureHelp: "显示在 Munetios Mail 中，不会随邮件发送。",
+    linkedTitle: "其他服务商的地址", linkedHelp: "在 Munetios Mail 中接收其他电子邮件服务商的邮件。添加你的地址，输入我们发送到该地址的验证码，然后在该服务商处开启自动转发到 {address}。", linkedAddressLabel: "其他服务商的地址", linkedSendCode: "发送验证码", linkedCodeSent: "我们已向 {address} 发送验证码。", linkedCodeLabel: "发送到 {address} 的验证码", linkedVerify: "验证", linkedAdded: "已添加 {address}。现在请在该服务商处开启自动转发到 {mailbox}。", linkedForwardsTo: "转发到 {address}", linkedNone: "还没有其他服务商的地址。", error_addressIsMunetios: "不能在此添加 Munetios 地址，请改用别名。", error_alreadyLinked: "该地址已添加。", errSendLinkCode: "无法发送验证码。请检查地址后重试。", errVerifyLinked: "无法验证该地址，请重试。", errRemoveLinked: "无法移除该地址，请重试。", removeLinkedTitle: "移除 {address}？", removeLinkedMessage: "在你于该服务商处关闭转发之前，{address} 转发到这里的邮件会继续送达。",
     autoForwarding: "自动转发", autoForwardingHelp: "确认另一个地址属于你之后，将新邮件转发到该地址。垃圾邮件永远不会被转发。", forwardTo: "转发到", keepCopy: "在收件箱中保留副本",
     forwardingVerified: "转发地址已确认", forwardingOn: "转发已开启。", forwardingOff: "转发已关闭。", saveAndVerify: "保存并发送验证码", verificationCode: "验证码", verificationSent: "我们已向该地址发送验证码。",
     invalidCode: "验证码不正确。", codeExpired: "验证码已过期，请重新获取。", turnOff: "关闭", turnOn: "开启",

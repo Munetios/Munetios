@@ -81,7 +81,7 @@ const RENDER = {
             current.hasPicture ? button(t("removePicture"), async () => { await del(`/mailboxes/${current.id}/picture`); current.hasPicture = false; emit("refreshBoot"); rerender(); }) : null);
         return [mailboxPicker(rerender), settingRow(t("address"), current.kind === "forwarding" ? t("forwardingAddressHelp") : "", el("strong", { dir: "ltr", text: current.address })),
             field(t("senderName"), name, t("senderNameHelp")), button(t("save"), () => saveSettings({ displayName: name.value.trim() }), { primary: true }),
-            settingRow(t("profilePicture"), t("profilePictureHelp"), pictureRow), ...forwardingRows(current, rerender)];
+            settingRow(t("profilePicture"), t("profilePictureHelp"), pictureRow), ...linkedRows(current, rerender), ...forwardingRows(current, rerender)];
     },
     aliases: rerender => {
         const current = box();
@@ -148,6 +148,50 @@ function vacationRows(settings) {
         field(t("subject"), subject), field(t("message"), message),
         el("label", { class: "mu-check" }, (() => { const box2 = el("input", { type: "checkbox" }); box2.checked = contactsOnly; box2.addEventListener("change", () => { contactsOnly = box2.checked; }); return box2; })(), t("contactsOnly")),
         button(t("saveVacation"), () => saveSettings({ vacation: { enabled, subject: subject.value, message: message.value, contactsOnly, start: fromLocalDateTime(start), end: fromLocalDateTime(end) } }), { primary: true })];
+}
+
+// Addresses at other providers (Gmail, Outlook, …) that forward their mail to this mailbox. Adding one sends a code
+// to that address; after it's confirmed it is listed here, and the owner turns on forwarding in that provider.
+function linkedRows(current, rerender) {
+    const settings = current.settings;
+    const linked = settings.linked || [];
+    const pending = settings.linkPending && settings.linkPending.expires > Date.now() ? settings.linkPending.address : "";
+    // Updates this page and the sidebar, which lists each address under its mailbox.
+    const refresh = async () => { const fresh = await get(`/mailboxes/${current.id}/settings`).catch(() => null); if (fresh) current.settings = fresh.settings; emit("refreshBoot"); rerender(); };
+    const address = el("input", { class: "mu-input", type: "email", dir: "ltr", autocomplete: "email", spellcheck: "false", placeholder: "name@example.com", value: pending });
+    const code = el("input", { class: "mu-input", inputmode: "numeric", autocomplete: "one-time-code", maxlength: 6, placeholder: "000000" });
+    const list = el("div", { class: "mail-list-editor" }, linked.length
+        ? linked.map(item => el("div", { class: "mail-list-item" }, icon("forward_to_inbox"),
+            el("span", { class: "mail-list-name", dir: "ltr", text: item.address }),
+            el("span", { class: "mu-muted", text: t("linkedForwardsTo", { address: current.address }) }),
+            iconButton("delete", t("remove"), async () => {
+                if (!await confirmDialog({ title: t("removeLinkedTitle", { address: item.address }), message: t("removeLinkedMessage", { address: item.address }), confirm: t("remove"), danger: true })) return;
+                try { await del(`/mailboxes/${current.id}/linked?address=${encodeURIComponent(item.address)}`); await refresh(); }
+                catch (error) { toast(failText(error, "errRemoveLinked"), "error"); }
+            }, { class: "mu-icon-btn mu-icon-btn-sm" })))
+        : [el("p", { class: "mu-muted", text: t("linkedNone") })]);
+    const codeForm = el("div", { class: "mail-inline-form", hidden: !pending },
+        field(t("linkedCodeLabel", { address: pending || address.value }), code),
+        button(t("linkedVerify"), async () => {
+            try {
+                await post(`/mailboxes/${current.id}/linked/confirm`, { code: code.value.trim() });
+                toast(t("linkedAdded", { address: address.value.trim() || pending, mailbox: current.address }), "success", 9000);
+                await refresh();
+            } catch (error) { toast(error.code === "invalidCode" ? t("invalidCode") : error.code === "codeExpired" ? t("codeExpired") : failText(error, "errVerifyLinked"), "error"); }
+        }, { primary: true, iconName: "verified" }));
+    return [el("h3", { text: t("linkedTitle") }), el("p", { class: "mu-muted", text: t("linkedHelp", { address: current.address }) }), list,
+        el("div", { class: "mail-inline-form" },
+            field(t("linkedAddressLabel"), address),
+            button(t("linkedSendCode"), async () => {
+                try {
+                    const result = await post(`/mailboxes/${current.id}/linked/verify`, { address: address.value.trim() });
+                    toast(t("linkedCodeSent", { address: result.address }), "success");
+                    codeForm.querySelector(".mu-field-label").textContent = t("linkedCodeLabel", { address: result.address });
+                    codeForm.hidden = false;
+                    code.focus();
+                } catch (error) { toast(error.code === "invalidAddress" ? t("invalidAddress") : failText(error, "errSendLinkCode"), "error"); }
+            }, { iconName: "send" })),
+        codeForm];
 }
 
 function forwardingRows(current, rerender) {

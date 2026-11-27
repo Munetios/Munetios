@@ -4,7 +4,7 @@ import { reserve, release, storeBlob, readBlobBytes, readBlobJson, dropRefStatem
 import { senderAddresses, changeStatement, scheduleNotify, notify, mailboxSettings, ftsStatements, resolveThread, threadStatements } from "./mailbox.js";
 import { ownedMessages, messageEml, messageBody, parseRaw } from "./messages.js";
 import { sanitizeEmailHtml } from "./sanitize.js";
-import { fail, id, now, normalizeEmail, validEmail, cleanHeaderText, addressList, snippetOf, htmlToText, readBytes, parseJson, sha256Hex, MAX_MESSAGE_BYTES, MAX_RECIPIENTS, MAX_ATTACHMENTS, opsLog, utf8 } from "./util.js";
+import { fail, id, now, normalizeEmail, validEmail, isInternal, cleanHeaderText, addressList, snippetOf, htmlToText, readBytes, parseJson, sha256Hex, MAX_MESSAGE_BYTES, MAX_RECIPIENTS, MAX_ATTACHMENTS, opsLog, utf8 } from "./util.js";
 
 const MAX_UPLOAD = MAX_MESSAGE_BYTES;
 const MAX_HTML = 5 * 1024 * 1024;
@@ -512,6 +512,58 @@ export async function confirmForwarding(env, mailbox, code) {
     delete forwarding.codeHash; delete forwarding.codeExpires; delete forwarding.attempts;
     await env.MAIL_DB.prepare("UPDATE mailbox_settings SET data_json = ?, updated_at = ? WHERE mailbox_id = ?").bind(JSON.stringify(settings), now(), mailbox.id).run();
     return { verified: true };
+}
+
+/* ------------------------------------------------------------------ addresses at other providers */
+// An address at another provider (Gmail, Outlook, …) that forwards its mail here. Adding one proves ownership with a
+// code sent to that address; the owner then turns on automatic forwarding in that provider. No provider API is used.
+const saveSettingsJson = (env, mailboxId, settings) => env.MAIL_DB.prepare("UPDATE mailbox_settings SET data_json = ?, updated_at = ? WHERE mailbox_id = ?").bind(JSON.stringify(settings), now(), mailboxId).run();
+
+export async function startLinkVerification(env, mailbox, input) {
+    const address = normalizeEmail(input);
+    if (!validEmail(address)) fail(400, "invalidAddress");
+    if (isInternal(address)) fail(400, "addressIsMunetios");
+    const settings = await mailboxSettings(env, mailbox.id);
+    const linked = Array.isArray(settings.linked) ? settings.linked : [];
+    if (linked.some(item => item.address === address)) fail(409, "alreadyLinked");
+    await rateLimit(env, "linkverify:" + mailbox.id, 5, 3600);
+    if (!env.EMAIL) fail(503, "emailDeliveryUnavailable");
+    const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
+    settings.linkPending = { address, codeHash: await sha256Hex(mailbox.id + ":link:" + address + ":" + code), codeExpires: now() + 30 * 60_000, attempts: 0 };
+    try {
+        await env.EMAIL.send({
+            to: address, from: { email: mailbox.address, name: mailbox.display_name || "Munetios Mail" }, subject: "Confirm your address for Munetios Mail",
+            text: `${mailbox.address} asked to receive mail from this address in Munetios Mail.\n\nConfirmation code: ${code}\n\nThe code expires in 30 minutes. After confirming, turn on automatic forwarding to ${mailbox.address} in your email settings.\nIf you didn't expect this, ignore this message and nothing changes.`,
+        });
+    } catch (error) { fail(502, "emailDeliveryFailed", { code: error?.code || "" }); }
+    await saveSettingsJson(env, mailbox.id, settings);
+    return { sent: true, address };
+}
+
+export async function confirmLink(env, mailbox, code) {
+    const settings = await mailboxSettings(env, mailbox.id);
+    const pending = settings.linkPending;
+    if (!pending?.codeHash || pending.codeExpires < now() || (pending.attempts || 0) >= 5) fail(400, "codeExpired");
+    if (await sha256Hex(mailbox.id + ":link:" + pending.address + ":" + String(code || "").trim()) !== pending.codeHash) {
+        pending.attempts = (pending.attempts || 0) + 1;
+        await saveSettingsJson(env, mailbox.id, settings);
+        fail(400, "invalidCode");
+    }
+    const linked = (Array.isArray(settings.linked) ? settings.linked : []).filter(item => item.address !== pending.address);
+    linked.push({ address: pending.address, verifiedAt: now() });
+    settings.linked = linked;
+    delete settings.linkPending;
+    await saveSettingsJson(env, mailbox.id, settings);
+    return { linked };
+}
+
+export async function removeLink(env, mailbox, input) {
+    const address = normalizeEmail(input);
+    const settings = await mailboxSettings(env, mailbox.id);
+    settings.linked = (Array.isArray(settings.linked) ? settings.linked : []).filter(item => item.address !== address);
+    if (settings.linkPending?.address === address) delete settings.linkPending;
+    await saveSettingsJson(env, mailbox.id, settings);
+    return { linked: settings.linked };
 }
 
 // Queue job: forwards a received message to the owner's verified address.

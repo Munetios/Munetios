@@ -243,6 +243,8 @@ export function publicSettings(settings) {
     const copy = structuredClone(settings);
     if (copy.forwarding) { delete copy.forwarding.codeHash; delete copy.forwarding.codeExpires; }
     delete copy.legacyCursor;
+    if (copy.linkPending) copy.linkPending = { address: copy.linkPending.address, expires: copy.linkPending.codeExpires };
+    if (!Array.isArray(copy.linked)) copy.linked = [];
     return copy;
 }
 

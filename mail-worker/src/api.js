@@ -3,7 +3,7 @@
 import { requireSession, checkOrigin } from "./auth.js";
 import { ensureMailboxes, accessibleMailboxes, requireMailbox, mailboxJson, senderAddresses, mailboxSettings, saveMailboxSettings, publicSettings, createAlias, deleteAlias, latestSeq, changesSince } from "./mailbox.js";
 import { listMessages, counts, getMessage, threadMessages, updateMessages, deleteMessages, emptyFolder, attachmentContent, messageEml, ownedMessages, summary } from "./messages.js";
-import { createUpload, deleteUpload, uploadFromAttachment, uploadFromMessage, saveDraft, loadDraft, discardDraft, sendMessage, cancelOutbound, retryOutbound, startForwardingVerification, confirmForwarding, rateLimit } from "./outbound.js";
+import { createUpload, deleteUpload, uploadFromAttachment, uploadFromMessage, saveDraft, loadDraft, discardDraft, sendMessage, cancelOutbound, retryOutbound, startForwardingVerification, confirmForwarding, startLinkVerification, confirmLink, removeLink, rateLimit } from "./outbound.js";
 import * as org from "./organize.js";
 import { storageSummary, readBlob } from "./storage.js";
 import { proxyImage } from "./proxy.js";
@@ -183,6 +183,12 @@ export async function handleApi(request, env, execCtx) {
             if (method === "GET") return json({ settings: publicSettings(await mailboxSettings(env, mailbox.id)), displayName: mailbox.display_name });
             if (method === "PUT") return json({ settings: await saveMailboxSettings(env, mailbox, await body()) });
         }
+        if ((m = /^\/mailboxes\/(mb_[a-z0-9]{15})\/linked\/(verify|confirm)$/.exec(path)) && method === "POST") {
+            const mailbox = await mailboxFrom(m[1], true);
+            const input = await body();
+            return json(m[2] === "verify" ? await startLinkVerification(env, mailbox, input.address) : await confirmLink(env, mailbox, input.code));
+        }
+        if ((m = /^\/mailboxes\/(mb_[a-z0-9]{15})\/linked$/.exec(path)) && method === "DELETE") return json(await removeLink(env, await mailboxFrom(m[1], true), url.searchParams.get("address") || ""));
         if ((m = /^\/mailboxes\/(mb_[a-z0-9]{15})\/forwarding\/(verify|confirm)$/.exec(path)) && method === "POST") {
             const mailbox = await mailboxFrom(m[1], true);
             if (m[2] === "verify") return json(await startForwardingVerification(env, mailbox));
