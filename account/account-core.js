@@ -205,6 +205,58 @@
       });
     } finally { db.close(); }
   }
+  /* ---------------------------------------------------------- device data guard */
+  // Sync state (what was synced, per item) lives in localStorage, but most app data lives in IndexedDB.
+  // If IndexedDB is cleared while localStorage survives, every remembered item looks deleted on this
+  // device, and sync would delete it from Munetios Cloud too. A random device marker kept in both places
+  // tells the two cases apart: when IndexedDB lost its marker, synced data is downloaded again instead.
+  function openGuard() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open("munetios-sync-guard", 1);
+      request.onupgradeneeded = () => request.result.createObjectStore("devices", { keyPath: "accountId" });
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+      request.onblocked = () => reject(new Error("blocked"));
+    });
+  }
+  async function guardStore(mode, action) {
+    const db = await openGuard();
+    try {
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction("devices", mode);
+        const request = action(tx.objectStore("devices"));
+        tx.oncomplete = () => resolve(request?.result);
+        tx.onerror = () => reject(tx.error);
+      });
+    } finally { db.close(); }
+  }
+  const guardRead = async accountId => (await guardStore("readonly", s => s.get(String(accountId))))?.device || null;
+  const guardWrite = (accountId, device) => guardStore("readwrite", s => s.put({ accountId: String(accountId), device }));
+  // Forgets what was synced for matching keys, so the next pull downloads those items again
+  // and nothing missing on this device is mistaken for a deletion.
+  function forgetSynced(syncState, match) {
+    for (const key of Object.keys(syncState.items || {})) if (match(key)) delete syncState.items[key];
+    for (const key of Object.keys(syncState.cursor || {})) if (match(key)) delete syncState.cursor[key];
+    for (const key of Object.keys(syncState.pulled || {})) if (match(key)) delete syncState.pulled[key];
+  }
+  // Returns true when this device's IndexedDB data was cleared since the last sync.
+  async function checkDeviceData(accountId, syncState) {
+    let marker;
+    try { marker = await guardRead(accountId); }
+    catch { return false; } // IndexedDB unavailable here: nothing to compare against
+    if (!syncState.device) {
+      // First sync with the guard (or a fresh sync state): remember this device.
+      syncState.device = hex(crypto.getRandomValues(new Uint8Array(16)));
+      try { await guardWrite(accountId, syncState.device); } catch {}
+      return false;
+    }
+    if (marker === syncState.device) return false;
+    // IndexedDB was cleared: forget everything that apps keep there ("ls:" groups live in localStorage)
+    // and pull it from Munetios Cloud again. Media that isn't on this device downloads when it's opened.
+    forgetSynced(syncState, key => !key.startsWith("ls:"));
+    try { await guardWrite(accountId, syncState.device); } catch {}
+    return true;
+  }
   // Sync key hub (account/key-hub.html on accounts.munetios.com): Munetios hosts share one copy of the data key,
   // so unlocking sync on one subdomain unlocks it on the others. Keys travel as non-extractable CryptoKeys.
   const HUB_ORIGIN = "https://accounts.munetios.com";
@@ -625,7 +677,7 @@
   }
   function register(provider) { providers.set(provider.id, workspaceScoped(provider)); schedule(400); }
   const syncStateKey = id => `munetios-sync:${id}`;
-  async function syncProvider(provider, account, dataKey, syncState, owners, applied, { unchanged = false } = {}) {
+  async function syncProvider(provider, account, dataKey, syncState, owners, applied, { unchanged = false, recovered = new Set() } = {}) {
     checkProvider(provider);
     if (state.revocation) throw signedOutError();
     if (!state.syncEnabled) throw Object.assign(new Error("syncDisabled"), { code: "syncDisabled" });
@@ -726,9 +778,24 @@
       if (previous?.h === hash) provider.onSynced?.(item.key, account.id);
       else pushes.push({ key: item.key, baseVersion: previous?.v || "0", data: item.data, updatedAt: item.updatedAt || Date.now(), hash });
     }
-    for (const [key, previous] of Object.entries(syncState.items)) {
-      if (!provider.retainMissing && key.startsWith(provider.prefix) && !present.has(key) && previous.h !== null && !provider.retainMissingItem?.(key)) pushes.push({ key, baseVersion: previous.v, deleted: true, hash: null });
+    // Items synced before but missing here are deletions, unless nearly everything this provider synced
+    // vanished at once (its database was deleted, or the app hasn't loaded its data yet). That is lost
+    // local data: download it again instead of deleting it from Munetios Cloud.
+    const remembered = provider.retainMissing ? [] : Object.entries(syncState.items)
+      .filter(([key, previous]) => key.startsWith(provider.prefix) && previous.h !== null && !provider.retainMissingItem?.(key)).map(([key]) => key);
+    const missing = remembered.filter(key => !present.has(key));
+    // Each provider keeps at most two fixed keys (such as settings), which survive a lost database.
+    const lostLocalData = missing.length >= 5 && remembered.length - missing.length <= 2;
+    if (lostLocalData && !recovered.has(provider.prefix)) {
+      recovered.add(provider.prefix);
+      const lost = new Set(missing);
+      forgetSynced(syncState, key => lost.has(key));
+      delete syncState.cursor[provider.prefix];
+      if (syncState.pulled) delete syncState.pulled[provider.prefix];
+      return { conflicts: 0, full: false, blocked: false, pushed: 0, more: true }; // run again: pull from the start
     }
+    // Still missing after downloading them again (the app couldn't restore them): keep them in the cloud.
+    if (!lostLocalData) for (const key of missing) pushes.push({ key, baseVersion: syncState.items[key].v, deleted: true, hash: null });
     let conflicts = 0, full = deferred, blocked = false;
     const pushedVersions = [];
     const batchSize = provider.batchSize || 20;
@@ -798,7 +865,13 @@
     setStatus("syncing");
     try {
       const syncState = store.json(syncStateKey(account.id), { cursor: {}, items: {}, seq: "0" });
+      syncState.cursor = syncState.cursor || {}; syncState.items = syncState.items || {};
       const owners = store.json("munetios-sync-owner", {});
+      // IndexedDB was cleared since the last sync: download synced data again instead of deleting it.
+      // Saved right away, so an interrupted sync still downloads everything again next time.
+      await checkDeviceData(account.id, syncState);
+      store.set(syncStateKey(account.id), JSON.stringify(syncState));
+      const recovered = new Set();
       const applied = new Set();
       let conflicts = 0, blocked = false, full = false, pushed = 0;
       // An account-wide sequence is not a substitute for a per-provider cursor.
@@ -809,7 +882,7 @@
         let result;
         do {
           const beforeProvider = structuredClone(syncState);
-          try { result = await syncProvider(provider, account, dataKey, syncState, owners, applied, { unchanged }); }
+          try { result = await syncProvider(provider, account, dataKey, syncState, owners, applied, { unchanged, recovered }); }
           catch (error) { if (error.code === 'syncCategoryDisabled') { Object.assign(syncState, beforeProvider); break; } throw error; }
           full = full || result.full;
           pushed += result.pushed || 0;

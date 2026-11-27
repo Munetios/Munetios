@@ -18,19 +18,29 @@ function fixture({ respond, initialKey = {} } = {}) {
     const tx = { objectStore: () => ({ get: () => ({ result: { key: storedKey } }), put: ({ key }) => { storedKey = key; return {}; }, delete: () => { storedKey = null; return {}; } }) };
     queueMicrotask(() => tx.oncomplete()); return tx;
   } };
+  // Each IndexedDB database is separate, as in a browser. The sync guard keeps its device marker here.
+  const guard = new Map();
+  const guardDb = { close() {}, transaction() {
+    const tx = { objectStore: () => ({
+      get: id => ({ result: guard.get(id) }),
+      put: record => { guard.set(record.accountId, record); return {}; },
+    }) };
+    queueMicrotask(() => tx.oncomplete()); return tx;
+  } };
+  const bodies = [];
   const context = vm.createContext({
     window, document, navigator: { language: 'en', connection: { saveData: false } },
     localStorage: { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, String(value)), removeItem: key => values.delete(key), key: index => [...values.keys()][index], get length() { return values.size; } },
-    indexedDB: { open() { const request = { result: db }; queueMicrotask(() => request.onsuccess()); return request; } },
+    indexedDB: { open(name) { const request = { result: name === 'munetios-sync-guard' ? guardDb : db }; queueMicrotask(() => request.onsuccess()); return request; } },
     TextEncoder, TextDecoder, btoa, atob, crypto: webcrypto, Intl, Date: ClockDate, CustomEvent, AbortSignal, structuredClone,
     setTimeout: fn => { const id = ++nextId; timeouts.set(id, fn); return id; },
     clearTimeout: id => timeouts.delete(id), setInterval: fn => intervals.push(fn),
-    fetch: async url => { requests.push(url); const body = respond?.(url) ?? (url.endsWith('/session') ? session : url.includes('/items') || url.includes('/sync/state') ? { items: [], seq: '0' } : { used: 0, quota: 50000000000, groups: {} }); return { ok: !body?.__status, status: body?.__status || 200, json: async () => body }; }
+    fetch: async (url, options) => { requests.push(url); if (options?.body) bodies.push({ url, body: JSON.parse(options.body) }); const body = respond?.(url, options) ?? (url.endsWith('/session') ? session : url.includes('/items') || url.includes('/sync/state') ? { items: [], seq: '0' } : { used: 0, quota: 50000000000, groups: {} }); return { ok: !body?.__status, status: body?.__status || 200, json: async () => body }; }
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, 'account-i18n.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(path.join(__dirname, 'account-core.js'), 'utf8'), context);
   const A = window.MunetiosAccount; A.state.account = { id: 'one', email: 'private@example.invalid' }; A.state.ready = true;
-  return { A, values, requests, document, window, navigator: context.navigator, session(value) { session = value; },
+  return { A, values, requests, bodies, guard, document, window, navigator: context.navigator, session(value) { session = value; },
     async drain() { const callbacks = [...timeouts.values()]; timeouts.clear(); callbacks.forEach(fn => fn()); await new Promise(setImmediate); await new Promise(setImmediate); },
     async advance(ms) { now += ms; intervals.forEach(fn => fn()); await new Promise(setImmediate); await new Promise(setImmediate); }
   };
@@ -206,4 +216,82 @@ test('an unchanged account syncs with one request, and a rate limit pauses sync 
   requests.length = 0;
   await f.advance(60000);
   assert.equal(requests.length, 0, 'automatic sync waits for Retry-After');
+});
+
+// ---------------------------------------------------------------- lost local data (IndexedDB cleared)
+// A small in-memory sync server: stores encrypted items and hands out versions like the real one.
+function cloudServer() {
+  const items = new Map(); let seq = 0;
+  return {
+    items,
+    respond(url, options) {
+      if (url.includes('/sync/items')) {
+        const query = new URL(url, 'https://beta.munetios.invalid').searchParams;
+        const since = BigInt(query.get('since') || '0');
+        const list = [...items.values()].filter(item => item.key.startsWith(query.get('prefix')) && BigInt(item.version) > since)
+          .sort((a, b) => Number(a.version) - Number(b.version));
+        return { items: list, seq: String(seq), hasMore: false };
+      }
+      if (url.endsWith('/sync/batch')) {
+        const { items: batch } = JSON.parse(options.body);
+        return { results: batch.map(item => { seq++; items.set(item.key, { ...item, version: String(seq) }); return { key: item.key, status: 'ok', version: String(seq) }; }) };
+      }
+    },
+  };
+}
+async function syncedNotes(count, { restores = true } = {}) {
+  const dataKey = await webcrypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  const server = cloudServer();
+  const f = fixture({ initialKey: dataKey, respond: (url, options) => server.respond(url, options) });
+  const local = new Map();
+  for (let i = 1; i <= count; i++) local.set('notes:' + i, { title: 'Note ' + i });
+  f.A.sync.register({
+    id: 'notes', prefix: 'notes:',
+    snapshot: async () => [...local].map(([key, data]) => ({ key, data, updatedAt: 1 })),
+    apply: async items => { if (!restores) return false; for (const item of items) item.deleted ? local.delete(item.key) : local.set(item.key, item.data); return true; },
+  });
+  assert.equal(await f.A.sync.now(), true);
+  assert.equal(server.items.size, count, 'every note was uploaded');
+  f.bodies.length = 0;
+  const deletesSent = () => f.bodies.filter(entry => entry.url.endsWith('/sync/batch')).flatMap(entry => entry.body.items).filter(item => item.deleted).map(item => item.key);
+  return { ...f, server, local, deletesSent };
+}
+
+test('clearing IndexedDB downloads synced items again instead of deleting them from the cloud', async () => {
+  const { A, server, local, guard, values, deletesSent } = await syncedNotes(3);
+  assert.ok(JSON.parse(values.get('munetios-sync:one')).device, 'the sync state remembers this device');
+  local.clear(); guard.clear(); // IndexedDB was deleted; localStorage (with the sync state) survived
+  assert.equal(await A.sync.now(), true);
+  assert.deepEqual(deletesSent(), [], 'nothing was deleted from the cloud');
+  assert.equal(server.items.size, 3);
+  assert.ok([...server.items.values()].every(item => !item.deleted));
+  assert.deepEqual([...local.keys()].sort(), ['notes:1', 'notes:2', 'notes:3'], 'every note came back from the cloud');
+  assert.equal(local.get('notes:2').title, 'Note 2');
+});
+
+test('an app whose synced data vanished all at once gets it back from the cloud', async () => {
+  const { A, server, local, deletesSent } = await syncedNotes(6);
+  local.clear(); // one app's database was deleted (or hadn't loaded yet); the device marker is intact
+  assert.equal(await A.sync.now(), true);
+  assert.deepEqual(deletesSent(), []);
+  assert.ok([...server.items.values()].every(item => !item.deleted));
+  assert.equal(local.size, 6);
+});
+
+test('deleting items normally still deletes them from the cloud', async () => {
+  const { A, server, local, deletesSent } = await syncedNotes(6);
+  local.delete('notes:4');
+  local.delete('notes:5');
+  assert.equal(await A.sync.now(), true);
+  assert.deepEqual(deletesSent().sort(), ['notes:4', 'notes:5']);
+  assert.equal(server.items.get('notes:4').deleted, true);
+  assert.equal(local.size, 4);
+});
+
+test('items an app cannot restore stay in the cloud, and sync still finishes', async () => {
+  const { A, server, local, deletesSent } = await syncedNotes(6, { restores: false });
+  local.clear();
+  assert.equal(await A.sync.now(), true);
+  assert.deepEqual(deletesSent(), [], 'missing items are never deleted from the cloud');
+  assert.ok([...server.items.values()].every(item => !item.deleted));
 });
