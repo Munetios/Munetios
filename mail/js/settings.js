@@ -467,23 +467,22 @@ export function open(section = "general") {
     let current = SECTIONS.some(([key]) => key === section) ? section : "general";
     const nav = el("nav", { class: "mail-settings-nav mu-scroll", "aria-label": t("settings") });
     const search = el("input", { type: "search", placeholder: t("searchSettings"), "aria-label": t("searchSettings") });
+    const sections = el("div", { class: "mu-nav" });
+    nav.append(el("label", { class: "mu-search" }, icon("search"), search), sections);
     const heading = el("h2", { class: "mu-h-title" });
     const content = el("div", { class: "mail-settings-content mu-scroll", role: "region", "aria-live": "polite" });
     const rerender = () => draw();
     const draw = () => {
         const query = search.value.trim().toLowerCase();
-        nav.replaceChildren(el("label", { class: "mu-search" }, icon("search"), search),
-            el("div", { class: "mu-nav" }, SECTIONS.filter(([key]) => !query || t("settings_" + key).toLowerCase().includes(query) || sectionText(key).includes(query)).map(([key, iconName]) => {
+        sections.replaceChildren(...SECTIONS.filter(([key]) => !query || t("settings_" + key).toLowerCase().includes(query) || sectionText(key).includes(query)).map(([key, iconName]) => {
                 const item = el("button", { type: "button", class: "mu-nav-item", "aria-current": key === current ? "page" : undefined }, icon(iconName, key === current), el("span", { text: t("settings_" + key) }));
                 item.addEventListener("click", () => { current = key; draw(); });
                 return item;
-            })));
+            }));
         heading.textContent = t("settings_" + current);
         try { content.replaceChildren(...RENDER[current](rerender).filter(Boolean)); }
-        catch { content.replaceChildren(alertBox("danger", "error", t("loadFailed"), "")); }
+        catch { content.replaceChildren(alertBox("danger", "error", t("errLoadSettings"), "")); }
         if (query) content.querySelectorAll(".mu-row").forEach(row => { row.hidden = !row.textContent.toLowerCase().includes(query) && !t("settings_" + current).toLowerCase().includes(query); });
-        const keep = document.activeElement === search;
-        if (keep) search.focus();
     };
     const sectionCache = new Map();
     const sectionText = key => {

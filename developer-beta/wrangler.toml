@@ -44,6 +44,10 @@ zone_name = "munetios.com"
 pattern = "webfilter.munetios.com"
 custom_domain = true
 
+[[routes]]
+pattern = "mail.munetios.com"
+custom_domain = true
+
 [observability]
 enabled = false
 

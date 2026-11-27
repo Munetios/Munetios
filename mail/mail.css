@@ -479,9 +479,11 @@ body.high-contrast .mail-row[aria-selected="true"], body.high-contrast .mail-row
 }
 @media (max-width: 900px) {
     .mail-settings, .mail-studio { grid-template-columns: minmax(0, 1fr); }
-    .mail-settings-nav { flex-direction: row; overflow-x: auto; border-inline-end: 0; border-bottom: 1px solid var(--mu-divider); padding: 10px; }
-    .mail-settings-nav .mu-nav-item { flex: none; }
-    .mail-settings-nav .mu-search { flex: 0 0 220px; }
+    .mail-settings { grid-template-rows: auto minmax(0, 1fr); }
+    .mail-settings-nav { min-inline-size: 0; overflow: visible; border-inline-end: 0; border-bottom: 1px solid var(--mu-divider); padding: 10px; }
+    .mail-settings-nav .mu-search { inline-size: 100%; min-inline-size: 0; }
+    .mail-settings-nav .mu-nav { display: flex; overflow-x: auto; padding-block-end: 4px; }
+    .mail-settings-nav .mu-nav-item { flex: none; inline-size: auto; white-space: nowrap; }
     .mail-studio-preview { border-inline-start: 0; border-top: 1px solid var(--mu-divider); }
     .mail-split.is-split { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
     .mail-preview-pane { border-inline-start: 0; border-top: 1px solid var(--mu-divider); }

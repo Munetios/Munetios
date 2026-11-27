@@ -92,6 +92,12 @@ export default {
             url.pathname = '/overview';
             return Response.redirect(url.href, 308);
         }
+        // Munetios Mail at mail.munetios.com: the root opens Mail, which the account backend serves after its session check.
+        if (url.hostname === 'mail.munetios.com' && (pathname === '/' || pathname === '/index.html')) {
+            const target = new URL(request.url);
+            target.pathname = '/mail/';
+            try { return await env.BETA_BACKEND.fetch(new Request(target, request)); } catch { return unavailable(false); }
+        }
         const isApi = /^\/api(?:\/|$)/i.test(pathname);
         const isProtectedPage = /^\/(?:account|mail|webfilter)(?:\/index\.html|\/)?$/i.test(pathname);
         if (!isApi && !isProtectedPage) {
