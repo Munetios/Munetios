@@ -231,7 +231,8 @@ export async function sendMessage(env, session, execCtx, mailbox, input) {
     const messageId = saved.draftId;
     const { results: attachments } = await db.prepare("SELECT size, disposition, content_id FROM attachments WHERE message_id = ?").bind(messageId).all();
     const deliveryHtml = draft.mode === "plain" ? "" : sanitizeEmailHtml(draft.html);
-    const text = draft.text?.trim() ? draft.text : htmlToText(deliveryHtml);
+    // Rich messages: the plain-text copy comes from the sanitized HTML, so a stale plain-text draft is never sent.
+    const text = draft.mode === "plain" || !draft.html ? draft.text : htmlToText(deliveryHtml);
     const estimated = Math.ceil((attachments.reduce((sum, item) => sum + item.size, 0) + utf8(deliveryHtml).length + utf8(text).length) * 4 / 3) + 16_384;
     if (estimated > MAX_MESSAGE_BYTES) fail(413, "messageTooLarge", { limitBytes: MAX_MESSAGE_BYTES });
     const body = await storeBlob(env, mailbox.id, utf8(JSON.stringify({ html: deliveryHtml, text })), { contentType: "application/json" });
