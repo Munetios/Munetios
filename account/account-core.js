@@ -110,8 +110,9 @@
   function checkProvider(provider) {
     if (!providerEnabled(provider)) throw Object.assign(new Error('syncCategoryDisabled'), { code: 'syncCategoryDisabled' });
   }
+  let automaticSyncDeferredUntil = 0;
   function automaticSyncAllowed() {
-    return Boolean(navigator.onLine !== false && state.account && (document.visibilityState === 'visible' || getAccountSetting('syncInBackground')) && (!navigator.connection?.saveData || getAccountSetting('syncOnDataSaver')));
+    return Boolean(Date.now() >= automaticSyncDeferredUntil && navigator.onLine !== false && state.account && (document.visibilityState === 'visible' || getAccountSetting('syncInBackground')) && (!navigator.connection?.saveData || getAccountSetting('syncOnDataSaver')));
   }
   window.addEventListener('storage', event => {
     if (event.key === settingsKey() || event.key === null) { document.dispatchEvent(new CustomEvent('munetios-account-settings-changed')); emit(); }
@@ -1100,7 +1101,7 @@
       return api('/google/disconnect', { password: await authSecret(password, state.account.email) });
     } },
     security: { get: () => api("/security"), action: securityAction, googleFactor: code => api("/google/factor", { code }) },
-    sync: { storage, setEnabled: setSyncEnabled, register, now: sync, schedule, exportLocal, reset: resetSynced, remoteWorkspaceCounts, report: reportChange },
+    sync: { storage, setEnabled: setSyncEnabled, register, now: sync, schedule, deferAutomatic(delay) { automaticSyncDeferredUntil = Date.now() + delay; }, exportLocal, reset: resetSynced, remoteWorkspaceCounts, report: reportChange },
     invalidateSession,
     photos: { readLibrary: readPhotosLibrary },
     workspaces

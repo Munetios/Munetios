@@ -2,7 +2,7 @@
 /*
  * Per-session request limits for updating and syncing.
  *
- * Default: 200 requests per 10 minutes per session, shared by every route that uses
+ * Default: 400 requests per 10 minutes per session, shared by every route that uses
  * the same limiter (account sync and shared calendar and album updates).
  * Set SYNC_RATE_LIMIT and SYNC_RATE_WINDOW_MS to change it.
  *
@@ -10,7 +10,7 @@
  * so the limit there is per isolate rather than exact.
  */
 
-const DEFAULT_LIMIT = 200;
+const DEFAULT_LIMIT = 400;
 const DEFAULT_WINDOW_MS = 10 * 60 * 1000;
 
 function createRateLimit({ limit = DEFAULT_LIMIT, windowMs = DEFAULT_WINDOW_MS, keyFor, now = () => Date.now() } = {}) {

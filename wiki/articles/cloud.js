@@ -54,7 +54,7 @@ ${table(["Role", "Calendar", "Album"], [["Editor", "Make changes to events", "Ad
       {
         id: "limits", title: "Limits", icon: "speed",
         html: `
-<p>Updating and syncing share one budget per session: by default 200 requests per 10 minutes. An idle sync costs one request, because each device pulls only when something changed and pushes only what changed locally. When the limit is reached, sync waits and resumes on its own. Chunk uploads and downloads don't count, so large videos are never blocked.</p>
+<p>Updating and syncing share one budget per session: by default 400 requests per 10 minutes. An idle sync costs one request, because each device pulls only when something changed and pushes only what changed locally. When the limit is reached, sync waits and resumes on its own. Chunk uploads and downloads don't count, so large videos are never blocked.</p>
 ${note("Storage full", "When your Munetios Cloud storage is full, new uploads wait and Photos tells you. Free up space or remove large items.")}`,
       },
       {

@@ -74,7 +74,7 @@ function createAuthRouter({ env = process.env, database, syncObjects, onBrowserS
         return HEX64.test(value || '') ? value : null;
     }
     const hasLegacyCookies = req => Boolean(readCookie(req, COOKIE) || readCookie(req, OTHERS_COOKIE));
-    // Updating and syncing share one per-session budget (default 200 requests per 10 minutes).
+    // Updating and syncing share one per-session budget (default 400 requests per 10 minutes).
     const syncLimit = syncRateLimitFromEnv(env, req => { const token = sessionToken(req); return token ? tokenHash(token) : null; });
     function otherTokens(req, share = usesSharedSession(req, env)) {
         const raw = share ? [readCookie(req, sharedOthers), readCookie(req, OTHERS_COOKIE)] : [readCookie(req, OTHERS_COOKIE)];

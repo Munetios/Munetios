@@ -4216,13 +4216,39 @@ if ('serviceWorker' in navigator) {
         });
         try { localStorage.setItem('munetios-workspace-doc-counts', JSON.stringify(counts)); } catch (e) {}
     }
+    const DOCUMENT_SYNC_IDLE_MS = 5000;
+    let documentSyncIdleUntil = 0;
+    let documentSyncTimer;
+
+    document.addEventListener('input', event => {
+        if (!event.target.closest?.('.editor-surface, .doc-header-bar, .doc-footer-bar, #editableTitle')) return;
+        documentSyncIdleUntil = Date.now() + DOCUMENT_SYNC_IDLE_MS;
+        window.MunetiosAccount?.sync.deferAutomatic?.(DOCUMENT_SYNC_IDLE_MS);
+    }, true);
+
     function omniSyncAfterSave() {
         omniWriteWorkspaceCounts();
         if (manualDocumentSync || !omniSyncSignedIn()) {
             setTimeout(() => updateSavingStatus(_t('e2e_encrypted')), 3000);
             return;
         }
-        window.MunetiosAccount.sync.now().then(ok => {
+        clearTimeout(documentSyncTimer);
+        const account = window.MunetiosAccount;
+        const accountId = account.state.account.id;
+        const syncSavedDocument = () => {
+            const remaining = documentSyncIdleUntil - Date.now();
+            if (remaining > 0) {
+                documentSyncTimer = setTimeout(syncSavedDocument, remaining);
+                return;
+            }
+            if (account.state.account?.id !== accountId || manualDocumentSync || !omniSyncSignedIn()) return;
+            syncDocumentAndUpdateStatus(account);
+        };
+        syncSavedDocument();
+    }
+
+    function syncDocumentAndUpdateStatus(account) {
+        account.sync.now().then(ok => {
             if (ok) {
                 updateSavingStatus(_t('synced'), 'cloud_done');
                 setTimeout(() => { if (window.MunetiosAccount.state.status === 'synced') updateSavingStatus(_t('e2e_encrypted')); }, 3000);

@@ -286,7 +286,7 @@ test('rate limiter allows the configured requests per window, then answers 429 w
     assert.equal(run(null).passed, true, 'requests without a session are left to the route');
     clock = 600001;
     assert.equal(run('a').passed, true, 'the budget resets after the window');
-    assert.equal(require('../auth/rate-limit').DEFAULT_LIMIT, 200);
+    assert.equal(require('../auth/rate-limit').DEFAULT_LIMIT, 400);
 });
 
 test('shared calendar and album updates share the per-session sync budget', async () => {

@@ -11,6 +11,8 @@ crons = ["* * * * *"]
 enabled = false
 
 [vars]
+SYNC_RATE_LIMIT = "400"
+SYNC_RATE_WINDOW_MS = "600000"
 PUBLIC_ORIGIN = "https://beta.munetios.com"
 AUTH_SHARE_MUNETIOS_SESSION = "true"
 MAIL_WORKER_URL = "https://munetios-mail.munetios.workers.dev"
