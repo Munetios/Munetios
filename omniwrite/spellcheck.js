@@ -27,7 +27,7 @@
     ];
     let words = null;
     let loading = null;
-    let enabled = true;
+    let enabled = localStorage.getItem('omniwrite-spellcheck') !== 'false';
     let timer;
     let replacing = false;
     const canHighlight = typeof Highlight === 'function' && CSS.highlights;
@@ -153,7 +153,8 @@
     }
     function schedule() {
         clearTimeout(timer);
-        timer = setTimeout(refresh, 240);
+        if (enabled) timer = setTimeout(refresh, 240);
+        else refresh();
     }
     function loadDictionary() {
         if (words) return Promise.resolve(words);

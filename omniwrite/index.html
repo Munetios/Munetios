@@ -8645,6 +8645,7 @@ Q4: 22</textarea>
         titleDiv.innerHTML = `<span contenteditable="true" id="editableTitle">${escapeHtml(doc.title)}</span>`;
         // Save title on blur or enter
         const editable = document.getElementById('editableTitle');
+        applyEditorSpellcheck(editable, localStorage.getItem('omniwrite-spellcheck') !== 'false');
         editable.addEventListener('blur', function() {
             if (isEffectivelyLocked(doc)) {
                 this.textContent = doc.title;
@@ -16587,6 +16588,7 @@ try {
 
         function createDocumentPageEditor(docId, pageIndex, contentHtml) {
             const doc = docId ? documents.find(d => d.id === docId) : null;
+            const spellcheckEnabled = localStorage.getItem('omniwrite-spellcheck') !== 'false';
             const shell = document.createElement('div');
             shell.className = 'document-page-shell';
             applyDocumentWatermarkToShell(shell, doc);
@@ -16595,6 +16597,7 @@ try {
             const headerBar = document.createElement('div');
             headerBar.className = 'doc-header-bar';
             headerBar.contentEditable = 'true';
+            applyEditorSpellcheck(headerBar, spellcheckEnabled);
             headerBar.dataset.placeholder = _t('header_placeholder');
             headerBar.setAttribute('data-role', 'doc-header');
             headerBar.innerHTML = doc?.headerHtml || '';
@@ -16614,11 +16617,7 @@ try {
             editor.dataset.docId = docId;
             editor.dataset.pageIndex = String(pageIndex);
             editor.contentEditable = 'true';
-            editor.setAttribute('spellcheck', 'true');
-            editor.setAttribute('autocorrect', 'on');
-            editor.setAttribute('autocomplete', 'on');
-            editor.setAttribute('autocapitalize', 'sentences');
-            editor.setAttribute('writingsuggestions', 'true');
+            applyEditorSpellcheck(editor, spellcheckEnabled);
             editor.style.cssText = 'padding: 20px; min-height: calc(100vh - 200px); box-sizing: border-box; outline: none; border-radius: 16px; background-color: #ffffff; color: #1d2433; font-size: 18px; line-height: 1.9; margin-top: 12px;';
             if (pageIndex === 1) editor.id = 'editorArea';
             editor.innerHTML = window.MunetiosYouTube.prepareHTML(contentHtml);
@@ -16629,6 +16628,7 @@ try {
             const footerBar = document.createElement('div');
             footerBar.className = 'doc-footer-bar';
             footerBar.contentEditable = 'true';
+            applyEditorSpellcheck(footerBar, spellcheckEnabled);
             footerBar.dataset.placeholder = _t('footer_placeholder');
             footerBar.setAttribute('data-role', 'doc-footer');
             footerBar.innerHTML = doc?.footerHtml || '';
@@ -17053,20 +17053,19 @@ try {
             };
             document.documentElement.style.setProperty('--omni-accent', map[value] || '#8f5cff');
         }
+        function applyEditorSpellcheck(editor, enabled) {
+            const useNative = enabled && !(editor.matches(ACTIVE_EDITOR_SELECTOR) && window.OmniSpellcheck?.usesBuiltIn(editor));
+            editor.spellcheck = useNative;
+            editor.setAttribute('autocorrect', enabled ? 'on' : 'off');
+            editor.setAttribute('autocomplete', enabled ? 'on' : 'off');
+            editor.setAttribute('autocapitalize', enabled ? 'sentences' : 'off');
+            editor.setAttribute('writingsuggestions', String(enabled));
+        }
+
         function applySpellcheckSetting(enabled) {
             window.OmniSpellcheck?.configure(enabled);
-            document.querySelectorAll(ACTIVE_EDITOR_SELECTOR).forEach(function(editor) {
-                const useNative = enabled && !window.OmniSpellcheck?.usesBuiltIn(editor);
-                editor.setAttribute('spellcheck', String(useNative));
-                editor.setAttribute('autocorrect', enabled ? 'on' : 'off');
-                editor.setAttribute('autocomplete', enabled ? 'on' : 'off');
-                editor.setAttribute('autocapitalize', enabled ? 'sentences' : 'off');
-                editor.setAttribute('writingsuggestions', enabled ? 'true' : 'false');
-                if ('spellcheck' in editor) editor.spellcheck = useNative;
-                if ('writingSuggestions' in editor) {
-                    try { editor.writingSuggestions = !!enabled; } catch (e) {}
-                }
-            });
+            document.querySelectorAll(ACTIVE_EDITOR_SELECTOR + ', .doc-header-bar, .doc-footer-bar, #editableTitle')
+                .forEach(editor => applyEditorSpellcheck(editor, enabled));
         }
         function getBusinessSettings() {
             try {

@@ -2,7 +2,7 @@ importScripts("/shared/offline-shell.js");
 
 const root = new URL(self.registration.scope).pathname;
 self.installMunetiosOfflineShell({
-  cacheName: "omniwrite-cache-v106",
+  cacheName: "omniwrite-cache-v107",
   obsolete: (name) => name.startsWith("omniwrite-cache-"),
   required: [
     "./", "chart.js", "local-signin.js", "lazy-dom.js", "font-settings.js", "omniwrite-v4.js",
