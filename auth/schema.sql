@@ -88,6 +88,13 @@ CREATE TABLE IF NOT EXISTS munetios_account_keys (
   CONSTRAINT keys_account FOREIGN KEY (account_id) REFERENCES munetios_accounts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS munetios_account_appearance (
+    account_id BIGINT UNSIGNED PRIMARY KEY,
+    font_family VARCHAR(255) NOT NULL DEFAULT '',
+    accent_color CHAR(7) NOT NULL DEFAULT '',
+    FOREIGN KEY (account_id) REFERENCES munetios_accounts(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS munetios_profiles (
   account_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
   display_name VARCHAR(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',

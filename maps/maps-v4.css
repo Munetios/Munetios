@@ -6,7 +6,7 @@
  */
 :root { --maps-rail: 108px; }
 body.mu-root {
-  font-family: "Munetios UI v4 Font", system-ui, sans-serif;
+  font-family: var(--mu-font-family, "Munetios UI v4 Font", system-ui, sans-serif);
   color: var(--mu-text);
   background: var(--mu-bg);
 }
@@ -282,7 +282,7 @@ body.mu-root.theme-light { color: var(--mu-text); background: var(--mu-bg); }
 .mu-root .tools-tray .layer { min-height: 72px; padding: 10px 14px; align-items: center; }
 .mu-root .tools-tray .layer-text { min-width: 0; }
 .mu-root .footer { border-radius: var(--mu-radius-pill) !important; padding: 4px 14px; }
-.mu-root .footer .attribution, .mu-root .footer .attribution a, .mu-root .footer .attribution p { font-family: "Munetios UI v4 Font", system-ui, sans-serif; font-size: 18px; color: var(--mu-text-muted); }
+.mu-root .footer .attribution, .mu-root .footer .attribution a, .mu-root .footer .attribution p { font-family: var(--mu-font-family, "Munetios UI v4 Font", system-ui, sans-serif); font-size: 18px; color: var(--mu-text-muted); }
 
 /* ------------------------------------------------------------ dialogs */
 .mu-root .modal-backdrop,

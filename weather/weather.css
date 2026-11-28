@@ -302,7 +302,7 @@ body.gw-app { margin: 0; background: var(--mu-bg); min-height: 100vh; }
 /* Attribution always uses Munetios Sans, including MapLibre's control (which ships its own Helvetica stack). */
 .gw-attribution, .gw-attribution *:not(.mu-icon),
 .gw-map-wrap .maplibregl-ctrl-attrib, .gw-map-wrap .maplibregl-ctrl-attrib *, .gw-map-wrap .maplibregl-ctrl-attrib-inner, .gw-map-wrap .maplibregl-ctrl-attrib a {
-  font-family: 'Munetios UI v4 Font', system-ui, sans-serif !important;
+  font-family: var(--mu-font-family, 'Munetios UI v4 Font', system-ui, sans-serif) !important;
   font-feature-settings: normal;
   font-weight: 400;
 }

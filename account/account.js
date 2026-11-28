@@ -53,6 +53,8 @@
     $("accountNav").setAttribute("aria-label", t("accountSettings"));
     applyTheme();
     renderAccountSettings();
+    paintAppearanceDraft();
+    UI.refreshSelect($('accountFontMode'));
     renderGoogleConnection();
   }
   const language = $("language");
@@ -579,6 +581,83 @@
     } finally { renderingAccountSettings = false; }
   }
   document.addEventListener('munetios-account-settings-changed', () => { renderAccountSettings(); renderAccount(); renderSync(); });
+
+  const appearanceForm = $('accountAppearance');
+  const fontMode = $('accountFontMode');
+  const fontInput = $('accountFontFamily');
+  const accentButton = $('accountAccent');
+  const appearanceError = $('accountAppearanceError');
+  let accentDraft = '';
+  let appearanceAccountId = null;
+  let appearanceDirty = false;
+
+  function paintAppearanceDraft() {
+    const custom = fontMode.value === 'custom';
+    $('accountFontRow').hidden = !custom;
+    fontInput.required = custom;
+    $('accountAccentValue').textContent = accentDraft || t('appearanceDefault');
+    accentButton.querySelector('.mu-icon').style.color = accentDraft;
+    $('accountAccentReset').disabled = !accentDraft;
+  }
+  function renderAppearance() {
+    const current = UI.appearance.get();
+    appearanceForm.hidden = !current;
+    if (!current) { appearanceAccountId = null; return; }
+    if (appearanceDirty && appearanceAccountId === current.accountId) return;
+    appearanceAccountId = current.accountId;
+    appearanceDirty = false;
+    fontMode.value = current.fontFamily ? 'custom' : 'default';
+    fontInput.value = current.fontFamily;
+    accentDraft = current.accentColor;
+    appearanceError.hidden = true;
+    UI.refreshSelect(fontMode);
+    paintAppearanceDraft();
+  }
+  document.addEventListener('munetios-appearance-changed', renderAppearance);
+  fontMode.addEventListener('change', () => {
+    appearanceDirty = true;
+    paintAppearanceDraft();
+    if (fontMode.value === 'custom') fontInput.focus();
+  });
+  fontInput.addEventListener('input', () => { appearanceDirty = true; });
+  accentButton.addEventListener('click', () => {
+    UI.pickColor({
+      anchor: accentButton,
+      allowReset: false,
+      value: accentDraft || '#8f5cff',
+      labels: { color: t('appearanceAccent'), done: t('save') },
+      onPick(value) { accentDraft = value; appearanceDirty = true; paintAppearanceDraft(); }
+    });
+  });
+  $('accountAccentReset').addEventListener('click', () => {
+    accentDraft = '';
+    appearanceDirty = true;
+    paintAppearanceDraft();
+    accentButton.focus();
+  });
+  appearanceForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const family = fontMode.value === 'custom' ? fontInput.value.trim() : '';
+    appearanceError.hidden = true;
+    if (fontMode.value === 'custom' && !/^[\p{L}\p{M}\p{N} _.-]+$/u.test(family)) {
+      appearanceError.textContent = t('appearanceInvalidFont');
+      appearanceError.hidden = false;
+      fontInput.focus();
+      return;
+    }
+    const submit = appearanceForm.querySelector('[type="submit"]');
+    submit.disabled = true;
+    try {
+      await UI.appearance.save({ fontFamily: family, accentColor: accentDraft });
+      appearanceDirty = false;
+      renderAppearance();
+      notify(t('appearanceSaved'), 'success');
+    } catch {
+      appearanceError.textContent = t('appearanceSaveFailed');
+      appearanceError.hidden = false;
+    } finally { submit.disabled = false; }
+  });
+  renderAppearance();
 
   /* ---------------------------------------------------------- start */
   let settingsAccountId = null;

@@ -13,7 +13,7 @@
             color: var(--ow-current-text);
             text-decoration: none;
             white-space: nowrap;
-            font: 16px/1.25 'Munetios UI v4 Font', sans-serif;
+            font: 16px/1.25 var(--mu-font-family, 'Munetios UI v4 Font', sans-serif);
             font-feature-settings: normal;
             backdrop-filter: blur(2px);
             -webkit-backdrop-filter: blur(2px);
@@ -2180,7 +2180,7 @@
             transform: scale(0.3);
             transform-origin: 0 0;
             color: #1d2433;
-            font-family: 'Munetios UI v4 Font', system-ui, sans-serif;
+            font-family: var(--mu-font-family, 'Munetios UI v4 Font', system-ui, sans-serif);
             font-size: 18px;
             line-height: 1.6;
             box-sizing: border-box;

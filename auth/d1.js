@@ -5,6 +5,7 @@ const conflictColumns = {
     munetios_account_security: 'account_id',
     munetios_verified_recovery: 'account_id',
     munetios_profiles: 'account_id',
+    munetios_account_appearance: 'account_id',
     munetios_profile_birthdays: 'account_id',
     munetios_profile_pictures: 'account_id',
     munetios_profile_picture_privacy: 'account_id',

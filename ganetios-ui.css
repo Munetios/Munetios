@@ -1115,7 +1115,7 @@ body.ganetios-v4 .video-player-dialog .video-player-panel {
   backdrop-filter: var(--mu-blur) !important;
   -webkit-backdrop-filter: var(--mu-blur) !important;
   color: var(--mu-text);
-  font-family: "Munetios UI v4 Font", system-ui, sans-serif;
+  font-family: var(--mu-font-family, "Munetios UI v4 Font", system-ui, sans-serif);
   font-feature-settings: normal;
 }
 body.ganetios-v4 .video-player-header {

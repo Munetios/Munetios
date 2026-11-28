@@ -1853,7 +1853,65 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", scanTopbarSearch);
   else scanTopbarSearch();
 
+  const appearancePath = '/api/auth/appearance';
+  const appearanceRoot = document.documentElement;
+  let appearance = null;
+  let appearanceRequest = 0;
+
+  function applyAppearance(value) {
+    if (JSON.stringify(value) === JSON.stringify(appearance)) return;
+    appearance = value;
+    if (value?.fontFamily && /^[\p{L}\p{M}\p{N} _.-]+$/u.test(value.fontFamily)) {
+      appearanceRoot.style.setProperty('--mu-account-font', '"' + value.fontFamily + '"');
+    } else appearanceRoot.style.removeProperty('--mu-account-font');
+    if (/^#[0-9a-f]{6}$/i.test(value?.accentColor || '')) {
+      appearanceRoot.style.setProperty('--mu-account-accent', value.accentColor);
+    } else appearanceRoot.style.removeProperty('--mu-account-accent');
+    document.dispatchEvent(new CustomEvent('munetios-appearance-changed'));
+  }
+
+  async function refreshAppearance() {
+    const request = ++appearanceRequest;
+    try {
+      const response = await fetch(appearancePath, { cache: 'no-store' });
+      const value = response.ok ? await response.json() : null;
+      if (request === appearanceRequest && (value?.accountId || response.status === 401)) {
+        applyAppearance(value);
+      }
+    } catch { /* Keep the current appearance during a network interruption. */ }
+  }
+
+  async function saveAppearance(settings) {
+    const accountId = appearance?.accountId;
+    if (!accountId) throw new Error('signedOut');
+    const response = await fetch(appearancePath, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...settings, accountId })
+    });
+    if (!response.ok) throw new Error('appearanceSaveFailed');
+    const value = await response.json();
+    if (appearance?.accountId === accountId) {
+      ++appearanceRequest;
+      applyAppearance(value);
+    }
+  }
+
+  let activeAppearanceAccount;
+  document.addEventListener('munetios-account', ({ detail }) => {
+    if (!detail.ready) return;
+    const id = detail.account?.id ?? null;
+    if (id === activeAppearanceAccount) return;
+    activeAppearanceAccount = id;
+    if (appearance && String(appearance.accountId) !== String(id)) applyAppearance(null);
+    void refreshAppearance();
+  });
+  window.addEventListener('focus', refreshAppearance);
+  window.addEventListener('online', refreshAppearance);
+  void refreshAppearance();
+
   window.MunetiosUI = Object.freeze({
+    appearance: Object.freeze({ get: () => appearance && { ...appearance }, save: saveAppearance }),
     enhanceTopbarSearch,
     version: "4.4.0",
     pickFromList,

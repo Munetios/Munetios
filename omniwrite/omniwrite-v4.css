@@ -483,7 +483,7 @@
     border-radius: 999px;
     background: var(--ow-accent, #8f5cff);
     color: #ffffff;
-    font: 400 18px/26px 'Munetios UI v4 Font', system-ui, sans-serif;
+    font: 400 18px/26px var(--mu-font-family, 'Munetios UI v4 Font', system-ui, sans-serif);
     font-feature-settings: normal;
     font-variation-settings: normal;
     text-align: center;
@@ -613,7 +613,7 @@
     border-radius: 999px 999px 999px 4px;
     background: var(--omni-cursor-color);
     color: #ffffff;
-    font: 400 18px/1.4 'Munetios UI v4 Font', system-ui, sans-serif;
+    font: 400 18px/1.4 var(--mu-font-family, 'Munetios UI v4 Font', system-ui, sans-serif);
     font-feature-settings: normal;
     white-space: nowrap;
 }

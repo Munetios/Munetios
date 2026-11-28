@@ -23,6 +23,8 @@ Apply `0009_cloud_objects.sql` before deploying the R2-capable media Worker. To 
 
 Apply `0010_omniwrite_objects.sql` before deploying OmniWrite object storage. With `CLOUD_MEDIA` bound, encrypted personal sync payloads and shared document contents are stored in the private bucket. Set `OMNIWRITE_R2_BACKFILL=true` to move existing personal sync records in scheduled batches. Shared documents move on their next authorized read or save.
 
+Apply `0013_account_appearance.sql` before deploying account-wide font and accent preferences.
+
 Create a Google OAuth Web application client with the authorized redirect URI `https://beta.munetios.com/api/auth/google/callback`. Set `GOOGLE_CLIENT_URL` to that exact redirect URI. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` on the backend Worker. For local testing, use `.env` and register the local callback URI separately.
 
 The local server defaults to `http://localhost:3000/api/auth/google/callback`. Open the sign-in page using the same hostname as the registered callback so the browser can return the OAuth state cookie.

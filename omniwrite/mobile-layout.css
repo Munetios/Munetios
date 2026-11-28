@@ -111,7 +111,7 @@
         text-overflow: ellipsis;
         white-space: nowrap;
         flex: 0 0 14px;
-        font-family: 'Munetios UI v4 Font', sans-serif;
+        font-family: var(--mu-font-family, 'Munetios UI v4 Font', sans-serif);
         font-feature-settings: 'liga' 0;
         font-size: 11px;
         line-height: 14px;

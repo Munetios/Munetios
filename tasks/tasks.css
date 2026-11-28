@@ -9,7 +9,7 @@
   --tasks-sidebar: 300px;
   --tasks-sidebar-rail: 92px;
   --tasks-top: 96px;
-  --mu-accent: #8f5cff;
+  --mu-accent: var(--mu-account-accent, #8f5cff);
 }
 
 html {

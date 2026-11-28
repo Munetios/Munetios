@@ -1117,6 +1117,29 @@
     "signOutConfirmBody": "E vostre ultime mudificazioni seranu sincrunizate prima. I vostri dati fermanu nant’à st’apparechju, ma e mudificazioni nove ùn seranu micca sincrunizate finu à chì vi cunnettite torna.",
     "signingOut": "Scunnessione da stu contu. Aspettate…"
   };
+  const appearanceStrings = {
+    "en-US": ["Font family","Default","Custom","Custom font family","Accent color","Enter one font family name.","Appearance saved.","Failed to save appearance. Try again."],
+    "en-GB": ["Font family","Default","Custom","Custom font family","Accent colour","Enter one font family name.","Appearance saved.","Failed to save appearance. Try again."],
+    "es-419": ["Familia tipográfica","Predeterminada","Personalizada","Familia tipográfica personalizada","Color de acento","Ingresa el nombre de una familia tipográfica.","Se guardó la apariencia.","No se pudo guardar la apariencia. Inténtalo de nuevo."],
+    "es-ES": ["Familia tipográfica","Predeterminada","Personalizada","Familia tipográfica personalizada","Color de acento","Introduce el nombre de una familia tipográfica.","Se ha guardado la apariencia.","No se ha podido guardar la apariencia. Vuelve a intentarlo."],
+    "es-US": ["Familia tipográfica","Predeterminada","Personalizada","Familia tipográfica personalizada","Color de acento","Ingresa el nombre de una familia tipográfica.","Se guardó la apariencia.","No se pudo guardar la apariencia. Inténtalo de nuevo."],
+    "fr-FR": ["Famille de polices","Par défaut","Personnalisée","Famille de polices personnalisée","Couleur d’accentuation","Saisissez le nom d’une famille de polices.","Apparence enregistrée.","Échec de l’enregistrement de l’apparence. Réessayez."],
+    "fr-CA": ["Famille de polices","Par défaut","Personnalisée","Famille de polices personnalisée","Couleur d’accentuation","Entrez le nom d’une famille de polices.","Apparence enregistrée.","Échec de l’enregistrement de l’apparence. Réessayez."],
+    "de": ["Schriftfamilie","Standard","Benutzerdefiniert","Benutzerdefinierte Schriftfamilie","Akzentfarbe","Gib den Namen einer Schriftfamilie ein.","Darstellung gespeichert.","Die Darstellung konnte nicht gespeichert werden. Versuche es erneut."],
+    "it": ["Famiglia di caratteri","Predefinita","Personalizzata","Famiglia di caratteri personalizzata","Colore di accento","Inserisci il nome di una famiglia di caratteri.","Aspetto salvato.","Impossibile salvare l’aspetto. Riprova."],
+    "pt-BR": ["Família de fontes","Padrão","Personalizada","Família de fontes personalizada","Cor de destaque","Digite o nome de uma família de fontes.","Aparência salva.","Não foi possível salvar a aparência. Tente novamente."],
+    "pt-PT": ["Família de tipos de letra","Predefinida","Personalizada","Família de tipos de letra personalizada","Cor de destaque","Introduza o nome de uma família de tipos de letra.","Aspeto guardado.","Não foi possível guardar o aspeto. Tente novamente."],
+    "zh-CN": ["字体系列","默认","自定义","自定义字体系列","强调色","请输入一个字体系列名称。","外观已保存。","保存外观失败，请重试。"],
+    "zh-TW": ["字型系列","預設","自訂","自訂字型系列","輔色","請輸入一個字型系列名稱。","外觀已儲存。","無法儲存外觀，請再試一次。"],
+    "ko": ["글꼴 모음","기본값","사용자 지정","사용자 지정 글꼴 모음","강조 색상","글꼴 모음 이름을 하나 입력하세요.","모양을 저장했습니다.","모양을 저장하지 못했습니다. 다시 시도하세요."],
+    "ar": ["مجموعة الخطوط","افتراضي","مخصص","مجموعة خطوط مخصصة","لون التمييز","أدخل اسم مجموعة خطوط واحدة.","تم حفظ المظهر.","تعذر حفظ المظهر. حاول مرة أخرى."],
+    "hi": ["फ़ॉन्ट परिवार","डिफ़ॉल्ट","कस्टम","कस्टम फ़ॉन्ट परिवार","ऐक्सेंट का रंग","किसी एक फ़ॉन्ट परिवार का नाम डालें।","दिखावट सेव हो गई।","दिखावट सेव नहीं हो सकी। फिर से कोशिश करें।"],
+    "co": ["Famiglia di caratteri","Predefinita","Persunalizata","Famiglia di caratteri persunalizata","Culore d’accentu","Scrivite u nome d’una famiglia di caratteri.","Aspettu arregistratu.","Impussibule d’arregistrà l’aspettu. Pruvate torna."],
+  };
+  const appearanceKeys = ["appearanceFont","appearanceDefault","appearanceCustom","appearanceCustomFont","appearanceAccent","appearanceInvalidFont","appearanceSaved","appearanceSaveFailed"];
+  for (const code of LOCALE_CODES) {
+    appearanceKeys.forEach((key, index) => { catalog[code][key] = appearanceStrings[code][index]; });
+  }
   const ordered = {};
   for (const code of LOCALE_CODES) ordered[code] = catalog[code];
   Object.defineProperties(ordered, { en: { value: ordered["en-US"], enumerable: false }, fr: { value: ordered["fr-FR"], enumerable: false } });

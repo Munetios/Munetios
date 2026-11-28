@@ -111,6 +111,33 @@
               </div>
             </div>
           </div>
+          <form class="mu-group account-rows account-setting-rows" id="accountAppearance" hidden>
+            <div class="mu-row">
+              <label class="mu-row-title" for="accountFontMode" data-t="appearanceFont">Font family</label>
+              <select class="mu-select" id="accountFontMode">
+                <option value="default" data-t="appearanceDefault">Default</option>
+                <option value="custom" data-t="appearanceCustom">Custom</option>
+              </select>
+            </div>
+            <div class="mu-row" id="accountFontRow" hidden>
+              <label class="mu-row-title" for="accountFontFamily" data-t="appearanceCustomFont">Custom font family</label>
+              <input class="mu-input" id="accountFontFamily" type="text" maxlength="255" autocomplete="off">
+            </div>
+            <div class="mu-row">
+              <span class="mu-row-title" id="accountAccentLabel" data-t="appearanceAccent">Accent color</span>
+              <div class="account-actions">
+                <button class="mu-btn" id="accountAccent" type="button" aria-labelledby="accountAccentLabel accountAccentValue" aria-expanded="false">
+                  <span class="mu-icon" aria-hidden="true">palette</span>
+                  <span id="accountAccentValue"></span>
+                </button>
+                <button class="mu-btn" id="accountAccentReset" type="button" data-t="appearanceDefault">Default</button>
+              </div>
+            </div>
+            <div class="mu-row">
+              <button class="mu-btn mu-btn-primary" type="submit" data-t="save">Save</button>
+              <span class="account-error" id="accountAppearanceError" role="alert" hidden></span>
+            </div>
+          </form>
           <p class="mu-muted account-text" data-t="settingsDeviceHelp"></p>
           <div class="mu-group account-rows account-setting-rows" id="accountSettings"></div>
           <p class="account-error" id="accountSettingsError" role="alert" hidden></p>

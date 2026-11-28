@@ -82,7 +82,7 @@
 
 .signin-body, .signin-form, .signin-session { display: grid; gap: 20px; min-width: 0; }
 .signin-actions h1 { overflow-wrap: anywhere; }
-.signin-actions .mu-btn-primary { --mu-accent: #7540e8; }
+.signin-actions .mu-btn-primary { --mu-accent: var(--mu-account-accent, #7540e8); }
 .signin-mode { display: flex; }
 .signin-mode button {
     flex: 1 1 0;

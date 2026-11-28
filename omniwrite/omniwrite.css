@@ -5,7 +5,7 @@
               font-feature-settings: 'liga' 0 !important; 
         }
         html, button, input, select, textarea {
-            font-family: 'Munetios UI v4 Font';
+            font-family: var(--mu-font-family, 'Munetios UI v4 Font');
             font-feature-settings: 'liga' 0;
             box-sizing: border-box;
         }
@@ -67,7 +67,7 @@
         }
         
         body {
-            font-family: 'Munetios UI v4 Font', system-ui, sans-serif;
+            font-family: var(--mu-font-family, 'Munetios UI v4 Font', system-ui, sans-serif);
             font-feature-settings: 'liga' 0;
             margin: 0;
             padding: 0;
@@ -4678,7 +4678,7 @@
            - Tuned for both dark and light mode
            ========================================================== */
         :root {
-            --ow-accent: var(--omni-accent, #8f5cff);
+            --ow-accent: var(--mu-account-accent, var(--omni-accent, #8f5cff));
             --ow-blur: blur(2px) saturate(160%);
 
             /* Type scale (18px - 48px) */

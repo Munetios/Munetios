@@ -10448,9 +10448,11 @@ try {
             }
 
             // Apply default document font from settings
-            const savedDefaultFont = getSavedDefaultDocumentFont();
+            const savedDefaultFont = getDocumentPaperFont(doc);
             ensureFontFaceLoadedFromValue(savedDefaultFont);
             editorArea.style.fontFamily = savedDefaultFont;
+            if (doc?.defaultFontFamily) editorArea.style.setProperty('--omni-paper-font', savedDefaultFont);
+            else editorArea.style.removeProperty('--omni-paper-font');
             editorArea.style.fontFeatureSettings = fontFeaturesToCss(loadFontFeatureState(OMNI_DOCUMENT_FONT_FEATURES_KEY));
             const currentSelectionSize = getSelectionFontSizePx(editorArea);
             const initialFontSize = pxToPt(currentSelectionSize || parseFloat(window.getComputedStyle(editorArea).fontSize) || 24);
@@ -11898,6 +11900,7 @@ try {
             const newDoc = {
                 id: createDocumentId(),
                 title: tpl.name,
+                defaultFontFamily: getAccountDocumentFont(),
                 content: tpl.content,
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
@@ -12910,6 +12913,7 @@ try {
             const newDoc = {
                 id: createDocumentId(),
                 title: 'Untitled Document',
+                defaultFontFamily: getAccountDocumentFont(),
                 createdAt: Date.now(),
                 timestamp: Date.now(),
                 workspaceId: getActiveWorkspaceId()
@@ -14952,6 +14956,17 @@ try {
             return /^['"]?Google Sans Flex['"]?(?:\s*,\s*sans-serif)?$/i.test(value) ? "'Google Sans Flex'" : value;
         }
 
+        function getAccountDocumentFont() {
+            return window.MunetiosUI?.appearance.get()?.fontFamily || undefined;
+        }
+
+        function getDocumentPaperFont(doc) {
+            const family = doc?.defaultFontFamily;
+            return typeof family === 'string' && /^[\p{L}\p{M}\p{N} _.-]+$/u.test(family)
+                ? '"' + family + '", "Munetios UI v4 Font", sans-serif'
+                : getSavedDefaultDocumentFont();
+        }
+
         function getSavedDefaultDocumentFont() {
             const storageKey = 'omniwrite-default-font';
             const marker = 'omniwrite-default-font-ui-v4';
@@ -15001,7 +15016,7 @@ try {
                 .document-page-editor,
                 .split-editor,
                 .editor-surface {
-                    font-family: ${documentFont} !important;
+                    font-family: var(--omni-paper-font, ${documentFont}) !important;
                     font-feature-settings: ${documentFeatures} !important;
                     ${documentVariations ? 'font-variation-settings: ' + documentVariations + ' !important;' : ''}
                 }
@@ -15013,7 +15028,10 @@ try {
                 }
             `;
             document.querySelectorAll('#editorArea, .document-page-editor, .split-editor').forEach(editor => {
-                editor.style.fontFamily = documentFont;
+                const doc = documents.find(item => item.id === editor.dataset.docId);
+                editor.style.fontFamily = getDocumentPaperFont(doc);
+                if (doc?.defaultFontFamily) editor.style.setProperty('--omni-paper-font', editor.style.fontFamily);
+                else editor.style.removeProperty('--omni-paper-font');
                 editor.style.fontFeatureSettings = documentFeatures;
                 editor.style.fontVariationSettings = documentVariations;
             });
@@ -16619,6 +16637,7 @@ try {
             editor.contentEditable = 'true';
             applyEditorSpellcheck(editor, spellcheckEnabled);
             editor.style.cssText = 'padding: 20px; min-height: calc(100vh - 200px); box-sizing: border-box; outline: none; border-radius: 16px; background-color: #ffffff; color: #1d2433; font-size: 18px; line-height: 1.9; margin-top: 12px;';
+            if (doc?.defaultFontFamily) editor.style.setProperty('--omni-paper-font', getDocumentPaperFont(doc));
             if (pageIndex === 1) editor.id = 'editorArea';
             editor.innerHTML = window.MunetiosYouTube.prepareHTML(contentHtml);
             editorWrapper.appendChild(editor);

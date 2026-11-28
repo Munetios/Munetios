@@ -41,7 +41,8 @@
 
 /* ===================================================================== Tokens */
 :root {
-    --mu-accent: #8f5cff;
+    --mu-accent: var(--mu-account-accent, #8f5cff);
+    --mu-font-family: var(--mu-account-font, 'Munetios UI v4 Font'), 'Munetios UI v4 Font', system-ui, sans-serif;
     --mu-blur: blur(2px) saturate(170%) brightness(1.06);
     --mu-backdrop-filter: blur(2px) saturate(160%) brightness(0.88);
 
@@ -115,7 +116,7 @@
 /* ===================================================================== Base */
 .mu-root,
 .mu-root :is(button, input, select, textarea) {
-    font-family: 'Munetios UI v4 Font', system-ui, sans-serif;
+    font-family: var(--mu-font-family);
     font-feature-settings: normal;
 }
 .mu-root {
@@ -131,7 +132,7 @@
 .mu-root *, .mu-root *::before, .mu-root *::after { box-sizing: border-box; }
 /* Floating pieces appended to <body> carry the type themselves */
 .mu-menu, .mu-toast, .mu-modal, .mu-tooltip {
-    font-family: 'Munetios UI v4 Font', system-ui, sans-serif;
+    font-family: var(--mu-font-family);
     font-feature-settings: normal;
     font-size: var(--mu-fs-body);
     font-weight: 400;
@@ -1049,7 +1050,7 @@ munetios-youtube-player { display: block; width: 100%; max-width: 100%; }
     background: linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass);
     box-shadow: var(--mu-shadow), 0 24px 60px rgba(0, 0, 0, 0.24);
     backdrop-filter: var(--mu-blur); -webkit-backdrop-filter: var(--mu-blur);
-    color: var(--mu-text); font-family: 'Munetios UI v4 Font', system-ui, sans-serif; font-feature-settings: normal;
+    color: var(--mu-text); font-family: var(--mu-font-family); font-feature-settings: normal;
     font-size: var(--mu-fs-body); font-weight: 400; animation: mu-pop 0.16s ease both;
 }
 .mu-picker.is-wide { width: min(640px, calc(100vw - 24px)); }
@@ -1783,7 +1784,7 @@ html.mu-resizing, html.mu-resizing * { cursor: col-resize !important; user-selec
     background: linear-gradient(var(--mu-tile-glass), var(--mu-tile-glass)), var(--mu-glass);
     box-shadow: var(--mu-shadow), 0 24px 60px rgba(0, 0, 0, 0.22);
     backdrop-filter: var(--mu-blur); -webkit-backdrop-filter: var(--mu-blur);
-    color: var(--mu-text); font-family: 'Munetios UI v4 Font', system-ui, sans-serif; font-size: var(--mu-fs-body); font-weight: 400;
+    color: var(--mu-text); font-family: var(--mu-font-family); font-size: var(--mu-fs-body); font-weight: 400;
     animation: mu-fade 0.18s ease both;
 }
 .mu-read-aloud[hidden] { display: none; }

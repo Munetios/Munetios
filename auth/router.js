@@ -355,6 +355,30 @@ function createAuthRouter({ env = process.env, database, syncObjects, onBrowserS
         }
     };
 
+    router.get('/appearance', requireSession, async (req, res) => {
+        const { account, connection } = req.session;
+        const [[appearance]] = await connection.execute(
+            'SELECT font_family, accent_color FROM munetios_account_appearance WHERE account_id = ?', [account.id]);
+        res.json({ accountId: account.id, fontFamily: appearance?.font_family || '', accentColor: appearance?.accent_color || '' });
+    });
+    router.post('/appearance', small, requireSession, async (req, res) => {
+        const { account, connection } = req.session;
+        const { accountId, fontFamily, accentColor } = req.body || {};
+        const family = typeof fontFamily === 'string' ? fontFamily.trim() : null;
+        if (String(accountId) !== String(account.id)) return fail(res, 409, 'accountChanged');
+        if (family === null || (family && !/^[\p{L}\p{M}\p{N} _.-]+$/u.test(family)) ||
+            [...family].length > 255 || typeof accentColor !== 'string' ||
+            (accentColor !== '' && !/^#[0-9a-f]{6}$/i.test(accentColor))) {
+            return fail(res, 400, 'invalidRequest');
+        }
+        const accent = accentColor.toLowerCase();
+        await connection.execute(
+            'INSERT INTO munetios_account_appearance (account_id, font_family, accent_color) VALUES (?, ?, ?) ' +
+            'ON DUPLICATE KEY UPDATE font_family = VALUES(font_family), accent_color = VALUES(accent_color)',
+            [account.id, family, accent]);
+        res.json({ accountId: account.id, fontFamily: family, accentColor: accent });
+    });
+
     router.get('/session', async (req, res) => {
         res.json(await browserSession(req, res));
     });
