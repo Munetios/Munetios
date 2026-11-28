@@ -1,0 +1,72 @@
+:root[data-theme="blueish"] {
+  --orchid: #84adff;
+}
+
+:root[data-theme="custom-local"] {
+  --orchid: var(--home-theme-accent, #a96cff);
+}
+
+html[data-theme="custom-local"] body {
+  background: var(--home-theme-background, #1c064e) !important;
+  color: var(--home-theme-text, #fff);
+  --ganetios-text: var(--home-theme-text, #fff);
+  animation: none !important;
+}
+
+html[data-theme="custom-local"] :is(.search-bar, .shortcut-card, .theme-card) {
+  border-color: color-mix(in srgb, var(--orchid) 50%, transparent) !important;
+}
+
+html[data-theme="custom-local"] :is(.search-bar, .shortcut-card) {
+  padding: var(--home-theme-padding, 14px);
+  border-radius: var(--home-theme-radius, 24px);
+}
+
+html[data-theme="custom-local"] :is(.search-bar input, .shortcut-name, .theme-name) {
+  color: var(--home-theme-text, #fff) !important;
+  font-family: "Munetios UI v4 Font", sans-serif !important;
+  font-variation-settings: "wdth" var(--home-theme-width, 100) !important;
+}
+
+#customThemeButton[aria-pressed="true"] {
+  border-color: var(--orchid);
+}
+
+#homeThemeEditor {
+  z-index: 2147483200;
+}
+
+body:has(#homeThemeEditor:not([hidden])) > :is(.mu-menu-floating, .mu-picker) {
+  z-index: 2147483220;
+}
+
+#homeThemeEditor .mu-dialog {
+  width: min(600px, 100%);
+}
+
+.home-theme-form {
+  display: grid;
+  gap: 14px;
+}
+
+.home-theme-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 142px), 1fr));
+  gap: 12px;
+}
+
+.home-theme-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-wrap: anywhere;
+  background: var(--home-theme-background);
+  color: var(--home-theme-text);
+  padding: var(--home-theme-padding);
+  border-radius: var(--home-theme-radius);
+  font-variation-settings: "wdth" var(--home-theme-width);
+}
+
+.home-theme-preview .mu-icon {
+  color: var(--home-theme-accent);
+}

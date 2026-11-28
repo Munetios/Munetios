@@ -139,6 +139,7 @@
     openSelect = {
       select,
       menu,
+      anchorRect: r,
       button: s.button,
       setActive,
       choose,
@@ -211,7 +212,10 @@
   window.addEventListener("resize", () => closeSelect(false));
   // A fixed menu can't follow its button when the page or a dialog scrolls, so close it.
   document.addEventListener("scroll", (e) => {
-    if (openSelect && !(e.target instanceof Node && openSelect.menu.contains(e.target))) closeSelect(false);
+    if (!openSelect || (e.target instanceof Node && openSelect.menu.contains(e.target))) return;
+    const { x, y } = openSelect.button.getBoundingClientRect();
+    const anchor = openSelect.anchorRect;
+    if (Math.abs(x - anchor.x) > 1 || Math.abs(y - anchor.y) > 1) closeSelect(false);
   }, true);
 
   // ------------------------------------------------------------- modal

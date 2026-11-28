@@ -171,6 +171,7 @@
       }
     </script>
     <link rel="stylesheet" href="munetios-ui/munetios-ui-v4.css">
+    <link rel="stylesheet" href="shared/home-themes.css">
     <style>
       @font-face {
         font-family: "Google Sans Flex";
@@ -4824,6 +4825,7 @@ html.halloween-season .topbar-right {
                   >
                     <span class="settings-label" data-translate="theme">Theme</span>
                     <div class="themes-grid" id="themesGrid"></div>
+                    <button type="button" id="customThemeButton" class="mu-btn" aria-haspopup="dialog" hidden></button>
                   </div>
                   <div class="settings-item">
                     <span class="settings-label" data-translate="bgColor">Background Color</span>
@@ -24244,8 +24246,16 @@ if (isAmerica250Date && logo) {
               bgCss: "body { background: radial-gradient(circle at 18% 12%, #8a3dca 0%, transparent 31%), radial-gradient(circle at 85% 85%, #3d187f 0%, transparent 36%), #10051d !important; }",
               swatch: "linear-gradient(135deg, #10051d 0%, #60268f 55%, #d37cff 100%)",
             },
+            {
+              id: "blueish",
+              name: "Blueish",
+              nameKey: "themeBlueish",
+              font: "Munetios UI v4 Font",
+              bgCss: "body { background: linear-gradient(135deg, #020a1e, #0c1b6a 60%, #1a2eb0) !important; animation: none !important; }",
+              swatch: "linear-gradient(135deg, #020a1e, #0c1b6a, #1a2eb0)",
+            },
           ];
-          var REMOVED_THEMES = new Set(["dynamic", "legacy", "older", "super-beautiful", "material-3", "blueish", "classic", "traditional", "custom-local"]);
+          var REMOVED_THEMES = new Set(["dynamic", "legacy", "older", "super-beautiful", "material-3", "classic", "traditional"]);
           var CUSTOM_THEME_ID = "custom-local";
 
           function hasSavedCustomTheme() {
@@ -24287,6 +24297,7 @@ if (isAmerica250Date && logo) {
             if (themeId === CUSTOM_THEME_ID && hasSavedCustomTheme()) {
               document.documentElement.setAttribute("data-theme", themeId);
               themeStyleEl.textContent = "";
+              window.munetiosApplyCustomTheme?.();
               return;
             }
             var theme =
@@ -29725,7 +29736,7 @@ if (isAmerica250Date && logo) {
       (()=>{
         "use strict";
         // Settings for features that were removed: clear them so they stop applying.
-        ["munetiosCustomTheme","munetiosThemeDraftBg","munetiosThemeDraftAccent","munetiosI18nOverrides"].forEach(key=>{try{localStorage.removeItem(key)}catch(_){}});
+        ["munetiosThemeDraftBg","munetiosThemeDraftAccent","munetiosI18nOverrides"].forEach(key=>{try{localStorage.removeItem(key)}catch(_){}});
         try{sessionStorage.removeItem("munetiosTestError")}catch(_){}
         // Toast color and position (Appearance)
         const toastTranslations={"en":{"toastCustomization":"Toast customization","toastColor":"Toast color","toastPosition":"Toast position","topCenter":"Top center","topRight":"Top right","topLeft":"Top left","bottomRight":"Bottom right","bottomLeft":"Bottom left","bottomCenter":"Bottom center","chooseColor":"Choose color"},"es":{"toastCustomization":"Personalización de avisos","toastColor":"Color del aviso","toastPosition":"Posición del aviso","topCenter":"Arriba al centro","topRight":"Arriba a la derecha","topLeft":"Arriba a la izquierda","bottomRight":"Abajo a la derecha","bottomLeft":"Abajo a la izquierda","bottomCenter":"Abajo al centro","chooseColor":"Elegir color"},"fr":{"toastCustomization":"Personnalisation des notifications","toastColor":"Couleur de notification","toastPosition":"Position de notification","topCenter":"En haut au centre","topRight":"En haut à droite","topLeft":"En haut à gauche","bottomRight":"En bas à droite","bottomLeft":"En bas à gauche","bottomCenter":"En bas au centre","chooseColor":"Choisir une couleur"},"de":{"toastCustomization":"Benachrichtigungen anpassen","toastColor":"Benachrichtigungsfarbe","toastPosition":"Benachrichtigungsposition","topCenter":"Oben mittig","topRight":"Oben rechts","topLeft":"Oben links","bottomRight":"Unten rechts","bottomLeft":"Unten links","bottomCenter":"Unten mittig","chooseColor":"Farbe wählen"},"pt":{"toastCustomization":"Personalização de avisos","toastColor":"Cor do aviso","toastPosition":"Posição do aviso","topCenter":"Superior centro","topRight":"Superior direita","topLeft":"Superior esquerda","bottomRight":"Inferior direita","bottomLeft":"Inferior esquerda","bottomCenter":"Inferior centro","chooseColor":"Escolher cor"},"zh":{"toastCustomization":"通知自定义","toastColor":"通知颜色","toastPosition":"通知位置","topCenter":"顶部居中","topRight":"右上","topLeft":"左上","bottomRight":"右下","bottomLeft":"左下","bottomCenter":"底部居中","chooseColor":"选择颜色"},"ja":{"toastCustomization":"通知のカスタマイズ","toastColor":"通知の色","toastPosition":"通知の位置","topCenter":"上中央","topRight":"右上","topLeft":"左上","bottomRight":"右下","bottomLeft":"左下","bottomCenter":"下中央","chooseColor":"色を選択"}};
@@ -29897,6 +29908,7 @@ if (isAmerica250Date && logo) {
 
     </script>
     <script src="munetios-ui/munetios-ui-v4.js"></script>
+    <script src="shared/home-themes.js"></script>
     
 <script src="munetios-ui/youtube-i18n.js"></script>
     <script src="munetios-ui/youtube-player.js"></script>
