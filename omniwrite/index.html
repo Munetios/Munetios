@@ -10065,7 +10065,7 @@ try {
                 }
                 if (fontEl.hasAttribute('size')) span.style.fontSize = getComputedStyle(fontEl).fontSize;
                 if (fontEl.hasAttribute('color')) span.style.color = fontEl.getAttribute('color');
-                span.style.fontFamily = fontEl.getAttribute('face') || fallbackFont;
+                span.style.fontFamily = withDocumentFontFallback(fontEl.getAttribute('face') || fallbackFont);
                 if (start === fontEl) start = span;
                 if (end === fontEl) end = span;
                 span.append(...fontEl.childNodes);
@@ -14960,6 +14960,20 @@ try {
             return window.MunetiosUI?.appearance.get()?.fontFamily || undefined;
         }
 
+        function withDocumentFontFallback(font) {
+            const fallback = "'Munetios UI v4 Font'";
+            const families = String(font || '').match(/(?:[^,"']|"[^"]*"|'[^']*')+/g)
+                ?.map(family => family.trim()).filter(Boolean) || [];
+            if (families.some(family => family.replace(/^['"]|['"]$/g, '').toLowerCase() === 'munetios ui v4 font')) {
+                return families.join(', ');
+            }
+            const generic = families.findIndex(family => /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-serif|ui-sans-serif|ui-monospace|ui-rounded)$/i.test(family));
+            // An explicit generic choice still takes precedence.
+            if (generic === 0) return families.join(', ');
+            families.splice(generic < 0 ? families.length : generic, 0, fallback);
+            return families.join(', ');
+        }
+
         function getDocumentPaperFont(doc) {
             const family = doc?.defaultFontFamily;
             return typeof family === 'string' && /^[\p{L}\p{M}\p{N} _.-]+$/u.test(family)
@@ -14990,7 +15004,7 @@ try {
                     localStorage.setItem(marker, '1');
                     return fallback;
                 }
-                return saved || fallback;
+                return withDocumentFontFallback(saved || fallback);
             } catch (error) { return fallback; }
         }
 

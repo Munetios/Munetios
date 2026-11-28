@@ -42,7 +42,8 @@
 /* ===================================================================== Tokens */
 :root {
     --mu-accent: var(--mu-account-accent, #8f5cff);
-    --mu-font-family: var(--mu-account-font, 'Munetios UI v4 Font'), 'Munetios UI v4 Font', system-ui, sans-serif;
+    --mu-default-font-family: 'Munetios UI v4 Font', system-ui, sans-serif;
+    --mu-font-family: var(--mu-account-font-stack, var(--mu-default-font-family));
     --mu-blur: blur(2px) saturate(170%) brightness(1.06);
     --mu-backdrop-filter: blur(2px) saturate(160%) brightness(0.88);
 

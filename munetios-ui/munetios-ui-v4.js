@@ -1862,8 +1862,9 @@
     if (JSON.stringify(value) === JSON.stringify(appearance)) return;
     appearance = value;
     if (value?.fontFamily && /^[\p{L}\p{M}\p{N} _.-]+$/u.test(value.fontFamily)) {
-      appearanceRoot.style.setProperty('--mu-account-font', '"' + value.fontFamily + '"');
-    } else appearanceRoot.style.removeProperty('--mu-account-font');
+      appearanceRoot.style.setProperty('--mu-account-font-stack',
+        '"' + value.fontFamily + '", var(--mu-default-font-family)');
+    } else appearanceRoot.style.removeProperty('--mu-account-font-stack');
     if (/^#[0-9a-f]{6}$/i.test(value?.accentColor || '')) {
       appearanceRoot.style.setProperty('--mu-account-accent', value.accentColor);
     } else appearanceRoot.style.removeProperty('--mu-account-accent');
